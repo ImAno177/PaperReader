@@ -68,6 +68,21 @@
     <string name="saving_paper">Saving</string>
     <string name="open_saved_paper">Open</string>
     <string name="save_failed">Could not save this paper. Try again.</string>
+    <string name="search_preview_abstract">Abstract</string>
+    <string name="search_preview_open">View details for %1$s</string>
+    <string name="search_preview_identifiers">Identifiers</string>
+    <string name="search_preview_versions">Available versions</string>
+    <string name="search_preview_subjects">Subjects</string>
+    <string name="search_preview_no_abstract">No abstract was returned by the installed sources.</string>
+    <string name="search_preview_source_page">Open source page</string>
+    <string name="search_preview_pdf">Open PDF</string>
+    <string name="search_preview_link_failed">No app could open this source link.</string>
+    <string name="search_preview_license">License: %1$s</string>
+    <string name="search_preview_citation_source">Count reported by %1$s · checked %2$s</string>
+    <plurals name="search_preview_citations">
+        <item quantity="one">%1$d citation</item>
+        <item quantity="other">%1$d citations</item>
+    </plurals>
 
     <string name="updates_title">Updates</string>
     <string name="save_search_title">Track this search</string>

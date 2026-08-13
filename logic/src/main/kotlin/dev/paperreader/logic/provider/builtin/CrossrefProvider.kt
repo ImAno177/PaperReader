@@ -8,6 +8,7 @@ import dev.paperreader.logic.domain.identity.IdentifierNormalizer
 import dev.paperreader.logic.network.ProviderHttpClient
 import dev.paperreader.logic.network.ProviderRequestGate
 import dev.paperreader.logic.provider.PaperProvider
+import dev.paperreader.logic.provider.CitationMetrics
 import dev.paperreader.logic.provider.PaperSearchQuery
 import dev.paperreader.logic.provider.ProviderDescriptor
 import dev.paperreader.logic.provider.ProviderPage
@@ -17,6 +18,7 @@ import dev.paperreader.logic.provider.SearchSort
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Instant
+import java.time.Clock
 import java.time.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -30,6 +32,7 @@ class CrossrefProvider(
     private val transport: ProviderHttpClient = ProviderHttpClient(),
     private val endpoint: String = "https://api.crossref.org",
     private val requestGate: ProviderRequestGate = ProviderRequestGate(200),
+    private val clock: Clock = Clock.systemUTC(),
 ) : PaperProvider {
     override val descriptor = ProviderDescriptor(
         id = "crossref",
@@ -92,6 +95,9 @@ class CrossrefProvider(
                     publishedDate = published,
                 ),
             ),
+            citationMetrics = item.citedByCount?.takeIf { it >= 0 }?.let { count ->
+                CitationMetrics(count = count, sourceId = descriptor.id, observedAt = clock.instant())
+            },
         )
     }
 
@@ -141,6 +147,7 @@ class CrossrefProvider(
         @SerialName("published-online") val publishedOnline: CrossrefDate? = null,
         val issued: CrossrefDate? = null,
         val updated: CrossrefDateTime? = null,
+        @SerialName("is-referenced-by-count") val citedByCount: Int? = null,
     )
     @Serializable private data class CrossrefAuthor(
         val given: String? = null,

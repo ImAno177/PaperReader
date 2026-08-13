@@ -207,7 +207,10 @@ Rate/quota dưới đây là ảnh chụp ngày 2026-08-11 và phải đọc l�
 - PDF URL trong metadata vẫn có thể trả 401/403/404. Task phải giữ mã lỗi có cấu trúc, còn UI phải giải thích bằng tiếng Anh và dẫn người dùng mở nguồn trong browser; không tự thay URL hoặc xem URL là bằng chứng redistributable.
 - Mỗi provider có token bucket, concurrency, Retry-After, exponential backoff và circuit breaker đơn giản.
 - Kết quả hiện dần; IdentityResolver dedupe theo alias trong khi vẫn cho xem từng source record.
-- Ranking P1 là deterministic: exact identifier, exact title, title relevance, recency. Không cần ML.
+- Ranking P1 là deterministic: exact canonical identifier, exact normalized title, lexical relevance
+  weighted across title/abstract/authors, provider-observed citation count only as a tie-breaker,
+  publication date, then a stable provider-record key. Citation volume never overrides a stronger
+  textual match. Không cần ML.
 - Cache metadata có ETag/Last-Modified khi provider hỗ trợ; TTL theo provider.
 - Không nhúng shared secret trong APK. API key là do người dùng nhập hoặc backend tùy chọn giữ.
 

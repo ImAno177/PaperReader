@@ -1,5 +1,6 @@
 package dev.paperreader.app.ui.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,7 +33,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -78,12 +81,34 @@ fun DiscoverScreen(
     var query by rememberSaveable(state.submittedQuery) {
         mutableStateOf(state.submittedQuery.orEmpty())
     }
+    var previewKey by rememberSaveable(state.submittedQuery) { mutableStateOf<String?>(null) }
+    var previewLinkFailed by rememberSaveable(state.submittedQuery, previewKey) { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    val uriHandler = LocalUriHandler.current
+    val previewResult = state.results.firstOrNull { it.key == previewKey }
     val submitSearch = {
         if (query.isNotBlank() && !state.running) {
             focusManager.clearFocus(force = true)
             onSearch(query)
         }
+    }
+    previewResult?.let { result ->
+        SearchPreviewSheet(
+            result = result,
+            saving = result.key in state.savingKeys,
+            savedWorkId = state.savedWorkIds[result.key],
+            saveFailed = result.key in state.saveFailedKeys,
+            linkOpenFailed = previewLinkFailed,
+            onDismiss = { previewKey = null },
+            onSave = { onSave(result) },
+            onOpenSaved = { workId ->
+                previewKey = null
+                onOpenPaper(workId)
+            },
+            onOpenUrl = { url ->
+                previewLinkFailed = runCatching { uriHandler.openUri(url) }.isFailure
+            },
+        )
     }
     Scaffold(
         topBar = {
@@ -225,6 +250,7 @@ fun DiscoverScreen(
                             saving = result.key in state.savingKeys,
                             savedWorkId = state.savedWorkIds[result.key],
                             saveFailed = result.key in state.saveFailedKeys,
+                            onPreview = { previewKey = result.key },
                             onSave = { onSave(result) },
                             onOpen = onOpenPaper,
                         )
@@ -342,27 +368,38 @@ private fun SearchResultCard(
     saving: Boolean,
     savedWorkId: String?,
     saveFailed: Boolean,
+    onPreview: () -> Unit,
     onSave: () -> Unit,
     onOpen: (String) -> Unit,
 ) {
+    val previewDescription = stringResource(R.string.search_preview_open, result.title)
     PaperSurface {
-        PaperMetaRow(
-            source = result.sourceDisplayNames.joinToString(),
-            year = result.publishedDate?.year?.toString(),
-            identifier = result.primaryIdentifier?.displayValue(),
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(result.title, style = MaterialTheme.typography.titleLarge, maxLines = 3, overflow = TextOverflow.Ellipsis)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            result.authors.joinToString().ifBlank { stringResource(R.string.unknown_authors) },
-            color = PaperTheme.tokens.inkMuted,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        result.abstractText?.let { abstractText ->
-            Spacer(Modifier.height(10.dp))
-            Text(abstractText, maxLines = 4, overflow = TextOverflow.Ellipsis, color = PaperTheme.tokens.inkMuted)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onPreview)
+                .semantics {
+                    contentDescription = previewDescription
+                },
+        ) {
+            PaperMetaRow(
+                source = result.sourceDisplayNames.joinToString(),
+                year = result.publishedDate?.year?.toString(),
+                identifier = result.primaryIdentifier?.displayValue(),
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(result.title, style = MaterialTheme.typography.titleLarge, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                result.authors.joinToString().ifBlank { stringResource(R.string.unknown_authors) },
+                color = PaperTheme.tokens.inkMuted,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            result.abstractText?.let { abstractText ->
+                Spacer(Modifier.height(10.dp))
+                Text(abstractText, maxLines = 4, overflow = TextOverflow.Ellipsis, color = PaperTheme.tokens.inkMuted)
+            }
         }
         Spacer(Modifier.height(12.dp))
         if (savedWorkId == null) {

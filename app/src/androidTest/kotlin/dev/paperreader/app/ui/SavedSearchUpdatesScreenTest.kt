@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.ui.screen.DiscoverScreen
 import dev.paperreader.app.ui.screen.UpdatesScreen
+import dev.paperreader.app.ui.model.toSearchPaperUi
 import dev.paperreader.app.ui.theme.PaperReaderTheme
 import dev.paperreader.app.ui.theme.PaperThemePreset
 import dev.paperreader.logic.domain.SavedSearch
@@ -26,6 +27,10 @@ import dev.paperreader.logic.provider.ProviderDescriptor
 import dev.paperreader.logic.provider.ProviderManagerState
 import dev.paperreader.logic.provider.ProviderOrigin
 import dev.paperreader.logic.provider.RemotePaper
+import dev.paperreader.logic.provider.RemoteManifestation
+import dev.paperreader.logic.provider.CitationMetrics
+import dev.paperreader.logic.domain.ManifestationType
+import dev.paperreader.logic.usecase.SearchResultCluster
 import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -111,6 +116,49 @@ class SavedSearchUpdatesScreenTest {
 
         composeRule.onNodeWithText("Save search").assertExists()
         composeRule.onNodeWithText("View in Updates").assertDoesNotExist()
+    }
+
+    @Test
+    fun discoverResultOpensAFullRemotePreviewBeforeSaving() {
+        composeRule.enableAccessibilityChecks()
+        val result = SearchResultCluster(
+            listOf(
+                RemotePaper(
+                    providerId = "crossref",
+                    providerRecordId = "10.1000/preview",
+                    title = "A remote paper worth previewing",
+                    abstractText = "This complete abstract remains readable before the paper is saved locally.",
+                    manifestations = listOf(
+                        RemoteManifestation(
+                            type = ManifestationType.VERSION_OF_RECORD,
+                            landingPageUrl = "https://doi.org/10.1000/preview",
+                            pdfUrl = "https://example.org/paper.pdf",
+                            license = "CC BY 4.0",
+                        ),
+                    ),
+                    citationMetrics = CitationMetrics(42, "crossref", NOW),
+                ),
+            ),
+        ).toSearchPaperUi(mapOf("crossref" to "Crossref"))
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DiscoverScreen(
+                    state = SearchUiState(submittedQuery = "remote preview", results = listOf(result)),
+                    onSearch = {},
+                    onClear = {},
+                    onSave = {},
+                    onOpenPaper = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("A remote paper worth previewing").performClick()
+
+        composeRule.onNodeWithText("Abstract").assertExists()
+        composeRule.onNodeWithText("42 citations").assertExists()
+        composeRule.onNodeWithText("Available versions").assertExists()
+        composeRule.onNodeWithText("Open source page").assertExists()
+        composeRule.onNodeWithText("Open PDF").assertExists()
     }
 
     @Test

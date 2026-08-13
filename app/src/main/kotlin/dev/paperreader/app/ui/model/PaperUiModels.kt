@@ -64,8 +64,29 @@ data class SearchPaperUi(
     val sources: List<String>,
     val sourceDisplayNames: List<String> = sources.map(String::displayProviderName),
     val primaryIdentifier: PaperIdentifier?,
+    val identifiers: List<PaperIdentifier>,
     val abstractText: String?,
+    val subjects: List<String>,
+    val manifestations: List<SearchManifestationUi>,
+    val citationMetrics: SearchCitationMetricsUi?,
     val records: List<RemotePaper>,
+)
+
+data class SearchManifestationUi(
+    val source: String,
+    val sourceDisplayName: String,
+    val type: ManifestationType,
+    val version: String?,
+    val publishedDate: LocalDate?,
+    val landingPageUrl: String?,
+    val pdfUrl: String?,
+    val license: String?,
+)
+
+data class SearchCitationMetricsUi(
+    val count: Int,
+    val sourceDisplayName: String,
+    val observedAt: Instant,
 )
 
 data class ReadingHistoryUi(
@@ -139,8 +160,17 @@ fun SearchResultCluster.toSearchPaperUi(providerNames: Map<String, String> = emp
     )
     val primary = orderedRecords.first()
     val identifiers = orderedRecords.flatMap { it.identifiers }.distinct().sortedWith(identifierComparator)
+    val citationMetrics = orderedRecords.mapNotNull(RemotePaper::citationMetrics)
+        .sortedWith(
+            compareBy<dev.paperreader.logic.provider.CitationMetrics> { if (it.sourceId == "crossref") 0 else 1 }
+                .thenByDescending { it.observedAt }
+                .thenBy { it.sourceId },
+        )
+        .firstOrNull()
     return SearchPaperUi(
-        key = orderedRecords.joinToString("|") { "${it.providerId}:${it.providerRecordId}" },
+        // Cluster records retain arrival order; the first record remains the cluster representative
+        // as later exact aliases arrive, so in-flight preview/save state keeps the same key.
+        key = records.first().let { "${it.providerId}:${it.providerRecordId}" },
         title = primary.title,
         authors = primary.authors.map { it.displayName },
         publishedDate = primary.publishedDate,
@@ -149,7 +179,37 @@ fun SearchResultCluster.toSearchPaperUi(providerNames: Map<String, String> = emp
             providerNames[record.providerId] ?: record.providerId.displayProviderName()
         }.distinct().sorted(),
         primaryIdentifier = identifiers.firstOrNull(),
+        identifiers = identifiers,
         abstractText = orderedRecords.firstNotNullOfOrNull { it.abstractText?.takeIf(String::isNotBlank) },
+        subjects = orderedRecords.flatMap { it.subjects }.distinct().sorted(),
+        manifestations = orderedRecords.flatMap { record ->
+            record.manifestations.map { manifestation ->
+                SearchManifestationUi(
+                    source = record.providerId,
+                    sourceDisplayName = providerNames[record.providerId] ?: record.providerId.displayProviderName(),
+                    type = manifestation.type,
+                    version = manifestation.version,
+                    publishedDate = manifestation.publishedDate,
+                    landingPageUrl = manifestation.landingPageUrl,
+                    pdfUrl = manifestation.pdfUrl,
+                    license = manifestation.license,
+                )
+            }
+        }.distinct().sortedWith(
+            compareBy<SearchManifestationUi>(
+                { manifestationPriority.getValue(it.type) },
+                { it.source.lowercase() },
+                { it.version.orEmpty() },
+                { it.landingPageUrl.orEmpty() },
+            ),
+        ),
+        citationMetrics = citationMetrics?.let { metrics ->
+            SearchCitationMetricsUi(
+                count = metrics.count,
+                sourceDisplayName = providerNames[metrics.sourceId] ?: metrics.sourceId.displayProviderName(),
+                observedAt = metrics.observedAt,
+            )
+        },
         records = orderedRecords,
     )
 }

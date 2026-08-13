@@ -46,6 +46,7 @@ import dev.paperreader.logic.task.TaskState
 import dev.paperreader.logic.usecase.FederatedSearchEvent
 import dev.paperreader.logic.usecase.SearchResultClusterer
 import dev.paperreader.logic.usecase.SearchResultCluster
+import dev.paperreader.logic.usecase.SearchResultRanker
 import dev.paperreader.logic.usecase.RefreshSavedSearchResult
 import dev.paperreader.logic.usecase.SaveSavedSearchHitResult
 import dev.paperreader.logic.domain.repository.CreateSavedSearchResult
@@ -309,7 +310,10 @@ class PaperReaderViewModel internal constructor(
                         is FederatedSearchEvent.PageReceived -> {
                             records += event.page.items
                             mutableSearch.value = mutableSearch.value.copy(
-                                results = SearchResultClusterer.cluster(records).map { cluster ->
+                                results = SearchResultRanker.rank(
+                                    submitted,
+                                    SearchResultClusterer.cluster(records),
+                                ).map { cluster ->
                                     val names = providers.value.installed.associate {
                                         it.descriptor.id to it.descriptor.displayName
                                     }

@@ -12,7 +12,8 @@
         "link": [{"URL":"https://example.org/paper.pdf", "content-type":"application/pdf"}],
         "license": [{"URL":"https://creativecommons.org/licenses/by/4.0/"}],
         "published-online": {"date-parts":[[2023,7,2]]},
-        "updated": {"date-time":"2024-02-03T10:20:30Z"}
+        "updated": {"date-time":"2024-02-03T10:20:30Z"},
+        "is-referenced-by-count": 42
       }
     ]
   }

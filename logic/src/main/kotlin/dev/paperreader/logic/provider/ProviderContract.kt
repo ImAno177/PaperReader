@@ -56,6 +56,17 @@ data class RemoteManifestation(
     }
 }
 
+data class CitationMetrics(
+    val count: Int,
+    val sourceId: String,
+    val observedAt: Instant,
+) {
+    init {
+        require(count >= 0)
+        require(sourceId.length in 1..100 && sourceId.matches(Regex("[a-z0-9][a-z0-9._-]*")))
+    }
+}
+
 data class RemotePaper(
     val providerId: String,
     val providerRecordId: String,
@@ -67,6 +78,7 @@ data class RemotePaper(
     val publishedDate: LocalDate? = null,
     val updatedAt: Instant? = null,
     val manifestations: List<RemoteManifestation> = emptyList(),
+    val citationMetrics: CitationMetrics? = null,
 ) {
     init {
         require(providerId.isNotBlank())

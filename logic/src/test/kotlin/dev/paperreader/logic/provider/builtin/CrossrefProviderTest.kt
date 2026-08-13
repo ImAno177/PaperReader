@@ -4,6 +4,9 @@ import dev.paperreader.logic.domain.IdentifierType
 import dev.paperreader.logic.provider.PaperSearchQuery
 import dev.paperreader.logic.provider.SearchSort
 import java.io.File
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -15,7 +18,8 @@ import org.junit.Test
 class CrossrefProviderTest {
     @Test fun parsesSearchMessageAndMapsMetadata() {
         val body = File("src/test/resources/provider/crossref-search.json").readText()
-        val provider = CrossrefProvider()
+        val observedAt = Instant.parse("2026-08-13T00:00:00Z")
+        val provider = CrossrefProvider(clock = Clock.fixed(observedAt, ZoneOffset.UTC))
         val page = provider.parseBody(body)
         val paper = page.items.single()
         assertEquals("10.1234/abc.1", paper.providerRecordId)
@@ -24,6 +28,9 @@ class CrossrefProviderTest {
         assertEquals("2023-07-02", paper.publishedDate.toString())
         assertTrue(paper.identifiers.contains(dev.paperreader.logic.domain.PaperIdentifier(IdentifierType.DOI, "10.1234/abc.1")))
         assertEquals("https://example.org/paper.pdf", paper.manifestations.single().pdfUrl)
+        assertEquals(42, paper.citationMetrics?.count)
+        assertEquals("crossref", paper.citationMetrics?.sourceId)
+        assertEquals(observedAt, paper.citationMetrics?.observedAt)
         assertEquals("next-token", page.nextCursor)
     }
 

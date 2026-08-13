@@ -125,7 +125,13 @@ Room entity classes are public only because the current Room/KSP processor needs
 - Shared metadata transport rejects successful response bodies beyond 8 MiB before parsing, including
   chunked responses without `Content-Length`; provider failures remain typed.
 - Provider manager: `StateFlow` lifecycle, built-in shadowing protection, runtime registration/removal, available/untrusted catalogs, and missing-provider stubs.
-- Federated search: takes a provider-manager snapshot, isolates provider failures, and clusters exact aliases while keeping similar titles separate.
+- Federated search: takes a provider-manager snapshot, isolates provider failures, clusters exact
+  aliases while keeping similar titles separate, and applies one deterministic local ranker after
+  every incremental page. Exact identifiers and textual relevance precede Crossref's observed
+  citation count; provider completion order cannot change the final ordering.
+  Citation metrics remain provider observations in transient search and bounded saved-search
+  snapshots; they are not canonical Work metadata and are intentionally not copied into Room library
+  entities until a provenance-aware multi-source metric history is designed.
 - Saved-search updates: deterministic query/provider identity; Room-backed per-provider
   `lastChecked`/`lastSuccess` and typed rate-limit/unavailable/invalid-response state; bounded,
   versioned `RemotePaper` snapshots; baseline-aware unread detection; exact-alias-only optional Work
@@ -185,8 +191,11 @@ Room entity classes are public only because the current Room/KSP processor needs
   paper detail. Assigned labels appear on detail, collection deletion keeps papers, and no mock or
   presentation-only collection state is used.
 - Live federated arXiv/Crossref discovery with incremental results, isolated source failures,
-  save/open transitions, exact-identifier behavior, and an idempotent action to track the submitted
-  query with the provider snapshot that actually ran. `ACTION_SEND text/plain` accepts only one
+  deterministic query-aware ranking, and a transient remote preview with the full abstract,
+  identifiers, subjects, source/version/license/access links, and provenance-labelled citation
+  count before Save. Previewing never writes Room; save/open transitions remain explicit. Search
+  also provides an idempotent action to track the submitted query with the provider snapshot that
+  actually ran. `ACTION_SEND text/plain` accepts only one
   unambiguous DOI or arXiv identifier/URL, preserves an exact arXiv version, opens Discover, and
   submits through that same federated pipeline. Unsupported or ambiguous text is never sent to a
   provider and receives explicit English feedback.

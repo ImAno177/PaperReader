@@ -7,8 +7,8 @@ import kotlinx.serialization.protobuf.ProtoNumber
 import java.time.Instant
 
 
-const val METADATA_BACKUP_SCHEMA_VERSION: Int = 1
-const val METADATA_BACKUP_DATABASE_VERSION: Int = 3
+const val METADATA_BACKUP_SCHEMA_VERSION: Int = 2
+const val METADATA_BACKUP_DATABASE_VERSION: Int = 4
 const val MAX_METADATA_BACKUP_ARCHIVE_BYTES: Int = 10 * 1024 * 1024
 const val MAX_METADATA_BACKUP_PAYLOAD_BYTES: Int = 8 * 1024 * 1024
 const val METADATA_BACKUP_ENTRY_NAME: String = "metadata.pb"
@@ -21,6 +21,8 @@ data class MetadataBackupSummary(
     val bookmarks: Int,
     val annotations: Int,
     val history: Int,
+    val savedSearches: Int = 0,
+    val savedSearchHits: Int = 0,
 )
 
 data class MetadataBackupExport(
@@ -69,6 +71,8 @@ sealed interface MetadataRestoreResult {
         val appliedBookmarks: Int,
         val appliedAnnotations: Int,
         val skippedRecords: Int,
+        val appliedSavedSearches: Int = 0,
+        val appliedSavedSearchHits: Int = 0,
     ) : MetadataRestoreResult
 
     data class Rejected(val error: MetadataBackupError.Rejected) : MetadataRestoreResult
@@ -87,6 +91,7 @@ internal data class MetadataBackupProto(
     @ProtoNumber(9) val histories: List<BackupHistoryProto> = emptyList(),
     @ProtoNumber(10) val bookmarks: List<BackupBookmarkProto> = emptyList(),
     @ProtoNumber(11) val annotations: List<BackupAnnotationProto> = emptyList(),
+    @ProtoNumber(12) val savedSearches: List<BackupSavedSearchProto> = emptyList(),
 )
 
 @Serializable
@@ -193,4 +198,34 @@ internal data class BackupAnnotationProto(
     @ProtoNumber(12) val color: String? = null,
     @ProtoNumber(13) val createdAtEpochMillis: Long,
     @ProtoNumber(14) val updatedAtEpochMillis: Long,
+)
+
+@Serializable
+internal data class BackupSavedSearchProto(
+    @ProtoNumber(1) val queryText: String,
+    @ProtoNumber(2) val createdAtEpochMillis: Long,
+    @ProtoNumber(3) val sources: List<BackupSavedSearchSourceProto> = emptyList(),
+    @ProtoNumber(4) val hits: List<BackupSavedSearchHitProto> = emptyList(),
+)
+
+@Serializable
+internal data class BackupSavedSearchSourceProto(
+    @ProtoNumber(1) val providerId: String,
+    @ProtoNumber(2) val lastCheckedAtEpochMillis: Long? = null,
+    @ProtoNumber(3) val lastSuccessAtEpochMillis: Long? = null,
+    @ProtoNumber(4) val failureKind: String? = null,
+    @ProtoNumber(5) val retryAfterEpochMillis: Long? = null,
+)
+
+@Serializable
+internal data class BackupSavedSearchHitProto(
+    @ProtoNumber(1) val providerId: String,
+    @ProtoNumber(2) val providerRecordId: String,
+    @ProtoNumber(3) val fingerprint: String,
+    @ProtoNumber(4) val recordPayload: String,
+    @ProtoNumber(5) val linkedWorkSourceId: String? = null,
+    @ProtoNumber(6) val providerUpdatedAtEpochMillis: Long? = null,
+    @ProtoNumber(7) val firstSeenAtEpochMillis: Long,
+    @ProtoNumber(8) val lastSeenAtEpochMillis: Long,
+    @ProtoNumber(9) val unread: Boolean,
 )

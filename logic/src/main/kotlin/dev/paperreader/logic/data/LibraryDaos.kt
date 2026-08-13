@@ -375,6 +375,15 @@ interface ReadingBookmarkDao {
 
 @Dao
 interface SavedSearchDao {
+    @Query("SELECT * FROM saved_searches ORDER BY createdAtEpochMillis, id")
+    suspend fun getAllSearches(): List<SavedSearchEntity>
+
+    @Query("SELECT * FROM saved_search_sources ORDER BY searchId, providerId")
+    suspend fun getAllSources(): List<SavedSearchSourceEntity>
+
+    @Query("SELECT * FROM saved_search_hits ORDER BY searchId, providerId, providerRecordId")
+    suspend fun getAllHits(): List<SavedSearchHitEntity>
+
     @Transaction
     @Query("SELECT * FROM saved_searches ORDER BY createdAtEpochMillis DESC, id")
     fun observeFeeds(): Flow<List<SavedSearchAggregate>>

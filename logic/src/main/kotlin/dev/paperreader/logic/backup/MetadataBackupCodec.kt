@@ -5,9 +5,12 @@ import dev.paperreader.logic.domain.LOCAL_PDF_SOURCE_ID
 import dev.paperreader.logic.domain.ManifestationType
 import dev.paperreader.logic.domain.PaperIdentifier
 import dev.paperreader.logic.domain.ReadingStatus
+import dev.paperreader.logic.domain.SavedSearchFailureKind
 import dev.paperreader.logic.domain.identity.IdentifierNormalizer
 import dev.paperreader.logic.domain.identity.IdentityResolver
 import dev.paperreader.logic.domain.normalizeCollectionName
+import dev.paperreader.logic.domain.normalizeSavedSearchQuery
+import dev.paperreader.logic.data.SavedSearchRecordCodec
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -25,7 +28,9 @@ internal const val FORMAT_MARKER = "paper-reader-metadata"
 private const val MAX_ITEMS = 50_000
 private const val MAX_STRING_CHARS = 200_000
 private const val MAX_EPOCH_MILLIS = 253402300799999L
+private const val MAX_SAVED_SEARCH_HITS_PER_SOURCE = 200
 private val SHA_256 = Regex("[0-9a-f]{64}")
+private val PROVIDER_ID = Regex("[a-z0-9][a-z0-9._-]*")
 
 internal sealed interface DecodedBackup {
     data class Valid(val value: MetadataBackupProto) : DecodedBackup
@@ -44,6 +49,8 @@ private data class ManifestationLogicalKey(
 )
 
 private data class MembershipKey(val workSourceId: String, val collectionName: String)
+private data class SavedSearchKey(val queryText: String, val providerIds: List<String>)
+private data class SavedSearchHitKey(val providerId: String, val providerRecordId: String)
 private data class BookmarkKey(
     val workSourceId: String,
     val manifestationSourceId: String,
@@ -127,7 +134,7 @@ internal object MetadataBackupCodec {
 
     private fun validate(value: MetadataBackupProto): DecodedBackup {
         if (value.formatMarker != FORMAT_MARKER) return invalid("format_mismatch", "Unsupported backup format")
-        if (value.schemaVersion != METADATA_BACKUP_SCHEMA_VERSION) {
+        if (value.schemaVersion !in 1..METADATA_BACKUP_SCHEMA_VERSION) {
             return invalid("schema_unsupported", "Unsupported backup schema")
         }
         if (value.databaseVersion !in 1..METADATA_BACKUP_DATABASE_VERSION) {
@@ -143,6 +150,7 @@ internal object MetadataBackupCodec {
                 value.histories.size,
                 value.bookmarks.size,
                 value.annotations.size,
+                value.savedSearches.size,
             ).any { it > MAX_ITEMS }
         ) {
             return invalid("too_many_items", "Backup item limit exceeded")
@@ -150,9 +158,14 @@ internal object MetadataBackupCodec {
         if (
             value.works.sumOf { it.authors.size.toLong() } > MAX_ITEMS ||
             value.works.sumOf { it.identifiers.size.toLong() } > MAX_ITEMS ||
-            value.works.sumOf { it.manifestations.size.toLong() } > MAX_ITEMS
+            value.works.sumOf { it.manifestations.size.toLong() } > MAX_ITEMS ||
+            value.savedSearches.sumOf { it.sources.size.toLong() } > MAX_ITEMS ||
+            value.savedSearches.sumOf { it.hits.size.toLong() } > MAX_ITEMS
         ) {
             return invalid("too_many_items", "Nested backup item limit exceeded")
+        }
+        if (value.schemaVersion < 2 && value.savedSearches.isNotEmpty()) {
+            return invalid("schema_feature_mismatch", "Saved searches require backup schema 2")
         }
 
         val exactAliases = HashSet<String>()
@@ -356,6 +369,67 @@ internal object MetadataBackupCodec {
                     validEpochMillis(annotation.createdAtEpochMillis) &&
                     validEpochMillis(annotation.updatedAtEpochMillis) &&
                     annotation.createdAtEpochMillis <= annotation.updatedAtEpochMillis,
+            )
+        }
+
+        val savedSearchKeys = HashSet<SavedSearchKey>()
+        value.savedSearches.forEach { search ->
+            checkString(search.queryText)
+            val normalizedQuery = normalizeSavedSearchQuery(search.queryText)
+            require(normalizedQuery == search.queryText && validEpochMillis(search.createdAtEpochMillis))
+            require(search.sources.isNotEmpty())
+            val providerIds = search.sources.map { it.providerId }
+            require(providerIds == providerIds.sorted() && providerIds.distinct().size == providerIds.size)
+            require(providerIds.all(PROVIDER_ID::matches))
+            if (!savedSearchKeys.add(SavedSearchKey(search.queryText, providerIds))) {
+                return invalid("duplicate_saved_search", "Duplicate saved-search identity")
+            }
+            search.sources.forEach { source ->
+                checkString(source.providerId)
+                checkString(source.failureKind)
+                require(source.lastCheckedAtEpochMillis == null || validEpochMillis(source.lastCheckedAtEpochMillis))
+                require(source.lastSuccessAtEpochMillis == null || validEpochMillis(source.lastSuccessAtEpochMillis))
+                require(source.retryAfterEpochMillis == null || validEpochMillis(source.retryAfterEpochMillis))
+                require(source.lastSuccessAtEpochMillis == null || source.lastCheckedAtEpochMillis != null)
+                if (source.lastCheckedAtEpochMillis != null && source.lastSuccessAtEpochMillis != null) {
+                    require(source.lastSuccessAtEpochMillis <= source.lastCheckedAtEpochMillis)
+                }
+                val failure = source.failureKind?.let(SavedSearchFailureKind::valueOf)
+                require(failure == null || source.lastCheckedAtEpochMillis != null)
+                require(
+                    source.retryAfterEpochMillis == null || failure == SavedSearchFailureKind.RATE_LIMITED,
+                )
+            }
+            val hitKeys = HashSet<SavedSearchHitKey>()
+            search.hits.forEach { hit ->
+                checkString(hit.providerId)
+                checkString(hit.providerRecordId)
+                checkString(hit.fingerprint)
+                checkText(hit.recordPayload)
+                checkString(hit.linkedWorkSourceId)
+                require(hit.providerId in providerIds && hit.providerRecordId.isNotBlank())
+                require(hit.fingerprint.matches(SHA_256))
+                require(hit.linkedWorkSourceId == null || hit.linkedWorkSourceId in workSourceIds)
+                require(hit.providerUpdatedAtEpochMillis == null || validEpochMillis(hit.providerUpdatedAtEpochMillis))
+                require(
+                    validEpochMillis(hit.firstSeenAtEpochMillis) &&
+                        validEpochMillis(hit.lastSeenAtEpochMillis) &&
+                        hit.firstSeenAtEpochMillis <= hit.lastSeenAtEpochMillis,
+                )
+                if (!hitKeys.add(SavedSearchHitKey(hit.providerId, hit.providerRecordId))) {
+                    return invalid("duplicate_saved_search_hit", "Duplicate saved-search hit identity")
+                }
+                val record = runCatching { SavedSearchRecordCodec.decode(hit.recordPayload) }.getOrNull()
+                require(
+                    record != null &&
+                        record.providerId.lowercase(Locale.ROOT) == hit.providerId &&
+                        record.providerRecordId == hit.providerRecordId &&
+                        SavedSearchRecordCodec.fingerprint(hit.recordPayload) == hit.fingerprint,
+                )
+            }
+            require(
+                search.hits.groupingBy { it.providerId }.eachCount().values
+                    .all { it <= MAX_SAVED_SEARCH_HITS_PER_SOURCE },
             )
         }
         return DecodedBackup.Valid(value)

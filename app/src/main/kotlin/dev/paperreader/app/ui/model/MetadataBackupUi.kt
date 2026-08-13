@@ -10,6 +10,8 @@ data class MetadataBackupSummaryUi(
     val bookmarks: Int,
     val annotations: Int,
     val historyEntries: Int,
+    val savedSearches: Int = 0,
+    val savedSearchHits: Int = 0,
 )
 
 data class MetadataRestorePreviewUi(
@@ -38,6 +40,8 @@ data class MetadataRestoreReportUi(
     val appliedBookmarks: Int,
     val appliedAnnotations: Int,
     val skippedRecords: Int,
+    val appliedSavedSearches: Int = 0,
+    val appliedSavedSearchHits: Int = 0,
 )
 
 enum class MetadataBackupOperation {

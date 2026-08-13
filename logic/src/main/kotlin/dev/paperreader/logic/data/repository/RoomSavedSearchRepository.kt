@@ -254,14 +254,14 @@ private fun SavedSearchHitEntity.toDomain(): SavedSearchHit {
     )
 }
 
-private fun stableHitId(searchId: SavedSearchId, providerId: String, providerRecordId: String): String {
+internal fun stableHitId(searchId: SavedSearchId, providerId: String, providerRecordId: String): String {
     val key = "${searchId.value}|$providerId|$providerRecordId"
     return "ssh-" + MessageDigest.getInstance("SHA-256")
         .digest(key.toByteArray(Charsets.UTF_8))
         .joinToString("") { "%02x".format(it) }
 }
 
-private fun stableSavedSearchId(queryText: String, providerIds: List<String>): SavedSearchId {
+internal fun stableSavedSearchId(queryText: String, providerIds: List<String>): SavedSearchId {
     val key = queryText + "|" + providerIds.joinToString(",")
     return SavedSearchId(
         "ss-" + MessageDigest.getInstance("SHA-256")

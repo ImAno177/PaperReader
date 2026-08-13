@@ -881,6 +881,8 @@ class PaperReaderViewModel internal constructor(
                                     skippedWorks = result.skippedWorks,
                                     appliedBookmarks = result.appliedBookmarks,
                                     appliedAnnotations = result.appliedAnnotations,
+                                    appliedSavedSearches = result.appliedSavedSearches,
+                                    appliedSavedSearchHits = result.appliedSavedSearchHits,
                                     skippedRecords = result.skippedRecords,
                                 ),
                             )
@@ -1127,6 +1129,8 @@ private fun MetadataBackupSummary.toUi() = MetadataBackupSummaryUi(
     bookmarks = bookmarks,
     annotations = annotations,
     historyEntries = history,
+    savedSearches = savedSearches,
+    savedSearchHits = savedSearchHits,
 )
 
 private fun MetadataRestorePreview.toUi() = MetadataRestorePreviewUi(

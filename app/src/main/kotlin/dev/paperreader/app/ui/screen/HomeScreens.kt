@@ -2319,6 +2319,16 @@ private fun MetadataRestoreDialog(
                             it.summary.annotations,
                             it.summary.annotations,
                         ),
+                        pluralStringResource(
+                            R.plurals.restore_count_saved_searches,
+                            it.summary.savedSearches,
+                            it.summary.savedSearches,
+                        ),
+                        pluralStringResource(
+                            R.plurals.restore_count_saved_search_hits,
+                            it.summary.savedSearchHits,
+                            it.summary.savedSearchHits,
+                        ),
                     )
                     Text(counts.take(3).joinToString(" · ") + "\n" + counts.drop(3).joinToString(" · "))
                     Text(
@@ -2991,10 +3001,10 @@ private fun MetadataBackupStatus(
         is MetadataBackupUiState.Exported -> {
             Spacer(Modifier.height(12.dp))
             Text(
-                pluralStringResource(
-                    R.plurals.metadata_backup_saved,
+                stringResource(
+                    R.string.metadata_backup_saved_details,
                     state.summary.works,
-                    state.summary.works,
+                    state.summary.savedSearches,
                 ),
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 color = PaperTheme.tokens.success,
@@ -3007,6 +3017,8 @@ private fun MetadataBackupStatus(
                 stringResource(
                     R.string.metadata_backup_restored,
                     state.report.appliedWorks,
+                    state.report.appliedSavedSearches,
+                    state.report.appliedSavedSearchHits,
                     state.report.skippedWorks,
                     state.report.skippedRecords,
                 ),

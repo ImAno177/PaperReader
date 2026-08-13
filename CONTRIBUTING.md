@@ -19,14 +19,13 @@ large UI, schema, provider, reader, or dependency changes.
 
 1. Create a small branch and add the smallest deterministic test that proves the behavior.
 2. Update exported Room schemas and migrations for persistence changes.
-3. Update `SPEC.md`, `ARCHITECTURE.md`, or `docs/MIHON_ARCHITECTURE.md` when a documented decision
-   changes.
+3. Update `docs/SPEC.md` or `docs/ARCHITECTURE.md` when a documented decision changes.
 4. Run the required gate:
 
-```powershell
-.\gradlew.bat :logic:testDebugUnitTest :logic:lintDebug `
-  :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
-```
+   ```powershell
+   .\gradlew.bat :logic:testDebugUnitTest :logic:lintDebug `
+     :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+   ```
 
 5. Run connected tests for Android runtime/UI changes and report the device/API used.
 

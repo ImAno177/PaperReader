@@ -1,4 +1,4 @@
-# Ứng dụng Android đọc paper khoa học — nghiên cứu và đặc tả kiến trúc
+# PaperReader product specification and technical research
 
 > Trạng thái: vertical slice UI/logic đã có live search, Room library, PDF download thật, Original PDF reader nội bộ và mobile reader từ official arXiv HTML; PDF-to-reflow/OCR vẫn đang triển khai
 > Ngày chốt nguồn: 2026-08-11

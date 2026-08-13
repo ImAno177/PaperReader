@@ -54,21 +54,15 @@ import dev.paperreader.app.ui.theme.PaperTheme
 
 @Composable
 fun PaperAppBarTitle(text: String) {
-    Column(horizontalAlignment = Alignment.Start) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontFamily = PaperTheme.tokens.titleFont,
-                fontWeight = FontWeight.Bold,
-            ),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        StyleDecoration(
-            modifier = Modifier.width(88.dp),
-            height = 7.dp,
-        )
-    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.headlineSmall.copy(
+            fontFamily = PaperTheme.tokens.titleFont,
+            fontWeight = FontWeight.Bold,
+        ),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 @Composable

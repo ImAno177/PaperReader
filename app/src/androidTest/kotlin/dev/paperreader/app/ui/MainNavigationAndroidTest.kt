@@ -1,5 +1,6 @@
 package dev.paperreader.app.ui
 
+import android.content.pm.ActivityInfo
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.MainActivity
 import org.junit.Rule
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -56,6 +58,53 @@ class MainNavigationAndroidTest {
             waitForPrimaryNavigation(visible = true)
             composeRule.onNode(hasText("More") and hasClickAction()).assertIsSelected()
         }
+    }
+
+    @Test
+    fun bottomNavigationKeepsTheVisualTileInsideItsLargerTouchTarget() {
+        waitForScreenTitle("Library")
+
+        val hitBounds = composeRule
+            .onAllNodesWithTag("${PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX}library", useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .single()
+            .boundsInRoot
+        val visualBounds = composeRule
+            .onAllNodesWithTag("${PRIMARY_NAVIGATION_ITEM_VISUAL_TEST_TAG_PREFIX}library", useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .single()
+            .boundsInRoot
+
+        assertTrue(visualBounds.left > hitBounds.left)
+        assertTrue(visualBounds.right < hitBounds.right)
+        assertTrue(hitBounds.width > visualBounds.width)
+        assertTrue(hitBounds.height > visualBounds.height)
+    }
+
+    @Test
+    fun navigationRailStaysNarrowOnWideLayouts() {
+        composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithTag(PRIMARY_NAVIGATION_TEST_TAG)
+                .fetchSemanticsNodes()
+                .singleOrNull()
+                ?.boundsInRoot
+                ?.let { bounds -> bounds.height > bounds.width } == true
+        }
+
+        val railBounds = composeRule.onAllNodesWithTag(PRIMARY_NAVIGATION_TEST_TAG)
+            .fetchSemanticsNodes()
+            .single()
+            .boundsInRoot
+        val itemBounds = composeRule
+            .onAllNodesWithTag("${PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX}library", useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .single()
+            .boundsInRoot
+
+        assertTrue(railBounds.height > railBounds.width)
+        assertTrue(itemBounds.width <= railBounds.width)
+        assertTrue(itemBounds.width < railBounds.height)
     }
 
     private fun waitForScreenTitle(text: String) {

@@ -13,11 +13,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -131,6 +133,8 @@ internal fun shouldShowPrimaryNavigation(route: String?): Boolean =
     route != AppRoutes.DETAIL && route?.startsWith("${AppRoutes.MORE}/") != true
 
 internal const val PRIMARY_NAVIGATION_TEST_TAG = "primary-navigation"
+internal const val PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX = "primary-navigation-hit-"
+internal const val PRIMARY_NAVIGATION_ITEM_VISUAL_TEST_TAG_PREFIX = "primary-navigation-visual-"
 
 private fun isDestinationSelected(destination: AppDestination, currentRoute: String?): Boolean =
     if (destination == AppDestination.MORE) isMoreRoute(currentRoute) else currentRoute == destination.route
@@ -668,21 +672,33 @@ private fun AdaptiveAppShell(
                         contentColor = PaperTheme.tokens.ink,
                         tonalElevation = 0.dp,
                     ) {
-                        destinations.forEach { destination ->
+                        destinations.forEachIndexed { index, destination ->
                             val selected = isDestinationSelected(destination, currentRoute)
                             val label = stringResource(destination.labelRes)
                             PaperDestinationItem(
-                                modifier = Modifier.weight(1f).padding(horizontal = 1.dp, vertical = 4.dp),
+                                modifier = Modifier.weight(1f),
                                 selected = selected,
                                 onClick = { onNavigate(destination) },
                                 icon = destination.icon,
                                 label = label,
+                                testKey = destination.route,
+                                visualPadding = PaddingValues(
+                                    start = if (index == 0) 16.dp else 4.dp,
+                                    top = 4.dp,
+                                    end = if (index == destinations.lastIndex) 16.dp else 4.dp,
+                                    bottom = 4.dp,
+                                ),
                             )
                         }
                     }
                 },
             ) { padding ->
-                content(Modifier.fillMaxSize().padding(padding))
+                content(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .consumeWindowInsets(padding),
+                )
             }
         } else {
             Row(modifier = Modifier.fillMaxSize()) {
@@ -696,11 +712,12 @@ private fun AdaptiveAppShell(
                         val selected = isDestinationSelected(destination, currentRoute)
                         val label = stringResource(destination.labelRes)
                         PaperDestinationItem(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).widthIn(min = 76.dp),
+                            modifier = Modifier.padding(vertical = 4.dp).width(80.dp),
                             selected = selected,
                             onClick = { onNavigate(destination) },
                             icon = destination.icon,
                             label = label,
+                            testKey = destination.route,
                         )
                     }
                 }
@@ -717,32 +734,44 @@ private fun PaperDestinationItem(
     icon: PaperIconKey,
     label: String,
     modifier: Modifier = Modifier,
+    testKey: String,
+    visualPadding: PaddingValues = PaddingValues(4.dp),
 ) {
     val tokens = PaperTheme.tokens
-    Surface(
+    Box(
         modifier = modifier
-            .heightIn(min = 72.dp)
+            .height(72.dp)
+            .testTag("$PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX$testKey")
             .selectable(selected = selected, onClick = onClick, role = Role.Tab),
-        shape = RoundedCornerShape(tokens.cornerRadius),
-        color = if (selected) tokens.primaryContainer else Color.Transparent,
-        contentColor = if (selected) tokens.onPrimaryContainer else tokens.inkMuted,
-        border = if (selected) BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border) else null,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
+        contentAlignment = Alignment.Center,
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 1.dp, vertical = 7.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(visualPadding)
+                .testTag("$PRIMARY_NAVIGATION_ITEM_VISUAL_TEST_TAG_PREFIX$testKey"),
+            shape = RoundedCornerShape(tokens.cornerRadius),
+            color = if (selected) tokens.primaryContainer else Color.Transparent,
+            contentColor = if (selected) tokens.onPrimaryContainer else tokens.inkMuted,
+            border = if (selected) BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border) else null,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
         ) {
-            PaperIcon(icon, contentDescription = null)
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-            )
+            Column(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 1.dp, vertical = 7.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+            ) {
+                PaperIcon(icon, contentDescription = null)
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }

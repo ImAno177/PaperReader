@@ -374,10 +374,13 @@
     <string name="readable_reader_annotation_delete_title">Delete this highlight?</string>
     <string name="readable_reader_annotation_delete_body">The selected quote and its research note will be removed from this device.</string>
     <string name="readable_reader_search_hint">Find text in this paper</string>
-    <string name="readable_reader_search_action">Find</string>
-    <string name="readable_reader_search_empty">Enter text to search this paper.</string>
     <string name="readable_reader_search_count">Match %1$d of %2$d</string>
-    <string name="readable_reader_search_no_results">No matches in this paper.</string>
+    <string name="readable_reader_search_no_results_short">0 matches</string>
+    <string name="readable_reader_searching">…</string>
+    <string name="readable_reader_search_previous">Previous match</string>
+    <string name="readable_reader_search_next">Next match</string>
+    <string name="readable_reader_search_close">Close paper search</string>
+    <string name="readable_reader_citation_return">Back to reading</string>
     <string name="readable_reader_text_smaller">Decrease text size</string>
     <string name="readable_reader_text_larger">Increase text size</string>
     <string name="readable_reader_text_smaller_short">A&#8722;</string>

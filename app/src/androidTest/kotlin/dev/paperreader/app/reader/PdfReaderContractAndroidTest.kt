@@ -6,9 +6,13 @@ import android.content.Intent
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
+import android.widget.ImageButton
+import android.widget.LinearLayout
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.task.DownloadedPaper
@@ -92,5 +96,37 @@ class PdfReaderContractAndroidTest {
         val minimumTouchTarget = (48 * context.resources.displayMetrics.density).toInt()
         assertTrue(view.minimumHeight >= minimumTouchTarget)
         assertTrue(view.minimumWidth >= minimumTouchTarget)
+    }
+
+    @Test
+    fun readableReaderFindAndCitationControlsStartHiddenWithAccessibleTargets() {
+        val themedContext = ContextThemeWrapper(context, R.style.Theme_PaperReader_PdfReader)
+        lateinit var root: View
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            root = LayoutInflater.from(themedContext).inflate(R.layout.activity_readable_paper, null)
+        }
+        try {
+            val findBar = root.findViewById<LinearLayout>(R.id.readable_reader_find_bar)
+            val citationReturn = root.findViewById<Button>(R.id.readable_reader_citation_return)
+            val controls = listOf(
+                root.findViewById<ImageButton>(R.id.readable_reader_find_previous),
+                root.findViewById<ImageButton>(R.id.readable_reader_find_next),
+                root.findViewById<ImageButton>(R.id.readable_reader_find_close),
+            )
+
+            assertEquals(View.GONE, findBar.visibility)
+            assertEquals(View.GONE, citationReturn.visibility)
+            val minimumTouchTarget = (48 * context.resources.displayMetrics.density).toInt()
+            controls.forEach { control ->
+                assertTrue(control.layoutParams.width >= minimumTouchTarget)
+                assertTrue(control.layoutParams.height >= minimumTouchTarget)
+                assertTrue(control.contentDescription.isNotBlank())
+            }
+            assertTrue(citationReturn.minimumHeight >= minimumTouchTarget)
+        } finally {
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                root.findViewById<ReadablePaperWebView>(R.id.readable_reader_webview).destroy()
+            }
+        }
     }
 }

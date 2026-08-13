@@ -118,6 +118,18 @@ class ReadablePaperRenderingTest {
     }
 
     @Test
+    fun `renderer rewrites only bounded bibliography links to the app-owned citation route`() {
+        val source = """<p><a href = '#bib.bib12'>[12]</a> <a href="#bib.bib13">[13]</a> <a href="#S3.SS2">section</a> <a href="https://example.org">web</a></p>"""
+
+        val rewritten = rewriteBibliographyLinks(source)
+
+        assertTrue(rewritten.contains("href='paperreader-citation://anchor/bib.bib12'"))
+        assertTrue(rewritten.contains("href=\"paperreader-citation://anchor/bib.bib13\""))
+        assertTrue(rewritten.contains("href=\"#S3.SS2\""))
+        assertTrue(rewritten.contains("href=\"https://example.org\""))
+    }
+
+    @Test
     fun `renderer applies only bounded readable layout presets`() {
         val html = renderReadablePaperHtml(
             sanitizedBodyHtml = "<article><p>Paper</p></article>",

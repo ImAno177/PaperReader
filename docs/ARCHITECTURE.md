@@ -237,7 +237,8 @@ Room entity classes are public only because the current Room/KSP processor needs
   Anchors use UTF-16 block offsets, quote prefix/exact/suffix, and the exact sanitized-document
   SHA-256. Notes never enter renderer JavaScript, overlaps are rejected transactionally, and a
   changed document remains stale rather than being silently re-anchored. The reader provides
-  a native table of contents, in-document search,
+  a native table of contents, a persistent native find bar with live match count and previous/next
+  navigation, and a native return action after bounded bibliography jumps,
   selectable text, 85–200% reversible text sizing, responsive figures, scrollable math/tables,
   source/version/license disclosure, the persisted System/Light/Dark appearance mode, offline cache reopening, exact
   document-hash progress restoration, reading sessions, and an always-available Original PDF

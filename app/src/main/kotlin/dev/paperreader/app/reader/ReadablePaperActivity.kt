@@ -18,12 +18,14 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.activity.addCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -76,6 +78,8 @@ class ReadablePaperActivity : AppCompatActivity() {
     private lateinit var loading: ProgressBar
     private lateinit var errorContainer: LinearLayout
     private lateinit var errorBody: TextView
+    private lateinit var findController: ReadablePaperFindController
+    private lateinit var citationReturnButton: Button
     private val sessionState: ReaderSessionViewModel by viewModels()
     private var currentDocument: ReadablePaperDocument? = null
     private var loadJob: Job? = null
@@ -83,6 +87,7 @@ class ReadablePaperActivity : AppCompatActivity() {
     private var annotationJob: Job? = null
     private var pendingRestoreProgression = 0.0
     private var restoredInstanceProgression: Double? = null
+    private var restoredDocumentSha256: String? = null
     private var documentLoaded = false
     private var restorationReady = false
     private var readerResumed = false
@@ -93,6 +98,9 @@ class ReadablePaperActivity : AppCompatActivity() {
     private var communityTheme: CommunityPaperTheme? = null
     private lateinit var readerIcons: PaperIconSet
     private var currentAnnotations: List<Annotation> = emptyList()
+    private var citationReturnScrollY: Int? = null
+    private var citationReturnProgression: Double? = null
+    private var restoredCitationReturnProgression: Double? = null
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(newBase.withEnglishLocale())
@@ -119,6 +127,14 @@ class ReadablePaperActivity : AppCompatActivity() {
             ?.takeIf { it.getString(STATE_MANIFESTATION_ID) == readerArgs.manifestationId.value }
             ?.getDouble(STATE_PROGRESSION)
             ?.coerceIn(0.0, 1.0)
+        restoredDocumentSha256 = savedInstanceState?.getString(STATE_DOCUMENT_SHA256)
+        restoredCitationReturnProgression = savedInstanceState
+            ?.takeIf {
+                it.getString(STATE_MANIFESTATION_ID) == readerArgs.manifestationId.value &&
+                    it.containsKey(STATE_CITATION_RETURN_PROGRESSION)
+            }
+            ?.getDouble(STATE_CITATION_RETURN_PROGRESSION)
+            ?.coerceIn(0.0, 1.0)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_readable_paper)
         applySystemBarInsets(findViewById(R.id.readable_reader_root))
@@ -126,6 +142,9 @@ class ReadablePaperActivity : AppCompatActivity() {
         applyCommunityChrome()
         configureToolbar()
         configureWebView()
+        onBackPressedDispatcher.addCallback(this) {
+            if (findController.isVisible) findController.hide(clearQuery = true) else finish()
+        }
         findViewById<Button>(R.id.readable_reader_retry).setOnClickListener { loadDocument() }
         findViewById<Button>(R.id.readable_reader_original_pdf).setOnClickListener { openOriginalPdf() }
         loadDocument()
@@ -151,7 +170,11 @@ class ReadablePaperActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         currentDocument?.let {
             outState.putString(STATE_MANIFESTATION_ID, readerArgs.manifestationId.value)
+            outState.putString(STATE_DOCUMENT_SHA256, it.documentSha256)
             outState.putDouble(STATE_PROGRESSION, webView.currentProgression())
+            citationReturnProgression?.let { progression ->
+                outState.putDouble(STATE_CITATION_RETURN_PROGRESSION, progression)
+            }
         }
         super.onSaveInstanceState(outState)
     }
@@ -179,6 +202,32 @@ class ReadablePaperActivity : AppCompatActivity() {
         loading = findViewById(R.id.readable_reader_loading)
         errorContainer = findViewById(R.id.readable_reader_error)
         errorBody = findViewById(R.id.readable_reader_error_body)
+        val previous = findViewById<ImageButton>(R.id.readable_reader_find_previous)
+        val next = findViewById<ImageButton>(R.id.readable_reader_find_next)
+        val close = findViewById<ImageButton>(R.id.readable_reader_find_close)
+        previous.setImageDrawable(readerIcons.drawable(this, PaperIconKey.BACK))
+        next.setImageDrawable(readerIcons.drawable(this, PaperIconKey.FORWARD))
+        close.setImageDrawable(readerIcons.drawable(this, PaperIconKey.CLOSE))
+        findController = ReadablePaperFindController(
+            context = this,
+            webView = webView,
+            container = findViewById(R.id.readable_reader_find_bar),
+            queryInput = findViewById(R.id.readable_reader_find_query),
+            resultLabel = findViewById(R.id.readable_reader_find_result),
+            previousButton = previous,
+            nextButton = next,
+            closeButton = close,
+        )
+        citationReturnButton = findViewById<Button>(R.id.readable_reader_citation_return).apply {
+            setCompoundDrawablesRelativeWithIntrinsicBounds(
+                readerIcons.drawable(this@ReadablePaperActivity, PaperIconKey.BACK),
+                null,
+                null,
+                null,
+            )
+            compoundDrawablePadding = (8 * resources.displayMetrics.density).roundToInt()
+            setOnClickListener { returnFromCitation() }
+        }
     }
 
     private fun configureToolbar() {
@@ -186,7 +235,9 @@ class ReadablePaperActivity : AppCompatActivity() {
         toolbar.subtitle = getString(R.string.readable_reader_subtitle)
         toolbar.navigationIcon = readerIcons.drawable(this, PaperIconKey.BACK)
         toolbar.navigationContentDescription = getString(R.string.back)
-        toolbar.setNavigationOnClickListener { finish() }
+        toolbar.setNavigationOnClickListener {
+            if (findController.isVisible) findController.hide(clearQuery = true) else finish()
+        }
         toolbar.inflateMenu(R.menu.readable_reader_actions)
         toolbar.menu.findItem(R.id.action_search_readable).icon = readerIcons.drawable(this, PaperIconKey.SEARCH)
         toolbar.menu.findItem(R.id.action_readable_contents).icon = readerIcons.drawable(this, PaperIconKey.LIST)
@@ -207,7 +258,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.action_search_readable -> {
-                    showSearchDialog()
+                    findController.show()
                     true
                 }
                 R.id.action_readable_contents -> {
@@ -304,7 +355,22 @@ class ReadablePaperActivity : AppCompatActivity() {
     }
 
     private fun handleNavigation(uri: Uri): Boolean {
+        bibliographyAnchorFromCitationTarget(uri.toString())?.let { anchor ->
+            val hadOrigin = citationReturnProgression != null
+            if (!hadOrigin) rememberCitationOrigin()
+            citationReturnButton.visibility = View.VISIBLE
+            webView.scrollToDocumentAnchor(anchor) { found ->
+                if (!found && !hadOrigin) clearCitationReturn()
+            }
+            return true
+        }
         if (uri.scheme == "https" && uri.host == LOCAL_RENDERER_HOST && uri.path == LOCAL_RENDERER_PATH) {
+            if (isBibliographyAnchor(uri.fragment)) {
+                if (citationReturnProgression == null) rememberCitationOrigin()
+                citationReturnButton.visibility = View.VISIBLE
+            } else if (uri.fragment != null) {
+                clearCitationReturn()
+            }
             return false
         }
         if (uri.scheme in setOf("https", "mailto") && uri.userInfo == null) {
@@ -320,6 +386,8 @@ class ReadablePaperActivity : AppCompatActivity() {
         restorationReady = false
         currentDocument = null
         currentAnnotations = emptyList()
+        findController.hide(clearQuery = true)
+        clearCitationReturn()
         webView.visibility = View.INVISIBLE
         displayedProgressPercent = -1
         toolbar.subtitle = getString(R.string.readable_reader_subtitle)
@@ -366,8 +434,12 @@ class ReadablePaperActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.readable_reader_annotation_load_failed, Toast.LENGTH_LONG).show()
             emptyList()
         }
-        pendingRestoreProgression = restoredInstanceProgression ?: databaseProgress ?: 0.0
+        val exactRestoredProgression = restoredInstanceProgression
+            ?.takeIf { restoredDocumentSha256 == document.documentSha256 }
+        if (restoredDocumentSha256 != document.documentSha256) restoredCitationReturnProgression = null
+        pendingRestoreProgression = exactRestoredProgression ?: databaseProgress ?: 0.0
         restoredInstanceProgression = null
+        restoredDocumentSha256 = null
         currentDocument = document
         toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = true
         toolbar.menu.findItem(R.id.action_search_readable).isEnabled = true
@@ -411,6 +483,11 @@ class ReadablePaperActivity : AppCompatActivity() {
         webView.visibility = View.VISIBLE
         documentLoaded = true
         webView.restoreProgression(pendingRestoreProgression)
+        restoredCitationReturnProgression?.let { progression ->
+            citationReturnProgression = progression
+            citationReturnButton.visibility = View.VISIBLE
+            restoredCitationReturnProgression = null
+        }
         webView.postDelayed({
             if (isDestroyed || !documentLoaded) return@postDelayed
             restorationReady = true
@@ -590,49 +667,27 @@ class ReadablePaperActivity : AppCompatActivity() {
         toolbar.subtitle = getString(R.string.readable_reader_subtitle_progress, percent)
     }
 
-    private fun showSearchDialog() {
-        if (!documentLoaded) return
-        val input = EditText(this).apply {
-            inputType = InputType.TYPE_CLASS_TEXT
-            hint = getString(R.string.readable_reader_search_hint)
-            contentDescription = hint
-            setSingleLine(true)
+    private fun returnFromCitation() {
+        val scrollY = citationReturnScrollY
+        val progression = citationReturnProgression
+        if (scrollY == null && progression == null) return
+        if (scrollY != null) {
+            webView.scrollTo(0, scrollY)
+        } else {
+            webView.restoreProgression(checkNotNull(progression))
         }
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(R.string.readable_reader_search)
-            .setView(input)
-            .setNegativeButton(R.string.cancel, null)
-            .setPositiveButton(R.string.readable_reader_search_action, null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val query = input.text.toString().trim()
-                if (query.isEmpty()) {
-                    input.error = getString(R.string.readable_reader_search_empty)
-                    return@setOnClickListener
-                }
-                webView.setFindListener { activeMatchOrdinal, numberOfMatches, isDoneCounting ->
-                    if (!isDoneCounting) return@setFindListener
-                    Toast.makeText(
-                        this,
-                        if (numberOfMatches == 0) {
-                            getString(R.string.readable_reader_search_no_results)
-                        } else {
-                            getString(
-                                R.string.readable_reader_search_count,
-                                activeMatchOrdinal + 1,
-                                numberOfMatches,
-                            )
-                        },
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
-                webView.findAllAsync(query)
-                dialog.dismiss()
-            }
-            input.requestFocus()
-        }
-        dialog.show()
+        clearCitationReturn()
+    }
+
+    private fun rememberCitationOrigin() {
+        citationReturnScrollY = webView.scrollY
+        citationReturnProgression = webView.currentProgression()
+    }
+
+    private fun clearCitationReturn() {
+        citationReturnScrollY = null
+        citationReturnProgression = null
+        citationReturnButton.visibility = View.GONE
     }
 
     private fun showTableOfContents() {
@@ -660,7 +715,8 @@ class ReadablePaperActivity : AppCompatActivity() {
     }
 
     private fun navigateToSection(section: ReadablePaperSection) {
-        webView.clearMatches()
+        findController.hide(clearQuery = true)
+        clearCitationReturn()
         webView.scrollToDocumentAnchor(section.anchor) { found ->
             if (!found && !isDestroyed) {
                 Toast.makeText(this, R.string.readable_reader_contents_empty, Toast.LENGTH_SHORT).show()
@@ -1009,6 +1065,8 @@ class ReadablePaperActivity : AppCompatActivity() {
 
     private fun reloadReadableLayout() {
         val document = currentDocument ?: return
+        findController.hide(clearQuery = true)
+        clearCitationReturn()
         pendingRestoreProgression = webView.currentProgression()
         progressSaveJob?.cancel()
         documentLoaded = false
@@ -1163,13 +1221,13 @@ class ReadablePaperActivity : AppCompatActivity() {
         private const val EXTRA_THEME_PRESET = "dev.paperreader.app.reader.READABLE_THEME_PRESET"
         internal const val EXTRA_THEME_MODE = "dev.paperreader.app.reader.READABLE_THEME_MODE"
         private const val STATE_MANIFESTATION_ID = "readable_manifestation_id"
+        private const val STATE_DOCUMENT_SHA256 = "readable_document_sha256"
         private const val STATE_PROGRESSION = "readable_progression"
+        private const val STATE_CITATION_RETURN_PROGRESSION = "readable_citation_return_progression"
         private const val READER_PREFERENCES = "readable-reader"
         private const val PREFERENCE_TEXT_ZOOM = "text-zoom"
         private const val PREFERENCE_TEXT_SPACING = "text-spacing"
         private const val PREFERENCE_SIDE_MARGIN = "side-margin"
-        private const val LOCAL_RENDERER_HOST = "appassets.androidplatform.net"
-        private const val LOCAL_RENDERER_PATH = "/readable/"
         private const val LOCAL_RENDERER_URL = "https://$LOCAL_RENDERER_HOST$LOCAL_RENDERER_PATH"
         private const val DEFAULT_TEXT_ZOOM = 100
         private const val MINIMUM_TEXT_ZOOM = 85

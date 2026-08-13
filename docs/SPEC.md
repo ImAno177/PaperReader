@@ -1,6 +1,6 @@
 # PaperReader product specification and technical research
 
-> Trạng thái: vertical slice UI/logic đã có live search, Room library, PDF download thật, Original PDF reader nội bộ và mobile reader từ official arXiv HTML; PDF-to-reflow/OCR vẫn đang triển khai
+> Trạng thái: vertical slice UI/logic đã có live search, Room library, PDF download thật, Original PDF reader nội bộ và mobile reader từ official arXiv HTML với find bar, TOC và citation return; PDF-to-reflow/OCR vẫn đang triển khai
 > Ngày chốt nguồn: 2026-08-11
 > Quyết định đã chốt với người dùng: local-first, ưu tiên GitHub/F-Droid, minSdk 28, Apache-2.0, reader reflow là mặc định, PDF gốc là chế độ đối chiếu, annotation đầu tiên là highlight + note sidecar; mốc hiện tại là spec
 > Tên dự án trong tài liệu chỉ là “Paper Reader”; tên thương hiệu và package ID chưa chốt.

@@ -1,0 +1,6 @@
+/.github/dependabot.yml @ImAno177
+/.github/workflows/ @ImAno177
+/gradle/ @ImAno177
+/build.gradle.kts @ImAno177
+/settings.gradle.kts @ImAno177
+**/build.gradle.kts @ImAno177

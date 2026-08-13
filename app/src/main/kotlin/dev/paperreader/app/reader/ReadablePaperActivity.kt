@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.SystemClock
 import android.text.InputType
+import android.text.InputFilter
 import android.util.TypedValue
 import android.view.View
 import android.webkit.WebResourceRequest
@@ -40,7 +41,13 @@ import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.paperIconSet
 import dev.paperreader.app.withEnglishLocale
 import dev.paperreader.logic.domain.ManifestationId
+import dev.paperreader.logic.domain.Annotation
+import dev.paperreader.logic.domain.AnnotationSelection
+import dev.paperreader.logic.domain.MAX_ANNOTATION_NOTE_LENGTH
 import dev.paperreader.logic.domain.WorkId
+import dev.paperreader.logic.domain.repository.RemoveAnnotationResult
+import dev.paperreader.logic.domain.repository.SaveAnnotationResult
+import dev.paperreader.logic.domain.repository.UpdateAnnotationNoteResult
 import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.reader.ReadablePaperFailure
 import dev.paperreader.logic.reader.ReadablePaperResult
@@ -52,6 +59,8 @@ import java.util.Locale
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
@@ -70,6 +79,7 @@ class ReadablePaperActivity : AppCompatActivity() {
     private var currentDocument: ReadablePaperDocument? = null
     private var loadJob: Job? = null
     private var progressSaveJob: Job? = null
+    private var annotationJob: Job? = null
     private var pendingRestoreProgression = 0.0
     private var restoredInstanceProgression: Double? = null
     private var documentLoaded = false
@@ -81,6 +91,7 @@ class ReadablePaperActivity : AppCompatActivity() {
     private var displayedProgressPercent = -1
     private var communityTheme: CommunityPaperTheme? = null
     private lateinit var readerIcons: PaperIconSet
+    private var currentAnnotations: List<Annotation> = emptyList()
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(newBase.withEnglishLocale())
@@ -144,9 +155,11 @@ class ReadablePaperActivity : AppCompatActivity() {
     override fun onDestroy() {
         loadJob?.cancel()
         progressSaveJob?.cancel()
+        annotationJob?.cancel()
         if (::webView.isInitialized) {
-            webView.cancelDocumentAnchorNavigation()
+            webView.cancelAppOwnedCommand()
             webView.onProgressionChanged = null
+            webView.onHighlightSelectionRequested = null
             webView.webViewClient = WebViewClient()
             webView.stopLoading()
             webView.removeAllViews()
@@ -173,6 +186,9 @@ class ReadablePaperActivity : AppCompatActivity() {
         toolbar.inflateMenu(R.menu.readable_reader_actions)
         toolbar.menu.findItem(R.id.action_search_readable).icon = readerIcons.drawable(this, PaperIconKey.SEARCH)
         toolbar.menu.findItem(R.id.action_readable_contents).icon = readerIcons.drawable(this, PaperIconKey.LIST)
+        toolbar.menu.findItem(R.id.action_annotate_selection).icon = readerIcons.drawable(this, PaperIconKey.EDIT)
+        toolbar.menu.findItem(R.id.action_readable_annotations).icon =
+            readerIcons.drawable(this, PaperIconKey.BOOKMARKS)
         toolbar.menu.findItem(R.id.action_reading_layout).icon = readerIcons.drawable(this, PaperIconKey.PALETTE)
         toolbar.menu.findItem(R.id.action_open_original_pdf).icon =
             readerIcons.drawable(this, PaperIconKey.OPEN_EXTERNAL)
@@ -181,6 +197,8 @@ class ReadablePaperActivity : AppCompatActivity() {
         toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = false
         toolbar.menu.findItem(R.id.action_search_readable).isEnabled = false
         toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = false
+        toolbar.menu.findItem(R.id.action_annotate_selection).isEnabled = false
+        toolbar.menu.findItem(R.id.action_readable_annotations).isEnabled = false
         toolbar.menu.findItem(R.id.action_reading_layout).isEnabled = false
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -190,6 +208,14 @@ class ReadablePaperActivity : AppCompatActivity() {
                 }
                 R.id.action_readable_contents -> {
                     showTableOfContents()
+                    true
+                }
+                R.id.action_annotate_selection -> {
+                    captureAnnotationSelection()
+                    true
+                }
+                R.id.action_readable_annotations -> {
+                    showAnnotations()
                     true
                 }
                 R.id.action_reading_layout -> {
@@ -263,22 +289,14 @@ class ReadablePaperActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView, url: String) {
                 if (url != LOCAL_RENDERER_URL || currentDocument == null) return
                 if (documentLoaded) return
-                loading.visibility = View.GONE
-                webView.visibility = View.VISIBLE
-                documentLoaded = true
-                webView.restoreProgression(pendingRestoreProgression)
-                webView.postDelayed({
-                    if (isDestroyed || !documentLoaded) return@postDelayed
-                    restorationReady = true
-                    updateProgress(webView.currentProgression())
-                }, RESTORE_SETTLE_MILLIS)
-                if (readerResumed) sessionState.resume(SystemClock.elapsedRealtime())
+                webView.applyAnnotations(currentAnnotations) { finishReadablePageLoad() }
             }
         }
         webView.onProgressionChanged = { progression ->
             updateProgress(progression)
             if (restorationReady) scheduleProgressSave(progression)
         }
+        webView.onHighlightSelectionRequested = ::captureAnnotationSelection
     }
 
     private fun handleNavigation(uri: Uri): Boolean {
@@ -293,9 +311,11 @@ class ReadablePaperActivity : AppCompatActivity() {
 
     private fun loadDocument() {
         loadJob?.cancel()
+        annotationJob?.cancel()
         documentLoaded = false
         restorationReady = false
         currentDocument = null
+        currentAnnotations = emptyList()
         webView.visibility = View.INVISIBLE
         displayedProgressPercent = -1
         toolbar.subtitle = getString(R.string.readable_reader_subtitle)
@@ -305,6 +325,8 @@ class ReadablePaperActivity : AppCompatActivity() {
         toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = false
         toolbar.menu.findItem(R.id.action_search_readable).isEnabled = false
         toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = false
+        toolbar.menu.findItem(R.id.action_annotate_selection).isEnabled = false
+        toolbar.menu.findItem(R.id.action_readable_annotations).isEnabled = false
         toolbar.menu.findItem(R.id.action_reading_layout).isEnabled = false
         loadJob = lifecycleScope.launch {
             val result = try {
@@ -328,12 +350,26 @@ class ReadablePaperActivity : AppCompatActivity() {
 
     private suspend fun showDocument(document: ReadablePaperDocument) {
         val databaseProgress = prepareReadingState(document)
+        currentAnnotations = try {
+            withContext(Dispatchers.IO) {
+                (application as PaperReaderApplication).logic.useCases.observeAnnotations
+                    .subscribe(readerArgs.workId, document.documentSha256)
+                    .first()
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            Toast.makeText(this, R.string.readable_reader_annotation_load_failed, Toast.LENGTH_LONG).show()
+            emptyList()
+        }
         pendingRestoreProgression = restoredInstanceProgression ?: databaseProgress ?: 0.0
         restoredInstanceProgression = null
         currentDocument = document
         toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = true
         toolbar.menu.findItem(R.id.action_search_readable).isEnabled = true
         toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = document.sections.isNotEmpty()
+        toolbar.menu.findItem(R.id.action_annotate_selection).isEnabled = true
+        updateAnnotationMenu()
         toolbar.menu.findItem(R.id.action_reading_layout).isEnabled = true
         val provenanceText = getString(
             if (document.servedFromCache) {
@@ -363,6 +399,56 @@ class ReadablePaperActivity : AppCompatActivity() {
         }.joinToString("\n")
         provenance.visibility = View.VISIBLE
         loadRenderedDocument(document)
+    }
+
+    private fun finishReadablePageLoad() {
+        if (isDestroyed || currentDocument == null || documentLoaded) return
+        loading.visibility = View.GONE
+        webView.visibility = View.VISIBLE
+        documentLoaded = true
+        webView.restoreProgression(pendingRestoreProgression)
+        webView.postDelayed({
+            if (isDestroyed || !documentLoaded) return@postDelayed
+            restorationReady = true
+            updateProgress(webView.currentProgression())
+        }, RESTORE_SETTLE_MILLIS)
+        if (readerResumed) sessionState.resume(SystemClock.elapsedRealtime())
+        observeAnnotations(checkNotNull(currentDocument))
+    }
+
+    private fun observeAnnotations(document: ReadablePaperDocument) {
+        annotationJob?.cancel()
+        annotationJob = lifecycleScope.launch {
+            try {
+                (application as PaperReaderApplication).logic.useCases.observeAnnotations
+                    .subscribe(readerArgs.workId, document.documentSha256)
+                    .collectLatest { annotations ->
+                        if (currentDocument?.documentSha256 != document.documentSha256) return@collectLatest
+                        val anchorsChanged = !currentAnnotations.hasSameRenderedAnchors(annotations)
+                        currentAnnotations = annotations
+                        updateAnnotationMenu()
+                        if (documentLoaded && anchorsChanged) webView.applyAnnotations(annotations)
+                    }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                Toast.makeText(
+                    this@ReadablePaperActivity,
+                    R.string.readable_reader_annotation_load_failed,
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
+    private fun updateAnnotationMenu() {
+        val item = toolbar.menu.findItem(R.id.action_readable_annotations)
+        item.isEnabled = currentDocument != null
+        item.title = if (currentAnnotations.isEmpty()) {
+            getString(R.string.readable_reader_annotations)
+        } else {
+            getString(R.string.readable_reader_annotations_count, currentAnnotations.size)
+        }
     }
 
     private suspend fun loadRenderedDocument(document: ReadablePaperDocument) {
@@ -576,6 +662,256 @@ class ReadablePaperActivity : AppCompatActivity() {
                 Toast.makeText(this, R.string.readable_reader_contents_empty, Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun captureAnnotationSelection() {
+        if (!documentLoaded) return
+        webView.captureTextSelection { result ->
+            when (result) {
+                is ReadableSelectionResult.Ready -> {
+                    webView.clearTextSelection()
+                    showCreateAnnotationDialog(result.selection)
+                }
+                is ReadableSelectionResult.Unavailable -> Toast.makeText(
+                    this,
+                    when (result.reason) {
+                        ReadableSelectionFailure.EMPTY -> R.string.readable_reader_annotation_select_text
+                        ReadableSelectionFailure.CROSS_BLOCK -> R.string.readable_reader_annotation_single_block
+                        ReadableSelectionFailure.TOO_LONG -> R.string.readable_reader_annotation_too_long
+                        ReadableSelectionFailure.INVALID -> R.string.readable_reader_annotation_invalid_selection
+                    },
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
+    private fun showCreateAnnotationDialog(selection: ReadableTextSelection) {
+        val document = currentDocument ?: return
+        val noteInput = annotationNoteInput()
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.readable_reader_add_highlight)
+            .setMessage(getString(R.string.readable_reader_selected_quote, selection.quoteExact))
+            .setView(noteInput)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.save, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val anchor = runCatching {
+                    AnnotationSelection(
+                        documentSha256 = document.documentSha256,
+                        blockId = selection.blockId,
+                        startOffset = selection.startOffset,
+                        endOffset = selection.endOffset,
+                        quotePrefix = selection.quotePrefix,
+                        quoteExact = selection.quoteExact,
+                        quoteSuffix = selection.quoteSuffix,
+                    )
+                }.getOrNull()
+                if (anchor == null) {
+                    Toast.makeText(this, R.string.readable_reader_annotation_invalid_selection, Toast.LENGTH_LONG).show()
+                    dialog.dismiss()
+                    return@setOnClickListener
+                }
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
+                lifecycleScope.launch {
+                    val result = try {
+                        withContext(Dispatchers.IO) {
+                            (application as PaperReaderApplication).logic.useCases.saveAnnotation.await(
+                                readerArgs.workId,
+                                anchor,
+                                noteInput.text.toString(),
+                            )
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        Toast.makeText(
+                            this@ReadablePaperActivity,
+                            R.string.readable_reader_annotation_save_failed,
+                            Toast.LENGTH_LONG,
+                        ).show()
+                        dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                        return@launch
+                    }
+                    when (result) {
+                        is SaveAnnotationResult.Saved -> {
+                            Toast.makeText(
+                                this@ReadablePaperActivity,
+                                if (result.created) R.string.readable_reader_annotation_saved
+                                else R.string.readable_reader_annotation_updated,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                            dialog.dismiss()
+                        }
+                        SaveAnnotationResult.OverlapsExisting -> {
+                            Toast.makeText(
+                                this@ReadablePaperActivity,
+                                R.string.readable_reader_annotation_overlap,
+                                Toast.LENGTH_LONG,
+                            ).show()
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                        }
+                        SaveAnnotationResult.InvalidNote -> {
+                            noteInput.error = getString(R.string.readable_reader_annotation_note_too_long)
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                        }
+                        SaveAnnotationResult.PaperNotFound,
+                        SaveAnnotationResult.DocumentNotCurrent,
+                        -> {
+                            Toast.makeText(
+                                this@ReadablePaperActivity,
+                                R.string.readable_reader_annotation_stale_document,
+                                Toast.LENGTH_LONG,
+                            ).show()
+                            dialog.dismiss()
+                        }
+                    }
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showAnnotations() {
+        if (currentAnnotations.isEmpty()) {
+            Toast.makeText(this, R.string.readable_reader_annotations_empty, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val labels = currentAnnotations.map { annotation ->
+            val quote = annotation.quoteExact.replace(Regex("\\s+"), " ").trim().take(72)
+            if (annotation.note.isNullOrBlank()) quote else getString(R.string.readable_reader_annotation_with_note, quote)
+        }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.readable_reader_annotations_count, currentAnnotations.size))
+            .setItems(labels) { dialog, index ->
+                showAnnotationActions(currentAnnotations[index])
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.close, null)
+            .show()
+    }
+
+    private fun showAnnotationActions(annotation: Annotation) {
+        val actions = arrayOf(
+            getString(R.string.readable_reader_annotation_jump),
+            getString(R.string.readable_reader_annotation_edit_note),
+            getString(R.string.readable_reader_annotation_delete),
+        )
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.readable_reader_selected_quote, annotation.quoteExact))
+            .setMessage(annotation.note ?: getString(R.string.readable_reader_annotation_no_note))
+            .setItems(actions) { dialog, which ->
+                when (which) {
+                    0 -> webView.scrollToAnnotation(annotation.id) { found ->
+                        if (!found) Toast.makeText(
+                            this,
+                            R.string.readable_reader_annotation_anchor_missing,
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                    1 -> showEditAnnotationNoteDialog(annotation)
+                    2 -> confirmDeleteAnnotation(annotation)
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.close, null)
+            .show()
+    }
+
+    private fun showEditAnnotationNoteDialog(annotation: Annotation) {
+        val noteInput = annotationNoteInput(annotation.note)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.readable_reader_annotation_edit_note)
+            .setView(noteInput)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.save, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
+                lifecycleScope.launch {
+                    val result = try {
+                        withContext(Dispatchers.IO) {
+                            (application as PaperReaderApplication).logic.useCases.updateAnnotationNote
+                                .await(annotation.id, noteInput.text.toString())
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        Toast.makeText(
+                            this@ReadablePaperActivity,
+                            R.string.readable_reader_annotation_save_failed,
+                            Toast.LENGTH_LONG,
+                        ).show()
+                        dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                        return@launch
+                    }
+                    when (result) {
+                        is UpdateAnnotationNoteResult.Updated -> dialog.dismiss()
+                        UpdateAnnotationNoteResult.InvalidNote -> {
+                            noteInput.error = getString(R.string.readable_reader_annotation_note_too_long)
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                        }
+                        UpdateAnnotationNoteResult.NotFound -> {
+                            Toast.makeText(
+                                this@ReadablePaperActivity,
+                                R.string.readable_reader_annotation_missing,
+                                Toast.LENGTH_LONG,
+                            ).show()
+                            dialog.dismiss()
+                        }
+                    }
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun confirmDeleteAnnotation(annotation: Annotation) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.readable_reader_annotation_delete_title)
+            .setMessage(R.string.readable_reader_annotation_delete_body)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                lifecycleScope.launch {
+                    val result = try {
+                        withContext(Dispatchers.IO) {
+                            (application as PaperReaderApplication).logic.useCases.removeAnnotation.await(annotation.id)
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        Toast.makeText(
+                            this@ReadablePaperActivity,
+                            R.string.readable_reader_annotation_delete_failed,
+                            Toast.LENGTH_LONG,
+                        ).show()
+                        return@launch
+                    }
+                    if (result == RemoveAnnotationResult.NotFound) {
+                        Toast.makeText(
+                            this@ReadablePaperActivity,
+                            R.string.readable_reader_annotation_missing,
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                }
+            }
+            .show()
+    }
+
+    private fun annotationNoteInput(existing: String? = null) = EditText(this).apply {
+        hint = getString(R.string.readable_reader_annotation_note_hint)
+        contentDescription = hint
+        inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+            InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        minLines = 3
+        maxLines = 8
+        filters = arrayOf(InputFilter.LengthFilter(MAX_ANNOTATION_NOTE_LENGTH))
+        setText(existing.orEmpty())
+        setSelection(text.length)
     }
 
     private fun showReadingLayoutDialog() {

@@ -15,7 +15,7 @@ PaperReader is in active pre-1.0 development and supports Android 9 or newer.
 
 - Search real arXiv and Crossref metadata, then save papers to an on-device Room library.
 - Read exact-version arXiv HTML offline with selectable text, figures, tables, MathML, search, a table
-  of contents, adjustable typography, and reading progress.
+  of contents, adjustable typography, reading progress, and exact-document highlights with notes.
 - Download verified PDFs and open them in the in-app original-document reader.
 - Organize collections, history, bookmarks, saved searches, updates, and metadata backups locally.
 - Choose Doodle, Retro, or Neobrutalism themes with theme-aware Tabler Icons or Material Symbols.

@@ -209,8 +209,8 @@ internal class ArxivReadablePaperLoader(
 
     companion object {
         private const val ARXIV_PROVIDER_ID = "arxiv"
-        private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-6"
-        private const val RENDERER_CONTRACT_VERSION = "mobile-html-4"
+        private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-7"
+        private const val RENDERER_CONTRACT_VERSION = "mobile-html-5"
         private const val MAXIMUM_HTML_BYTES = 4L * 1024L * 1024L
         private val UNVERSIONED_ARXIV_ID = Regex(
             "(?:[0-9]{4}\\.[0-9]{4,5}|[A-Za-z][A-Za-z0-9.-]*/[0-9]{7})",
@@ -260,6 +260,7 @@ internal class ArxivHtmlSanitizer(
         if (normalizeKnownConversionArtifacts(article)) {
             warnings += ReadablePaperWarning.SOURCE_CONVERSION_ARTIFACT_NORMALIZED
         }
+        annotateReadableBlocks(article)
         val container = Element("div").addClass("paperreader-document")
         val sections = extractSections(parsed)
         if (sections.isEmpty()) warnings.add(ReadablePaperWarning.TABLE_OF_CONTENTS_MISSING)
@@ -297,6 +298,13 @@ internal class ArxivHtmlSanitizer(
             }
         }
         return normalized
+    }
+
+    private fun annotateReadableBlocks(article: Element) {
+        article.select("[data-paperreader-block-id]").removeAttr("data-paperreader-block-id")
+        article.select(READABLE_BLOCK_SELECTOR).forEachIndexed { index, element ->
+            element.attr("data-paperreader-block-id", "prx-b${index.toString().padStart(5, '0')}")
+        }
     }
 
     private fun extractSections(document: Document): List<ReadablePaperSection> = document
@@ -423,6 +431,7 @@ internal class ArxivHtmlSanitizer(
                 ":all",
                 "id", "class", "title", "lang", "dir", "role",
                 "aria-label", "aria-labelledby", "aria-describedby", "aria-hidden",
+                "data-paperreader-block-id",
             )
             .addAttributes("a", "href")
             .addProtocols("a", "href", "https", "mailto", "#")
@@ -449,6 +458,8 @@ internal class ArxivHtmlSanitizer(
         private val CIRCLED_STEP_ARTIFACT = Regex(
             """\\raisebox\{[-+]?(?:\d+(?:\.\d+)?|\.\d+)pt\}\{\\scriptsize\s*([0-9]{1,2})\}⃝""",
         )
+        private const val READABLE_BLOCK_SELECTOR =
+            "h1,h2,h3,h4,h5,h6,p,li,dt,dd,figcaption,pre,blockquote,th,td"
         private val SAFE_IMAGE_MEDIA_TYPES = setOf("image/png", "image/jpeg", "image/webp", "image/gif")
         private val SAFE_HTML_TAGS = arrayOf(
             "article", "section", "nav", "header", "footer", "div", "span",

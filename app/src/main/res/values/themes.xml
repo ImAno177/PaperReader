@@ -1,0 +1,74 @@
+<resources>
+    <style name="Theme.PaperReader" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:colorAccent">#1C293C</item>
+        <item name="android:navigationBarColor">#FBFBF9</item>
+        <item name="android:statusBarColor">#FBFBF9</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+
+    <style name="Theme.PaperReader.PdfReader" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">@color/reader_canvas</item>
+        <item name="android:navigationBarColor">@color/reader_canvas</item>
+        <item name="android:statusBarColor">@color/reader_canvas</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="colorPrimary">@color/reader_ink</item>
+        <item name="colorOnPrimary">@color/reader_canvas</item>
+        <item name="colorSecondary">@color/reader_accent</item>
+        <item name="colorOnSecondary">@color/reader_on_accent</item>
+        <item name="colorSurface">@color/reader_canvas</item>
+        <item name="colorOnSurface">@color/reader_ink</item>
+        <item name="colorSurfaceVariant">@color/reader_surface</item>
+        <item name="colorOnSurfaceVariant">@color/reader_ink_muted</item>
+    </style>
+
+    <style name="Theme.PaperReader.PdfReader.Doodle" parent="Theme.PaperReader.PdfReader">
+        <item name="android:windowBackground">@color/reader_doodle_canvas</item>
+        <item name="android:navigationBarColor">@color/reader_doodle_canvas</item>
+        <item name="android:statusBarColor">@color/reader_doodle_canvas</item>
+        <item name="colorPrimary">@color/reader_doodle_border</item>
+        <item name="colorOnPrimary">@color/reader_doodle_on_secondary</item>
+        <item name="colorSecondary">@color/reader_doodle_primary</item>
+        <item name="colorOnSecondary">@color/reader_doodle_on_primary</item>
+        <item name="colorSurface">@color/reader_doodle_surface</item>
+        <item name="colorOnSurface">@color/reader_doodle_ink</item>
+        <item name="colorSurfaceVariant">@color/reader_doodle_surface_muted</item>
+        <item name="colorOnSurfaceVariant">@color/reader_doodle_ink_muted</item>
+        <item name="colorOutline">@color/reader_doodle_border</item>
+    </style>
+
+    <style name="Theme.PaperReader.PdfReader.Retro" parent="Theme.PaperReader.PdfReader">
+        <item name="android:windowBackground">@color/reader_retro_canvas</item>
+        <item name="android:navigationBarColor">@color/reader_retro_canvas</item>
+        <item name="android:statusBarColor">@color/reader_retro_canvas</item>
+        <item name="colorPrimary">@color/reader_retro_border</item>
+        <item name="colorOnPrimary">@color/reader_retro_on_primary</item>
+        <item name="colorSecondary">@color/reader_retro_primary</item>
+        <item name="colorOnSecondary">@color/reader_retro_on_primary</item>
+        <item name="colorSurface">@color/reader_retro_surface</item>
+        <item name="colorOnSurface">@color/reader_retro_ink</item>
+        <item name="colorSurfaceVariant">@color/reader_retro_surface_muted</item>
+        <item name="colorOnSurfaceVariant">@color/reader_retro_ink_muted</item>
+        <item name="colorOutline">@color/reader_retro_border</item>
+    </style>
+
+    <style name="Theme.PaperReader.PdfReader.Neobrutalism" parent="Theme.PaperReader.PdfReader">
+        <item name="android:windowBackground">@color/reader_neo_canvas</item>
+        <item name="android:navigationBarColor">@color/reader_neo_canvas</item>
+        <item name="android:statusBarColor">@color/reader_neo_canvas</item>
+        <item name="colorPrimary">@color/reader_neo_border</item>
+        <item name="colorOnPrimary">@color/reader_neo_on_secondary</item>
+        <item name="colorSecondary">@color/reader_neo_primary</item>
+        <item name="colorOnSecondary">@color/reader_neo_on_primary</item>
+        <item name="colorSurface">@color/reader_neo_surface</item>
+        <item name="colorOnSurface">@color/reader_neo_ink</item>
+        <item name="colorSurfaceVariant">@color/reader_neo_surface_muted</item>
+        <item name="colorOnSurfaceVariant">@color/reader_neo_ink_muted</item>
+        <item name="colorOutline">@color/reader_neo_border</item>
+    </style>
+</resources>

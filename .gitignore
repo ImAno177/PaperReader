@@ -1,0 +1,35 @@
+.gradle/
+.kotlin/
+.idea/
+**/build/
+local.properties
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Local Codex/workstation instructions and design references
+AGENTS.md
+.agents/
+design-skills/
+
+# Signing, credentials, and environment overrides
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+.env
+.env.*
+*.pem
+*.p12
+google-services.json
+
+# Generated Android deliverables
+*.apk
+*.aab
+*.apks
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp

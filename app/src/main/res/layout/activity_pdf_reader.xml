@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/reader_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/reader_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:background="?attr/colorSurface"
+        android:minHeight="72dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        app:contentInsetEndWithActions="4dp"
+        app:contentInsetStartWithNavigation="4dp"
+        app:subtitleTextColor="?attr/colorOnSurfaceVariant"
+        app:titleTextColor="?attr/colorOnSurface" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:background="?attr/colorOnSurface" />
+
+    <FrameLayout
+        android:id="@+id/pdf_fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="?attr/colorSurfaceVariant">
+
+        <ProgressBar
+            android:id="@+id/reader_loading"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/reader_loading"
+            android:indeterminate="true" />
+
+        <TextView
+            android:id="@+id/reader_page_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/reader_page_indicator_background"
+            android:clickable="true"
+            android:elevation="4dp"
+            android:focusable="true"
+            android:gravity="center"
+            android:importantForAccessibility="yes"
+            android:maxLines="1"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="?attr/colorOnSurface"
+            android:visibility="gone" />
+    </FrameLayout>
+</LinearLayout>

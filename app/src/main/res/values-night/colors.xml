@@ -1,0 +1,37 @@
+<resources>
+    <color name="reader_canvas">#121820</color>
+    <color name="reader_surface">#1B2430</color>
+    <color name="reader_ink">#F4F1E8</color>
+    <color name="reader_ink_muted">#B8C2D1</color>
+    <color name="reader_accent">#FFD166</color>
+    <color name="reader_on_accent">#1C293C</color>
+
+    <color name="reader_doodle_canvas">#0E1B24</color>
+    <color name="reader_doodle_surface">#132633</color>
+    <color name="reader_doodle_surface_muted">#1C3A4B</color>
+    <color name="reader_doodle_ink">#EAF8FF</color>
+    <color name="reader_doodle_ink_muted">#B4D4E1</color>
+    <color name="reader_doodle_border">#7ED8F4</color>
+    <color name="reader_doodle_primary">#7DD3FC</color>
+    <color name="reader_doodle_on_primary">#08202D</color>
+    <color name="reader_doodle_on_secondary">#112536</color>
+
+    <color name="reader_retro_canvas">#17121F</color>
+    <color name="reader_retro_surface">#221A2D</color>
+    <color name="reader_retro_surface_muted">#352344</color>
+    <color name="reader_retro_ink">#F7EEFF</color>
+    <color name="reader_retro_ink_muted">#D0BCD9</color>
+    <color name="reader_retro_border">#E1C8F2</color>
+    <color name="reader_retro_primary">#8DB7FF</color>
+    <color name="reader_retro_on_primary">#0C234D</color>
+
+    <color name="reader_neo_canvas">#121316</color>
+    <color name="reader_neo_surface">#1D2129</color>
+    <color name="reader_neo_surface_muted">#303642</color>
+    <color name="reader_neo_ink">#F7F0E0</color>
+    <color name="reader_neo_ink_muted">#C7C1B4</color>
+    <color name="reader_neo_border">#F7F0E0</color>
+    <color name="reader_neo_primary">#FFD84A</color>
+    <color name="reader_neo_on_primary">#241F00</color>
+    <color name="reader_neo_on_secondary">#1E115D</color>
+</resources>

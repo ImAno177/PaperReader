@@ -1,0 +1,9 @@
+PaperReader
+Copyright 2026 ImAno177 and PaperReader contributors
+
+This product includes software developed by the Android Open Source Project and AndroidX project,
+licensed under the Apache License, Version 2.0.
+
+This product uses jsoup, Copyright 2009–2026 Jonathan Hedley, licensed under the MIT License.
+
+Additional dependency and license information is recorded in THIRD_PARTY_NOTICES.md.

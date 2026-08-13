@@ -1,0 +1,94 @@
+package dev.paperreader.app.ui
+
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import dev.paperreader.app.ui.model.PaperUi
+import dev.paperreader.app.ui.model.PaperCollectionUi
+import dev.paperreader.app.ui.screen.LibraryScreen
+import dev.paperreader.app.ui.theme.PaperReaderTheme
+import dev.paperreader.app.ui.theme.PaperThemePreset
+import dev.paperreader.logic.domain.ReadingStatus
+import java.time.Instant
+import java.time.LocalDate
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class LibraryScreenTest {
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @Test
+    fun savedPaperSearchFiltersRealPresentationFields() {
+        composeRule.enableAccessibilityChecks()
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.RETRO) {
+                LibraryScreen(
+                    state = LoadState.Ready(
+                        listOf(
+                            paper("attention", "Attention Is All You Need", listOf("Ashish Vaswani")),
+                            paper("engine", "Analytical Engine", listOf("Ada Lovelace")),
+                        ),
+                    ),
+                    onOpenPaper = {},
+                    onDiscover = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Search saved papers").performClick()
+        composeRule.onNode(hasSetTextAction()).performTextInput("Lovelace")
+
+        composeRule.onNodeWithText("Analytical Engine").assertExists()
+        composeRule.onNodeWithText("Attention Is All You Need").assertDoesNotExist()
+    }
+
+    @Test
+    fun collectionChipFiltersByPersistedAssignment() {
+        composeRule.enableAccessibilityChecks()
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                LibraryScreen(
+                    state = LoadState.Ready(
+                        listOf(
+                            paper("assigned", "Assigned paper", emptyList()).copy(collectionIds = setOf(5L)),
+                            paper("outside", "Outside paper", emptyList()),
+                        ),
+                    ),
+                    collections = LoadState.Ready(listOf(PaperCollectionUi(5L, "Methods"))),
+                    onOpenPaper = {},
+                    onDiscover = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Methods").performClick()
+
+        composeRule.onNodeWithText("Assigned paper").assertExists()
+        composeRule.onNodeWithText("Outside paper").assertDoesNotExist()
+    }
+
+    private fun paper(id: String, title: String, authors: List<String>) = PaperUi(
+        id = id,
+        title = title,
+        authors = authors,
+        savedAt = Instant.parse("2026-08-11T00:00:00Z"),
+        updatedAt = Instant.parse("2026-08-11T00:00:00Z"),
+        publishedDate = LocalDate.of(2026, 8, 11),
+        sources = listOf("arxiv"),
+        primaryIdentifier = null,
+        identifiers = emptyList(),
+        abstractText = null,
+        progress = 0f,
+        status = ReadingStatus.UNREAD,
+        subjects = emptyList(),
+        manifestations = emptyList(),
+    )
+}

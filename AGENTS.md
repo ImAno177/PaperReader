@@ -38,6 +38,25 @@ Update the relevant document when a decision changes.
 - `:logic` must not import Compose, Android UI classes, navigation, or visual resources.
 - Never weaken or baseline `LogicBoundaryTest` to make a build pass.
 
+## Code organization
+
+- Keep route wiring and adaptive shell policy in `PaperReaderApp.kt`; a destination screen must not
+  own navigation-controller orchestration.
+- Put each root destination or More branch in its own `ui/screen/<Feature>Screen.kt` file. Keep its
+  private cards, dialogs, labels, and presentation-only transformations in that file so a feature can
+  be understood without opening a grab-bag screen file.
+- Move a visual helper to `ui/components` only when at least two features use the same behavior and
+  interface. Do not create pass-through wrappers, one-implementation interfaces, generic `Utils`, or
+  speculative packages.
+- Keep screen interfaces stable and state-driven. Compose tests call the same root screen interface
+  that navigation calls; do not add test-only seams around a screen.
+- A production Kotlin file should stay below 600 lines. Before adding behavior to a larger file,
+  split it at an existing feature or lifecycle seam and keep the public/package interface no larger
+  than before. Generated sources are exempt; other exceptions require a short rationale in
+  `docs/ARCHITECTURE.md`.
+- Mirror feature ownership in tests: presentation logic in `app/src/test`, Android semantics and
+  geometry in `app/src/androidTest`, provider/parser/persistence behavior in the owning logic package.
+
 ## Domain and persistence rules
 
 - Keep `PaperWork`, `PaperManifestation`, provider records, and local/generated artifacts separate.

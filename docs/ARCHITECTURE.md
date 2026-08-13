@@ -22,6 +22,20 @@ There is no reverse dependency. The logic module has no Compose, Activity, Fragm
 
 The UI implementation session should normally edit only `app/**` and the `:app` dependency list. A required logic behavior change belongs in `logic/**` and needs logic tests.
 
+Presentation is organized by feature without adding Gradle modules or pass-through layers:
+
+```text
+app/ui/PaperReaderApp.kt          adaptive shell and route wiring
+app/ui/<feature state>            application presentation state and mapping
+app/ui/screen/<Feature>Screen.kt  one root destination or More branch plus local helpers
+app/ui/components/                visual behavior shared by two or more features
+app/reader/                       reader Activities and renderer-owned UI
+```
+
+Screen interfaces remain the test seam: navigation and Compose tests call the same state-driven root
+function. A helper stays feature-private until a second real consumer exists. This replaces the former
+multi-feature `HomeScreens.kt` grab bag while preserving every destination interface.
+
 Inside `:logic`, dependencies follow dependency inversion at package level:
 
 ```text

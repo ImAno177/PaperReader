@@ -1,9 +1,0 @@
-{
-  "message": {
-    "DOI": "10.1234/ABC.1",
-    "title": ["A Crossref Paper"],
-    "author": [{"given":"Grace", "family":"Hopper"}],
-    "published": {"date-parts":[[2023,7,2]]},
-    "URL": "https://doi.org/10.1234/abc.1"
-  }
-}

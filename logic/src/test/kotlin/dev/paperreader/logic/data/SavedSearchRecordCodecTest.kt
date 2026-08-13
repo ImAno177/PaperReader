@@ -6,6 +6,7 @@ import dev.paperreader.logic.domain.PaperAuthor
 import dev.paperreader.logic.domain.PaperIdentifier
 import dev.paperreader.logic.provider.RemoteManifestation
 import dev.paperreader.logic.provider.RemotePaper
+import dev.paperreader.logic.provider.CitationMetrics
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -46,6 +47,21 @@ class SavedSearchRecordCodecTest {
     }
 
     @Test
+    fun `records without citation metrics keep the legacy snapshot shape`() {
+        val payload = SavedSearchRecordCodec.encode(fixture().copy(citationMetrics = null))
+
+        assertTrue(!payload.contains("citationMetrics"))
+        assertEquals(null, SavedSearchRecordCodec.decode(payload).citationMetrics)
+    }
+
+    @Test
+    fun `legacy schema one payload decodes without citation metrics`() {
+        val legacy = """{"schemaVersion":1,"providerId":"arxiv","providerRecordId":"1","title":"Legacy"}"""
+
+        assertEquals(null, SavedSearchRecordCodec.decode(legacy).citationMetrics)
+    }
+
+    @Test
     fun `hostile provider record is rejected before snapshot serialization`() {
         val oversized = fixture().copy(abstractText = "x".repeat(256 * 1024 + 1))
 
@@ -76,6 +92,11 @@ class SavedSearchRecordCodecTest {
                 pdfUrl = "https://arxiv.org/pdf/2401.00001v2.pdf",
                 publishedDate = LocalDate.of(2024, 1, 1),
             ),
+        ),
+        citationMetrics = CitationMetrics(
+            count = 42,
+            sourceId = "semanticscholar",
+            observedAt = Instant.parse("2026-08-13T00:00:00Z"),
         ),
     )
 }

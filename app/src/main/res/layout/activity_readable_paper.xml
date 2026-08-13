@@ -19,10 +19,71 @@
         app:subtitleTextColor="?attr/colorOnSurfaceVariant"
         app:titleTextColor="?attr/colorOnSurface" />
 
-    <View
+    <LinearLayout
+        android:id="@+id/readable_reader_find_bar"
         android:layout_width="match_parent"
-        android:layout_height="3dp"
-        android:background="?attr/colorOnSurface" />
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:gravity="center_vertical"
+        android:minHeight="64dp"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone">
+
+        <EditText
+            android:id="@+id/readable_reader_find_query"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="@string/readable_reader_search_hint"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:maxLines="1"
+            android:minHeight="48dp"
+            android:selectAllOnFocus="false"
+            android:textColor="?attr/colorOnSurface"
+            android:textColorHint="?attr/colorOnSurfaceVariant" />
+
+        <TextView
+            android:id="@+id/readable_reader_find_result"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:accessibilityLiveRegion="polite"
+            android:gravity="center"
+            android:minWidth="56dp"
+            android:paddingHorizontal="4dp"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <ImageButton
+            android:id="@+id/readable_reader_find_previous"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/readable_reader_search_previous"
+            android:enabled="false"
+            android:padding="12dp" />
+
+        <ImageButton
+            android:id="@+id/readable_reader_find_next"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/readable_reader_search_next"
+            android:enabled="false"
+            android:padding="12dp" />
+
+        <ImageButton
+            android:id="@+id/readable_reader_find_close"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/readable_reader_search_close"
+            android:padding="12dp" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/readable_reader_provenance"
@@ -52,6 +113,18 @@
             android:layout_height="match_parent"
             android:importantForAccessibility="yes"
             android:visibility="invisible" />
+
+        <Button
+            android:id="@+id/readable_reader_citation_return"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:elevation="8dp"
+            android:minHeight="48dp"
+            android:text="@string/readable_reader_citation_return"
+            android:visibility="gone" />
 
         <ProgressBar
             android:id="@+id/readable_reader_loading"

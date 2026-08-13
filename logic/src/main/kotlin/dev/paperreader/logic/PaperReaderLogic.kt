@@ -5,10 +5,8 @@ import androidx.core.content.FileProvider
 import androidx.room.Room
 import dev.paperreader.logic.data.LibraryDatabase
 import dev.paperreader.logic.data.LibraryDatabaseMigrations
-import dev.paperreader.logic.provider.builtin.ArxivProvider
-import dev.paperreader.logic.provider.builtin.CrossrefProvider
-import dev.paperreader.logic.network.ProviderHttpClient
 import dev.paperreader.logic.provider.MutableProviderManager
+import dev.paperreader.logic.provider.PaperProvider
 import dev.paperreader.logic.provider.ProviderManager
 import dev.paperreader.logic.data.repository.RoomLibraryRepository
 import dev.paperreader.logic.data.repository.RoomLocalFileRepository
@@ -71,6 +69,7 @@ class PaperReaderLogic private constructor(
     companion object {
         fun open(
             context: Context,
+            builtInProviders: Iterable<PaperProvider>,
             configuration: PaperReaderConfiguration = PaperReaderConfiguration(),
         ): PaperReaderLogic {
             val database = Room.databaseBuilder(
@@ -80,17 +79,8 @@ class PaperReaderLogic private constructor(
             )
                 .addMigrations(*LibraryDatabaseMigrations.ALL)
                 .build()
-            val transport = ProviderHttpClient(
-                userAgent = configuration.userAgent,
-                mailto = configuration.contactEmail,
-            )
             val applicationContext = context.applicationContext
-            val providers = MutableProviderManager(
-                listOf(
-                    ArxivProvider(transport),
-                    CrossrefProvider(transport),
-                ),
-            )
+            val providers = MutableProviderManager(builtInProviders)
             val extensionStores = configuration.extensionStoreRegistry ?: ExtensionStoreRegistry(
                 directory = applicationContext.noBackupFilesDir.toPath().resolve("extension-stores"),
                 userAgent = configuration.userAgent,

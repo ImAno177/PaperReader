@@ -38,7 +38,7 @@ class SavedSearchUseCasesTest {
         val successful = RecordingProvider("arxiv") {
             ProviderPage(listOf(RemotePaper("arxiv", "2401.1v1", "Fresh preprint")))
         }
-        val limited = RecordingProvider("crossref") {
+        val limited = RecordingProvider("semanticscholar") {
             throw ProviderException.RateLimited(30_000)
         }
         val now = Instant.parse("2026-08-12T10:00:00Z")
@@ -132,7 +132,7 @@ class SavedSearchUseCasesTest {
         val second = feed(
             id = SavedSearchId("saved-search-2"),
             queryText = "open peer review",
-            sources = listOf(SavedSearchSource("crossref")),
+            sources = listOf(SavedSearchSource("semanticscholar")),
         )
         val deletedBeforeRefresh = feed(SavedSearchId("saved-search-3"), "deleted query")
         val repository = FakeSavedSearchRepository(
@@ -146,8 +146,8 @@ class SavedSearchUseCasesTest {
                     providerOrder += "arxiv"
                     ProviderPage(emptyList())
                 },
-                RecordingProvider("crossref") {
-                    providerOrder += "crossref"
+                RecordingProvider("semanticscholar") {
+                    providerOrder += "semanticscholar"
                     throw ProviderException.Unavailable()
                 },
             ),
@@ -157,13 +157,13 @@ class SavedSearchUseCasesTest {
         val result = RefreshAllSavedSearches(repository, singleRefresh).await()
 
         assertEquals(RefreshAllSavedSearchesResult(2, 1, 1, 2), result)
-        assertEquals(listOf("arxiv", "crossref"), providerOrder)
+        assertEquals(listOf("arxiv", "semanticscholar"), providerOrder)
     }
 
     private fun feed(
         id: SavedSearchId = SEARCH_ID,
         queryText: String = "graph learning",
-        sources: List<SavedSearchSource> = listOf(SavedSearchSource("arxiv"), SavedSearchSource("crossref")),
+        sources: List<SavedSearchSource> = listOf(SavedSearchSource("arxiv"), SavedSearchSource("semanticscholar")),
     ) = SavedSearchFeed(
         search = SavedSearch(
             id = id,

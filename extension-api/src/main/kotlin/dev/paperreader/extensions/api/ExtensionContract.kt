@@ -122,8 +122,14 @@ internal object Keys {
     const val SUBJECTS = "subjects"
     const val DOI = "doi"
     const val ARXIV_ID = "arxiv_id"
+    const val PMID = "pmid"
+    const val PMCID = "pmcid"
+    const val CITATION_COUNT = "citation_count"
     const val PUBLISHED_DATE = "published_date"
     const val UPDATED_AT = "updated_at"
+    const val ROLES = "roles"
+    const val IDENTIFIER_TYPES = "identifier_types"
+    const val SUPPORTED_SORTS = "supported_sorts"
     const val MANIFESTATIONS = "manifestations"
     const val TYPE = "type"
     const val VERSION = "version"
@@ -156,6 +162,8 @@ internal fun Bundle.requiredString(key: String): String =
     requireNotNull(getString(key)) { "Missing extension field: $key" }
 
 internal fun Bundle.optionalLong(key: String): Long? = if (containsKey(key)) getLong(key) else null
+
+internal fun Bundle.optionalInt(key: String): Int? = if (containsKey(key)) getInt(key) else null
 
 @Suppress("DEPRECATION")
 internal fun Bundle.bundleList(key: String): List<Bundle> =

@@ -26,6 +26,10 @@ data class AvailableProviderPlugin(
     val versionName: String? = null,
     val installedVersionCode: Long? = null,
     val installUrl: String? = null,
+    val serviceClassName: String? = null,
+    val signerSha256: String? = null,
+    val apkSha256: String? = null,
+    val apkSizeBytes: Long? = null,
 )
 
 data class UntrustedProviderPlugin(

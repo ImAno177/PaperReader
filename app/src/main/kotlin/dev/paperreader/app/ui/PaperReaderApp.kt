@@ -8,27 +8,9 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.StringRes
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -39,59 +21,34 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.res.stringResource
-import androidx.navigation.NavHostController
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.navigation.compose.currentBackStackEntryAsState
 import dev.paperreader.app.R
+import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.download.DownloadWorkScheduler
 import dev.paperreader.app.extensions.CommunityThemeCatalog
 import dev.paperreader.app.extensions.CommunityThemeExtensionManager
 import dev.paperreader.app.extensions.toTrustedThemeExtension
 import dev.paperreader.app.importer.IncomingPdfRequest
 import dev.paperreader.app.importer.IncomingPaperReferenceRequest
-import dev.paperreader.app.importer.IncomingPaperReferencePayload
 import dev.paperreader.app.backup.MetadataBackupFileGateway
 import dev.paperreader.app.backup.FileMetadataRestoreSessionStore
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.PaperCollectionUi
-import dev.paperreader.app.ui.model.MetadataBackupOperation
 import dev.paperreader.app.ui.model.MetadataBackupUiState
 import dev.paperreader.app.ui.model.LocalPdfImportUiState
-import dev.paperreader.app.ui.screen.DetailScreen
-import dev.paperreader.app.ui.screen.DiscoverScreen
-import dev.paperreader.app.ui.screen.AppearanceScreen
-import dev.paperreader.app.ui.screen.CollectionsScreen
-import dev.paperreader.app.ui.screen.DataBackupScreen
-import dev.paperreader.app.ui.screen.HistoryScreen
-import dev.paperreader.app.ui.screen.LibraryScreen
-import dev.paperreader.app.ui.screen.MoreScreen
-import dev.paperreader.app.ui.screen.ReadingImportsScreen
-import dev.paperreader.app.ui.screen.SourcesScreen
-import dev.paperreader.app.ui.screen.UpdatesNotificationsScreen
-import dev.paperreader.app.ui.screen.UpdatesScreen
+import dev.paperreader.app.ui.model.LibraryLayout
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.theme.PaperReaderTheme
-import dev.paperreader.app.ui.theme.PaperIcon
-import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.app.ui.theme.PaperThemeMode
 import dev.paperreader.app.ui.theme.PaperThemePreset
 import dev.paperreader.app.settings.PaperReaderPreferences
 import dev.paperreader.app.updates.SavedSearchRefreshScheduler
@@ -100,59 +57,6 @@ import dev.paperreader.logic.PaperReaderLogic
 import dev.paperreader.logic.plugin.ExtensionStoreRegistryState
 import dev.paperreader.logic.backup.MAX_METADATA_BACKUP_ARCHIVE_BYTES
 import kotlinx.coroutines.launch
-
-private object AppRoutes {
-    const val LIBRARY = "library"
-    const val DISCOVER = "discover"
-    const val UPDATES = "updates"
-    const val HISTORY = "history"
-    const val MORE = "more"
-    const val MORE_APPEARANCE = "more/appearance"
-    const val MORE_COLLECTIONS = "more/collections"
-    const val MORE_READING_IMPORTS = "more/reading-imports"
-    const val MORE_UPDATES = "more/updates"
-    const val MORE_DATA_BACKUP = "more/data-backup"
-    const val MORE_SOURCES = "more/sources"
-    const val DETAIL = "detail/{workId}"
-
-    fun detail(workId: String): String = "detail/${Uri.encode(workId)}"
-}
-
-private data class ExtensionStoreBindings(
-    val state: ExtensionStoreRegistryState,
-    val action: ExtensionStoreActionUiState,
-    val onPreview: (String, String) -> Unit,
-    val onConfirm: () -> Unit,
-    val onDismissAction: () -> Unit,
-    val onRefresh: (String) -> Unit,
-    val onRemove: (String) -> Unit,
-    val onOpenInstallUrl: (String) -> Unit,
-)
-
-internal fun isMoreRoute(route: String?): Boolean =
-    route == AppRoutes.MORE || route?.startsWith("${AppRoutes.MORE}/") == true
-
-internal fun shouldShowPrimaryNavigation(route: String?): Boolean =
-    route != AppRoutes.DETAIL && route?.startsWith("${AppRoutes.MORE}/") != true
-
-internal const val PRIMARY_NAVIGATION_TEST_TAG = "primary-navigation"
-internal const val PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX = "primary-navigation-hit-"
-internal const val PRIMARY_NAVIGATION_ITEM_VISUAL_TEST_TAG_PREFIX = "primary-navigation-visual-"
-
-private fun isDestinationSelected(destination: AppDestination, currentRoute: String?): Boolean =
-    if (destination == AppDestination.MORE) isMoreRoute(currentRoute) else currentRoute == destination.route
-
-private enum class AppDestination(
-    val route: String,
-    @param:StringRes val labelRes: Int,
-    val icon: PaperIconKey,
-) {
-    LIBRARY(AppRoutes.LIBRARY, R.string.nav_library, PaperIconKey.LIBRARY),
-    DISCOVER(AppRoutes.DISCOVER, R.string.nav_discover, PaperIconKey.SEARCH),
-    UPDATES(AppRoutes.UPDATES, R.string.nav_updates, PaperIconKey.UPDATES),
-    HISTORY(AppRoutes.HISTORY, R.string.nav_history, PaperIconKey.HISTORY),
-    MORE(AppRoutes.MORE, R.string.nav_more, PaperIconKey.MORE_HORIZONTAL),
-}
 
 @Composable
 fun PaperReaderApp(
@@ -169,10 +73,11 @@ fun PaperReaderApp(
     onOpenUpdatesConsumed: (Long) -> Unit,
 ) {
     val themeKey by preferences.themeKey.collectAsStateWithLifecycle(PaperThemePreset.NEOBRUTALISM.storageKey)
+    val themeMode by preferences.themeMode.collectAsStateWithLifecycle(PaperThemeMode.SYSTEM)
     val themeCatalog by themeExtensionManager.catalog.collectAsStateWithLifecycle()
     val preset = PaperThemePreset.fromStorageKey(themeKey)
     val communityTheme = themeCatalog.themes.firstOrNull { it.storageKey == themeKey }
-    PaperReaderTheme(preset, communityTheme = communityTheme) {
+    PaperReaderTheme(preset, communityTheme = communityTheme, themeMode = themeMode) {
         if (logic == null) {
             PaperStatePanel(
                 title = stringResource(R.string.app_initializing_title),
@@ -187,6 +92,7 @@ fun PaperReaderApp(
                 logic = logic,
                 preset = preset,
                 themeKey = themeKey,
+                themeMode = themeMode,
                 themeCatalog = themeCatalog,
                 downloadWorkScheduler = downloadWorkScheduler,
                 savedSearchRefreshScheduler = savedSearchRefreshScheduler,
@@ -208,6 +114,7 @@ private fun PaperReaderContent(
     logic: PaperReaderLogic,
     preset: PaperThemePreset,
     themeKey: String,
+    themeMode: PaperThemeMode,
     themeCatalog: CommunityThemeCatalog,
     downloadWorkScheduler: DownloadWorkScheduler,
     savedSearchRefreshScheduler: SavedSearchRefreshScheduler,
@@ -219,6 +126,10 @@ private fun PaperReaderContent(
     onOpenUpdatesConsumed: (Long) -> Unit,
 ) {
     val context = LocalContext.current
+    val sourceExtensionInstaller = remember(context) {
+        (context.applicationContext as PaperReaderApplication).sourceExtensionInstaller
+    }
+    val sourceInstallStates by sourceExtensionInstaller.states.collectAsStateWithLifecycle()
     val restoreSessionStore = remember(context) {
         FileMetadataRestoreSessionStore(
             directory = java.io.File(context.noBackupFilesDir, "metadata-restore-session"),
@@ -245,6 +156,7 @@ private fun PaperReaderContent(
     val extensionStoreAction by viewModel.extensionStoreAction.collectAsStateWithLifecycle()
     val automaticRefreshEnabled by preferences.automaticSavedSearchRefreshEnabled
         .collectAsStateWithLifecycle(false)
+    val libraryLayout by preferences.libraryLayout.collectAsStateWithLifecycle(LibraryLayout.LIST)
     val notificationPublisher = remember(context) { SavedSearchNotificationPublisher(context) }
     val scope = rememberCoroutineScope()
     var notificationsAvailable by remember { mutableStateOf(notificationPublisher.canPost()) }
@@ -347,6 +259,9 @@ private fun PaperReaderContent(
                     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
                 }
             },
+            installStates = sourceInstallStates,
+            onInstallSource = sourceExtensionInstaller::enqueue,
+            onDismissInstallState = sourceExtensionInstaller::dismiss,
         ),
         search = search,
         downloadActions = downloadActions,
@@ -355,6 +270,8 @@ private fun PaperReaderContent(
         localPdfImport = localPdfImport,
         preset = preset,
         themeKey = themeKey,
+        themeMode = themeMode,
+        libraryLayout = libraryLayout,
         themeCatalog = themeCatalog,
         onSearch = viewModel::search,
         onClearSearch = viewModel::clearSearch,
@@ -393,6 +310,8 @@ private fun PaperReaderContent(
         onConfirmBackupRestore = viewModel::confirmMetadataRestore,
         onDismissBackupState = viewModel::dismissMetadataBackupState,
         onThemeChange = { next -> scope.launch { preferences.setThemeKey(next) } },
+        onThemeModeChange = { next -> scope.launch { preferences.setThemeMode(next) } },
+        onLibraryLayoutChange = { next -> scope.launch { preferences.setLibraryLayout(next) } },
         automaticRefreshEnabled = automaticRefreshEnabled,
         onAutomaticRefreshChange = { enabled ->
             val changed = savedSearchRefreshScheduler.setEnabled(enabled)
@@ -435,6 +354,8 @@ private fun PaperReaderNavigation(
     localPdfImport: LocalPdfImportUiState,
     preset: PaperThemePreset,
     themeKey: String,
+    themeMode: PaperThemeMode,
+    libraryLayout: LibraryLayout,
     themeCatalog: CommunityThemeCatalog,
     onSearch: (String) -> Unit,
     onClearSearch: () -> Unit,
@@ -465,6 +386,8 @@ private fun PaperReaderNavigation(
     onConfirmBackupRestore: () -> Unit,
     onDismissBackupState: () -> Unit,
     onThemeChange: (String) -> Unit,
+    onThemeModeChange: (PaperThemeMode) -> Unit,
+    onLibraryLayoutChange: (LibraryLayout) -> Unit,
     automaticRefreshEnabled: Boolean,
     onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
     notificationsAvailable: Boolean,
@@ -535,6 +458,8 @@ private fun PaperReaderNavigation(
             localPdfImport = localPdfImport,
             preset = preset,
             themeKey = themeKey,
+            themeMode = themeMode,
+            libraryLayout = libraryLayout,
             themeCatalog = themeCatalog,
             onSearch = onSearch,
             onClearSearch = onClearSearch,
@@ -565,6 +490,8 @@ private fun PaperReaderNavigation(
             onConfirmBackupRestore = onConfirmBackupRestore,
             onDismissBackupState = onDismissBackupState,
             onThemeChange = onThemeChange,
+            onThemeModeChange = onThemeModeChange,
+            onLibraryLayoutChange = onLibraryLayoutChange,
             automaticRefreshEnabled = automaticRefreshEnabled,
             onAutomaticRefreshChange = onAutomaticRefreshChange,
             notificationsAvailable = notificationsAvailable,
@@ -600,6 +527,8 @@ private fun PaperReaderNavigation(
                 localPdfImport = localPdfImport,
                 preset = preset,
                 themeKey = themeKey,
+                themeMode = themeMode,
+                libraryLayout = libraryLayout,
                 themeCatalog = themeCatalog,
                 onSearch = onSearch,
                 onClearSearch = onClearSearch,
@@ -630,417 +559,13 @@ private fun PaperReaderNavigation(
                 onConfirmBackupRestore = onConfirmBackupRestore,
                 onDismissBackupState = onDismissBackupState,
                 onThemeChange = onThemeChange,
+                onThemeModeChange = onThemeModeChange,
+                onLibraryLayoutChange = onLibraryLayoutChange,
                 automaticRefreshEnabled = automaticRefreshEnabled,
                 onAutomaticRefreshChange = onAutomaticRefreshChange,
                 notificationsAvailable = notificationsAvailable,
                 onOpenNotificationSettings = onOpenNotificationSettings,
                 modifier = modifier,
-            )
-        }
-    }
-}
-
-@Composable
-internal fun IncomingPaperReferenceEffect(
-    request: IncomingPaperReferenceRequest?,
-    onNavigateToDiscover: () -> Unit,
-    onSearch: (String) -> Unit,
-    onInvalid: () -> Unit,
-    onConsumed: (Long) -> Unit,
-) {
-    LaunchedEffect(request) {
-        val current = request ?: return@LaunchedEffect
-        when (val payload = current.payload) {
-            is IncomingPaperReferencePayload.Valid -> {
-                onNavigateToDiscover()
-                onSearch(payload.reference.query)
-            }
-            IncomingPaperReferencePayload.Invalid -> onInvalid()
-        }
-        onConsumed(current.id)
-    }
-}
-
-internal fun shouldOpenMoreForLocalPdfImport(state: LocalPdfImportUiState): Boolean = when (state) {
-    LocalPdfImportUiState.Idle,
-    LocalPdfImportUiState.Preparing,
-    -> false
-
-    is LocalPdfImportUiState.Confirming,
-    is LocalPdfImportUiState.Importing,
-    is LocalPdfImportUiState.Complete,
-    is LocalPdfImportUiState.Failed,
-    -> true
-}
-
-internal enum class MoreAttentionDestination {
-    DATA_BACKUP,
-    READING_IMPORTS,
-}
-
-internal fun moreAttentionDestination(
-    metadataBackup: MetadataBackupUiState,
-    localPdfImport: LocalPdfImportUiState,
-): MoreAttentionDestination? {
-    val restoreNeedsAttention = metadataBackup is MetadataBackupUiState.Preview ||
-        metadataBackup is MetadataBackupUiState.Restoring ||
-        (metadataBackup is MetadataBackupUiState.Failed &&
-            metadataBackup.operation == MetadataBackupOperation.PREVIEW)
-    return when {
-        restoreNeedsAttention -> MoreAttentionDestination.DATA_BACKUP
-        shouldOpenMoreForLocalPdfImport(localPdfImport) -> MoreAttentionDestination.READING_IMPORTS
-        else -> null
-    }
-}
-
-private fun NavHostController.navigateToMoreBranch(route: String) {
-    val currentRoute = currentDestination?.route
-    if (currentRoute == route) return
-    if (!isMoreRoute(currentRoute)) {
-        navigate(AppRoutes.MORE) { launchSingleTop = true }
-    }
-    navigate(route) {
-        popUpTo(AppRoutes.MORE) { inclusive = false }
-        launchSingleTop = true
-    }
-}
-
-@Composable
-private fun AdaptiveAppShell(
-    destinations: List<AppDestination>,
-    currentRoute: String?,
-    onNavigate: (AppDestination) -> Unit,
-    content: @Composable (Modifier) -> Unit,
-) {
-    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(PaperTheme.tokens.canvas)) {
-        if (maxWidth < 600.dp) {
-            androidx.compose.material3.Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                containerColor = PaperTheme.tokens.canvas,
-                bottomBar = {
-                    NavigationBar(
-                        modifier = Modifier.testTag(PRIMARY_NAVIGATION_TEST_TAG),
-                        containerColor = PaperTheme.tokens.canvas,
-                        contentColor = PaperTheme.tokens.ink,
-                        tonalElevation = 0.dp,
-                    ) {
-                        destinations.forEachIndexed { index, destination ->
-                            val selected = isDestinationSelected(destination, currentRoute)
-                            val label = stringResource(destination.labelRes)
-                            PaperDestinationItem(
-                                modifier = Modifier.weight(1f),
-                                selected = selected,
-                                onClick = { onNavigate(destination) },
-                                icon = destination.icon,
-                                label = label,
-                                testKey = destination.route,
-                                visualPadding = PaddingValues(
-                                    start = if (index == 0) 16.dp else 4.dp,
-                                    top = 4.dp,
-                                    end = if (index == destinations.lastIndex) 16.dp else 4.dp,
-                                    bottom = 4.dp,
-                                ),
-                            )
-                        }
-                    }
-                },
-            ) { padding ->
-                content(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .consumeWindowInsets(padding),
-                )
-            }
-        } else {
-            Row(modifier = Modifier.fillMaxSize()) {
-                NavigationRail(
-                    modifier = Modifier.testTag(PRIMARY_NAVIGATION_TEST_TAG),
-                    containerColor = PaperTheme.tokens.canvas,
-                    contentColor = PaperTheme.tokens.ink,
-                    windowInsets = NavigationRailDefaults.windowInsets,
-                ) {
-                    destinations.forEach { destination ->
-                        val selected = isDestinationSelected(destination, currentRoute)
-                        val label = stringResource(destination.labelRes)
-                        PaperDestinationItem(
-                            modifier = Modifier.padding(vertical = 4.dp).width(80.dp),
-                            selected = selected,
-                            onClick = { onNavigate(destination) },
-                            icon = destination.icon,
-                            label = label,
-                            testKey = destination.route,
-                        )
-                    }
-                }
-                content(Modifier.weight(1f).fillMaxSize())
-            }
-        }
-    }
-}
-
-@Composable
-private fun PaperDestinationItem(
-    selected: Boolean,
-    onClick: () -> Unit,
-    icon: PaperIconKey,
-    label: String,
-    modifier: Modifier = Modifier,
-    testKey: String,
-    visualPadding: PaddingValues = PaddingValues(4.dp),
-) {
-    val tokens = PaperTheme.tokens
-    Box(
-        modifier = modifier
-            .height(72.dp)
-            .testTag("$PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX$testKey")
-            .selectable(selected = selected, onClick = onClick, role = Role.Tab),
-        contentAlignment = Alignment.Center,
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(visualPadding)
-                .testTag("$PRIMARY_NAVIGATION_ITEM_VISUAL_TEST_TAG_PREFIX$testKey"),
-            shape = RoundedCornerShape(tokens.cornerRadius),
-            color = if (selected) tokens.primaryContainer else Color.Transparent,
-            contentColor = if (selected) tokens.onPrimaryContainer else tokens.inkMuted,
-            border = if (selected) BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border) else null,
-            tonalElevation = 0.dp,
-            shadowElevation = 0.dp,
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 1.dp, vertical = 7.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
-            ) {
-                PaperIcon(icon, contentDescription = null)
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AppNavHost(
-    navController: NavHostController,
-    library: LoadState<List<PaperUi>>,
-    history: LoadState<List<dev.paperreader.app.ui.model.ReadingHistoryUi>>,
-    collections: LoadState<List<PaperCollectionUi>>,
-    tasks: LoadState<List<dev.paperreader.logic.task.PaperTask>>,
-    savedSearches: LoadState<List<dev.paperreader.logic.domain.SavedSearchFeed>>,
-    providers: dev.paperreader.logic.provider.ProviderManagerState,
-    extensionStores: ExtensionStoreBindings,
-    search: SearchUiState,
-    downloadActions: DownloadActionUiState,
-    savedSearchActions: SavedSearchActionUiState,
-    metadataBackup: dev.paperreader.app.ui.model.MetadataBackupUiState,
-    localPdfImport: LocalPdfImportUiState,
-    preset: PaperThemePreset,
-    themeKey: String,
-    themeCatalog: CommunityThemeCatalog,
-    onSearch: (String) -> Unit,
-    onClearSearch: () -> Unit,
-    onSave: (dev.paperreader.app.ui.model.SearchPaperUi) -> Unit,
-    onSaveSearch: (String) -> Unit,
-    onRefreshSavedSearch: (String) -> Unit,
-    onDeleteSavedSearch: (String) -> Unit,
-    onMarkSavedSearchHitRead: (String) -> Unit,
-    onSaveSavedSearchHit: (String) -> Unit,
-    onRemoveHistory: (String) -> Unit,
-    onReadingStatusChange: (String, dev.paperreader.logic.domain.ReadingStatus) -> Unit,
-    onRemovePaper: suspend (String) -> dev.paperreader.logic.domain.repository.RemovePaperResult,
-    onCreateCollection: suspend (String) -> dev.paperreader.logic.domain.repository.CreateCollectionResult,
-    onRenameCollection: suspend (Long, String) -> dev.paperreader.logic.domain.repository.RenameCollectionResult,
-    onDeleteCollection: suspend (Long) -> dev.paperreader.logic.domain.repository.DeleteCollectionResult,
-    onSetPaperCollections: suspend (String, Set<Long>) -> dev.paperreader.logic.domain.repository.SetPaperCollectionsResult,
-    onRequestDownload: (String, String) -> Unit,
-    onGetDownloadedPaper: suspend (String) -> dev.paperreader.logic.task.DownloadedPaper?,
-    onDeleteDownload: suspend (String, String) -> dev.paperreader.logic.task.DeleteDownloadResult,
-    onCancelDownloadTask: (String) -> Unit,
-    onRetryDownloadTask: (String) -> Unit,
-    onRemoveDownloadTask: (String) -> Unit,
-    onRequestLocalPdfImport: () -> Unit,
-    onConfirmLocalPdfImport: (String) -> Unit,
-    onDismissLocalPdfImport: () -> Unit,
-    onRequestBackupExport: () -> Unit,
-    onRequestBackupImport: () -> Unit,
-    onConfirmBackupRestore: () -> Unit,
-    onDismissBackupState: () -> Unit,
-    onThemeChange: (String) -> Unit,
-    automaticRefreshEnabled: Boolean,
-    onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
-    notificationsAvailable: Boolean,
-    onOpenNotificationSettings: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    NavHost(
-        navController = navController,
-        startDestination = AppRoutes.LIBRARY,
-        modifier = modifier,
-    ) {
-        composable(AppRoutes.LIBRARY) {
-            LibraryScreen(
-                state = library,
-                collections = collections,
-                onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
-                onDiscover = { navController.navigate(AppRoutes.DISCOVER) },
-            )
-        }
-        composable(AppRoutes.DISCOVER) {
-            DiscoverScreen(
-                state = search,
-                onSearch = onSearch,
-                onClear = onClearSearch,
-                onSave = onSave,
-                onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
-                savedSearches = savedSearches,
-                savedSearchActions = savedSearchActions,
-                onSaveSearch = onSaveSearch,
-                onOpenUpdates = { navController.navigate(AppRoutes.UPDATES) { launchSingleTop = true } },
-            )
-        }
-        composable(AppRoutes.UPDATES) {
-            UpdatesScreen(
-                tasks = tasks,
-                library = library,
-                providers = providers,
-                savedSearches = savedSearches,
-                savedSearchActions = savedSearchActions,
-                actions = downloadActions,
-                onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
-                onRefreshSearch = onRefreshSavedSearch,
-                onDeleteSearch = onDeleteSavedSearch,
-                onMarkHitRead = onMarkSavedSearchHitRead,
-                onSaveHit = onSaveSavedSearchHit,
-                onCancel = onCancelDownloadTask,
-                onRetry = onRetryDownloadTask,
-                onRemove = onRemoveDownloadTask,
-            )
-        }
-        composable(AppRoutes.HISTORY) {
-            HistoryScreen(
-                state = history,
-                onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
-                onRemove = onRemoveHistory,
-            )
-        }
-        composable(AppRoutes.MORE) {
-            val selectedThemeName = themeCatalog.themes.firstOrNull { it.storageKey == themeKey }?.displayName
-            MoreScreen(
-                selectedPreset = preset,
-                selectedThemeName = selectedThemeName,
-                automaticRefreshEnabled = automaticRefreshEnabled,
-                notificationsAvailable = notificationsAvailable,
-                providers = providers,
-                collections = collections,
-                localPdfImportState = localPdfImport,
-                backupState = metadataBackup,
-                onOpenAppearance = { navController.navigateToMoreBranch(AppRoutes.MORE_APPEARANCE) },
-                onOpenCollections = { navController.navigateToMoreBranch(AppRoutes.MORE_COLLECTIONS) },
-                onOpenReadingImports = { navController.navigateToMoreBranch(AppRoutes.MORE_READING_IMPORTS) },
-                onOpenUpdates = { navController.navigateToMoreBranch(AppRoutes.MORE_UPDATES) },
-                onOpenDataBackup = { navController.navigateToMoreBranch(AppRoutes.MORE_DATA_BACKUP) },
-                onOpenSources = { navController.navigateToMoreBranch(AppRoutes.MORE_SOURCES) },
-            )
-        }
-        composable(AppRoutes.MORE_APPEARANCE) {
-            AppearanceScreen(
-                selectedThemeKey = themeKey,
-                communityThemes = themeCatalog.themes,
-                communityThemesLoading = themeCatalog.loading,
-                communityThemeIssues = themeCatalog.issues,
-                onThemeChange = onThemeChange,
-                onBack = navController::popBackStack,
-            )
-        }
-        composable(AppRoutes.MORE_COLLECTIONS) {
-            CollectionsScreen(
-                collections = collections,
-                onCreateCollection = onCreateCollection,
-                onRenameCollection = onRenameCollection,
-                onDeleteCollection = onDeleteCollection,
-                onBack = navController::popBackStack,
-            )
-        }
-        composable(AppRoutes.MORE_READING_IMPORTS) {
-            ReadingImportsScreen(
-                state = localPdfImport,
-                onRequestImport = onRequestLocalPdfImport,
-                onConfirmImport = onConfirmLocalPdfImport,
-                onDismissImport = onDismissLocalPdfImport,
-                onOpenImportedPaper = { workId -> navController.navigate(AppRoutes.detail(workId)) },
-                onBack = navController::popBackStack,
-            )
-        }
-        composable(AppRoutes.MORE_UPDATES) {
-            UpdatesNotificationsScreen(
-                automaticRefreshEnabled = automaticRefreshEnabled,
-                notificationsAvailable = notificationsAvailable,
-                onAutomaticRefreshChange = onAutomaticRefreshChange,
-                onOpenNotificationSettings = onOpenNotificationSettings,
-                onBack = navController::popBackStack,
-            )
-        }
-        composable(AppRoutes.MORE_DATA_BACKUP) {
-            DataBackupScreen(
-                state = metadataBackup,
-                onRequestExport = onRequestBackupExport,
-                onRequestImport = onRequestBackupImport,
-                onConfirmRestore = onConfirmBackupRestore,
-                onDismissState = onDismissBackupState,
-                onBack = navController::popBackStack,
-            )
-        }
-        composable(AppRoutes.MORE_SOURCES) {
-            SourcesScreen(
-                providers = providers,
-                extensionStores = extensionStores.state,
-                extensionStoreAction = extensionStores.action,
-                onPreviewStore = extensionStores.onPreview,
-                onConfirmStore = extensionStores.onConfirm,
-                onDismissStoreAction = extensionStores.onDismissAction,
-                onRefreshStore = extensionStores.onRefresh,
-                onRemoveStore = extensionStores.onRemove,
-                onOpenInstallUrl = extensionStores.onOpenInstallUrl,
-                onBack = navController::popBackStack,
-            )
-        }
-        composable(
-            route = AppRoutes.DETAIL,
-            arguments = listOf(navArgument("workId") { type = NavType.StringType }),
-        ) { entry ->
-            val workId = entry.arguments?.getString("workId").orEmpty()
-            val detail = when (library) {
-                LoadState.Loading -> LoadState.Loading
-                LoadState.Failed -> LoadState.Failed
-                is LoadState.Ready -> LoadState.Ready(library.value.firstOrNull { it.id == workId })
-            }
-            DetailScreen(
-                state = detail,
-                collections = collections,
-                themePreset = preset,
-                themeKey = themeKey,
-                downloadTasks = (tasks as? LoadState.Ready)?.value
-                    ?.filter { it.workId?.value == workId }
-                    .orEmpty(),
-                requestingManifestations = downloadActions.requestingManifestations,
-                failedManifestations = downloadActions.failedManifestations,
-                onBack = { navController.popBackStack() },
-                onStatusChange = { status -> onReadingStatusChange(workId, status) },
-                onRequestDownload = { manifestationId -> onRequestDownload(workId, manifestationId) },
-                onGetDownloadedPaper = onGetDownloadedPaper,
-                onDeleteDownload = { manifestationId -> onDeleteDownload(workId, manifestationId) },
-                onRemove = { onRemovePaper(workId) },
-                onSetCollections = { selected -> onSetPaperCollections(workId, selected) },
-                onRemoved = { navController.popBackStack() },
             )
         }
     }

@@ -53,9 +53,17 @@ class CommunitySourceProviderTest {
         assertEquals("sample", page.items.single().providerId)
         assertEquals(ManifestationType.PREPRINT, page.items.single().manifestations.single().type)
         assertEquals(
-            setOf(IdentifierType.PROVIDER, IdentifierType.DOI, IdentifierType.ARXIV),
+            setOf(
+                IdentifierType.PROVIDER,
+                IdentifierType.DOI,
+                IdentifierType.ARXIV,
+                IdentifierType.PMID,
+                IdentifierType.PMCID,
+            ),
             page.items.single().identifiers.mapTo(linkedSetOf()) { it.type },
         )
+        assertEquals(42, page.items.single().citationMetrics?.count)
+        assertEquals("sample", page.items.single().citationMetrics?.sourceId)
     }
 
     @Test
@@ -100,6 +108,9 @@ class CommunitySourceProviderTest {
         authors = listOf("Ada Lovelace"),
         doi = "10.1000/sample",
         arxivId = "2501.00001v1",
+        pmid = "12345678",
+        pmcid = "PMC123456",
+        citationCount = 42,
         publishedDate = "2026-01-02",
         updatedAt = "2026-01-02T03:04:05Z",
         manifestations = listOf(

@@ -1,90 +1,83 @@
 # Extension SDK
 
-PaperReader extensions are separate Android applications. They communicate with the host through
-the versioned `dev.paperreader:extension-api` AIDL contract and run under a different Linux UID.
-Third-party code is never loaded into the PaperReader process.
+PaperReader extensions are separate Android applications. They communicate with the host through the
+versioned `dev.paperreader:extension-api` AIDL contract and run under a different Linux UID. The host
+never loads third-party code into its process.
 
-Two reference implementations are maintained separately:
+Reference repositories:
 
-- [Source extension sample](https://github.com/ImAno177/PaperReader-source-sample) — queries the real
-  OpenAlex API and returns neutral paper records.
-- [Theme extension sample](https://github.com/ImAno177/PaperReader-theme-sample) — supplies complete
-  light/dark palettes, typography, shape tokens, and all semantic icons.
-
-## Current availability
-
-The SDK, both host transports, and user-managed signed extension stores are implemented. A user adds
-an HTTPS index URL and its raw Ed25519 public key, verifies the displayed SHA-256 fingerprint through
-an independent trusted channel, and explicitly confirms the store. PaperReader then exposes compatible
-source and theme releases and opens the publisher-signed HTTPS download page for install or update;
-Android retains the final package-install confirmation. Release builds trust no store or sample by
-default.
-
-Development builds may additionally accept one explicit package, service, descriptor, version range,
-and certificate SHA-256 supplied at build time. This path is for local sample testing only.
+- [Official source extensions](https://github.com/ImAno177/PaperReader-sources) — independently
+  released Semantic Scholar, Crossref, arXiv, and Europe PMC APKs plus the signed official registry.
+- [Theme extension sample](https://github.com/ImAno177/PaperReader-theme-sample) — a complete
+  declarative light/dark theme and semantic icon set.
 
 ## Build against the SDK
 
-Until the SDK is published to a Maven repository, use a composite build. Clone PaperReader into the
-extension repository as `PaperReader`, or pass its location:
+Until the SDK is published to Maven, use a composite build. Clone PaperReader into the extension
+repository as `PaperReader`, or pass its path:
 
 ```bash
 ./gradlew :app:assembleDebug -PpaperReaderSdkPath=/path/to/PaperReader
 ```
 
-The samples replace `dev.paperreader:extension-api:0.1.0` with the local `:extension-api` project.
-The API requires Android 9 or newer and Java/Kotlin bytecode target 17.
+The extension build substitutes `dev.paperreader:extension-api:0.1.0` with the local
+`:extension-api` project. The current API requires Android 9 or newer and JVM target 17.
 
 ## Source extensions
 
-A source APK exports one service for
-`dev.paperreader.extensions.api.action.PAPER_SOURCE`. Its manifest metadata must declare API version
-`1` and kind `source`. The descriptor declares a stable provider ID, display name, request interval,
-and supported capabilities.
+A source APK exports exactly one service for
+`dev.paperreader.extensions.api.action.PAPER_SOURCE`. Its manifest metadata declares API version `1`
+and kind `source`. The descriptor declares:
 
-Search and detail requests are asynchronous and cancellable. Responses use neutral records rather
-than host domain or database types. A source must preserve provider record IDs and provenance, bound
-its network responses, validate URLs, expose rate limiting through `retryAfterMillis`, and return no
-more than 50 records per page.
+- stable provider ID and display name;
+- minimum request interval;
+- capabilities (`search`, `details`);
+- roles (`search_engine`, `content_source`, `metadata_engine`);
+- accepted exact identifier types (`doi`, `arxiv`, `pmid`, `pmcid`);
+- supported search sorts.
+
+Search/detail requests are asynchronous, bounded, and cancellable. Responses use neutral extension
+records instead of host database/domain types. A source preserves provider record IDs and provenance,
+validates URLs, limits responses to 50 records per page, and reports rate limiting through
+`retryAfterMillis`.
+
+Each official provider owns one upstream API only. Crossref is exact-DOI metadata enrichment, not
+free-text discovery. Semantic Scholar is the default free-text engine. arXiv and Europe PMC expose
+content manifestations only when supported by the upstream response and license/access evidence.
 
 ## Theme extensions
 
-A theme APK exports one service for
-`dev.paperreader.extensions.api.action.PAPER_THEME`. Its manifest metadata must declare API version
-`1` and kind `theme`.
+A theme APK exports exactly one service for
+`dev.paperreader.extensions.api.action.PAPER_THEME`. Its manifest metadata declares API version `1`
+and kind `theme`.
 
-Each theme is a complete declarative visual system:
+A theme is complete declarative data:
 
 - light and dark semantic color palettes;
 - title, body, and label font families;
 - corner, border, shadow, and decoration tokens;
-- every `ThemeSemanticIcon` supplied as bounded ASCII path data.
+- every `ThemeSemanticIcon` as bounded ASCII path data.
 
 Icon paths use a `2400 × 2400` viewport and are limited to 64 KiB each. The host parses and renders
-them; extensions cannot inject Compose code, layouts, arbitrary resources, or file paths. Missing,
-oversized, or malformed icons reject the whole theme instead of producing a partially themed UI.
+them. Extensions cannot inject Compose code, layouts, arbitrary resources, JavaScript, or file paths.
+Missing, oversized, or malformed icons reject the whole theme.
 
-## Trust and runtime limits
+## Runtime trust
 
-Before binding, PaperReader verifies the exact package and exported service component, a publisher-
-attested bounded version-code range, certificate SHA-256, API metadata, extension kind, descriptor,
-and separate UID. Services should
-also verify PaperReader's package and signing certificate on every Binder entry point; both samples
-demonstrate this fail-closed check through `paperReaderHostSignerSha256`.
+Before binding, PaperReader verifies the exact package and exported service, version range,
+certificate SHA-256, API metadata, extension kind, descriptor, and separate UID. Services also verify
+the PaperReader package and signing certificate on every Binder entry point.
 
-The host uses explicit Binder intents, bounded parcels and file descriptors, five-second theme
-requests, bounded source requests, cancellation propagation, and strict decoders. It never sends an
-extension its Room database, private storage root, arbitrary host file path, global credential, or
-unrestricted intent.
+The host uses explicit Binder intents, bounded parcels/file descriptors, request timeouts,
+cancellation propagation, and strict decoders. It never sends an extension its Room database,
+private-storage root, arbitrary host path, global credential, or unrestricted intent.
 
-For local host testing, provide the `paperReaderDevSource*` or `paperReaderDevTheme*` Gradle
-properties defined in `app/build.gradle.kts`. Do not commit signing keys, private credentials, or a
-personal certificate fingerprint.
+For local testing, provide the `paperReaderDevSource*` or `paperReaderDevTheme*` Gradle properties in
+`app/build.gradle.kts`. Do not commit keys, passwords, API credentials, or private-key material.
 
-## Signed extension stores
+## Signed stores
 
-The signed envelope contains the Base64 encoding of the exact UTF-8 index bytes and a raw Ed25519
-signature over those bytes:
+The envelope contains Base64 exact UTF-8 index bytes and an Ed25519 signature over those bytes:
 
 ```json
 {
@@ -93,48 +86,83 @@ signature over those bytes:
 }
 ```
 
-The decoded index uses schema version 1. Every sequence must increase whenever any signed content
-changes; PaperReader rejects rollback and same-sequence equivocation. Package names must be unique
-across all stores on one device. A complete source-and-theme example is available at
-[`docs/examples/extension-index.json`](examples/extension-index.json).
+The decoded index uses schema version 1. Increment `sequence` whenever any signed content changes.
+PaperReader rejects rollback, same-sequence equivocation, duplicate packages, unknown fields/values,
+oversized data, non-HTTPS URLs, incompatible API ranges, and indexes beyond the clock-skew allowance.
 
 ```json
 {
   "schemaVersion": 1,
-  "storeId": "example.paperreader.store",
-  "displayName": "Example extensions",
-  "websiteUrl": "https://example.org/paperreader",
+  "storeId": "paperreader.official.sources",
+  "displayName": "PaperReader official sources",
+  "websiteUrl": "https://github.com/ImAno177/PaperReader-sources",
   "sequence": 1,
   "generatedAt": "2026-08-13T06:00:00Z",
   "extensions": [
     {
       "kind": "source",
-      "packageName": "org.example.paperreader.openalex",
-      "serviceClassName": "org.example.paperreader.openalex.OpenAlexService",
-      "displayName": "OpenAlex",
-      "versionCode": 3,
-      "minimumVersionCode": 2,
-      "versionName": "1.2.0",
+      "packageName": "dev.paperreader.sources.semanticscholar",
+      "serviceClassName": "dev.paperreader.sources.semanticscholar.SemanticScholarSourceService",
+      "displayName": "Semantic Scholar",
+      "versionCode": 1,
+      "minimumVersionCode": 1,
+      "versionName": "0.1.0",
       "signerSha256": "64_HEX_CHARACTERS",
       "minimumHostApi": 1,
       "maximumHostApi": 1,
-      "installUrl": "https://example.org/downloads/openalex.apk",
+      "installUrl": "https://github.com/ImAno177/PaperReader-sources/releases/download/v0.1.0/source-semanticscholar.apk",
+      "apkSha256": "64_HEX_CHARACTERS",
+      "apkSizeBytes": 123456,
       "license": "Apache-2.0",
-      "privacyUrl": "https://example.org/privacy/openalex",
-      "providerId": "openalex",
+      "privacyUrl": "https://api.semanticscholar.org/api-docs/graph",
+      "providerId": "semanticscholar",
       "minimumRequestIntervalMillis": 1000,
-      "sourceCapabilities": ["search", "details", "pdf_link"]
+      "sourceCapabilities": ["search", "details"],
+      "sourceRoles": ["search_engine"],
+      "sourceIdentifierTypes": [],
+      "sourceSupportedSorts": ["relevance"]
     }
   ]
 }
 ```
 
-Theme entries use `"kind": "theme"` and `"themeIds": ["stable-theme-id"]`; they must not contain
-source-only fields. The host rejects unknown JSON keys, unknown capabilities, non-HTTPS URLs,
-future-dated indexes beyond the clock-skew allowance, duplicate packages, oversized envelopes, and
-incompatible API ranges. `minimumVersionCode` lets a publisher revoke vulnerable historical APKs.
+`apkSha256` and `apkSizeBytes` must be present together. They bind the signed registry to exact APK
+bytes. `minimumVersionCode` revokes vulnerable older builds. Theme entries use `"kind": "theme"`
+and `"themeIds"`; source-only fields are forbidden.
 
-Create an Ed25519 key with OpenSSL, keep the private key offline, and package an index with:
+## Install and update lifecycle
+
+The official store URL, store ID, and Ed25519 public key are pinned in the host. User-managed stores
+require the user to verify a displayed public-key SHA-256 fingerprint through an independent channel.
+
+PaperReader uses these states:
+
+- available;
+- installed;
+- update available;
+- pending/downloading;
+- awaiting Android confirmation;
+- installing/installed;
+- cancelled/failed;
+- untrusted;
+- orphaned (installed package no longer in any trusted store).
+
+On cold start, manual refresh, and constrained periodic work, the host verifies the newest indexes and
+compares package/version/API/signer information. It may notify about compatible updates, but never
+installs one automatically.
+
+After the user chooses Install or Update, the host downloads into a bounded app-private cache,
+enforces the signed size during streaming, verifies SHA-256, and preflights package name, versionCode,
+signer, service action, kind, and API compatibility. Only then does it create an Android
+`PackageInstaller` session. Android presents the final consent surface. Package add/replace/remove
+broadcasts trigger a complete installed-extension rescan and state reconciliation.
+
+This deliberately follows Mihon's useful queue/state/broadcast pattern while excluding its private
+class-loader path. PaperReader also verifies artifact hash and size before installation.
+
+## Signing an index
+
+Create an Ed25519 key and keep the private key outside Git:
 
 ```bash
 openssl genpkey -algorithm ED25519 -out extension-store-private.pem
@@ -144,6 +172,5 @@ python tools/sign_extension_index.py \
   --output extension-index.signed.json
 ```
 
-The tool prints the Base64 public key and SHA-256 fingerprint that users must verify. Never commit the
-private key. Host refreshes preserve the last verified index when a network, signature, schema, or
-rollback check fails.
+Publish the Base64 raw public key and its SHA-256 fingerprint. Store refresh preserves the last
+verified index when network, signature, schema, rollback, or equivocation checks fail.

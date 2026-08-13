@@ -44,7 +44,20 @@ class LogicBoundaryTest {
     fun `logic has no reverse dependency on app`() {
         val buildFile = findLogicRoot().resolve("build.gradle.kts").readText()
         assertFalse(buildFile.contains("project(\":app\")"))
+        assertFalse(buildFile.contains("project(\":source-"))
         assertFalse(buildFile.contains("androidx.compose"))
+    }
+
+    @Test
+    fun `provider implementations stay outside the host repository`() {
+        val projectRoot = findLogicRoot().parent
+        val settings = projectRoot.resolve("settings.gradle.kts").readText()
+        val bundledProviderDirectories = Files.list(projectRoot).use { paths ->
+            paths.filter { Files.isDirectory(it) && it.fileName.toString().startsWith("source-") }.toList()
+        }
+
+        assertFalse(settings.contains("\":source-"))
+        assertTrue("Provider implementations must live in the external source repository", bundledProviderDirectories.isEmpty())
     }
 
     @Test
@@ -54,6 +67,9 @@ class LogicBoundaryTest {
             "dev.paperreader.logic.data.",
             "dev.paperreader.logic.network.",
             "dev.paperreader.logic.provider.builtin.",
+            "dev.paperreader.sources.arxiv.",
+            "dev.paperreader.sources.semanticscholar.",
+            "dev.paperreader.sources.europepmc.",
             "dev.paperreader.logic.reader.ExtractionService",
             "dev.paperreader.logic.reader.PdfTextExtractor",
         )

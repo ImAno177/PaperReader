@@ -6,6 +6,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollTo
@@ -22,6 +23,7 @@ import dev.paperreader.app.ui.screen.AppearanceScreen
 import dev.paperreader.app.ui.screen.CollectionsScreen
 import dev.paperreader.app.ui.screen.UpdatesNotificationsScreen
 import dev.paperreader.app.ui.theme.PaperReaderTheme
+import dev.paperreader.app.ui.theme.PaperThemeMode
 import dev.paperreader.app.ui.theme.PaperThemePreset
 import dev.paperreader.logic.domain.repository.CreateCollectionResult
 import dev.paperreader.logic.domain.CollectionId
@@ -41,13 +43,14 @@ class ThemeChoiceTest {
     @Test
     fun allVisualPresetsAreAvailableAndSelectable() {
         composeRule.enableAccessibilityChecks()
-        var selectedPreset = PaperThemePreset.NEOBRUTALISM
+        var selectedPreset by mutableStateOf(PaperThemePreset.NEOBRUTALISM)
 
         composeRule.setContent {
             PaperReaderTheme(preset = selectedPreset) {
                 AppearanceScreen(
                     selectedPreset = selectedPreset,
                     onPresetChange = { selectedPreset = it },
+                    onThemeModeChange = {},
                     onBack = {},
                 )
             }
@@ -61,6 +64,30 @@ class ThemeChoiceTest {
         composeRule.runOnIdle {
             assertEquals(PaperThemePreset.RETRO, selectedPreset)
         }
+    }
+
+    @Test
+    fun colorModeOffersSystemLightAndDarkAndReportsSelection() {
+        composeRule.enableAccessibilityChecks()
+        var selectedMode by mutableStateOf(PaperThemeMode.SYSTEM)
+
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM, themeMode = selectedMode) {
+                AppearanceScreen(
+                    selectedPreset = PaperThemePreset.NEOBRUTALISM,
+                    selectedThemeMode = selectedMode,
+                    onPresetChange = {},
+                    onThemeModeChange = { selectedMode = it },
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("System").assertExists()
+        composeRule.onNodeWithText("Light").assertExists()
+        composeRule.onNodeWithText("Dark").performClick()
+        composeRule.onNodeWithText("Dark").assertIsSelected()
+        composeRule.runOnIdle { assertEquals(PaperThemeMode.DARK, selectedMode) }
     }
 
     @Test
@@ -78,6 +105,7 @@ class ThemeChoiceTest {
                         ),
                     ),
                     onThemeChange = {},
+                    onThemeModeChange = {},
                     onBack = {},
                 )
             }

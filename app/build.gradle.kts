@@ -21,6 +21,9 @@ val devThemeDisplayName = providers.gradleProperty("paperReaderDevThemeDisplayNa
 val devThemeId = providers.gradleProperty("paperReaderDevThemeId").orElse("").get()
 val devThemeSigner = providers.gradleProperty("paperReaderDevThemeSignerSha256").orElse("").get()
 val devThemeVersion = providers.gradleProperty("paperReaderDevThemeVersionCode").orElse("0").get()
+val appKeystorePath = providers.gradleProperty("appKeystorePath").orNull
+val appVersionCode = providers.gradleProperty("appVersionCode").orElse("1").get().toInt()
+val appVersionName = providers.gradleProperty("appVersionName").orElse("0.1.0").get()
 
 require(devSourceSigner.isBlank() || devSourceSigner.matches(Regex("[0-9a-fA-F]{64}")))
 require(devSourceVersion.toLongOrNull() != null)
@@ -39,8 +42,8 @@ android {
         applicationId = "dev.paperreader.app"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "DEV_SOURCE_PACKAGE", devSourcePackage.asBuildConfigString())
         buildConfigField("String", "DEV_SOURCE_SERVICE", devSourceService.asBuildConfigString())
@@ -54,6 +57,28 @@ android {
         buildConfigField("String", "DEV_THEME_ID", devThemeId.asBuildConfigString())
         buildConfigField("String", "DEV_THEME_SIGNER_SHA256", devThemeSigner.asBuildConfigString())
         buildConfigField("long", "DEV_THEME_VERSION_CODE", "${devThemeVersion}L")
+        buildConfigField(
+            "String",
+            "OFFICIAL_SOURCE_STORE_URL",
+            "https://raw.githubusercontent.com/ImAno177/PaperReader-sources/main/registry/index.signed.json".asBuildConfigString(),
+        )
+        buildConfigField("String", "OFFICIAL_SOURCE_STORE_ID", "paperreader.official.sources".asBuildConfigString())
+        buildConfigField(
+            "String",
+            "OFFICIAL_SOURCE_STORE_PUBLIC_KEY",
+            "7pUD6Tvcjk1Kf/eS+JdKnXPBktUaYisYdfcbsvB30VA=".asBuildConfigString(),
+        )
+    }
+
+    signingConfigs {
+        if (appKeystorePath != null) {
+            create("paperReaderRelease") {
+                storeFile = file(appKeystorePath)
+                storePassword = providers.gradleProperty("appKeystorePassword").get()
+                keyAlias = providers.gradleProperty("appKeyAlias").get()
+                keyPassword = providers.gradleProperty("appKeyPassword").get()
+            }
+        }
     }
 
     buildTypes {
@@ -64,6 +89,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            if (appKeystorePath != null) signingConfig = signingConfigs.getByName("paperReaderRelease")
         }
     }
 

@@ -32,7 +32,7 @@ class ExtensionStoreIndexVerifierTest {
         val source = verified.releases.single { it.kind == ExtensionReleaseKind.SOURCE }
         assertTrue(source.compatible)
         assertEquals(2L, source.minimumVersionCode)
-        assertEquals("openalex-sample", source.providerId)
+        assertEquals("semanticscholar-sample", source.providerId)
         assertEquals(source.packageName, source.toTrustedSourceExtension()?.packageName)
         val theme = verified.releases.single { it.kind == ExtensionReleaseKind.THEME }
         assertEquals(setOf("blueprint"), theme.themeIds)
@@ -125,19 +125,19 @@ class ExtensionStoreIndexVerifierTest {
           "extensions":[
             {
               "kind":"source",
-              "packageName":"dev.paperreader.extensions.openalex",
-              "serviceClassName":"dev.paperreader.extensions.openalex.OpenAlexService",
-              "displayName":"OpenAlex",
+              "packageName":"dev.paperreader.extensions.semanticscholar",
+              "serviceClassName":"dev.paperreader.extensions.semanticscholar.SemanticScholarService",
+              "displayName":"Semantic Scholar",
               "versionCode":3,
               "minimumVersionCode":2,
               "versionName":"1.2.0",
               "signerSha256":"${"ab".repeat(32)}",
               "minimumHostApi":1,
               "maximumHostApi":1,
-              "installUrl":"https://example.org/extensions/openalex.apk",
+              "installUrl":"https://example.org/extensions/semanticscholar.apk",
               "license":"Apache-2.0",
-              "privacyUrl":"https://example.org/privacy/openalex",
-              "providerId":"openalex-sample",
+              "privacyUrl":"https://example.org/privacy/semanticscholar",
+              "providerId":"semanticscholar-sample",
               "minimumRequestIntervalMillis":1000,
               "sourceCapabilities":["search","details","pdf_link"]
             },

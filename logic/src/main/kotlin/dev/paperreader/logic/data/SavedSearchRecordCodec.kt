@@ -6,13 +6,17 @@ import dev.paperreader.logic.domain.PaperAuthor
 import dev.paperreader.logic.domain.PaperIdentifier
 import dev.paperreader.logic.provider.RemoteManifestation
 import dev.paperreader.logic.provider.RemotePaper
+import dev.paperreader.logic.provider.CitationMetrics
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 
 /** Versioned, deterministic snapshot used only inside Room saved-search rows. */
+@OptIn(ExperimentalSerializationApi::class)
 internal object SavedSearchRecordCodec {
     private val json = Json { encodeDefaults = true }
 
@@ -69,6 +73,7 @@ internal object SavedSearchRecordCodec {
             account(manifestation.pdfUrl)
             account(manifestation.license)
         }
+        account(record.citationMetrics?.sourceId)
     }
 
     @Serializable
@@ -84,6 +89,8 @@ internal object SavedSearchRecordCodec {
         val publishedDateEpochDay: Long? = null,
         val updatedAtEpochMillis: Long? = null,
         val manifestations: List<ManifestationSnapshot> = emptyList(),
+        @EncodeDefault(EncodeDefault.Mode.NEVER)
+        val citationMetrics: CitationMetricsSnapshot? = null,
     ) {
         fun toRemotePaper(): RemotePaper {
             require(schemaVersion == SCHEMA_VERSION) { "Unsupported saved-search snapshot version" }
@@ -98,6 +105,7 @@ internal object SavedSearchRecordCodec {
                 publishedDate = publishedDateEpochDay?.let(LocalDate::ofEpochDay),
                 updatedAt = updatedAtEpochMillis?.let(Instant::ofEpochMilli),
                 manifestations = manifestations.map(ManifestationSnapshot::toDomain),
+                citationMetrics = citationMetrics?.toDomain(),
             )
         }
 
@@ -117,6 +125,24 @@ internal object SavedSearchRecordCodec {
                 manifestations = record.manifestations
                     .map(ManifestationSnapshot::from)
                     .sortedBy(ManifestationSnapshot::stableKey),
+                citationMetrics = record.citationMetrics?.let(CitationMetricsSnapshot::from),
+            )
+        }
+    }
+
+    @Serializable
+    private data class CitationMetricsSnapshot(
+        val count: Int,
+        val sourceId: String,
+        val observedAtEpochMillis: Long,
+    ) {
+        fun toDomain() = CitationMetrics(count, sourceId, Instant.ofEpochMilli(observedAtEpochMillis))
+
+        companion object {
+            fun from(metrics: CitationMetrics) = CitationMetricsSnapshot(
+                count = metrics.count,
+                sourceId = metrics.sourceId,
+                observedAtEpochMillis = metrics.observedAt.toEpochMilli(),
             )
         }
     }

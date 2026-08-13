@@ -12,6 +12,15 @@ import org.junit.Test
 
 class LibraryPresentationTest {
     @Test
+    fun `library layout defaults safely and round trips storage keys`() {
+        assertEquals(LibraryLayout.LIST, LibraryLayout.fromStorageKey(null))
+        assertEquals(LibraryLayout.LIST, LibraryLayout.fromStorageKey("unknown"))
+        LibraryLayout.entries.forEach { layout ->
+            assertEquals(layout, LibraryLayout.fromStorageKey(layout.storageKey))
+        }
+    }
+
+    @Test
     fun `collection filter includes only explicitly assigned papers`() {
         val inCollection = paper(
             id = "in-collection",
@@ -37,7 +46,8 @@ class LibraryPresentationTest {
     @Test
     fun `provider ids use product display names without changing unknown ids`() {
         assertEquals("arXiv", "arxiv".displayProviderName())
-        assertEquals("Crossref", "crossref".displayProviderName())
+        assertEquals("Semantic Scholar", "semanticscholar".displayProviderName())
+        assertEquals("Europe PMC", "europepmc".displayProviderName())
         assertEquals("community.example", "community.example".displayProviderName())
     }
 

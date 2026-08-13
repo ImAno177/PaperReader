@@ -1,6 +1,7 @@
 package dev.paperreader.logic.provider
 
 import dev.paperreader.logic.domain.ManifestationType
+import dev.paperreader.logic.domain.IdentifierType
 import dev.paperreader.logic.domain.PaperAuthor
 import dev.paperreader.logic.domain.PaperIdentifier
 import java.time.Instant
@@ -12,12 +13,38 @@ data class ProviderDescriptor(
     val displayName: String,
     val minimumRequestIntervalMillis: Long,
     val requiresApiKey: Boolean = false,
+    val roles: Set<ProviderRole> = setOf(ProviderRole.CONTENT_SOURCE),
+    val capabilities: Set<ProviderCapability> = setOf(ProviderCapability.DISCOVERY),
+    val identifierLookupTypes: Set<IdentifierType> = IdentifierType.entries.toSet(),
+    val supportedSorts: Set<SearchSort> = SearchSort.entries.toSet(),
 ) {
     init {
         require(id.matches(Regex("[a-z0-9][a-z0-9._-]*")))
         require(displayName.isNotBlank())
         require(minimumRequestIntervalMillis >= 0)
+        require(roles.isNotEmpty())
+        require(capabilities.isNotEmpty())
+        require(supportedSorts.isNotEmpty())
     }
+}
+
+enum class ProviderRole {
+    /** Returns and ranks candidates for discovery queries. */
+    SEARCH_ENGINE,
+
+    /** Owns a paper manifestation or a structured/full-text artifact. */
+    CONTENT_SOURCE,
+
+    /** Enriches an already identified work; free-text discovery must not call it. */
+    METADATA_ENGINE,
+}
+
+enum class ProviderCapability {
+    /** Can discover papers from unstructured title/author/topic queries. */
+    DISCOVERY,
+
+    /** Resolves authoritative metadata from a canonical identifier; it is not a discovery source. */
+    METADATA_RESOLUTION,
 }
 
 enum class SearchSort {
@@ -56,6 +83,17 @@ data class RemoteManifestation(
     }
 }
 
+data class CitationMetrics(
+    val count: Int,
+    val sourceId: String,
+    val observedAt: Instant,
+) {
+    init {
+        require(count >= 0)
+        require(sourceId.length in 1..100 && sourceId.matches(Regex("[a-z0-9][a-z0-9._-]*")))
+    }
+}
+
 data class RemotePaper(
     val providerId: String,
     val providerRecordId: String,
@@ -67,6 +105,7 @@ data class RemotePaper(
     val publishedDate: LocalDate? = null,
     val updatedAt: Instant? = null,
     val manifestations: List<RemoteManifestation> = emptyList(),
+    val citationMetrics: CitationMetrics? = null,
 ) {
     init {
         require(providerId.isNotBlank())

@@ -41,11 +41,11 @@
     <string name="discover_title">Discover</string>
     <string name="share_reference_invalid">Share one DOI or arXiv link at a time.</string>
     <string name="discover_body">Searches run across your installed sources. Results appear as each source responds.</string>
-    <string name="search_label">Title, DOI, or arXiv ID</string>
+    <string name="search_label">Title, DOI, arXiv ID, PMID, or PMCID</string>
     <string name="search_submit">Search</string>
     <string name="search_clear">Clear search</string>
     <string name="search_start_title">Search installed sources</string>
-    <string name="search_start_body">Enter a paper title, DOI, or arXiv identifier to search live source metadata.</string>
+    <string name="search_start_body">Enter a paper title, DOI, arXiv ID, PMID, or PMCID to search live source metadata.</string>
     <string name="searching_title">Searching providers</string>
     <plurals name="searching_provider_count">
         <item quantity="one">Waiting for %1$d provider.</item>
@@ -68,6 +68,21 @@
     <string name="saving_paper">Saving</string>
     <string name="open_saved_paper">Open</string>
     <string name="save_failed">Could not save this paper. Try again.</string>
+    <string name="search_preview_abstract">Abstract</string>
+    <string name="search_preview_open">View details for %1$s</string>
+    <string name="search_preview_identifiers">Identifiers</string>
+    <string name="search_preview_versions">Available versions</string>
+    <string name="search_preview_subjects">Subjects</string>
+    <string name="search_preview_no_abstract">No abstract was returned by the installed sources.</string>
+    <string name="search_preview_source_page">Open source page</string>
+    <string name="search_preview_pdf">Open PDF</string>
+    <string name="search_preview_link_failed">No app could open this source link.</string>
+    <string name="search_preview_license">License: %1$s</string>
+    <string name="search_preview_citation_source">Count reported by %1$s · checked %2$s</string>
+    <plurals name="search_preview_citations">
+        <item quantity="one">%1$d citation</item>
+        <item quantity="other">%1$d citations</item>
+    </plurals>
 
     <string name="updates_title">Updates</string>
     <string name="save_search_title">Track this search</string>
@@ -145,7 +160,14 @@
     <string name="community_themes_attention">Theme security</string>
     <string name="community_theme_blocked">Blocked</string>
     <string name="community_theme_provider">Provided by %1$s</string>
-    <string name="appearance_body">Choose a complete visual system. Previews follow the device light or dark setting.</string>
+    <string name="appearance_body">Choose when PaperReader uses light or dark colors, then choose a complete visual system.</string>
+    <string name="color_mode_title">Color mode</string>
+    <string name="theme_mode_system">System</string>
+    <string name="theme_mode_system_description">Follow the device appearance setting</string>
+    <string name="theme_mode_light">Light</string>
+    <string name="theme_mode_light_description">Always use the light palette</string>
+    <string name="theme_mode_dark">Dark</string>
+    <string name="theme_mode_dark_description">Always use the dark palette</string>
     <string name="reading_and_imports_title">Reading &amp; imports</string>
     <string name="reading_and_imports_summary">Reader options and private local PDF import</string>
     <string name="updates_and_notifications_title">Updates &amp; notifications</string>
@@ -246,6 +268,7 @@
     <string name="provider_available_section">Available packages</string>
     <string name="provider_blocked">Blocked</string>
     <string name="provider_blocked_body">This package cannot run because its trust check failed.</string>
+    <string name="store_pinned">Official</string>
     <string name="provider_block_reason">Reason: %1$s</string>
     <string name="provider_signer">Signer SHA-256: %1$s</string>
     <string name="provider_available_notice">PaperReader opens the publisher-signed HTTPS download page. Android keeps the final install confirmation under your control.</string>
@@ -367,10 +390,13 @@
     <string name="readable_reader_annotation_delete_title">Delete this highlight?</string>
     <string name="readable_reader_annotation_delete_body">The selected quote and its research note will be removed from this device.</string>
     <string name="readable_reader_search_hint">Find text in this paper</string>
-    <string name="readable_reader_search_action">Find</string>
-    <string name="readable_reader_search_empty">Enter text to search this paper.</string>
     <string name="readable_reader_search_count">Match %1$d of %2$d</string>
-    <string name="readable_reader_search_no_results">No matches in this paper.</string>
+    <string name="readable_reader_search_no_results_short">0 matches</string>
+    <string name="readable_reader_searching">…</string>
+    <string name="readable_reader_search_previous">Previous match</string>
+    <string name="readable_reader_search_next">Next match</string>
+    <string name="readable_reader_search_close">Close paper search</string>
+    <string name="readable_reader_citation_return">Back to reading</string>
     <string name="readable_reader_text_smaller">Decrease text size</string>
     <string name="readable_reader_text_larger">Increase text size</string>
     <string name="readable_reader_text_smaller_short">A&#8722;</string>
@@ -561,4 +587,21 @@
     <string name="restore_backup">Restore</string>
     <string name="restoring_backup">Restoring</string>
     <string name="dismiss">Dismiss</string>
+    <string name="install_extension">Install extension</string>
+    <string name="update_extension">Update extension</string>
+    <string name="extension_install_pending">Waiting to download</string>
+    <string name="extension_download_progress">%1$d%% downloaded</string>
+    <string name="extension_installing">Preparing Android installer</string>
+    <string name="extension_awaiting_confirmation">Confirm in Android installer</string>
+    <string name="extension_installed">Installed — dismiss</string>
+    <string name="extension_installed_blocked">Installed but blocked</string>
+    <string name="extension_install_cancelled">Installation cancelled — dismiss</string>
+    <string name="extension_install_failed">Install failed: %1$s</string>
+    <string name="source_extension_notification_channel">Source extension updates</string>
+    <string name="source_extension_notification_channel_description">Compatible updates from verified extension stores</string>
+    <string name="source_extension_notification_title">Source updates are available</string>
+    <plurals name="source_extension_notification_body">
+        <item quantity="one">%1$d installed source has a verified update.</item>
+        <item quantity="other">%1$d installed sources have verified updates.</item>
+    </plurals>
 </resources>

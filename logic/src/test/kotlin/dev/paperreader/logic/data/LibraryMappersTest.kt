@@ -56,7 +56,7 @@ class LibraryMappersTest {
             license = null, publishedDateEpochDay = null, updatedAtEpochMillis = 1,
         )
         val incomingIdentifier = IdentifierEntity("w-1", "DOI", "10.1000/example", "")
-        val incomingManifestation = oldManifestation.copy(id = "m-crossref", sourceProvider = "crossref", sourceRecordId = "10.1000/example")
+        val incomingManifestation = oldManifestation.copy(id = "m-semanticscholar", sourceProvider = "semanticscholar", sourceRecordId = "s2-1000")
 
         assertEquals(setOf(oldIdentifier, incomingIdentifier), mergeIdentifiers(listOf(oldIdentifier), listOf(incomingIdentifier)).toSet())
         assertEquals(setOf(oldManifestation, incomingManifestation), mergeManifestations(listOf(oldManifestation), listOf(incomingManifestation)).toSet())

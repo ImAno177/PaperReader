@@ -68,6 +68,10 @@ internal enum class ReadableSideMargin(
 }
 
 private val READABLE_TEXT_ZOOM_LEVELS = intArrayOf(85, 100, 115, 130, 145, 160, 175, 190, 200)
+private val BIBLIOGRAPHY_HREF = Regex(
+    """href\s*=\s*(["'])#(bib\.[A-Za-z0-9._:-]{1,150})\1""",
+    RegexOption.IGNORE_CASE,
+)
 
 internal fun nextReadableTextZoom(current: Int, increase: Boolean): Int = if (increase) {
     READABLE_TEXT_ZOOM_LEVELS.firstOrNull { it > current } ?: READABLE_TEXT_ZOOM_LEVELS.last()
@@ -235,6 +239,7 @@ internal fun renderReadablePaperHtml(
         palette.link,
         palette.selection,
     ).forEach { require(it.matches(Regex("#[0-9A-Fa-f]{6}"))) }
+    val rendererBodyHtml = rewriteBibliographyLinks(sanitizedBodyHtml)
     return """
         <!doctype html>
         <html lang="en" style="color-scheme: ${if (dark) "dark" else "light"}">
@@ -414,10 +419,16 @@ internal fun renderReadablePaperHtml(
             }
           </style>
         </head>
-        <body>$sanitizedBodyHtml</body>
+        <body>$rendererBodyHtml</body>
         </html>
     """.trimIndent()
 }
+
+internal fun rewriteBibliographyLinks(sanitizedBodyHtml: String): String =
+    BIBLIOGRAPHY_HREF.replace(sanitizedBodyHtml) { match ->
+        val quote = match.groupValues[1]
+        "href=$quote$CITATION_SCHEME://anchor/${match.groupValues[2]}$quote"
+    }
 
 class ReadablePaperWebView @JvmOverloads constructor(
     context: Context,

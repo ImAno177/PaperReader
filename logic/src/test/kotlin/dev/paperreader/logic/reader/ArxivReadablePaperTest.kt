@@ -38,7 +38,13 @@ class ArxivReadablePaperTest {
         assertTrue(document.select("table th[scope=col]").isNotEmpty())
         assertTrue(document.select("img[src^=data:image/png;base64,]").isNotEmpty())
         assertEquals("Architecture overview", document.selectFirst("img")?.attr("alt"))
-        assertTrue(document.select("script,style,svg,iframe,form").isEmpty())
+        assertEquals(5, document.select("span.paperreader-figure-unavailable[role=img]").size)
+        assertEquals(
+            "Attention patterns for difficult examples",
+            document.selectFirst("span.paperreader-figure-unavailable")?.attr("aria-label"),
+        )
+        assertTrue(result.warnings.contains(ReadablePaperWarning.FIGURE_UNAVAILABLE))
+        assertTrue(document.select("script,style,svg,object,iframe,form").isEmpty())
         assertTrue(document.select("a[href^=javascript]").isEmpty())
         assertFalse(result.bodyHtml.contains("href=\"http:"))
         assertFalse(result.bodyHtml.contains("onerror", ignoreCase = true))
@@ -87,6 +93,38 @@ class ArxivReadablePaperTest {
         assertEquals(first.document.bodyHtml, cached.document.bodyHtml)
         assertEquals(first.document.documentSha256, cached.document.documentSha256)
         assertEquals(first.document.sections, cached.document.sections)
+    }
+
+    @Test
+    fun `sanitizer policy v8 bypasses a document cached under v7`() = runTest {
+        val directory = Files.createTempDirectory("readable-paper-policy")
+        val cache = ReadablePaperCache(directory)
+        val v7Key = ReadablePaperCache.keyFor(
+            sourceUrl = SOURCE_URL,
+            sanitizerPolicyVersion = "arxiv-html-sanitizer-7",
+            rendererContractVersion = "mobile-html-5",
+        )
+        cache.write(v7Key, cachedRecord("stale-v7"))
+        var calls = 0
+        val loader = ArxivReadablePaperLoader(
+            fetcher = ReadableResourceFetcher { request ->
+                calls += 1
+                if (request.accept.startsWith("text/html")) {
+                    ReadableRemoteResult.Success(
+                        ReadableRemoteResource(fixtureHtml().toByteArray(), "text/html; charset=utf-8"),
+                    )
+                } else {
+                    ReadableRemoteResult.Success(ReadableRemoteResource(byteArrayOf(4, 5, 6), "image/png"))
+                }
+            },
+            cache = cache,
+        )
+
+        val result = loader.load("CGP-Tuning", manifestation()) as ReadablePaperResult.Ready
+
+        assertFalse(result.document.servedFromCache)
+        assertEquals(2, calls)
+        assertTrue(result.document.bodyHtml.contains("paperreader-figure-unavailable"))
     }
 
     @Test
@@ -212,6 +250,14 @@ class ArxivReadablePaperTest {
                 <div class="ltx_authors"><span class="ltx_creator">A. Author<span class="ltx_author_notes"><span class="ltx_contact_name">Thanks: </span>Supported by a public grant.</span></span></div>
                 <section id="S1"><h2>Introduction</h2><p>$paragraph Step \raisebox{0.1pt}{\scriptsize10}⃝ is preserved, while \raisebox{1em}{unknown} remains literal.</p></section>
                 <figure><img src="2501.04510v2/figure.png" alt="Refer to caption" onerror="steal()"><figcaption>Architecture overview</figcaption></figure>
+                <figure>
+                  <object type="image/svg+xml" data="one.svg"></object>
+                  <object type="image/svg+xml" data="two.svg"></object>
+                  <object type="image/svg+xml" data="three.svg"></object>
+                  <object type="image/svg+xml" data="four.svg"></object>
+                  <object type=" IMAGE/SVG+XML ; charset=utf-8 " data="five.svg"></object>
+                  <figcaption>Attention patterns for difficult examples</figcaption>
+                </figure>
                 <p><a href="javascript:alert(1)">bad</a> <a href="http://insecure.invalid">insecure</a> <a href="https://example.org/reference">reference</a></p>
                 <math display="block" alttext="x squared"><semantics><msup><mi>x</mi><mn>2</mn></msup><annotation encoding="application/x-tex">x^2</annotation></semantics></math>
                 <table><thead><tr><th scope="col">Model</th></tr></thead><tbody><tr><td>CGP</td></tr></tbody></table>

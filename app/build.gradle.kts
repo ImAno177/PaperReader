@@ -24,11 +24,13 @@ val devThemeVersion = providers.gradleProperty("paperReaderDevThemeVersionCode")
 val appKeystorePath = providers.gradleProperty("appKeystorePath").orNull
 val appVersionCode = providers.gradleProperty("appVersionCode").orElse("1").get().toInt()
 val appVersionName = providers.gradleProperty("appVersionName").orElse("0.1.0").get()
+val connectedTestApplicationIdSuffix = providers.gradleProperty("paperReaderConnectedTestApplicationIdSuffix").orNull
 
 require(devSourceSigner.isBlank() || devSourceSigner.matches(Regex("[0-9a-fA-F]{64}")))
 require(devSourceVersion.toLongOrNull() != null)
 require(devThemeSigner.isBlank() || devThemeSigner.matches(Regex("[0-9a-fA-F]{64}")))
 require(devThemeVersion.toLongOrNull() != null)
+require(connectedTestApplicationIdSuffix == null || connectedTestApplicationIdSuffix.matches(Regex("\\.[a-z][a-z0-9_]*")))
 
 android {
     namespace = "dev.paperreader.app"
@@ -82,6 +84,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            connectedTestApplicationIdSuffix?.let { applicationIdSuffix = it }
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

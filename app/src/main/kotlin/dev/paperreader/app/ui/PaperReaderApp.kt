@@ -156,6 +156,7 @@ private fun PaperReaderContent(
     val extensionStoreAction by viewModel.extensionStoreAction.collectAsStateWithLifecycle()
     val automaticRefreshEnabled by preferences.automaticSavedSearchRefreshEnabled
         .collectAsStateWithLifecycle(false)
+    val disabledProviderIds by preferences.disabledProviderIds.collectAsStateWithLifecycle(emptySet())
     val libraryLayout by preferences.libraryLayout.collectAsStateWithLifecycle(LibraryLayout.LIST)
     val notificationPublisher = remember(context) { SavedSearchNotificationPublisher(context) }
     val scope = rememberCoroutineScope()
@@ -209,6 +210,10 @@ private fun PaperReaderContent(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
         uri?.let { source -> viewModel.prepareLocalPdf(source.toString()) }
+    }
+
+    LaunchedEffect(disabledProviderIds) {
+        viewModel.setDisabledProviderIds(disabledProviderIds)
     }
 
     LaunchedEffect(incomingPdfRequest, localPdfImport, activeIncomingPdfRequestId) {
@@ -324,6 +329,9 @@ private fun PaperReaderContent(
             notificationsAvailable = notificationPublisher.canPost()
             changed
         },
+        onProviderEnabledChange = { providerId, enabled ->
+            scope.launch { preferences.setProviderEnabled(providerId, enabled) }
+        },
         notificationsAvailable = notificationsAvailable,
         onOpenNotificationSettings = {
             context.startActivity(
@@ -390,6 +398,7 @@ private fun PaperReaderNavigation(
     onLibraryLayoutChange: (LibraryLayout) -> Unit,
     automaticRefreshEnabled: Boolean,
     onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
+    onProviderEnabledChange: (String, Boolean) -> Unit,
     notificationsAvailable: Boolean,
     onOpenNotificationSettings: () -> Unit,
     openUpdatesRequestId: Long?,
@@ -494,6 +503,7 @@ private fun PaperReaderNavigation(
             onLibraryLayoutChange = onLibraryLayoutChange,
             automaticRefreshEnabled = automaticRefreshEnabled,
             onAutomaticRefreshChange = onAutomaticRefreshChange,
+            onProviderEnabledChange = onProviderEnabledChange,
             notificationsAvailable = notificationsAvailable,
             onOpenNotificationSettings = onOpenNotificationSettings,
             modifier = Modifier.fillMaxSize(),
@@ -563,6 +573,7 @@ private fun PaperReaderNavigation(
                 onLibraryLayoutChange = onLibraryLayoutChange,
                 automaticRefreshEnabled = automaticRefreshEnabled,
                 onAutomaticRefreshChange = onAutomaticRefreshChange,
+                onProviderEnabledChange = onProviderEnabledChange,
                 notificationsAvailable = notificationsAvailable,
                 onOpenNotificationSettings = onOpenNotificationSettings,
                 modifier = modifier,

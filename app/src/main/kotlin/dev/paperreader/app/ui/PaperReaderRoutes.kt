@@ -67,6 +67,7 @@ internal fun AppNavHost(
     onLibraryLayoutChange: (LibraryLayout) -> Unit,
     automaticRefreshEnabled: Boolean,
     onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
+    onProviderEnabledChange: (String, Boolean) -> Unit,
     notificationsAvailable: Boolean,
     onOpenNotificationSettings: () -> Unit,
     modifier: Modifier = Modifier,
@@ -78,7 +79,7 @@ internal fun AppNavHost(
         composable(AppRoutes.HISTORY) { HistoryScreen(history, { navController.navigate(AppRoutes.detail(it)) }, onRemoveHistory) }
         composable(AppRoutes.MORE) {
             MoreScreen(preset, themeCatalog.themes.firstOrNull { it.storageKey == themeKey }?.displayName, automaticRefreshEnabled, notificationsAvailable, providers, collections, localPdfImport, metadataBackup,
-                { navController.navigateToMoreBranch(AppRoutes.MORE_APPEARANCE) }, { navController.navigateToMoreBranch(AppRoutes.MORE_COLLECTIONS) }, { navController.navigateToMoreBranch(AppRoutes.MORE_READING_IMPORTS) }, { navController.navigateToMoreBranch(AppRoutes.MORE_UPDATES) }, { navController.navigateToMoreBranch(AppRoutes.MORE_DATA_BACKUP) }, { navController.navigateToMoreBranch(AppRoutes.MORE_SOURCES) })
+                { navController.navigateToMoreBranch(AppRoutes.MORE_APPEARANCE) }, { navController.navigateToMoreBranch(AppRoutes.MORE_COLLECTIONS) }, { navController.navigateToMoreBranch(AppRoutes.MORE_READING_IMPORTS) }, { navController.navigateToMoreBranch(AppRoutes.MORE_UPDATES) }, { navController.navigateToMoreBranch(AppRoutes.MORE_DATA_BACKUP) }, { navController.navigateToMoreBranch(AppRoutes.MORE_SOURCES) }, { navController.navigateToMoreBranch(AppRoutes.MORE_ABOUT) })
         }
         composable(AppRoutes.MORE_APPEARANCE) {
             AppearanceScreen(
@@ -110,9 +111,11 @@ internal fun AppNavHost(
                 installStates = extensionStores.installStates,
                 onInstallSource = extensionStores.onInstallSource,
                 onDismissInstallState = extensionStores.onDismissInstallState,
+                onProviderEnabledChange = onProviderEnabledChange,
                 onBack = navController::popBackStack,
             )
         }
+        composable(AppRoutes.MORE_ABOUT) { AboutScreen(onBack = navController::popBackStack) }
         composable(AppRoutes.DETAIL, arguments = listOf(navArgument("workId") { type = NavType.StringType })) { entry ->
             val workId = entry.arguments?.getString("workId").orEmpty()
             val detail = when (library) {

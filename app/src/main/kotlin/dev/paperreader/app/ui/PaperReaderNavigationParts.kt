@@ -65,6 +65,7 @@ internal object AppRoutes {
     const val MORE_UPDATES = "more/updates"
     const val MORE_DATA_BACKUP = "more/data-backup"
     const val MORE_SOURCES = "more/sources"
+    const val MORE_ABOUT = "more/about"
     const val DETAIL = "detail/{workId}"
     fun detail(workId: String): String = "detail/${Uri.encode(workId)}"
 }
@@ -246,7 +247,7 @@ private fun PaperDestinationItem(
             shape = RoundedCornerShape(tokens.cornerRadius),
             color = if (selected) tokens.primaryContainer else Color.Transparent,
             contentColor = if (selected) tokens.onPrimaryContainer else tokens.inkMuted,
-            border = if (selected) BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border) else null,
+            border = BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border),
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,
         ) {

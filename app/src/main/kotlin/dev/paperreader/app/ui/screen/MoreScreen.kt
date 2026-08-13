@@ -57,6 +57,7 @@ fun MoreScreen(
     onOpenUpdates: () -> Unit = {},
     onOpenDataBackup: () -> Unit = {},
     onOpenSources: () -> Unit = {},
+    onOpenAbout: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -125,6 +126,14 @@ fun MoreScreen(
                     supportingText = sourcesHubSummary(providers),
                     icon = PaperIconKey.PUBLIC,
                     onClick = onOpenSources,
+                )
+            }
+            item {
+                MoreHubRow(
+                    title = stringResource(R.string.about_title),
+                    supportingText = stringResource(R.string.about_summary),
+                    icon = PaperIconKey.INFO,
+                    onClick = onOpenAbout,
                 )
             }
         }
@@ -232,6 +241,11 @@ private fun sourcesHubSummary(state: ProviderManagerState): String = when {
         R.plurals.untrusted_provider_count,
         state.untrusted.size,
         state.untrusted.size,
+    )
+    state.orphaned.isNotEmpty() -> pluralStringResource(
+        R.plurals.orphaned_provider_count,
+        state.orphaned.size,
+        state.orphaned.size,
     )
     state.available.isNotEmpty() -> pluralStringResource(
         R.plurals.available_provider_count,

@@ -64,6 +64,8 @@ class PaperReaderLogic private constructor(
 ) : Closeable {
     suspend fun reconcileSourceExtensions() = sourceExtensionCoordinator.reconcile()
 
+    fun setDisabledProviderIds(providerIds: Set<String>) = providers.setDisabledProviderIds(providerIds)
+
     override fun close() = database.close()
 
     companion object {

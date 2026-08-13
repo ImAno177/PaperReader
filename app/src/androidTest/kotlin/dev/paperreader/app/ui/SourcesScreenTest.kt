@@ -1,12 +1,15 @@
 package dev.paperreader.app.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.ui.screen.MoreScreen
@@ -26,6 +29,7 @@ import dev.paperreader.logic.plugin.VerifiedExtensionRelease
 import dev.paperreader.logic.plugin.VerifiedExtensionStoreIndex
 import java.time.Instant
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -52,7 +56,11 @@ class SourcesScreenTest {
         composeRule.onNodeWithText("arXiv").assertIsDisplayed()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Available packages"))
         composeRule.onNodeWithText("Available packages").assertIsDisplayed()
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Example provider"))
         composeRule.onNodeWithText("Example provider").assertIsDisplayed()
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(
+            hasText("Android keeps the final install confirmation under your control.", substring = true),
+        )
         composeRule.onNodeWithText("Android keeps the final install confirmation under your control.", substring = true)
             .assertIsDisplayed()
     }
@@ -147,6 +155,41 @@ class SourcesScreenTest {
         composeRule.onNode(hasScrollToIndexAction())
             .performScrollToNode(hasText("1 blocked provider needs review"))
         composeRule.onNodeWithText("1 blocked provider needs review").assertIsDisplayed()
+    }
+
+    @Test
+    fun MoreHubIncludesFocusedAboutBranch() {
+        var opened = false
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                MoreScreen(
+                    selectedPreset = PaperThemePreset.NEOBRUTALISM,
+                    onOpenAbout = { opened = true },
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("About"))
+        composeRule.onNodeWithText("About").performClick()
+        assertTrue(opened)
+    }
+
+    @Test
+    fun installedProviderCanBeExcludedWithoutBeingUninstalled() {
+        var changed: Pair<String, Boolean>? = null
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                SourcesScreen(
+                    providers = providerState(),
+                    onProviderEnabledChange = { id, enabled -> changed = id to enabled },
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("arXiv"))
+        composeRule.onNodeWithContentDescription("arXiv").assertIsOn().performClick()
+        assertEquals("arxiv" to false, changed)
     }
 
     @Test

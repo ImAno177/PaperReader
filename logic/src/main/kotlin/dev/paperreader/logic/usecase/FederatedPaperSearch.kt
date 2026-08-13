@@ -9,6 +9,7 @@ import dev.paperreader.logic.provider.ProviderException
 import dev.paperreader.logic.provider.ProviderPage
 import dev.paperreader.logic.provider.ProviderManager
 import dev.paperreader.logic.provider.ProviderCapability
+import dev.paperreader.logic.provider.ProviderRole
 import dev.paperreader.logic.provider.MutableProviderManager
 import dev.paperreader.logic.provider.RemotePaper
 import java.util.concurrent.atomic.AtomicInteger
@@ -37,7 +38,8 @@ class FederatedPaperSearch(private val providerManager: ProviderManager) {
             if (query.sort !in provider.descriptor.supportedSorts) {
                 false
             } else if (exactIdentifierType == null) {
-                ProviderCapability.DISCOVERY in provider.descriptor.capabilities
+                ProviderCapability.DISCOVERY in provider.descriptor.capabilities &&
+                    ProviderRole.SEARCH_ENGINE in provider.descriptor.roles
             } else {
                 exactIdentifierType in provider.descriptor.identifierLookupTypes
             }

@@ -20,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.pluralStringResource
@@ -69,6 +71,7 @@ fun SourcesScreen(
     installStates: Map<String, SourceExtensionInstallState> = emptyMap(),
     onInstallSource: (VerifiedExtensionRelease) -> Unit = {},
     onDismissInstallState: (String) -> Unit = {},
+    onProviderEnabledChange: (String, Boolean) -> Unit = { _, _ -> },
     onBack: () -> Unit,
 ) {
     var addStoreOpen by rememberSaveable { mutableStateOf(false) }
@@ -141,7 +144,7 @@ fun SourcesScreen(
                 onDismissInstallState = onDismissInstallState,
             )
         }
-        if (providers.installed.isEmpty() && providers.available.isEmpty() && providers.untrusted.isEmpty()) {
+        if (providers.installed.isEmpty() && providers.available.isEmpty() && providers.untrusted.isEmpty() && providers.orphaned.isEmpty()) {
             item { PaperStatePanel(stringResource(R.string.no_providers), stringResource(R.string.sources_empty_body)) }
         }
         if (providers.untrusted.isNotEmpty()) {
@@ -184,11 +187,31 @@ fun SourcesScreen(
                 }
             }
         }
+        if (providers.orphaned.isNotEmpty()) {
+            item { PaperSectionHeader(stringResource(R.string.provider_orphaned_section)) }
+            items(providers.orphaned, key = { "orphaned:${it.packageName}" }) { provider ->
+                OrphanedProviderCard(provider)
+            }
+        }
         if (providers.installed.isNotEmpty()) {
             item { PaperSectionHeader(stringResource(R.string.provider_installed_section)) }
+            item { Text(stringResource(R.string.provider_selection_explanation), color = PaperTheme.tokens.inkMuted) }
             items(providers.installed, key = { it.descriptor.id }) { provider ->
                 PaperSurface(contentPadding = PaddingValues(12.dp)) {
-                    Text(provider.descriptor.displayName, style = MaterialTheme.typography.titleMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            provider.descriptor.displayName,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Switch(
+                            checked = provider.descriptor.id !in providers.disabledProviderIds,
+                            onCheckedChange = { onProviderEnabledChange(provider.descriptor.id, it) },
+                            modifier = Modifier.semantics {
+                                contentDescription = provider.descriptor.displayName
+                            },
+                        )
+                    }
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = if (provider.origin == ProviderOrigin.BUILT_IN) {

@@ -152,6 +152,22 @@
 
     <string name="more_title">More</string>
     <string name="more_overview_body">Settings and tools are grouped by purpose so each area stays focused.</string>
+    <string name="about_title">About</string>
+    <string name="about_summary">PaperReader, project links, licenses, and acknowledgements</string>
+    <string name="about_description">A mobile-first Android library and reader for scholarly papers.</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_project">Project on GitHub</string>
+    <string name="about_licenses">Open-source licenses and notices</string>
+    <string name="about_inspiration">Inspired by Mihon\'s thoughtful local-first library and extension experience.</string>
+    <string name="paper_discipline_badge">Paper field: %1$s</string>
+    <string name="provider_selection_explanation">Choose which installed engines participate in search and metadata lookup. New official engines are enabled by default.</string>
+    <string name="provider_orphaned_section">Orphaned extensions</string>
+    <string name="provider_orphaned">Orphaned</string>
+    <string name="provider_orphaned_body">This installed package is no longer listed by a trusted store. It stays installed but cannot run until a trusted release is available.</string>
+    <plurals name="orphaned_provider_count">
+        <item quantity="one">%1$d orphaned provider needs review</item>
+        <item quantity="other">%1$d orphaned providers need review</item>
+    </plurals>
     <string name="appearance_title">Appearance</string>
     <string name="built_in_themes_title">Built-in themes</string>
     <string name="community_themes_title">Community themes</string>

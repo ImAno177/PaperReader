@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dev.paperreader.app.ui.model.LibraryLayout
 import dev.paperreader.app.ui.theme.PaperThemeMode
@@ -40,6 +41,10 @@ class PaperReaderPreferences(context: Context) {
         values[AUTOMATIC_SAVED_SEARCH_REFRESH_KEY] ?: false
     }
 
+    val disabledProviderIds: Flow<Set<String>> = preferences.map { values ->
+        values[DISABLED_PROVIDER_IDS_KEY].orEmpty()
+    }
+
     suspend fun setTheme(preset: PaperThemePreset) {
         setThemeKey(preset.storageKey)
     }
@@ -64,10 +69,20 @@ class PaperReaderPreferences(context: Context) {
         dataStore.edit { values -> values[AUTOMATIC_SAVED_SEARCH_REFRESH_KEY] = enabled }
     }
 
+    suspend fun setProviderEnabled(providerId: String, enabled: Boolean) {
+        require(providerId.isNotBlank())
+        dataStore.edit { values ->
+            val disabled = values[DISABLED_PROVIDER_IDS_KEY].orEmpty().toMutableSet()
+            if (enabled) disabled.remove(providerId) else disabled.add(providerId)
+            values[DISABLED_PROVIDER_IDS_KEY] = disabled
+        }
+    }
+
     private companion object {
         val THEME_KEY = stringPreferencesKey("theme_preset")
         val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
         val LIBRARY_LAYOUT_KEY = stringPreferencesKey("library_layout")
         val AUTOMATIC_SAVED_SEARCH_REFRESH_KEY = booleanPreferencesKey("automatic_saved_search_refresh")
+        val DISABLED_PROVIDER_IDS_KEY = stringSetPreferencesKey("disabled_provider_ids")
     }
 }

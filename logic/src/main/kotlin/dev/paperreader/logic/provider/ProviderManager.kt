@@ -38,10 +38,18 @@ data class UntrustedProviderPlugin(
     val reason: String,
 )
 
+data class OrphanedProviderPlugin(
+    val packageName: String,
+    val displayName: String,
+    val versionCode: Long,
+)
+
 data class ProviderManagerState(
     val installed: List<InstalledProvider> = emptyList(),
     val available: List<AvailableProviderPlugin> = emptyList(),
     val untrusted: List<UntrustedProviderPlugin> = emptyList(),
+    val orphaned: List<OrphanedProviderPlugin> = emptyList(),
+    val disabledProviderIds: Set<String> = emptySet(),
 )
 
 interface ProviderManager {
@@ -52,6 +60,8 @@ interface ProviderManager {
     fun getOrStub(providerId: String): PaperProvider
 
     fun getAll(): List<PaperProvider>
+
+    fun setDisabledProviderIds(providerIds: Set<String>)
 }
 
 internal class MutableProviderManager(
@@ -80,7 +90,13 @@ internal class MutableProviderManager(
     override fun getOrStub(providerId: String): PaperProvider = get(providerId) ?: MissingPaperProvider(providerId)
 
     override fun getAll(): List<PaperProvider> = synchronized(providerLock) {
-        providers.values.map(RuntimeProvider::provider)
+        val disabled = mutableState.value.disabledProviderIds
+        providers.filterKeys { it !in disabled }.values.map(RuntimeProvider::provider)
+    }
+
+    override fun setDisabledProviderIds(providerIds: Set<String>) {
+        require(providerIds.none(String::isBlank))
+        mutableState.update { it.copy(disabledProviderIds = providerIds.toSet()) }
     }
 
     fun register(
@@ -126,6 +142,10 @@ internal class MutableProviderManager(
 
     fun updateUntrusted(plugins: List<UntrustedProviderPlugin>) {
         mutableState.update { it.copy(untrusted = plugins.sortedBy(UntrustedProviderPlugin::packageName)) }
+    }
+
+    fun updateOrphaned(plugins: List<OrphanedProviderPlugin>) {
+        mutableState.update { it.copy(orphaned = plugins.sortedBy(OrphanedProviderPlugin::displayName)) }
     }
 
     private fun publishInstalled() {

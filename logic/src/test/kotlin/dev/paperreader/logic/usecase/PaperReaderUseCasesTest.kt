@@ -28,6 +28,7 @@ import dev.paperreader.logic.provider.PaperProvider
 import dev.paperreader.logic.provider.PaperSearchQuery
 import dev.paperreader.logic.provider.ProviderDescriptor
 import dev.paperreader.logic.provider.ProviderPage
+import dev.paperreader.logic.provider.ProviderRole
 import dev.paperreader.logic.provider.RemotePaper
 import dev.paperreader.logic.reader.ReadablePaperFailure
 import dev.paperreader.logic.reader.ReadablePaperLoader
@@ -47,7 +48,12 @@ class PaperReaderUseCasesTest {
     fun `use cases are a thin UI boundary over repositories and search`() = runTest {
         val repository = FakeLibraryRepository()
         val provider = object : PaperProvider {
-            override val descriptor = ProviderDescriptor("fixture", "Fixture", 0)
+            override val descriptor = ProviderDescriptor(
+                "fixture",
+                "Fixture",
+                0,
+                roles = setOf(ProviderRole.SEARCH_ENGINE),
+            )
             override suspend fun search(query: PaperSearchQuery) =
                 ProviderPage(listOf(RemotePaper("fixture", "r-1", "Result")))
             override suspend fun get(recordId: String): RemotePaper? = null

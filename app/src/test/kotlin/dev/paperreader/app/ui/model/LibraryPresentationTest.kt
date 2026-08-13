@@ -52,6 +52,19 @@ class LibraryPresentationTest {
     }
 
     @Test
+    fun `discipline badge uses supplied subjects before falling back to a neutral paper mark`() {
+        assertEquals(
+            PaperDiscipline.COMPUTER_SCIENCE,
+            paper(id = "ai", title = "Attention Is All You Need", subjects = listOf("Computer Science")).discipline(),
+        )
+        assertEquals(
+            PaperDiscipline.LIFE_SCIENCES,
+            paper(id = "protein", title = "Protein structure prediction").discipline(),
+        )
+        assertEquals(PaperDiscipline.GENERAL, paper(id = "unknown", title = "Untitled study").discipline())
+    }
+
+    @Test
     fun `legacy provider urls are filtered before reaching an external intent`() {
         assertEquals("https://arxiv.org/pdf/1706.03762", "https://arxiv.org/pdf/1706.03762".safeWebUrlOrNull())
         assertEquals(null, "file:///private/paper.pdf".safeWebUrlOrNull())

@@ -13,10 +13,15 @@ Two reference implementations are maintained separately:
 
 ## Current availability
 
-The SDK and both host transports are implemented and exercised with external APKs. The public
-signed extension index and end-user install/update flow are not implemented yet. Development builds
-accept only an explicit package, service, version, descriptor, and certificate SHA-256 supplied at
-build time. Release builds do not trust either sample automatically.
+The SDK, both host transports, and user-managed signed extension stores are implemented. A user adds
+an HTTPS index URL and its raw Ed25519 public key, verifies the displayed SHA-256 fingerprint through
+an independent trusted channel, and explicitly confirms the store. PaperReader then exposes compatible
+source and theme releases and opens the publisher-signed HTTPS download page for install or update;
+Android retains the final package-install confirmation. Release builds trust no store or sample by
+default.
+
+Development builds may additionally accept one explicit package, service, descriptor, version range,
+and certificate SHA-256 supplied at build time. This path is for local sample testing only.
 
 ## Build against the SDK
 
@@ -61,8 +66,9 @@ oversized, or malformed icons reject the whole theme instead of producing a part
 
 ## Trust and runtime limits
 
-Before binding, PaperReader verifies the exact package, exported service component, version code,
-certificate SHA-256, API metadata, extension kind, descriptor, and separate UID. Services should
+Before binding, PaperReader verifies the exact package and exported service component, a publisher-
+attested bounded version-code range, certificate SHA-256, API metadata, extension kind, descriptor,
+and separate UID. Services should
 also verify PaperReader's package and signing certificate on every Binder entry point; both samples
 demonstrate this fail-closed check through `paperReaderHostSignerSha256`.
 
@@ -74,3 +80,70 @@ unrestricted intent.
 For local host testing, provide the `paperReaderDevSource*` or `paperReaderDevTheme*` Gradle
 properties defined in `app/build.gradle.kts`. Do not commit signing keys, private credentials, or a
 personal certificate fingerprint.
+
+## Signed extension stores
+
+The signed envelope contains the Base64 encoding of the exact UTF-8 index bytes and a raw Ed25519
+signature over those bytes:
+
+```json
+{
+  "payload": "BASE64_OF_INDEX_BYTES",
+  "signature": "BASE64_OF_64_BYTE_ED25519_SIGNATURE"
+}
+```
+
+The decoded index uses schema version 1. Every sequence must increase whenever any signed content
+changes; PaperReader rejects rollback and same-sequence equivocation. Package names must be unique
+across all stores on one device. A complete source-and-theme example is available at
+[`docs/examples/extension-index.json`](examples/extension-index.json).
+
+```json
+{
+  "schemaVersion": 1,
+  "storeId": "example.paperreader.store",
+  "displayName": "Example extensions",
+  "websiteUrl": "https://example.org/paperreader",
+  "sequence": 1,
+  "generatedAt": "2026-08-13T06:00:00Z",
+  "extensions": [
+    {
+      "kind": "source",
+      "packageName": "org.example.paperreader.openalex",
+      "serviceClassName": "org.example.paperreader.openalex.OpenAlexService",
+      "displayName": "OpenAlex",
+      "versionCode": 3,
+      "minimumVersionCode": 2,
+      "versionName": "1.2.0",
+      "signerSha256": "64_HEX_CHARACTERS",
+      "minimumHostApi": 1,
+      "maximumHostApi": 1,
+      "installUrl": "https://example.org/downloads/openalex.apk",
+      "license": "Apache-2.0",
+      "privacyUrl": "https://example.org/privacy/openalex",
+      "providerId": "openalex",
+      "minimumRequestIntervalMillis": 1000,
+      "sourceCapabilities": ["search", "details", "pdf_link"]
+    }
+  ]
+}
+```
+
+Theme entries use `"kind": "theme"` and `"themeIds": ["stable-theme-id"]`; they must not contain
+source-only fields. The host rejects unknown JSON keys, unknown capabilities, non-HTTPS URLs,
+future-dated indexes beyond the clock-skew allowance, duplicate packages, oversized envelopes, and
+incompatible API ranges. `minimumVersionCode` lets a publisher revoke vulnerable historical APKs.
+
+Create an Ed25519 key with OpenSSL, keep the private key offline, and package an index with:
+
+```bash
+openssl genpkey -algorithm ED25519 -out extension-store-private.pem
+python tools/sign_extension_index.py \
+  --index extension-index.json \
+  --private-key extension-store-private.pem \
+  --output extension-index.signed.json
+```
+
+The tool prints the Base64 public key and SHA-256 fingerprint that users must verify. Never commit the
+private key. Host refreshes preserve the last verified index when a network, signature, schema, or
+rollback check fails.

@@ -10,9 +10,6 @@ import dev.paperreader.logic.provider.builtin.CrossrefProvider
 import dev.paperreader.logic.network.ProviderHttpClient
 import dev.paperreader.logic.provider.MutableProviderManager
 import dev.paperreader.logic.provider.ProviderManager
-import dev.paperreader.logic.provider.ProviderOrigin
-import dev.paperreader.logic.provider.AvailableProviderPlugin
-import dev.paperreader.logic.provider.UntrustedProviderPlugin
 import dev.paperreader.logic.data.repository.RoomLibraryRepository
 import dev.paperreader.logic.data.repository.RoomLocalFileRepository
 import dev.paperreader.logic.data.repository.RoomTaskRepository
@@ -32,8 +29,8 @@ import dev.paperreader.logic.network.PdfDownloader
 import dev.paperreader.logic.network.ArxivReadableResourceFetcher
 import dev.paperreader.logic.reader.ArxivReadablePaperLoader
 import dev.paperreader.logic.reader.ReadablePaperCache
-import dev.paperreader.logic.plugin.AndroidSourceExtensionTransport
-import dev.paperreader.logic.plugin.CommunitySourceProvider
+import dev.paperreader.logic.plugin.ExtensionStoreRegistry
+import dev.paperreader.logic.plugin.SourceExtensionCoordinator
 import dev.paperreader.logic.plugin.TrustedSourceExtension
 import okhttp3.OkHttpClient
 import java.io.Closeable
@@ -44,6 +41,7 @@ data class PaperReaderConfiguration(
     val contactEmail: String? = null,
     val maximumPdfBytes: Long = 200L * 1024L * 1024L,
     val trustedSourceExtensions: List<TrustedSourceExtension> = emptyList(),
+    val extensionStoreRegistry: ExtensionStoreRegistry? = null,
 ) {
     init {
         require(databaseName.isNotBlank())
@@ -61,8 +59,12 @@ class PaperReaderLogic private constructor(
     val providers: ProviderManager,
     val tasks: TaskCoordinator,
     val downloads: PaperDownloadCoordinator,
+    val extensionStores: ExtensionStoreRegistry,
+    private val sourceExtensionCoordinator: SourceExtensionCoordinator,
     private val database: LibraryDatabase,
 ) : Closeable {
+    suspend fun reconcileSourceExtensions() = sourceExtensionCoordinator.reconcile()
+
     override fun close() = database.close()
 
     companion object {
@@ -82,63 +84,23 @@ class PaperReaderLogic private constructor(
                 mailto = configuration.contactEmail,
             )
             val applicationContext = context.applicationContext
-            val availableCommunityProviders = mutableListOf<AvailableProviderPlugin>()
-            val untrustedCommunityProviders = mutableListOf<UntrustedProviderPlugin>()
-            val communityProviders = configuration.trustedSourceExtensions.mapNotNull { trustedRelease ->
-                val packageInstalled = runCatching {
-                    applicationContext.packageManager.getPackageInfo(trustedRelease.packageName, 0)
-                }.isSuccess
-                if (!packageInstalled) {
-                    availableCommunityProviders += AvailableProviderPlugin(
-                        packageName = trustedRelease.packageName,
-                        displayName = trustedRelease.displayName,
-                        versionCode = trustedRelease.versionCode,
-                        providerIds = setOf(trustedRelease.providerId),
-                    )
-                    return@mapNotNull null
-                }
-                try {
-                    val transport = AndroidSourceExtensionTransport(
-                        context = applicationContext,
-                        descriptor = trustedRelease.descriptor(),
-                        trustedRelease = trustedRelease,
-                    )
-                    transport.verifyInstalledPackage()
-                    trustedRelease to CommunitySourceProvider(transport)
-                } catch (error: Exception) {
-                    untrustedCommunityProviders += UntrustedProviderPlugin(
-                        packageName = trustedRelease.packageName,
-                        signerSha256 = trustedRelease.signerSha256.lowercase(),
-                        reason = error.message?.take(160)?.takeIf(String::isNotBlank)
-                            ?: "Provider package failed trust validation",
-                    )
-                    null
-                }
-            }
             val providers = MutableProviderManager(
                 listOf(
                     ArxivProvider(transport),
                     CrossrefProvider(transport),
                 ),
             )
-            communityProviders.forEach { (trustedRelease, provider) ->
-                try {
-                    providers.register(
-                        provider = provider,
-                        origin = ProviderOrigin.COMMUNITY_PLUGIN,
-                        packageName = trustedRelease.packageName,
-                        versionCode = trustedRelease.versionCode,
-                    )
-                } catch (error: IllegalArgumentException) {
-                    untrustedCommunityProviders += UntrustedProviderPlugin(
-                        packageName = trustedRelease.packageName,
-                        signerSha256 = trustedRelease.signerSha256.lowercase(),
-                        reason = error.message?.take(160) ?: "Provider ID conflicts with an installed provider",
-                    )
-                }
-            }
-            providers.updateAvailable(availableCommunityProviders)
-            providers.updateUntrusted(untrustedCommunityProviders)
+            val extensionStores = configuration.extensionStoreRegistry ?: ExtensionStoreRegistry(
+                directory = applicationContext.noBackupFilesDir.toPath().resolve("extension-stores"),
+                userAgent = configuration.userAgent,
+            )
+            val sourceExtensionCoordinator = SourceExtensionCoordinator(
+                context = applicationContext,
+                providers = providers,
+                developerExtensions = configuration.trustedSourceExtensions,
+                stores = extensionStores,
+            )
+            sourceExtensionCoordinator.reconcileNow()
             val library = RoomLibraryRepository(database)
             val search = FederatedPaperSearch(providers)
             val metadataBackup = RoomMetadataBackupRepository(
@@ -200,6 +162,8 @@ class PaperReaderLogic private constructor(
                 providers = providers,
                 tasks = tasks,
                 downloads = downloads,
+                extensionStores = extensionStores,
+                sourceExtensionCoordinator = sourceExtensionCoordinator,
                 database = database,
             )
         }

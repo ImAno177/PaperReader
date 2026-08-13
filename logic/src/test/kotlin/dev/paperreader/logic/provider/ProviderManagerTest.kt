@@ -47,6 +47,19 @@ class ProviderManagerTest {
         }
     }
 
+    @Test
+    fun `community providers cannot shadow each other and can be reconciled as one origin`() {
+        val manager = MutableProviderManager(listOf(provider("arxiv")))
+        manager.register(provider("community"), ProviderOrigin.COMMUNITY_PLUGIN, "org.example.first", 1)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            manager.register(provider("community"), ProviderOrigin.COMMUNITY_PLUGIN, "org.example.second", 2)
+        }
+
+        manager.unregisterByOrigin(ProviderOrigin.COMMUNITY_PLUGIN)
+        assertEquals(setOf("arxiv"), manager.state.value.installed.map { it.descriptor.id }.toSet())
+    }
+
     private fun provider(id: String): PaperProvider = object : PaperProvider {
         override val descriptor = ProviderDescriptor(id, id, 0)
         override suspend fun search(query: PaperSearchQuery) = ProviderPage(emptyList())

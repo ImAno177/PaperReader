@@ -77,6 +77,10 @@ The supported surface is:
   `ReadablePaperDocument` or a typed unavailability reason; UI never fetches or sanitizes provider
   HTML itself.
 - `logic.providers.state` for installed/available/untrusted provider lifecycle; saved missing providers resolve to explicit stubs.
+- `logic.extensionStores.state`, signed-store preview/add/refresh/remove commands, and
+  `logic.reconcileSourceExtensions()` for user-confirmed Ed25519 store trust and installed-package
+  lifecycle reconciliation. The app receives verified release metadata, never store private keys or
+  unverified payloads.
 - `logic.tasks.tasks`, `enqueue`, `transition`, `cancel`, `retry`, and terminal removal for persisted download/extraction queue state.
 - `logic.downloads.requestDownload(...)`, `cancelDownload(taskId)`, `retryDownload(taskId)`,
   `removeDownloadTask(taskId)`, `execute(taskId)`, `downloadedPaper(...)`, and `deleteDownload(...)`
@@ -129,9 +133,11 @@ Room entity classes are public only because the current Room/KSP processor needs
   The disposable cache is capped at 160 MiB and evicts complete least-recently-used document pairs;
   cache publication failure does not prevent the current verified document from opening.
 - Community extension SDK: packaged AIDL, bounded source/theme contracts, external APK/UID runtime,
-  package/version/signer/API/kind/descriptor verification, cancellation/timeouts, complete semantic
-  theme icons, and real external OpenAlex/Blueprint samples. Release trust remains empty until a
-  signed public index and install/update flow are implemented.
+  package/bounded-version/signer/API/kind/descriptor verification, cancellation/timeouts, complete
+  semantic theme icons, and real external OpenAlex/Blueprint samples. User-managed Ed25519 stores use
+  fingerprint confirmation, strict schemas, monotonic sequences, same-sequence equivocation rejection,
+  atomic last-known-good persistence, and explicit HTTPS install/update pages. Release trust is empty by
+  default; no official store is preconfigured.
 - Metadata backup: a bounded single-entry ZIP with a versioned ProtoBuf payload, strict relational
   and hostile-input validation, exact-identifier restore planning, and one-transaction merge. It
   preserves local files/tasks, reports conflicts, unavailable providers, skipped records, and

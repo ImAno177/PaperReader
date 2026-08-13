@@ -29,6 +29,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -77,6 +78,8 @@ import dev.paperreader.app.ui.SearchUiState
 import dev.paperreader.app.ui.SavedSearchActionUiState
 import dev.paperreader.app.ui.SavedSearchActionKey
 import dev.paperreader.app.ui.SavedSearchCreateFailure
+import dev.paperreader.app.ui.ExtensionStoreActionUiState
+import dev.paperreader.app.ui.ExtensionStoreOperation
 import dev.paperreader.app.ui.components.PaperAppBarTitle
 import dev.paperreader.app.ui.components.PaperLabel
 import dev.paperreader.app.ui.components.PaperMetaRow
@@ -119,6 +122,9 @@ import dev.paperreader.logic.domain.repository.DeleteCollectionResult
 import dev.paperreader.logic.domain.repository.RenameCollectionResult
 import dev.paperreader.logic.provider.ProviderManagerState
 import dev.paperreader.logic.provider.ProviderOrigin
+import dev.paperreader.logic.plugin.ExtensionStoreRecord
+import dev.paperreader.logic.plugin.ExtensionStoreRegistryState
+import dev.paperreader.logic.plugin.VerifiedExtensionRelease
 import dev.paperreader.logic.task.PaperTask
 import dev.paperreader.logic.task.TaskKind
 import dev.paperreader.logic.task.TaskState
@@ -2388,14 +2394,68 @@ private fun MetadataRestoreDialog(
 @Composable
 fun SourcesScreen(
     providers: ProviderManagerState,
+    extensionStores: ExtensionStoreRegistryState = ExtensionStoreRegistryState(),
+    extensionStoreAction: ExtensionStoreActionUiState = ExtensionStoreActionUiState.Idle,
+    onPreviewStore: (String, String) -> Unit = { _, _ -> },
+    onConfirmStore: () -> Unit = {},
+    onDismissStoreAction: () -> Unit = {},
+    onRefreshStore: (String) -> Unit = {},
+    onRemoveStore: (String) -> Unit = {},
+    onOpenInstallUrl: (String) -> Unit = {},
     onBack: () -> Unit,
 ) {
+    var addStoreOpen by rememberSaveable { mutableStateOf(false) }
+    var storeUrl by rememberSaveable { mutableStateOf("") }
+    var publicKey by rememberSaveable { mutableStateOf("") }
+    var pendingRemovalStoreId by rememberSaveable { mutableStateOf<String?>(null) }
+    val storeBusy = extensionStoreAction is ExtensionStoreActionUiState.Working
+    LaunchedEffect(extensionStoreAction) {
+        if (extensionStoreAction is ExtensionStoreActionUiState.PreviewReady) addStoreOpen = false
+    }
     MoreBranchScaffold(title = stringResource(R.string.sources_title), onBack = onBack) {
         item {
             Text(
                 stringResource(R.string.sources_body),
                 style = MaterialTheme.typography.bodyLarge,
                 color = PaperTheme.tokens.inkMuted,
+            )
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.extension_stores_title), style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.extension_stores_body), color = PaperTheme.tokens.inkMuted)
+                PaperPrimaryButton(
+                    onClick = { addStoreOpen = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !storeBusy,
+                ) {
+                    PaperIcon(PaperIconKey.ADD, contentDescription = null)
+                    Spacer(Modifier.size(8.dp))
+                    Text(stringResource(R.string.add_store))
+                }
+            }
+        }
+        if (extensionStores.issues.isNotEmpty()) {
+            items(extensionStores.issues, key = { "store-issue:${it.storeId}:${it.message}" }) { issue ->
+                PaperSurface(contentPadding = PaddingValues(12.dp)) {
+                    StatusBadge(
+                        text = stringResource(R.string.store_verification_issue),
+                        icon = PaperIconKey.ERROR,
+                        color = PaperTheme.tokens.danger,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(issue.message, color = PaperTheme.tokens.inkMuted)
+                }
+            }
+        }
+        items(extensionStores.stores, key = { "store:${it.index.storeId}" }) { store ->
+            ExtensionStoreCard(
+                store = store,
+                refreshing = store.index.storeId in extensionStores.refreshingStoreIds,
+                enabled = !storeBusy,
+                onRefresh = { onRefreshStore(store.index.storeId) },
+                onRemove = { pendingRemovalStoreId = store.index.storeId },
+                onOpenInstallUrl = onOpenInstallUrl,
             )
         }
         if (providers.installed.isEmpty() && providers.available.isEmpty() && providers.untrusted.isEmpty()) {
@@ -2468,12 +2528,10 @@ fun SourcesScreen(
         if (providers.available.isNotEmpty()) {
             item { PaperSectionHeader(stringResource(R.string.provider_available_section)) }
             item {
-                Text(
-                    stringResource(R.string.provider_available_notice),
-                    color = PaperTheme.tokens.inkMuted,
-                )
+                    Text(stringResource(R.string.provider_available_notice), color = PaperTheme.tokens.inkMuted)
             }
             items(providers.available, key = { "available:${it.packageName}" }) { provider ->
+                val installedVersion = provider.installedVersionCode
                 PaperSurface(contentPadding = PaddingValues(12.dp)) {
                     Text(provider.displayName, style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(2.dp))
@@ -2487,6 +2545,21 @@ fun SourcesScreen(
                         stringResource(R.string.provider_version_code, provider.versionCode),
                         color = PaperTheme.tokens.inkMuted,
                     )
+                    if (installedVersion != null) {
+                        StatusBadge(
+                            text = stringResource(R.string.provider_update_available),
+                            icon = PaperIconKey.UPDATES,
+                            color = PaperTheme.tokens.warning,
+                        )
+                        Text(
+                            stringResource(
+                                R.string.provider_version_transition,
+                                installedVersion,
+                                provider.versionCode,
+                            ),
+                            color = PaperTheme.tokens.inkMuted,
+                        )
+                    }
                     Text(
                         pluralStringResource(
                             R.plurals.provider_id_count,
@@ -2495,6 +2568,225 @@ fun SourcesScreen(
                         ),
                         color = PaperTheme.tokens.inkMuted,
                     )
+                    provider.installUrl?.let { installUrl ->
+                        Spacer(Modifier.height(8.dp))
+                        PaperSecondaryButton(
+                            onClick = { onOpenInstallUrl(installUrl) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
+                            Spacer(Modifier.size(8.dp))
+                            Text(
+                                stringResource(
+                                    if (installedVersion == null) R.string.open_install_page
+                                    else R.string.open_update_page,
+                                ),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (addStoreOpen) {
+        AlertDialog(
+            onDismissRequest = { if (!storeBusy) addStoreOpen = false },
+            title = { Text(stringResource(R.string.add_store)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.add_store_security_notice), color = PaperTheme.tokens.inkMuted)
+                    OutlinedTextField(
+                        value = storeUrl,
+                        onValueChange = { storeUrl = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.store_index_url)) },
+                        placeholder = { Text("https://example.org/paperreader-index.json") },
+                        singleLine = true,
+                        enabled = !storeBusy,
+                    )
+                    OutlinedTextField(
+                        value = publicKey,
+                        onValueChange = { publicKey = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.store_public_key)) },
+                        supportingText = { Text(stringResource(R.string.store_public_key_hint)) },
+                        singleLine = true,
+                        enabled = !storeBusy,
+                    )
+                    if (extensionStoreAction is ExtensionStoreActionUiState.Failed &&
+                        extensionStoreAction.operation == ExtensionStoreOperation.PREVIEW
+                    ) {
+                        Text(extensionStoreAction.message, color = PaperTheme.tokens.danger)
+                    }
+                }
+            },
+            dismissButton = {
+                PaperSecondaryButton(
+                    onClick = {
+                        addStoreOpen = false
+                        onDismissStoreAction()
+                    },
+                    enabled = !storeBusy,
+                ) { Text(stringResource(R.string.cancel)) }
+            },
+            confirmButton = {
+                PaperPrimaryButton(
+                    onClick = { onPreviewStore(storeUrl.trim(), publicKey.trim()) },
+                    enabled = !storeBusy && storeUrl.isNotBlank() && publicKey.isNotBlank(),
+                ) {
+                    if (storeBusy) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.size(8.dp))
+                    }
+                    Text(stringResource(R.string.verify_store))
+                }
+            },
+        )
+    }
+
+    val preview = (extensionStoreAction as? ExtensionStoreActionUiState.PreviewReady)?.preview
+    if (preview != null) {
+        AlertDialog(
+            onDismissRequest = onDismissStoreAction,
+            title = { Text(stringResource(R.string.confirm_store_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(preview.index.displayName, style = MaterialTheme.typography.titleLarge)
+                    Text(preview.indexUrl, color = PaperTheme.tokens.inkMuted)
+                    Text(
+                        stringResource(R.string.store_sequence, preview.index.sequence),
+                        color = PaperTheme.tokens.inkMuted,
+                    )
+                    Text(
+                        stringResource(R.string.store_release_count, preview.index.releases.size),
+                        color = PaperTheme.tokens.inkMuted,
+                    )
+                    Text(stringResource(R.string.store_key_fingerprint_label), style = MaterialTheme.typography.labelLarge)
+                    SelectionContainer {
+                        Text(
+                            preview.index.publicKeySha256.chunked(8).joinToString(" "),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Text(stringResource(R.string.confirm_store_security_warning), color = PaperTheme.tokens.danger)
+                }
+            },
+            dismissButton = {
+                PaperSecondaryButton(onClick = onDismissStoreAction) { Text(stringResource(R.string.cancel)) }
+            },
+            confirmButton = {
+                PaperPrimaryButton(onClick = onConfirmStore) { Text(stringResource(R.string.trust_and_add_store)) }
+            },
+        )
+    }
+
+    val removalStore = extensionStores.stores.firstOrNull { it.index.storeId == pendingRemovalStoreId }
+    if (removalStore != null) {
+        AlertDialog(
+            onDismissRequest = { pendingRemovalStoreId = null },
+            title = { Text(stringResource(R.string.remove_store_title)) },
+            text = { Text(stringResource(R.string.remove_store_body, removalStore.index.displayName)) },
+            dismissButton = {
+                PaperSecondaryButton(onClick = { pendingRemovalStoreId = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+            confirmButton = {
+                PaperPrimaryButton(onClick = {
+                    pendingRemovalStoreId = null
+                    onRemoveStore(removalStore.index.storeId)
+                }) { Text(stringResource(R.string.remove)) }
+            },
+        )
+    }
+
+    val failedAction = extensionStoreAction as? ExtensionStoreActionUiState.Failed
+    if (failedAction != null && failedAction.operation != ExtensionStoreOperation.PREVIEW) {
+        AlertDialog(
+            onDismissRequest = onDismissStoreAction,
+            title = { Text(stringResource(R.string.store_operation_failed)) },
+            text = { Text(failedAction.message) },
+            confirmButton = {
+                PaperPrimaryButton(onClick = onDismissStoreAction) { Text(stringResource(R.string.dismiss)) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun ExtensionStoreCard(
+    store: ExtensionStoreRecord,
+    refreshing: Boolean,
+    enabled: Boolean,
+    onRefresh: () -> Unit,
+    onRemove: () -> Unit,
+    onOpenInstallUrl: (String) -> Unit,
+) {
+    PaperSurface(contentPadding = PaddingValues(12.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(store.index.displayName, style = MaterialTheme.typography.titleMedium)
+                Text(store.index.storeId, color = PaperTheme.tokens.inkMuted)
+            }
+            IconButton(onClick = onRefresh, enabled = enabled && !refreshing) {
+                if (refreshing) {
+                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                } else {
+                    PaperIcon(PaperIconKey.SYNC, contentDescription = stringResource(R.string.refresh_store))
+                }
+            }
+            IconButton(onClick = onRemove, enabled = enabled) {
+                PaperIcon(PaperIconKey.DELETE, contentDescription = stringResource(R.string.remove_store))
+            }
+        }
+        Text(store.index.websiteUrl, color = PaperTheme.tokens.inkMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(
+            stringResource(R.string.store_sequence_and_release_count, store.index.sequence, store.index.releases.size),
+            color = PaperTheme.tokens.inkMuted,
+        )
+        if (store.index.releases.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            store.index.releases.forEach { release ->
+                ExtensionReleaseRow(release, onOpenInstallUrl)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExtensionReleaseRow(
+    release: VerifiedExtensionRelease,
+    onOpenInstallUrl: (String) -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        color = PaperTheme.tokens.canvas,
+        shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
+        border = BorderStroke(PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp), PaperTheme.tokens.border),
+    ) {
+        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(release.displayName, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                StatusBadge(
+                    text = if (release.compatible) release.kind.name.lowercase().replaceFirstChar(Char::uppercase)
+                    else stringResource(R.string.extension_incompatible),
+                    color = if (release.compatible) PaperTheme.tokens.success else PaperTheme.tokens.danger,
+                )
+            }
+            Text(
+                stringResource(R.string.extension_version_and_license, release.versionName, release.license),
+                color = PaperTheme.tokens.inkMuted,
+            )
+            Text(release.packageName, color = PaperTheme.tokens.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (release.compatible) {
+                TextButton(onClick = { onOpenInstallUrl(release.installUrl) }) {
+                    PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
+                    Spacer(Modifier.size(8.dp))
+                    Text(stringResource(R.string.open_download_page))
                 }
             }
         }

@@ -379,13 +379,19 @@ Không thêm method generic executeScript hoặc rawHttpProxy.
 
 Store manifest cần:
 
-- schemaVersion, storeId, name, website, contact, index URL, public key.
-- Extension: packageName, versionCode/name, SDK range, signer SHA-256, install URI, source license, privacy URL, capabilities và provider list.
-- Detached signature Ed25519 cho index.
+- Signed payload: schemaVersion, storeId, displayName, websiteUrl, monotonic sequence, generatedAt.
+- Extension: kind, package/service, bounded version range, host API range, signer SHA-256, HTTPS install URL, license, optional privacy URL, and kind-specific provider/theme metadata.
+- Ed25519 envelope signs the exact payload bytes; the index URL and raw public key are supplied out of band.
 - Package signing certificate phải khớp fingerprint trong index.
 - Store được thêm bằng explicit user action; lần đầu hiển thị key fingerprint.
-- Key rotation phải được ký bởi key cũ và key mới.
-- Trạng thái: available, installed, disabled, update, incompatible, untrusted, orphaned.
+- Sequence rollback và same-sequence content change phải bị từ chối; last-known-good index được giữ lại.
+- Key rotation sau này phải được ký bởi key cũ và key mới.
+- Trạng thái mục tiêu: available, installed, disabled, update, incompatible, untrusted, orphaned.
+
+Hiện tại host đã có user-managed signed store, install/update qua explicit HTTPS system page,
+available/installed/update/incompatible/untrusted state, và fail-closed cache. Publisher-key
+rotation vẫn deferred, cùng với disabled/orphaned management, preconfigured official store,
+và in-app APK downloader.
 
 ### 8.4 GitHub/F-Droid
 

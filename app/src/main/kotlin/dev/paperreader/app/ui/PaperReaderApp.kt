@@ -61,6 +61,7 @@ import dev.paperreader.app.R
 import dev.paperreader.app.download.DownloadWorkScheduler
 import dev.paperreader.app.extensions.CommunityThemeCatalog
 import dev.paperreader.app.extensions.CommunityThemeExtensionManager
+import dev.paperreader.app.extensions.toTrustedThemeExtension
 import dev.paperreader.app.importer.IncomingPdfRequest
 import dev.paperreader.app.backup.MetadataBackupFileGateway
 import dev.paperreader.app.backup.FileMetadataRestoreSessionStore
@@ -91,6 +92,7 @@ import dev.paperreader.app.settings.PaperReaderPreferences
 import dev.paperreader.app.updates.SavedSearchRefreshScheduler
 import dev.paperreader.app.updates.SavedSearchNotificationPublisher
 import dev.paperreader.logic.PaperReaderLogic
+import dev.paperreader.logic.plugin.ExtensionStoreRegistryState
 import dev.paperreader.logic.backup.MAX_METADATA_BACKUP_ARCHIVE_BYTES
 import kotlinx.coroutines.launch
 
@@ -110,6 +112,17 @@ private object AppRoutes {
 
     fun detail(workId: String): String = "detail/${Uri.encode(workId)}"
 }
+
+private data class ExtensionStoreBindings(
+    val state: ExtensionStoreRegistryState,
+    val action: ExtensionStoreActionUiState,
+    val onPreview: (String, String) -> Unit,
+    val onConfirm: () -> Unit,
+    val onDismissAction: () -> Unit,
+    val onRefresh: (String) -> Unit,
+    val onRemove: (String) -> Unit,
+    val onOpenInstallUrl: (String) -> Unit,
+)
 
 internal fun isMoreRoute(route: String?): Boolean =
     route == AppRoutes.MORE || route?.startsWith("${AppRoutes.MORE}/") == true
@@ -161,6 +174,7 @@ fun PaperReaderApp(
         } else {
             PaperReaderContent(
                 preferences = preferences,
+                themeExtensionManager = themeExtensionManager,
                 logic = logic,
                 preset = preset,
                 themeKey = themeKey,
@@ -179,6 +193,7 @@ fun PaperReaderApp(
 @Composable
 private fun PaperReaderContent(
     preferences: PaperReaderPreferences,
+    themeExtensionManager: CommunityThemeExtensionManager,
     logic: PaperReaderLogic,
     preset: PaperThemePreset,
     themeKey: String,
@@ -213,9 +228,12 @@ private fun PaperReaderContent(
     val savedSearchActions by viewModel.savedSearchActions.collectAsStateWithLifecycle()
     val metadataBackup by viewModel.metadataBackup.collectAsStateWithLifecycle()
     val localPdfImport by viewModel.localPdfImport.collectAsStateWithLifecycle()
+    val extensionStoreState by viewModel.extensionStores.collectAsStateWithLifecycle()
+    val extensionStoreAction by viewModel.extensionStoreAction.collectAsStateWithLifecycle()
     val automaticRefreshEnabled by preferences.automaticSavedSearchRefreshEnabled
         .collectAsStateWithLifecycle(false)
     val notificationPublisher = remember(context) { SavedSearchNotificationPublisher(context) }
+    val scope = rememberCoroutineScope()
     var notificationsAvailable by remember { mutableStateOf(notificationPublisher.canPost()) }
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -223,18 +241,26 @@ private fun PaperReaderContent(
         notificationsAvailable = notificationPublisher.canPost()
     }
     val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, notificationPublisher) {
+    DisposableEffect(lifecycleOwner, notificationPublisher, viewModel, themeExtensionManager, scope) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 notificationsAvailable = notificationPublisher.canPost()
+                viewModel.reconcileSourceExtensions()
+                scope.launch { themeExtensionManager.refresh() }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+    LaunchedEffect(extensionStoreState.stores) {
+        themeExtensionManager.replaceStoreExtensions(
+            extensionStoreState.stores
+                .flatMap { it.index.releases }
+                .mapNotNull { it.toTrustedThemeExtension() },
+        )
+    }
     // Activity-local IDs restart after recreation; sourceKey handles durable correlation instead.
     var activeIncomingPdfRequestId by remember { mutableStateOf<Long?>(null) }
-    val scope = rememberCoroutineScope()
     val backupFiles = remember(context) { MetadataBackupFileGateway(context.contentResolver) }
     val createBackupDocument = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(METADATA_BACKUP_MIME_TYPE),
@@ -294,6 +320,21 @@ private fun PaperReaderContent(
         tasks = tasks,
         savedSearches = savedSearches,
         providers = providers,
+        extensionStores = ExtensionStoreBindings(
+            state = extensionStoreState,
+            action = extensionStoreAction,
+            onPreview = viewModel::previewExtensionStore,
+            onConfirm = viewModel::confirmExtensionStore,
+            onDismissAction = viewModel::dismissExtensionStoreAction,
+            onRefresh = viewModel::refreshExtensionStore,
+            onRemove = viewModel::removeExtensionStore,
+            onOpenInstallUrl = { rawUrl ->
+                val uri = Uri.parse(rawUrl)
+                if (uri.scheme == "https") {
+                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
+                }
+            },
+        ),
         search = search,
         downloadActions = downloadActions,
         savedSearchActions = savedSearchActions,
@@ -371,6 +412,7 @@ private fun PaperReaderNavigation(
     tasks: LoadState<List<dev.paperreader.logic.task.PaperTask>>,
     savedSearches: LoadState<List<dev.paperreader.logic.domain.SavedSearchFeed>>,
     providers: dev.paperreader.logic.provider.ProviderManagerState,
+    extensionStores: ExtensionStoreBindings,
     search: SearchUiState,
     downloadActions: DownloadActionUiState,
     savedSearchActions: SavedSearchActionUiState,
@@ -449,6 +491,7 @@ private fun PaperReaderNavigation(
             tasks = tasks,
             savedSearches = savedSearches,
             providers = providers,
+            extensionStores = extensionStores,
             search = search,
             downloadActions = downloadActions,
             savedSearchActions = savedSearchActions,
@@ -514,6 +557,7 @@ private fun PaperReaderNavigation(
                 tasks = tasks,
                 savedSearches = savedSearches,
                 providers = providers,
+                extensionStores = extensionStores,
                 search = search,
                 downloadActions = downloadActions,
                 savedSearchActions = savedSearchActions,
@@ -712,6 +756,7 @@ private fun AppNavHost(
     tasks: LoadState<List<dev.paperreader.logic.task.PaperTask>>,
     savedSearches: LoadState<List<dev.paperreader.logic.domain.SavedSearchFeed>>,
     providers: dev.paperreader.logic.provider.ProviderManagerState,
+    extensionStores: ExtensionStoreBindings,
     search: SearchUiState,
     downloadActions: DownloadActionUiState,
     savedSearchActions: SavedSearchActionUiState,
@@ -876,6 +921,14 @@ private fun AppNavHost(
         composable(AppRoutes.MORE_SOURCES) {
             SourcesScreen(
                 providers = providers,
+                extensionStores = extensionStores.state,
+                extensionStoreAction = extensionStores.action,
+                onPreviewStore = extensionStores.onPreview,
+                onConfirmStore = extensionStores.onConfirm,
+                onDismissStoreAction = extensionStores.onDismissAction,
+                onRefreshStore = extensionStores.onRefresh,
+                onRemoveStore = extensionStores.onRemove,
+                onOpenInstallUrl = extensionStores.onOpenInstallUrl,
                 onBack = navController::popBackStack,
             )
         }

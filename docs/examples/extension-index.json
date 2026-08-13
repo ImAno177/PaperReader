@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "storeId": "example.paperreader.store",
+  "displayName": "Example PaperReader extensions",
+  "websiteUrl": "https://example.org/paperreader",
+  "sequence": 1,
+  "generatedAt": "2026-08-13T06:00:00Z",
+  "extensions": [
+    {
+      "kind": "source",
+      "packageName": "org.example.paperreader.openalex",
+      "serviceClassName": "org.example.paperreader.openalex.OpenAlexService",
+      "displayName": "OpenAlex",
+      "versionCode": 3,
+      "minimumVersionCode": 2,
+      "versionName": "1.2.0",
+      "signerSha256": "abababababababababababababababababababababababababababababababab",
+      "minimumHostApi": 1,
+      "maximumHostApi": 1,
+      "installUrl": "https://example.org/downloads/openalex.apk",
+      "license": "Apache-2.0",
+      "privacyUrl": "https://example.org/privacy/openalex",
+      "providerId": "openalex",
+      "minimumRequestIntervalMillis": 1000,
+      "sourceCapabilities": [
+        "search",
+        "details",
+        "pdf_link"
+      ]
+    },
+    {
+      "kind": "theme",
+      "packageName": "org.example.paperreader.blueprint",
+      "serviceClassName": "org.example.paperreader.blueprint.BlueprintThemeService",
+      "displayName": "Blueprint",
+      "versionCode": 2,
+      "minimumVersionCode": 2,
+      "versionName": "1.1.0",
+      "signerSha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+      "minimumHostApi": 1,
+      "maximumHostApi": 1,
+      "installUrl": "https://example.org/downloads/blueprint.apk",
+      "license": "Apache-2.0",
+      "themeIds": [
+        "blueprint"
+      ]
+    }
+  ]
+}

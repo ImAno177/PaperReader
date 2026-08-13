@@ -519,6 +519,13 @@ Work/manifestation/file trong một transaction. Exact SHA chỉ idempotent tron
 `local-pdf`; cùng byte với PDF tải từ provider không phải bằng chứng hai Work trí tuệ là một.
 Metadata local được backup, còn PDF/path vẫn bị loại và cùng SHA sẽ re-attach sau restore.
 
+Share text DOI/arXiv cũng đã nối vào vertical slice thật. `ACTION_SEND text/plain` chỉ parse một
+reference không mơ hồ: DOI canonical hoặc arXiv modern/legacy, kể cả URL nằm trong share text thông
+thường. Version arXiv được giữ trong exact provider query; DOI đi qua exact Crossref filter. Request
+được đưa vào Discover rồi submit qua federated search hiện hữu, không tạo network path riêng và không
+tự lưu paper. Text tùy ý, payload quá lớn hoặc nhiều reference bị từ chối trước khi gọi provider và
+nhận feedback tiếng Anh; intent đã xử lý được neutralize để không replay sau Activity recreation.
+
 Navigation giữ Library là start destination mà không khôi phục lại tab vừa bị pop; local-PDF recovery ở trạng thái `Preparing` không tự mở More, chỉ các trạng thái cần người dùng mới điều hướng tới đó.
 
 ## 11. Navigation và UX chính

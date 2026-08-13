@@ -11,6 +11,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.produceState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.paperreader.app.importer.IncomingPdfRequest
+import dev.paperreader.app.importer.IncomingPaperReferenceRequest
+import dev.paperreader.app.importer.incomingPaperReferencePayloadOrNull
 import dev.paperreader.app.importer.incomingPdfUriOrNull
 import dev.paperreader.app.ui.PaperReaderApp
 import dev.paperreader.app.updates.SavedSearchNotificationPublisher
@@ -22,6 +24,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 class MainActivity : ComponentActivity() {
     private val incomingPdfRequest = MutableStateFlow<IncomingPdfRequest?>(null)
+    private val incomingPaperReferenceRequest = MutableStateFlow<IncomingPaperReferenceRequest?>(null)
     private val openUpdatesRequest = MutableStateFlow<Long?>(null)
     private val incomingRequestIds = AtomicLong()
 
@@ -32,11 +35,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         acceptIncomingPdf(intent)
+        acceptIncomingPaperReference(intent)
         acceptOpenUpdates(intent)
         enableEdgeToEdge()
         val app = application as PaperReaderApplication
         setContent {
             val pendingPdfImport by incomingPdfRequest.collectAsStateWithLifecycle()
+            val pendingPaperReference by incomingPaperReferenceRequest.collectAsStateWithLifecycle()
             val pendingOpenUpdates by openUpdatesRequest.collectAsStateWithLifecycle()
             val logic by produceState<PaperReaderLogic?>(initialValue = null, app) {
                 value = withContext(Dispatchers.IO) { app.logic }
@@ -54,6 +59,8 @@ class MainActivity : ComponentActivity() {
                 savedSearchRefreshScheduler = app.savedSearchRefreshScheduler,
                 incomingPdfRequest = pendingPdfImport,
                 onIncomingPdfConsumed = ::consumeIncomingPdf,
+                incomingPaperReferenceRequest = pendingPaperReference,
+                onIncomingPaperReferenceConsumed = ::consumeIncomingPaperReference,
                 openUpdatesRequestId = pendingOpenUpdates,
                 onOpenUpdatesConsumed = ::consumeOpenUpdates,
             )
@@ -62,11 +69,19 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (acceptIncomingPdf(intent) || acceptOpenUpdates(intent)) setIntent(intent)
+        if (
+            acceptIncomingPdf(intent) ||
+            acceptIncomingPaperReference(intent) ||
+            acceptOpenUpdates(intent)
+        ) {
+            setIntent(intent)
+        }
     }
 
     private fun acceptIncomingPdf(source: Intent): Boolean {
         val uri = source.incomingPdfUriOrNull() ?: return false
+        incomingPaperReferenceRequest.value = null
+        openUpdatesRequest.value = null
         incomingPdfRequest.value = IncomingPdfRequest(incomingRequestIds.incrementAndGet(), uri)
         return true
     }
@@ -74,17 +89,31 @@ class MainActivity : ComponentActivity() {
     private fun consumeIncomingPdf(id: Long) {
         if (incomingPdfRequest.value?.id == id) {
             incomingPdfRequest.value = null
-            // Prevent a consumed SEND/VIEW intent from being replayed by Activity recreation.
-            setIntent(
-                Intent(Intent.ACTION_MAIN)
-                    .setClass(this, MainActivity::class.java)
-                    .addCategory(Intent.CATEGORY_LAUNCHER),
-            )
+            neutralizeConsumedIntent()
         }
+    }
+
+    private fun acceptIncomingPaperReference(source: Intent): Boolean {
+        val payload = source.incomingPaperReferencePayloadOrNull() ?: return false
+        incomingPdfRequest.value = null
+        openUpdatesRequest.value = null
+        incomingPaperReferenceRequest.value = IncomingPaperReferenceRequest(
+            incomingRequestIds.incrementAndGet(),
+            payload,
+        )
+        return true
+    }
+
+    private fun consumeIncomingPaperReference(id: Long) {
+        if (incomingPaperReferenceRequest.value?.id != id) return
+        incomingPaperReferenceRequest.value = null
+        neutralizeConsumedIntent()
     }
 
     private fun acceptOpenUpdates(source: Intent): Boolean {
         if (source.action != SavedSearchNotificationPublisher.ACTION_OPEN_UPDATES) return false
+        incomingPdfRequest.value = null
+        incomingPaperReferenceRequest.value = null
         openUpdatesRequest.value = incomingRequestIds.incrementAndGet()
         return true
     }
@@ -92,6 +121,10 @@ class MainActivity : ComponentActivity() {
     private fun consumeOpenUpdates(id: Long) {
         if (openUpdatesRequest.value != id) return
         openUpdatesRequest.value = null
+        neutralizeConsumedIntent()
+    }
+
+    private fun neutralizeConsumedIntent() {
         setIntent(
             Intent(Intent.ACTION_MAIN)
                 .setClass(this, MainActivity::class.java)

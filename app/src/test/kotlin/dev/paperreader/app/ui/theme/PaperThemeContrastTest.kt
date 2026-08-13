@@ -24,6 +24,12 @@ class PaperThemeContrastTest {
                     "on-primary-container" to (tokens.onPrimaryContainer to tokens.primaryContainer),
                     "on-secondary-container" to (tokens.onSecondaryContainer to tokens.secondaryContainer),
                     "empty-state accent on canvas" to (tokens.emptyStateAccent to tokens.canvas),
+                    "success on canvas" to (tokens.success to tokens.canvas),
+                    "warning on canvas" to (tokens.warning to tokens.canvas),
+                    "danger on canvas" to (tokens.danger to tokens.canvas),
+                    "success on surface" to (tokens.success to tokens.surface),
+                    "warning on surface" to (tokens.warning to tokens.surface),
+                    "danger on surface" to (tokens.danger to tokens.surface),
                 )
 
                 pairs.forEach { (role, colors) ->
@@ -43,6 +49,35 @@ class PaperThemeContrastTest {
             val accents = PaperThemePreset.entries.map { paperThemeTokens(it, dark).emptyStateAccent }
             assertEquals(PaperThemePreset.entries.size, accents.toSet().size)
         }
+    }
+
+    @Test
+    fun `theme mode resolves an explicit palette without changing system default`() {
+        assertEquals(false, PaperThemeMode.SYSTEM.resolveDarkTheme(false))
+        assertEquals(true, PaperThemeMode.SYSTEM.resolveDarkTheme(true))
+        assertEquals(false, PaperThemeMode.LIGHT.resolveDarkTheme(true))
+        assertEquals(true, PaperThemeMode.DARK.resolveDarkTheme(false))
+        assertEquals(PaperThemeMode.SYSTEM, PaperThemeMode.fromStorageKey("unknown"))
+    }
+
+    @Test
+    fun `system bar icon appearance follows the resolved background`() {
+        assertEquals(
+            SystemBarAppearance.LIGHT_BACKGROUND,
+            resolveSystemBarAppearance(PaperThemeMode.SYSTEM, systemDark = false),
+        )
+        assertEquals(
+            SystemBarAppearance.DARK_BACKGROUND,
+            resolveSystemBarAppearance(PaperThemeMode.SYSTEM, systemDark = true),
+        )
+        assertEquals(
+            SystemBarAppearance.LIGHT_BACKGROUND,
+            resolveSystemBarAppearance(PaperThemeMode.LIGHT, systemDark = true),
+        )
+        assertEquals(
+            SystemBarAppearance.DARK_BACKGROUND,
+            resolveSystemBarAppearance(PaperThemeMode.DARK, systemDark = false),
+        )
     }
 
     private fun contrastRatio(first: Color, second: Color): Double {

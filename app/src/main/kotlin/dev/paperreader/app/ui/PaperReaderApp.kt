@@ -75,6 +75,7 @@ import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.model.MetadataBackupOperation
 import dev.paperreader.app.ui.model.MetadataBackupUiState
 import dev.paperreader.app.ui.model.LocalPdfImportUiState
+import dev.paperreader.app.ui.model.LibraryLayout
 import dev.paperreader.app.ui.screen.DetailScreen
 import dev.paperreader.app.ui.screen.DiscoverScreen
 import dev.paperreader.app.ui.screen.AppearanceScreen
@@ -92,6 +93,7 @@ import dev.paperreader.app.ui.theme.PaperReaderTheme
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.app.ui.theme.PaperThemeMode
 import dev.paperreader.app.ui.theme.PaperThemePreset
 import dev.paperreader.app.settings.PaperReaderPreferences
 import dev.paperreader.app.updates.SavedSearchRefreshScheduler
@@ -169,10 +171,11 @@ fun PaperReaderApp(
     onOpenUpdatesConsumed: (Long) -> Unit,
 ) {
     val themeKey by preferences.themeKey.collectAsStateWithLifecycle(PaperThemePreset.NEOBRUTALISM.storageKey)
+    val themeMode by preferences.themeMode.collectAsStateWithLifecycle(PaperThemeMode.SYSTEM)
     val themeCatalog by themeExtensionManager.catalog.collectAsStateWithLifecycle()
     val preset = PaperThemePreset.fromStorageKey(themeKey)
     val communityTheme = themeCatalog.themes.firstOrNull { it.storageKey == themeKey }
-    PaperReaderTheme(preset, communityTheme = communityTheme) {
+    PaperReaderTheme(preset, communityTheme = communityTheme, themeMode = themeMode) {
         if (logic == null) {
             PaperStatePanel(
                 title = stringResource(R.string.app_initializing_title),
@@ -187,6 +190,7 @@ fun PaperReaderApp(
                 logic = logic,
                 preset = preset,
                 themeKey = themeKey,
+                themeMode = themeMode,
                 themeCatalog = themeCatalog,
                 downloadWorkScheduler = downloadWorkScheduler,
                 savedSearchRefreshScheduler = savedSearchRefreshScheduler,
@@ -208,6 +212,7 @@ private fun PaperReaderContent(
     logic: PaperReaderLogic,
     preset: PaperThemePreset,
     themeKey: String,
+    themeMode: PaperThemeMode,
     themeCatalog: CommunityThemeCatalog,
     downloadWorkScheduler: DownloadWorkScheduler,
     savedSearchRefreshScheduler: SavedSearchRefreshScheduler,
@@ -245,6 +250,7 @@ private fun PaperReaderContent(
     val extensionStoreAction by viewModel.extensionStoreAction.collectAsStateWithLifecycle()
     val automaticRefreshEnabled by preferences.automaticSavedSearchRefreshEnabled
         .collectAsStateWithLifecycle(false)
+    val libraryLayout by preferences.libraryLayout.collectAsStateWithLifecycle(LibraryLayout.LIST)
     val notificationPublisher = remember(context) { SavedSearchNotificationPublisher(context) }
     val scope = rememberCoroutineScope()
     var notificationsAvailable by remember { mutableStateOf(notificationPublisher.canPost()) }
@@ -355,6 +361,8 @@ private fun PaperReaderContent(
         localPdfImport = localPdfImport,
         preset = preset,
         themeKey = themeKey,
+        themeMode = themeMode,
+        libraryLayout = libraryLayout,
         themeCatalog = themeCatalog,
         onSearch = viewModel::search,
         onClearSearch = viewModel::clearSearch,
@@ -393,6 +401,8 @@ private fun PaperReaderContent(
         onConfirmBackupRestore = viewModel::confirmMetadataRestore,
         onDismissBackupState = viewModel::dismissMetadataBackupState,
         onThemeChange = { next -> scope.launch { preferences.setThemeKey(next) } },
+        onThemeModeChange = { next -> scope.launch { preferences.setThemeMode(next) } },
+        onLibraryLayoutChange = { next -> scope.launch { preferences.setLibraryLayout(next) } },
         automaticRefreshEnabled = automaticRefreshEnabled,
         onAutomaticRefreshChange = { enabled ->
             val changed = savedSearchRefreshScheduler.setEnabled(enabled)
@@ -435,6 +445,8 @@ private fun PaperReaderNavigation(
     localPdfImport: LocalPdfImportUiState,
     preset: PaperThemePreset,
     themeKey: String,
+    themeMode: PaperThemeMode,
+    libraryLayout: LibraryLayout,
     themeCatalog: CommunityThemeCatalog,
     onSearch: (String) -> Unit,
     onClearSearch: () -> Unit,
@@ -465,6 +477,8 @@ private fun PaperReaderNavigation(
     onConfirmBackupRestore: () -> Unit,
     onDismissBackupState: () -> Unit,
     onThemeChange: (String) -> Unit,
+    onThemeModeChange: (PaperThemeMode) -> Unit,
+    onLibraryLayoutChange: (LibraryLayout) -> Unit,
     automaticRefreshEnabled: Boolean,
     onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
     notificationsAvailable: Boolean,
@@ -535,6 +549,8 @@ private fun PaperReaderNavigation(
             localPdfImport = localPdfImport,
             preset = preset,
             themeKey = themeKey,
+            themeMode = themeMode,
+            libraryLayout = libraryLayout,
             themeCatalog = themeCatalog,
             onSearch = onSearch,
             onClearSearch = onClearSearch,
@@ -565,6 +581,8 @@ private fun PaperReaderNavigation(
             onConfirmBackupRestore = onConfirmBackupRestore,
             onDismissBackupState = onDismissBackupState,
             onThemeChange = onThemeChange,
+            onThemeModeChange = onThemeModeChange,
+            onLibraryLayoutChange = onLibraryLayoutChange,
             automaticRefreshEnabled = automaticRefreshEnabled,
             onAutomaticRefreshChange = onAutomaticRefreshChange,
             notificationsAvailable = notificationsAvailable,
@@ -600,6 +618,8 @@ private fun PaperReaderNavigation(
                 localPdfImport = localPdfImport,
                 preset = preset,
                 themeKey = themeKey,
+                themeMode = themeMode,
+                libraryLayout = libraryLayout,
                 themeCatalog = themeCatalog,
                 onSearch = onSearch,
                 onClearSearch = onClearSearch,
@@ -630,6 +650,8 @@ private fun PaperReaderNavigation(
                 onConfirmBackupRestore = onConfirmBackupRestore,
                 onDismissBackupState = onDismissBackupState,
                 onThemeChange = onThemeChange,
+                onThemeModeChange = onThemeModeChange,
+                onLibraryLayoutChange = onLibraryLayoutChange,
                 automaticRefreshEnabled = automaticRefreshEnabled,
                 onAutomaticRefreshChange = onAutomaticRefreshChange,
                 notificationsAvailable = notificationsAvailable,
@@ -719,12 +741,14 @@ private fun AdaptiveAppShell(
                 containerColor = PaperTheme.tokens.canvas,
                 bottomBar = {
                     NavigationBar(
-                        modifier = Modifier.testTag(PRIMARY_NAVIGATION_TEST_TAG),
+                        modifier = Modifier
+                            .testTag(PRIMARY_NAVIGATION_TEST_TAG)
+                            .padding(horizontal = 12.dp),
                         containerColor = PaperTheme.tokens.canvas,
                         contentColor = PaperTheme.tokens.ink,
                         tonalElevation = 0.dp,
                     ) {
-                        destinations.forEachIndexed { index, destination ->
+                        destinations.forEach { destination ->
                             val selected = isDestinationSelected(destination, currentRoute)
                             val label = stringResource(destination.labelRes)
                             PaperDestinationItem(
@@ -734,12 +758,6 @@ private fun AdaptiveAppShell(
                                 icon = destination.icon,
                                 label = label,
                                 testKey = destination.route,
-                                visualPadding = PaddingValues(
-                                    start = if (index == 0) 16.dp else 4.dp,
-                                    top = 4.dp,
-                                    end = if (index == destinations.lastIndex) 16.dp else 4.dp,
-                                    bottom = 4.dp,
-                                ),
                             )
                         }
                     }
@@ -845,6 +863,8 @@ private fun AppNavHost(
     localPdfImport: LocalPdfImportUiState,
     preset: PaperThemePreset,
     themeKey: String,
+    themeMode: PaperThemeMode,
+    libraryLayout: LibraryLayout,
     themeCatalog: CommunityThemeCatalog,
     onSearch: (String) -> Unit,
     onClearSearch: () -> Unit,
@@ -875,6 +895,8 @@ private fun AppNavHost(
     onConfirmBackupRestore: () -> Unit,
     onDismissBackupState: () -> Unit,
     onThemeChange: (String) -> Unit,
+    onThemeModeChange: (PaperThemeMode) -> Unit,
+    onLibraryLayoutChange: (LibraryLayout) -> Unit,
     automaticRefreshEnabled: Boolean,
     onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
     notificationsAvailable: Boolean,
@@ -890,6 +912,8 @@ private fun AppNavHost(
             LibraryScreen(
                 state = library,
                 collections = collections,
+                layout = libraryLayout,
+                onLayoutChange = onLibraryLayoutChange,
                 onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
                 onDiscover = { navController.navigate(AppRoutes.DISCOVER) },
             )
@@ -954,10 +978,12 @@ private fun AppNavHost(
         composable(AppRoutes.MORE_APPEARANCE) {
             AppearanceScreen(
                 selectedThemeKey = themeKey,
+                selectedThemeMode = themeMode,
                 communityThemes = themeCatalog.themes,
                 communityThemesLoading = themeCatalog.loading,
                 communityThemeIssues = themeCatalog.issues,
                 onThemeChange = onThemeChange,
+                onThemeModeChange = onThemeModeChange,
                 onBack = navController::popBackStack,
             )
         }
@@ -1028,6 +1054,7 @@ private fun AppNavHost(
                 collections = collections,
                 themePreset = preset,
                 themeKey = themeKey,
+                themeMode = themeMode,
                 downloadTasks = (tasks as? LoadState.Ready)?.value
                     ?.filter { it.workId?.value == workId }
                     .orEmpty(),

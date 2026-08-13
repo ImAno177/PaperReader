@@ -15,6 +15,15 @@ data class CommunityPaperTheme(
 ) {
     init {
         require(iconPaths.keys == PaperIconKey.entries.toSet())
+        listOf(
+            "light" to definition.lightPalette,
+            "dark" to definition.darkPalette,
+        ).forEach { (mode, palette) ->
+            val failures = palette.accessibilityContrastFailures()
+            require(failures.isEmpty()) {
+                "Community theme $mode palette has insufficient contrast: ${failures.joinToString()}"
+            }
+        }
     }
 
     val storageKey: String = "community:$packageName:${definition.themeId}"

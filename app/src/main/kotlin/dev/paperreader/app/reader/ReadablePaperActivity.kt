@@ -35,6 +35,7 @@ import androidx.lifecycle.lifecycleScope
 import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.theme.PaperThemePreset
+import dev.paperreader.app.ui.theme.PaperThemeMode
 import dev.paperreader.app.ui.theme.CommunityPaperTheme
 import dev.paperreader.app.ui.theme.PaperIconSet
 import dev.paperreader.app.ui.theme.PaperIconKey
@@ -99,6 +100,9 @@ class ReadablePaperActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val requestedTheme = PaperThemePreset.fromStorageKey(intent?.getStringExtra(EXTRA_THEME_PRESET))
+        delegate.localNightMode = PaperThemeMode.fromStorageKey(
+            intent?.getStringExtra(EXTRA_THEME_MODE),
+        ).toAppCompatNightMode()
         setTheme(readerThemeStyle(requestedTheme))
         super.onCreate(savedInstanceState)
         val parsedArgs = parseArgs()
@@ -1049,6 +1053,7 @@ class ReadablePaperActivity : AppCompatActivity() {
                         readerArgs.title,
                         readerArgs.themePreset,
                         readerArgs.themeKey,
+                        readerArgs.themeMode,
                     ),
                 )
                 return@launch
@@ -1138,6 +1143,7 @@ class ReadablePaperActivity : AppCompatActivity() {
             title,
             PaperThemePreset.fromStorageKey(intent.getStringExtra(EXTRA_THEME_PRESET)),
             intent.getStringExtra(EXTRA_THEME_PRESET) ?: PaperThemePreset.NEOBRUTALISM.storageKey,
+            PaperThemeMode.fromStorageKey(intent.getStringExtra(EXTRA_THEME_MODE)),
         )
     }.getOrNull()
 
@@ -1147,6 +1153,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         val title: String,
         val themePreset: PaperThemePreset,
         val themeKey: String,
+        val themeMode: PaperThemeMode,
     )
 
     companion object {
@@ -1154,6 +1161,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         private const val EXTRA_MANIFESTATION_ID = "dev.paperreader.app.reader.READABLE_MANIFESTATION_ID"
         private const val EXTRA_TITLE = "dev.paperreader.app.reader.READABLE_TITLE"
         private const val EXTRA_THEME_PRESET = "dev.paperreader.app.reader.READABLE_THEME_PRESET"
+        internal const val EXTRA_THEME_MODE = "dev.paperreader.app.reader.READABLE_THEME_MODE"
         private const val STATE_MANIFESTATION_ID = "readable_manifestation_id"
         private const val STATE_PROGRESSION = "readable_progression"
         private const val READER_PREFERENCES = "readable-reader"
@@ -1178,11 +1186,13 @@ class ReadablePaperActivity : AppCompatActivity() {
             title: String,
             themePreset: PaperThemePreset,
             themeKey: String = themePreset.storageKey,
+            themeMode: PaperThemeMode = PaperThemeMode.SYSTEM,
         ): Intent = Intent(context, ReadablePaperActivity::class.java).apply {
             putExtra(EXTRA_WORK_ID, workId.value)
             putExtra(EXTRA_MANIFESTATION_ID, manifestationId.value)
             putExtra(EXTRA_TITLE, title.take(MAX_TITLE_LENGTH))
             putExtra(EXTRA_THEME_PRESET, themeKey)
+            putExtra(EXTRA_THEME_MODE, themeMode.storageKey)
         }
     }
 }

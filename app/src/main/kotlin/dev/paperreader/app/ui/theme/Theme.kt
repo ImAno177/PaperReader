@@ -32,6 +32,26 @@ enum class PaperThemePreset(
     }
 }
 
+enum class PaperThemeMode(
+    val storageKey: String,
+) {
+    SYSTEM("system"),
+    LIGHT("light"),
+    DARK("dark"),
+    ;
+
+    fun resolveDarkTheme(systemDark: Boolean): Boolean = when (this) {
+        SYSTEM -> systemDark
+        LIGHT -> false
+        DARK -> true
+    }
+
+    companion object {
+        fun fromStorageKey(value: String?): PaperThemeMode =
+            entries.firstOrNull { it.storageKey == value } ?: SYSTEM
+    }
+}
+
 enum class PaperDecoration {
     NONE,
     DOODLE,
@@ -75,9 +95,9 @@ private val RetroBlue = Color(0xFF1F5F8B)
 private val RetroBrick = Color(0xFFB84C2A)
 private val NeoMustard = Color(0xFFFDC800)
 private val NeoViolet = Color(0xFF432DD7)
-private val Success = Color(0xFF16A34A)
-private val Warning = Color(0xFFD97706)
-private val Danger = Color(0xFFDC2626)
+private val Success = Color(0xFF0B6B35)
+private val Warning = Color(0xFF8A4B00)
+private val Danger = Color(0xFFB42318)
 
 internal fun paperThemeTokens(preset: PaperThemePreset, dark: Boolean): PaperThemeTokens = when (preset) {
     PaperThemePreset.DOODLE -> if (dark) {
@@ -392,9 +412,10 @@ object PaperTheme {
 fun PaperReaderTheme(
     preset: PaperThemePreset,
     communityTheme: CommunityPaperTheme? = null,
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: PaperThemeMode = PaperThemeMode.SYSTEM,
     content: @Composable () -> Unit,
 ) {
+    val darkTheme = themeMode.resolveDarkTheme(isSystemInDarkTheme())
     val tokens = communityTheme?.tokens(darkTheme) ?: paperThemeTokens(preset, darkTheme)
     val icons = communityTheme?.let { PaperIconSet.community(it.iconPaths) } ?: paperIconSet(preset)
     MaterialTheme(

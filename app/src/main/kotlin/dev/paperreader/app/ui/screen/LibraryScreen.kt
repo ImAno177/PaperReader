@@ -62,6 +62,7 @@ import dev.paperreader.app.ui.components.PaperSurface
 import dev.paperreader.app.ui.components.StatusBadge
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.PaperCollectionUi
+import dev.paperreader.app.ui.model.LibraryLayout
 import dev.paperreader.app.ui.model.LibrarySortOrder
 import dev.paperreader.app.ui.model.LibraryStatusFilter
 import dev.paperreader.app.ui.model.displayValue
@@ -77,10 +78,12 @@ import dev.paperreader.logic.domain.ReadingStatus
 fun LibraryScreen(
     state: LoadState<List<PaperUi>>,
     collections: LoadState<List<PaperCollectionUi>> = LoadState.Loading,
+    layout: LibraryLayout = LibraryLayout.LIST,
+    onLayoutChange: (LibraryLayout) -> Unit,
     onOpenPaper: (String) -> Unit,
     onDiscover: () -> Unit,
 ) {
-    var grid by rememberSaveable { mutableStateOf(false) }
+    val grid = layout == LibraryLayout.GRID
     var searchVisible by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var statusFilter by rememberSaveable { mutableStateOf(LibraryStatusFilter.ALL) }
@@ -144,7 +147,12 @@ fun LibraryScreen(
                         }
                     }
                     if (papers.isNotEmpty()) {
-                        IconButton(onClick = { grid = !grid }, modifier = Modifier.size(48.dp)) {
+                        IconButton(
+                            onClick = {
+                                onLayoutChange(if (grid) LibraryLayout.LIST else LibraryLayout.GRID)
+                            },
+                            modifier = Modifier.size(48.dp),
+                        ) {
                             PaperIcon(
                                 key = if (grid) PaperIconKey.LIST else PaperIconKey.GRID,
                                 contentDescription = stringResource(if (grid) R.string.show_list else R.string.show_grid),

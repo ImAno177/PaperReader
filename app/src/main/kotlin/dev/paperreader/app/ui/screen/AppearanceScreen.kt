@@ -36,6 +36,7 @@ import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.ui.theme.CommunityPaperTheme
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
+import dev.paperreader.app.ui.theme.PaperThemeMode
 import dev.paperreader.app.ui.theme.PaperThemePreset
 import dev.paperreader.app.ui.theme.paperThemeTokens
 
@@ -45,16 +46,28 @@ fun AppearanceScreen(
     communityThemes: List<CommunityPaperTheme>,
     communityThemesLoading: Boolean,
     communityThemeIssues: List<ThemeExtensionIssue>,
+    selectedThemeMode: PaperThemeMode = PaperThemeMode.SYSTEM,
     onThemeChange: (String) -> Unit,
+    onThemeModeChange: (PaperThemeMode) -> Unit,
     onBack: () -> Unit,
 ) {
-    val dark = isSystemInDarkTheme()
+    val dark = selectedThemeMode.resolveDarkTheme(isSystemInDarkTheme())
     MoreBranchScaffold(title = stringResource(R.string.appearance_title), onBack = onBack) {
         item {
             Text(
                 stringResource(R.string.appearance_body),
                 style = MaterialTheme.typography.bodyLarge,
                 color = PaperTheme.tokens.inkMuted,
+            )
+        }
+        item {
+            PaperSectionHeader(stringResource(R.string.color_mode_title))
+        }
+        items(PaperThemeMode.entries, key = PaperThemeMode::storageKey) { mode ->
+            ThemeModeChoiceCard(
+                mode = mode,
+                selected = mode == selectedThemeMode,
+                onClick = { onThemeModeChange(mode) },
             )
         }
         item {
@@ -122,7 +135,9 @@ fun AppearanceScreen(
 @Composable
 fun AppearanceScreen(
     selectedPreset: PaperThemePreset,
+    selectedThemeMode: PaperThemeMode = PaperThemeMode.SYSTEM,
     onPresetChange: (PaperThemePreset) -> Unit,
+    onThemeModeChange: (PaperThemeMode) -> Unit,
     onBack: () -> Unit,
 ) {
     AppearanceScreen(
@@ -130,10 +145,61 @@ fun AppearanceScreen(
         communityThemes = emptyList(),
         communityThemesLoading = false,
         communityThemeIssues = emptyList(),
+        selectedThemeMode = selectedThemeMode,
         onThemeChange = { key -> onPresetChange(PaperThemePreset.fromStorageKey(key)) },
+        onThemeModeChange = onThemeModeChange,
         onBack = onBack,
     )
 }
+
+@Composable
+private fun ThemeModeChoiceCard(
+    mode: PaperThemeMode,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    PaperSurface(
+        modifier = Modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+    ) {
+        Row(
+            modifier = Modifier.heightIn(min = 52.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            RadioButton(selected = selected, onClick = null)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(themeModeName(mode), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    themeModeDescription(mode),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PaperTheme.tokens.inkMuted,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun themeModeName(mode: PaperThemeMode): String = stringResource(
+    when (mode) {
+        PaperThemeMode.SYSTEM -> R.string.theme_mode_system
+        PaperThemeMode.LIGHT -> R.string.theme_mode_light
+        PaperThemeMode.DARK -> R.string.theme_mode_dark
+    },
+)
+
+@Composable
+private fun themeModeDescription(mode: PaperThemeMode): String = stringResource(
+    when (mode) {
+        PaperThemeMode.SYSTEM -> R.string.theme_mode_system_description
+        PaperThemeMode.LIGHT -> R.string.theme_mode_light_description
+        PaperThemeMode.DARK -> R.string.theme_mode_dark_description
+    },
+)
 
 
 @Composable

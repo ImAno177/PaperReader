@@ -145,7 +145,14 @@
     <string name="community_themes_attention">Theme security</string>
     <string name="community_theme_blocked">Blocked</string>
     <string name="community_theme_provider">Provided by %1$s</string>
-    <string name="appearance_body">Choose a complete visual system. Previews follow the device light or dark setting.</string>
+    <string name="appearance_body">Choose when PaperReader uses light or dark colors, then choose a complete visual system.</string>
+    <string name="color_mode_title">Color mode</string>
+    <string name="theme_mode_system">System</string>
+    <string name="theme_mode_system_description">Follow the device appearance setting</string>
+    <string name="theme_mode_light">Light</string>
+    <string name="theme_mode_light_description">Always use the light palette</string>
+    <string name="theme_mode_dark">Dark</string>
+    <string name="theme_mode_dark_description">Always use the dark palette</string>
     <string name="reading_and_imports_title">Reading &amp; imports</string>
     <string name="reading_and_imports_summary">Reader options and private local PDF import</string>
     <string name="updates_and_notifications_title">Updates &amp; notifications</string>

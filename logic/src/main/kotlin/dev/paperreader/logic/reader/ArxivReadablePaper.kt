@@ -209,7 +209,10 @@ internal class ArxivReadablePaperLoader(
 
     companion object {
         private const val ARXIV_PROVIDER_ID = "arxiv"
-        private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-7"
+        // Bump whenever sanitized output changes so a previously cached document cannot
+        // bypass a security or fidelity fix. Version 8 replaces unsupported arXiv SVG
+        // <object> figures with an explicit, accessible placeholder.
+        private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-8"
         private const val RENDERER_CONTRACT_VERSION = "mobile-html-5"
         private const val MAXIMUM_HTML_BYTES = 4L * 1024L * 1024L
         private val UNVERSIONED_ARXIV_ID = Regex(
@@ -260,6 +263,7 @@ internal class ArxivHtmlSanitizer(
         if (normalizeKnownConversionArtifacts(article)) {
             warnings += ReadablePaperWarning.SOURCE_CONVERSION_ARTIFACT_NORMALIZED
         }
+        replaceUnsupportedVectorFigures(article, warnings)
         annotateReadableBlocks(article)
         val container = Element("div").addClass("paperreader-document")
         val sections = extractSections(parsed)
@@ -305,6 +309,19 @@ internal class ArxivHtmlSanitizer(
         article.select(READABLE_BLOCK_SELECTOR).forEachIndexed { index, element ->
             element.attr("data-paperreader-block-id", "prx-b${index.toString().padStart(5, '0')}")
         }
+    }
+
+    private fun replaceUnsupportedVectorFigures(
+        article: Element,
+        warnings: MutableSet<ReadablePaperWarning>,
+    ) {
+        article.select("object")
+            .filter { vector -> vector.attr("type").normalizedMediaType() == "image/svg+xml" }
+            .forEach { vector ->
+            val caption = vector.closest("figure")?.selectFirst("figcaption")?.text()?.trim()
+            vector.replaceWith(unavailableFigurePlaceholder(caption))
+            warnings += ReadablePaperWarning.FIGURE_UNAVAILABLE
+            }
     }
 
     private fun extractSections(document: Document): List<ReadablePaperSection> = document
@@ -388,13 +405,15 @@ internal class ArxivHtmlSanitizer(
     }
 
     private fun replaceUnavailableFigure(image: Element) {
-        val replacement = Element("span")
+        val caption = image.closest("figure")?.selectFirst("figcaption")?.text()?.trim()
+        image.replaceWith(unavailableFigurePlaceholder(image.attr("alt").takeIf { it.isNotBlank() } ?: caption))
+    }
+
+    private fun unavailableFigurePlaceholder(label: String?): Element = Element("span")
             .addClass("paperreader-figure-unavailable")
             .attr("role", "img")
-            .attr("aria-label", image.attr("alt").takeIf { it.isNotBlank() } ?: "Figure unavailable")
+            .attr("aria-label", label?.take(MAXIMUM_GENERATED_ALT_LENGTH) ?: "Figure unavailable")
             .text("Figure image unavailable offline. The caption is preserved below.")
-        image.replaceWith(replacement)
-    }
 
     private fun normalizeLinks(document: Document, sourceUri: URI) {
         document.select("a[href]").forEach { link ->

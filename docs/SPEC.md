@@ -763,11 +763,18 @@ HTML path is now a runnable mobile-reader vertical slice with a bounded fetcher,
 same-path raster asset budgets, atomic integrity-checked cache, native TOC/search, local-only WebView,
 document-hash progress, and Original fallback. The disposable HTML/figure cache is bounded to 160 MiB,
 evicts complete least-recently-used document pairs, and cannot block an already verified document when
-cache publication fails. This does not claim universal PDF-to-reflow, TeX, or OCR support.
+cache publication fails. Unsupported SVG `<object>` figures from official arXiv HTML are replaced
+before safelist cleaning by an explicit accessible placeholder while preserving the figure caption;
+the sanitizer policy version changes whenever this output contract changes, invalidating only the
+regenerable cache and never silently moving annotations. This does not claim universal PDF-to-reflow,
+TeX, or OCR support.
 
 The More destination is a hub with six secondary branches: Appearance; Collections; Reading & imports;
 Updates & notifications; Data & backup; and Sources/providers. Root destinations use a left-aligned
-24sp title hierarchy; this is presentation-only and does not change the `:app` → `:logic` boundary.
+24sp title hierarchy. Appearance persists System/Light/Dark independently from the Doodle, Retro, or
+Neobrutalism preset, and Library persists list/grid layout. Bottom navigation keeps equal visible item
+geometry while retaining larger hit targets. These are presentation-only decisions and do not change
+the `:app` → `:logic` boundary.
 
 The native work is still a spike under `build/native-spike/`. Its narrow FD+flags JNI wrapper emits
 bounded deterministic PRX1 bytes, embeds the required CMaps, and has passing arm64-v8a/x86_64 API-28

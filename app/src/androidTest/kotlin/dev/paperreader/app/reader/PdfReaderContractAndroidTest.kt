@@ -13,6 +13,7 @@ import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.task.DownloadedPaper
 import dev.paperreader.app.ui.theme.PaperThemePreset
+import dev.paperreader.app.ui.theme.PaperThemeMode
 import dev.paperreader.app.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -40,6 +41,7 @@ class PdfReaderContractAndroidTest {
             WorkId("work"),
             "Paper title",
             PaperThemePreset.RETRO,
+            themeMode = PaperThemeMode.DARK,
         )
 
         assertEquals(ComponentName(context, PdfReaderActivity::class.java), intent.component)
@@ -48,6 +50,22 @@ class PdfReaderContractAndroidTest {
         assertTrue(intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
         assertEquals(contentUri, intent.clipData?.getItemAt(0)?.uri?.toString())
         assertEquals("retro", intent.getStringExtra(PdfReaderActivity.EXTRA_THEME_PRESET))
+        assertEquals("dark", intent.getStringExtra(PdfReaderActivity.EXTRA_THEME_MODE))
+    }
+
+    @Test
+    fun readableReaderIntentCarriesExplicitAppearanceMode() {
+        val intent = ReadablePaperActivity.createIntent(
+            context = context,
+            workId = WorkId("work"),
+            manifestationId = ManifestationId("manifestation"),
+            title = "Paper title",
+            themePreset = PaperThemePreset.DOODLE,
+            themeMode = PaperThemeMode.LIGHT,
+        )
+
+        assertEquals(ComponentName(context, ReadablePaperActivity::class.java), intent.component)
+        assertEquals("light", intent.getStringExtra(ReadablePaperActivity.EXTRA_THEME_MODE))
     }
 
     @Suppress("DEPRECATION")

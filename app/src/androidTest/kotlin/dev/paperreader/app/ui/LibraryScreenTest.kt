@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.PaperCollectionUi
+import dev.paperreader.app.ui.model.LibraryLayout
 import dev.paperreader.app.ui.screen.LibraryScreen
 import dev.paperreader.app.ui.theme.PaperReaderTheme
 import dev.paperreader.app.ui.theme.PaperThemePreset
@@ -17,6 +18,7 @@ import dev.paperreader.logic.domain.ReadingStatus
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Rule
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -37,6 +39,7 @@ class LibraryScreenTest {
                             paper("engine", "Analytical Engine", listOf("Ada Lovelace")),
                         ),
                     ),
+                    onLayoutChange = {},
                     onOpenPaper = {},
                     onDiscover = {},
                 )
@@ -63,6 +66,7 @@ class LibraryScreenTest {
                         ),
                     ),
                     collections = LoadState.Ready(listOf(PaperCollectionUi(5L, "Methods"))),
+                    onLayoutChange = {},
                     onOpenPaper = {},
                     onDiscover = {},
                 )
@@ -73,6 +77,25 @@ class LibraryScreenTest {
 
         composeRule.onNodeWithText("Assigned paper").assertExists()
         composeRule.onNodeWithText("Outside paper").assertDoesNotExist()
+    }
+
+    @Test
+    fun layoutToggleRequestsTheOppositePersistedLayout() {
+        var requested: LibraryLayout? = null
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                LibraryScreen(
+                    state = LoadState.Ready(listOf(paper("paper", "Paper", emptyList()))),
+                    layout = LibraryLayout.LIST,
+                    onLayoutChange = { requested = it },
+                    onOpenPaper = {},
+                    onDiscover = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Show grid").performClick()
+        composeRule.runOnIdle { assertEquals(LibraryLayout.GRID, requested) }
     }
 
     private fun paper(id: String, title: String, authors: List<String>) = PaperUi(

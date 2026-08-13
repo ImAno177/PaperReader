@@ -12,6 +12,15 @@ import org.junit.Test
 
 class LibraryPresentationTest {
     @Test
+    fun `library layout defaults safely and round trips storage keys`() {
+        assertEquals(LibraryLayout.LIST, LibraryLayout.fromStorageKey(null))
+        assertEquals(LibraryLayout.LIST, LibraryLayout.fromStorageKey("unknown"))
+        LibraryLayout.entries.forEach { layout ->
+            assertEquals(layout, LibraryLayout.fromStorageKey(layout.storageKey))
+        }
+    }
+
+    @Test
     fun `collection filter includes only explicitly assigned papers`() {
         val inCollection = paper(
             id = "in-collection",

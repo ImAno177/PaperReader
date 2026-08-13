@@ -239,7 +239,7 @@ Room entity classes are public only because the current Room/KSP processor needs
   changed document remains stale rather than being silently re-anchored. The reader provides
   a native table of contents, in-document search,
   selectable text, 85–200% reversible text sizing, responsive figures, scrollable math/tables,
-  source/version/license disclosure, dark/light theme palettes, offline cache reopening, exact
+  source/version/license disclosure, the persisted System/Light/Dark appearance mode, offline cache reopening, exact
   document-hash progress restoration, reading sessions, and an always-available Original PDF
   fallback when the verified local file exists. Other providers and PDFs without structured HTML
   still fall back honestly; the app does not claim universal reflow yet.
@@ -248,9 +248,13 @@ Room entity classes are public only because the current Room/KSP processor needs
   sanitized official HTML source has supplied it, and the reader reports narrowly normalized source
   conversion artifacts without interpreting arbitrary TeX.
 - Three separate visual token packs (Doodle, Retro, and Neobrutalism) sharing one information
-  architecture and accessible content typography. Empty-state accents are semantic theme tokens,
-  not a hard-coded purple. The selected preset and its light/dark palette continue into the
-  View-based original-PDF reader.
+  architecture and accessible content typography. Appearance persists System, Light, or Dark
+  independently from the visual preset; the resolved mode continues into both reader Activities.
+  Status colors meet normal-text contrast on every built-in light canvas/surface. Empty-state accents
+  are semantic theme tokens, not a hard-coded purple.
+- Library list/grid layout is a persisted presentation preference. Bottom-navigation hit targets
+  remain at least 48 dp while all five visible tiles use equal geometry and a separate outer inset;
+  visual bounds are not treated as the touch bounds.
 - Current app copy and packaged app resources are English-only; the Activity pins English resource
   and plural rules even when the device or per-app locale is different.
 - More > Data & backup provides manual SAF export and restore. Restore requires an explicit preview

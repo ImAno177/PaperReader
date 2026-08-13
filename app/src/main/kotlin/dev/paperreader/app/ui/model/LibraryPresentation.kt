@@ -2,6 +2,19 @@ package dev.paperreader.app.ui.model
 
 import dev.paperreader.logic.domain.ReadingStatus
 
+enum class LibraryLayout(
+    val storageKey: String,
+) {
+    LIST("list"),
+    GRID("grid"),
+    ;
+
+    companion object {
+        fun fromStorageKey(value: String?): LibraryLayout =
+            entries.firstOrNull { it.storageKey == value } ?: LIST
+    }
+}
+
 enum class LibraryStatusFilter {
     ALL,
     UNREAD,

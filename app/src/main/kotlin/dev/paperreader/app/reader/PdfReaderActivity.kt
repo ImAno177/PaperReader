@@ -32,6 +32,7 @@ import androidx.pdf.view.PdfView
 import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.theme.PaperThemePreset
+import dev.paperreader.app.ui.theme.PaperThemeMode
 import dev.paperreader.app.ui.theme.CommunityPaperTheme
 import dev.paperreader.app.ui.theme.PaperIconSet
 import dev.paperreader.app.ui.theme.PaperIconKey
@@ -117,6 +118,9 @@ class PdfReaderActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val requestedTheme = PaperThemePreset.fromStorageKey(intent?.getStringExtra(EXTRA_THEME_PRESET))
+        delegate.localNightMode = PaperThemeMode.fromStorageKey(
+            intent?.getStringExtra(EXTRA_THEME_MODE),
+        ).toAppCompatNightMode()
         setTheme(readerThemeStyle(requestedTheme))
         super.onCreate(savedInstanceState)
         val parsedArgs = parseArgs()
@@ -632,6 +636,7 @@ class PdfReaderActivity : AppCompatActivity() {
             title = title,
             themePreset = PaperThemePreset.fromStorageKey(intent.getStringExtra(EXTRA_THEME_PRESET)),
             themeKey = intent.getStringExtra(EXTRA_THEME_PRESET) ?: PaperThemePreset.NEOBRUTALISM.storageKey,
+            themeMode = PaperThemeMode.fromStorageKey(intent.getStringExtra(EXTRA_THEME_MODE)),
         )
     }.getOrNull()
 
@@ -643,6 +648,7 @@ class PdfReaderActivity : AppCompatActivity() {
         val title: String,
         val themePreset: PaperThemePreset,
         val themeKey: String,
+        val themeMode: PaperThemeMode,
     )
 
     companion object {
@@ -653,6 +659,7 @@ class PdfReaderActivity : AppCompatActivity() {
         private const val EXTRA_SHA256 = "dev.paperreader.app.reader.SHA256"
         private const val EXTRA_TITLE = "dev.paperreader.app.reader.TITLE"
         internal const val EXTRA_THEME_PRESET = "dev.paperreader.app.reader.THEME_PRESET"
+        internal const val EXTRA_THEME_MODE = "dev.paperreader.app.reader.THEME_MODE"
         private const val MAX_TITLE_LENGTH = 240
         private const val PROGRESS_SAVE_DEBOUNCE_MILLIS = 750L
         private const val MINIMUM_READING_SESSION_MILLIS = 1_000L
@@ -664,6 +671,7 @@ class PdfReaderActivity : AppCompatActivity() {
             title: String,
             themePreset: PaperThemePreset,
             themeKey: String = themePreset.storageKey,
+            themeMode: PaperThemeMode = PaperThemeMode.SYSTEM,
         ): Intent {
             val uri = downloadedPaper.contentUri.toUri()
             return Intent(context, PdfReaderActivity::class.java).apply {
@@ -675,6 +683,7 @@ class PdfReaderActivity : AppCompatActivity() {
                 putExtra(EXTRA_SHA256, downloadedPaper.sha256)
                 putExtra(EXTRA_TITLE, title.take(MAX_TITLE_LENGTH))
                 putExtra(EXTRA_THEME_PRESET, themeKey)
+                putExtra(EXTRA_THEME_MODE, themeMode.storageKey)
             }
         }
     }
@@ -690,10 +699,4 @@ class PdfReaderActivity : AppCompatActivity() {
         toolbar.setSubtitleTextColor(palette.inkMuted)
         pageIndicator.setTextColor(palette.ink)
     }
-}
-
-internal fun readerThemeStyle(preset: PaperThemePreset): Int = when (preset) {
-    PaperThemePreset.DOODLE -> R.style.Theme_PaperReader_PdfReader_Doodle
-    PaperThemePreset.RETRO -> R.style.Theme_PaperReader_PdfReader_Retro
-    PaperThemePreset.NEOBRUTALISM -> R.style.Theme_PaperReader_PdfReader_Neobrutalism
 }

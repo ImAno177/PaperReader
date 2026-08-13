@@ -8,7 +8,7 @@ existing user work, and never present a stub as a production feature.
 - [`README.md`](README.md) — concise product overview, feature highlights, screenshots, and build entry point.
 - [`docs/SPEC.md`](docs/SPEC.md) — product scope, domain decisions, provider research, reader constraints, and roadmap.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — module ownership, supported logic facade, implemented behavior, and deferred work.
-- [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md) — external source/theme SDK, trust checks, runtime limits, and sample repositories.
+- [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md) — external source/theme SDK, signed-store schema, trust checks, runtime limits, and sample repositories.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — pull-request workflow, required checks, and contribution boundaries.
 - [`SECURITY.md`](SECURITY.md) — private vulnerability-reporting process and security-sensitive areas.
 - [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — dependency, icon, and content-license attributions.

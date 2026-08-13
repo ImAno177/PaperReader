@@ -20,6 +20,7 @@ import dev.paperreader.extensions.api.SourcePaperResponse
 import dev.paperreader.extensions.api.SourceSearchPage
 import dev.paperreader.extensions.api.SourceSearchRequest
 import java.util.concurrent.atomic.AtomicBoolean
+import java.net.URI
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CancellationException
@@ -37,6 +38,9 @@ data class TrustedSourceExtension(
     val displayName: String,
     val minimumRequestIntervalMillis: Long,
     val capabilities: Set<SourceCapability> = setOf(SourceCapability.SEARCH, SourceCapability.DETAILS),
+    val versionName: String? = null,
+    val installUrl: String? = null,
+    val minimumVersionCode: Long = versionCode,
 ) {
     init {
         require(packageName.contains('.'))
@@ -50,6 +54,12 @@ data class TrustedSourceExtension(
             minimumRequestIntervalMillis = minimumRequestIntervalMillis,
             capabilities = capabilities,
         )
+        require(versionName == null || versionName.isNotBlank())
+        installUrl?.let { rawUrl ->
+            val uri = URI(rawUrl)
+            require(uri.scheme == "https" && uri.host != null && uri.userInfo == null && uri.fragment == null)
+        }
+        require(minimumVersionCode in 1..versionCode)
     }
 
     internal fun descriptor() = SourceExtensionDescriptor(
@@ -213,14 +223,14 @@ internal class AndroidSourceExtensionTransport(
         }
     }
 
-    internal fun verifyInstalledPackage() {
+    internal fun verifyInstalledPackage(): Long {
         val packageManager = applicationContext.packageManager
         val packageInfo = packageManager.getPackageInfo(
             trustedRelease.packageName,
             PackageManager.GET_SIGNING_CERTIFICATES,
         )
-        require(packageInfo.longVersionCode == trustedRelease.versionCode) {
-            "Installed source version does not match the trusted index"
+        require(packageInfo.longVersionCode in trustedRelease.minimumVersionCode..trustedRelease.versionCode) {
+            "Installed source version is outside the trusted release range"
         }
         val fingerprint = normalizeFingerprint(trustedRelease.signerSha256)
         require(
@@ -243,6 +253,7 @@ internal class AndroidSourceExtensionTransport(
             serviceInfo.metaData?.getString(PaperExtensionContract.META_EXTENSION_KIND) ==
                 PaperExtensionContract.EXTENSION_KIND_SOURCE,
         ) { "Source service kind is invalid" }
+        return packageInfo.longVersionCode
     }
 
     private class BoundSourceService(

@@ -19,7 +19,8 @@ PaperReader is in active pre-1.0 development and supports Android 9 or newer.
 - Download verified PDFs and open them in the in-app original-document reader.
 - Organize collections, history, bookmarks, saved searches, updates, and metadata backups locally.
 - Choose Doodle, Retro, or Neobrutalism themes with theme-aware Tabler Icons or Material Symbols.
-- Build isolated source or full visual-theme extensions with the documented community SDK.
+- Add Ed25519-signed community stores, or build isolated source and full visual-theme extensions with
+  the documented SDK.
 - Keep private reading data on the device with no analytics, advertising SDK, account, or cloud parser.
 
 ## Screenshots

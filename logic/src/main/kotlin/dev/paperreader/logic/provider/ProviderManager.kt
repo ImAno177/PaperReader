@@ -23,6 +23,9 @@ data class AvailableProviderPlugin(
     val displayName: String,
     val versionCode: Long,
     val providerIds: Set<String>,
+    val versionName: String? = null,
+    val installedVersionCode: Long? = null,
+    val installUrl: String? = null,
 )
 
 data class UntrustedProviderPlugin(
@@ -85,8 +88,12 @@ internal class MutableProviderManager(
         synchronized(providerLock) {
             val id = provider.descriptor.id
             val existing = providers[id]
-            require(existing?.origin != ProviderOrigin.BUILT_IN || origin == ProviderOrigin.BUILT_IN) {
-                "Community provider cannot replace built-in provider: $id"
+            require(existing == null) {
+                if (existing?.origin == ProviderOrigin.BUILT_IN && origin != ProviderOrigin.BUILT_IN) {
+                    "Community provider cannot replace built-in provider: $id"
+                } else {
+                    "Provider ID is already registered: $id"
+                }
             }
             providers[id] = RuntimeProvider(provider, origin, packageName, versionCode)
             publishInstalled()
@@ -98,6 +105,13 @@ internal class MutableProviderManager(
             val existing = providers[providerId] ?: return
             if (packageName != null && existing.packageName != packageName) return
             providers.remove(providerId)
+            publishInstalled()
+        }
+    }
+
+    fun unregisterByOrigin(origin: ProviderOrigin) {
+        synchronized(providerLock) {
+            providers.entries.removeAll { it.value.origin == origin }
             publishInstalled()
         }
     }

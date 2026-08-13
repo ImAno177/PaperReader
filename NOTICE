@@ -6,6 +6,9 @@ licensed under the Apache License, Version 2.0.
 
 This product uses jsoup, Copyright 2009–2026 Jonathan Hedley, licensed under the MIT License.
 
+This product uses Google Tink, Copyright 2022 Google LLC, licensed under the Apache License,
+Version 2.0.
+
 This product includes vector assets generated from Tabler Icons 3.46.0,
 Copyright 2020-2026 Paweł Kuna, licensed under the MIT License. The license text is at
 LICENSES/Tabler-Icons-MIT.txt.

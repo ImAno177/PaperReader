@@ -10,6 +10,7 @@ import dev.paperreader.app.updates.SavedSearchRefreshScheduler
 import dev.paperreader.logic.PaperReaderConfiguration
 import dev.paperreader.logic.PaperReaderLogic
 import dev.paperreader.logic.plugin.TrustedSourceExtension
+import dev.paperreader.logic.plugin.ExtensionStoreRegistry
 import dev.paperreader.extensions.api.SourceCapability
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +22,12 @@ class PaperReaderApplication : Application() {
     internal val applicationIoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     internal val readerWriteMutex = Mutex()
     val preferences: PaperReaderPreferences by lazy { PaperReaderPreferences(this) }
+    val extensionStoreRegistry: ExtensionStoreRegistry by lazy {
+        ExtensionStoreRegistry(
+            directory = noBackupFilesDir.toPath().resolve("extension-stores"),
+            userAgent = USER_AGENT,
+        )
+    }
     val themeExtensionManager: CommunityThemeExtensionManager by lazy {
         CommunityThemeExtensionManager(this, developerThemeExtensions())
     }
@@ -36,8 +43,9 @@ class PaperReaderApplication : Application() {
         PaperReaderLogic.open(
             context = this,
             configuration = PaperReaderConfiguration(
-                userAgent = "PaperReader/0.1 (Android)",
+                userAgent = USER_AGENT,
                 trustedSourceExtensions = developerSourceExtensions(),
+                extensionStoreRegistry = extensionStoreRegistry,
             ),
         )
     }
@@ -50,6 +58,8 @@ class PaperReaderApplication : Application() {
         applicationIoScope.launch { savedSearchRefreshScheduler.reconcile() }
     }
 }
+
+private const val USER_AGENT = "PaperReader/0.1 (Android)"
 
 private fun developerThemeExtensions(): List<TrustedThemeExtension> {
     if (!BuildConfig.DEBUG || BuildConfig.DEV_THEME_SIGNER_SHA256.isBlank()) return emptyList()

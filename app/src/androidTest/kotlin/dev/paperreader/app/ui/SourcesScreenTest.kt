@@ -18,6 +18,12 @@ import dev.paperreader.logic.provider.ProviderDescriptor
 import dev.paperreader.logic.provider.ProviderManagerState
 import dev.paperreader.logic.provider.ProviderOrigin
 import dev.paperreader.logic.provider.UntrustedProviderPlugin
+import dev.paperreader.logic.plugin.ExtensionReleaseKind
+import dev.paperreader.logic.plugin.ExtensionStoreRecord
+import dev.paperreader.logic.plugin.ExtensionStoreRegistryState
+import dev.paperreader.logic.plugin.VerifiedExtensionRelease
+import dev.paperreader.logic.plugin.VerifiedExtensionStoreIndex
+import java.time.Instant
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,8 +51,26 @@ class SourcesScreenTest {
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Available packages"))
         composeRule.onNodeWithText("Available packages").assertIsDisplayed()
         composeRule.onNodeWithText("Example provider").assertIsDisplayed()
-        composeRule.onNodeWithText("Automatic install and update are not available yet.", substring = true)
+        composeRule.onNodeWithText("Android keeps the final install confirmation under your control.", substring = true)
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun signedStoreShowsVerifiedReleaseAndDownloadAction() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                SourcesScreen(
+                    providers = ProviderManagerState(),
+                    extensionStores = signedStoreState(),
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
+        composeRule.onNodeWithText("PaperReader community").assertIsDisplayed()
+        composeRule.onNodeWithText("OpenAlex").assertIsDisplayed()
+        composeRule.onNodeWithText("Open download page").assertIsDisplayed()
     }
 
     @Test
@@ -103,6 +127,42 @@ class SourcesScreenTest {
                 packageName = "dev.example.untrusted",
                 signerSha256 = "ab".repeat(32),
                 reason = "Signer mismatch",
+            ),
+        ),
+    )
+
+    private fun signedStoreState() = ExtensionStoreRegistryState(
+        stores = listOf(
+            ExtensionStoreRecord(
+                indexUrl = "https://example.org/index.json",
+                index = VerifiedExtensionStoreIndex(
+                    storeId = "paperreader.community",
+                    displayName = "PaperReader community",
+                    websiteUrl = "https://example.org/extensions",
+                    sequence = 7,
+                    generatedAt = Instant.parse("2026-08-13T05:59:00Z"),
+                    publicKeySha256 = "ab".repeat(32),
+                    signedPayloadSha256 = "ef".repeat(32),
+                    releases = listOf(
+                        VerifiedExtensionRelease(
+                            kind = ExtensionReleaseKind.SOURCE,
+                            packageName = "dev.paperreader.extensions.openalex",
+                            serviceClassName = "dev.paperreader.extensions.openalex.OpenAlexService",
+                            displayName = "OpenAlex",
+                            versionCode = 3,
+                            minimumVersionCode = 2,
+                            versionName = "1.2.0",
+                            signerSha256 = "cd".repeat(32),
+                            minimumHostApi = 1,
+                            maximumHostApi = 1,
+                            installUrl = "https://example.org/openalex.apk",
+                            license = "Apache-2.0",
+                            privacyUrl = null,
+                            providerId = "openalex",
+                            minimumRequestIntervalMillis = 1_000,
+                        ),
+                    ),
+                ),
             ),
         ),
     )

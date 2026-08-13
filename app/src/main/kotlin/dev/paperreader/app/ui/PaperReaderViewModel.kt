@@ -50,6 +50,7 @@ import dev.paperreader.logic.backup.MetadataRestorePreviewResult
 import dev.paperreader.logic.backup.MetadataRestoreResult
 import dev.paperreader.logic.provider.PaperSearchQuery
 import dev.paperreader.logic.provider.ProviderException
+import dev.paperreader.logic.plugin.ExtensionStorePreview
 import dev.paperreader.logic.task.PaperTask
 import dev.paperreader.logic.task.CancelTaskResult
 import dev.paperreader.logic.task.DeleteDownloadResult
@@ -142,6 +143,20 @@ data class SavedSearchActionKey(
     val providerIds: List<String>,
 )
 
+enum class ExtensionStoreOperation {
+    PREVIEW,
+    ADD,
+    REFRESH,
+    REMOVE,
+}
+
+sealed interface ExtensionStoreActionUiState {
+    data object Idle : ExtensionStoreActionUiState
+    data class Working(val operation: ExtensionStoreOperation) : ExtensionStoreActionUiState
+    data class PreviewReady(val preview: ExtensionStorePreview) : ExtensionStoreActionUiState
+    data class Failed(val operation: ExtensionStoreOperation, val message: String) : ExtensionStoreActionUiState
+}
+
 class PaperReaderViewModel internal constructor(
     private val logic: PaperReaderLogic,
     private val downloadWorkScheduler: DownloadWorkScheduler,
@@ -164,6 +179,7 @@ class PaperReaderViewModel internal constructor(
     val savedSearches = logic.useCases.observeSavedSearches.subscribe().asLoadState { it }
 
     val providers = logic.providers.state
+    val extensionStores = logic.extensionStores.state
 
     private val mutableDownloadActions = MutableStateFlow(DownloadActionUiState())
     val downloadActions: StateFlow<DownloadActionUiState> = mutableDownloadActions
@@ -180,10 +196,113 @@ class PaperReaderViewModel internal constructor(
     val localPdfImport: StateFlow<LocalPdfImportUiState> = mutableLocalPdfImport
     private var pendingRestoreBytes: ByteArray? = null
     private val metadataBackupMutex = Mutex()
+    private val extensionStoreMutex = Mutex()
+    private val mutableExtensionStoreAction = MutableStateFlow<ExtensionStoreActionUiState>(ExtensionStoreActionUiState.Idle)
+    val extensionStoreAction: StateFlow<ExtensionStoreActionUiState> = mutableExtensionStoreAction
 
     init {
         recoverPendingMetadataRestore()
         recoverPendingLocalPdf()
+    }
+
+    fun previewExtensionStore(indexUrl: String, publicKeyBase64: String) {
+        if (mutableExtensionStoreAction.value is ExtensionStoreActionUiState.Working) return
+        mutableExtensionStoreAction.value = ExtensionStoreActionUiState.Working(ExtensionStoreOperation.PREVIEW)
+        viewModelScope.launch {
+            extensionStoreMutex.withLock {
+                mutableExtensionStoreAction.value = try {
+                    ExtensionStoreActionUiState.PreviewReady(
+                        logic.extensionStores.preview(indexUrl, publicKeyBase64),
+                    )
+                } catch (cancelled: CancellationException) {
+                    mutableExtensionStoreAction.value = ExtensionStoreActionUiState.Idle
+                    throw cancelled
+                } catch (error: Exception) {
+                    ExtensionStoreActionUiState.Failed(
+                        ExtensionStoreOperation.PREVIEW,
+                        error.extensionStoreMessage("Extension store verification failed"),
+                    )
+                }
+            }
+        }
+    }
+
+    fun confirmExtensionStore() {
+        val preview = (mutableExtensionStoreAction.value as? ExtensionStoreActionUiState.PreviewReady)?.preview ?: return
+        mutableExtensionStoreAction.value = ExtensionStoreActionUiState.Working(ExtensionStoreOperation.ADD)
+        viewModelScope.launch {
+            extensionStoreMutex.withLock {
+                try {
+                    logic.extensionStores.addPreview(preview.token)
+                    logic.reconcileSourceExtensions()
+                    mutableExtensionStoreAction.value = ExtensionStoreActionUiState.Idle
+                } catch (cancelled: CancellationException) {
+                    mutableExtensionStoreAction.value = ExtensionStoreActionUiState.PreviewReady(preview)
+                    throw cancelled
+                } catch (error: Exception) {
+                    mutableExtensionStoreAction.value = ExtensionStoreActionUiState.Failed(
+                        ExtensionStoreOperation.ADD,
+                        error.extensionStoreMessage("Extension store could not be added"),
+                    )
+                }
+            }
+        }
+    }
+
+    fun refreshExtensionStore(storeId: String) {
+        runExtensionStoreMutation(ExtensionStoreOperation.REFRESH) {
+            logic.extensionStores.refresh(storeId)
+            logic.reconcileSourceExtensions()
+        }
+    }
+
+    fun removeExtensionStore(storeId: String) {
+        runExtensionStoreMutation(ExtensionStoreOperation.REMOVE) {
+            logic.extensionStores.remove(storeId)
+            logic.reconcileSourceExtensions()
+        }
+    }
+
+    fun reconcileSourceExtensions() {
+        viewModelScope.launch {
+            try {
+                logic.reconcileSourceExtensions()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // The provider state keeps the last verified runtime; store actions surface their own errors.
+            }
+        }
+    }
+
+    fun dismissExtensionStoreAction() {
+        if (mutableExtensionStoreAction.value !is ExtensionStoreActionUiState.Working) {
+            mutableExtensionStoreAction.value = ExtensionStoreActionUiState.Idle
+        }
+    }
+
+    private fun runExtensionStoreMutation(
+        operation: ExtensionStoreOperation,
+        action: suspend () -> Unit,
+    ) {
+        if (mutableExtensionStoreAction.value is ExtensionStoreActionUiState.Working) return
+        mutableExtensionStoreAction.value = ExtensionStoreActionUiState.Working(operation)
+        viewModelScope.launch {
+            extensionStoreMutex.withLock {
+                try {
+                    action()
+                    mutableExtensionStoreAction.value = ExtensionStoreActionUiState.Idle
+                } catch (cancelled: CancellationException) {
+                    mutableExtensionStoreAction.value = ExtensionStoreActionUiState.Idle
+                    throw cancelled
+                } catch (error: Exception) {
+                    mutableExtensionStoreAction.value = ExtensionStoreActionUiState.Failed(
+                        operation,
+                        error.extensionStoreMessage("Extension store operation failed"),
+                    )
+                }
+            }
+        }
     }
 
     fun search(query: String) {
@@ -941,6 +1060,9 @@ private fun LocalPdfImportUiState.canStartLocalPdfImport(): Boolean = when (this
     is LocalPdfImportUiState.Importing,
     -> false
 }
+
+private fun Exception.extensionStoreMessage(fallback: String): String =
+    message?.trim()?.take(180)?.takeIf(String::isNotBlank) ?: fallback
 
 internal suspend fun executeMetadataBackupExport(
     export: suspend () -> MetadataBackupExportResult,

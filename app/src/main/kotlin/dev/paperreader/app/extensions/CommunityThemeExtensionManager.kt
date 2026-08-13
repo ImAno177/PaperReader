@@ -20,8 +20,11 @@ import dev.paperreader.extensions.api.PaperExtensionContract
 import dev.paperreader.extensions.api.ThemeExtensionDescriptor
 import dev.paperreader.extensions.api.ThemeSemanticIcon
 import dev.paperreader.extensions.api.requireValidIconPathData
+import dev.paperreader.logic.plugin.ExtensionReleaseKind
+import dev.paperreader.logic.plugin.VerifiedExtensionRelease
 import java.io.ByteArrayOutputStream
 import java.security.MessageDigest
+import java.net.URI
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
@@ -45,6 +48,9 @@ data class TrustedThemeExtension(
     val signerSha256: String,
     val displayName: String,
     val themeIds: Set<String>,
+    val versionName: String? = null,
+    val installUrl: String? = null,
+    val minimumVersionCode: Long = versionCode,
 ) {
     init {
         require(packageName.contains('.'))
@@ -53,6 +59,12 @@ data class TrustedThemeExtension(
         require(signerSha256.matches(Regex("[0-9a-fA-F]{64}")))
         require(displayName.isNotBlank())
         require(themeIds.isNotEmpty())
+        require(versionName == null || versionName.isNotBlank())
+        installUrl?.let { rawUrl ->
+            val uri = URI(rawUrl)
+            require(uri.scheme == "https" && uri.host != null && uri.userInfo == null && uri.fragment == null)
+        }
+        require(minimumVersionCode in 1..versionCode)
     }
 
     internal fun descriptor() = ThemeExtensionDescriptor(
@@ -75,18 +87,33 @@ data class CommunityThemeCatalog(
 
 class CommunityThemeExtensionManager(
     context: Context,
-    private val trustedExtensions: List<TrustedThemeExtension>,
+    baselineExtensions: List<TrustedThemeExtension>,
 ) {
     private val applicationContext = context.applicationContext
+    private val baselineExtensions = baselineExtensions.toList()
+    private var storeExtensions = emptyList<TrustedThemeExtension>()
     private val mutableCatalog = MutableStateFlow(CommunityThemeCatalog())
     private val refreshMutex = Mutex()
     val catalog: StateFlow<CommunityThemeCatalog> = mutableCatalog.asStateFlow()
 
-    suspend fun refresh() = refreshMutex.withLock {
+    suspend fun refresh() = refreshMutex.withLock { refreshLocked() }
+
+    suspend fun replaceStoreExtensions(next: List<TrustedThemeExtension>) = refreshMutex.withLock {
+        val baselinePackages = baselineExtensions.mapTo(mutableSetOf(), TrustedThemeExtension::packageName)
+        val normalized = next
+            .filterNot { it.packageName in baselinePackages }
+            .distinctBy(TrustedThemeExtension::packageName)
+        if (normalized == storeExtensions && !mutableCatalog.value.loading) return@withLock
+        storeExtensions = normalized
+        refreshLocked()
+    }
+
+    private suspend fun refreshLocked() {
         mutableCatalog.value = mutableCatalog.value.copy(loading = true)
         val themes = mutableListOf<CommunityPaperTheme>()
         val issues = mutableListOf<ThemeExtensionIssue>()
-        trustedExtensions.forEach { trusted ->
+        (baselineExtensions + storeExtensions).forEach { trusted ->
+            if (!isInstalled(trusted.packageName)) return@forEach
             try {
                 themes += AndroidThemeExtensionTransport(applicationContext, trusted).loadThemes()
             } catch (cancelled: CancellationException) {
@@ -103,6 +130,13 @@ class CommunityThemeExtensionManager(
             themes = themes.sortedBy(CommunityPaperTheme::displayName),
             issues = issues,
         )
+    }
+
+    private fun isInstalled(packageName: String): Boolean = try {
+        applicationContext.packageManager.getPackageInfo(packageName, 0)
+        true
+    } catch (_: PackageManager.NameNotFoundException) {
+        false
     }
 
     fun theme(storageKey: String): CommunityPaperTheme? =
@@ -285,13 +319,15 @@ private class AndroidThemeExtensionTransport(
     }
 
     @Suppress("DEPRECATION")
-    private fun verifyInstalledPackage() {
+    private fun verifyInstalledPackage(): Long {
         val packageManager = applicationContext.packageManager
         val packageInfo = packageManager.getPackageInfo(
             trustedRelease.packageName,
             PackageManager.GET_SIGNING_CERTIFICATES,
         )
-        require(packageInfo.longVersionCode == trustedRelease.versionCode) { "Theme package version is not trusted" }
+        require(packageInfo.longVersionCode in trustedRelease.minimumVersionCode..trustedRelease.versionCode) {
+            "Installed theme version is outside the trusted release range"
+        }
         require(
             packageManager.hasSigningCertificate(
                 trustedRelease.packageName,
@@ -312,6 +348,7 @@ private class AndroidThemeExtensionTransport(
             serviceInfo.metaData?.getString(PaperExtensionContract.META_EXTENSION_KIND) ==
                 PaperExtensionContract.EXTENSION_KIND_THEME,
         ) { "Theme service kind is invalid" }
+        return packageInfo.longVersionCode
     }
 
     private fun readBoundedIcon(descriptor: ParcelFileDescriptor): ByteArray {
@@ -340,3 +377,18 @@ private class AndroidThemeExtensionTransport(
 private class ThemeExtensionRequestException(failure: ExtensionFailure) : Exception(failure.message)
 
 private class ThemeExtensionProtocolException(message: String) : Exception(message)
+
+internal fun VerifiedExtensionRelease.toTrustedThemeExtension(): TrustedThemeExtension? {
+    if (kind != ExtensionReleaseKind.THEME || !compatible) return null
+    return TrustedThemeExtension(
+        packageName = packageName,
+        serviceClassName = serviceClassName,
+        versionCode = versionCode,
+        signerSha256 = signerSha256,
+        displayName = displayName,
+        themeIds = themeIds,
+        versionName = versionName,
+        installUrl = installUrl,
+        minimumVersionCode = minimumVersionCode,
+    )
+}

@@ -8,8 +8,7 @@ captures/
 .externalNativeBuild/
 .cxx/
 
-# Local Codex/workstation instructions and design references
-AGENTS.md
+# Local design references
 .agents/
 design-skills/
 

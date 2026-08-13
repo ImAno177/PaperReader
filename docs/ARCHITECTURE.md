@@ -1,8 +1,6 @@
-# Logic / UI Boundary
+# Architecture
 
 Status: enforced by Gradle direction and unit tests.
-
-The Mihon evidence and Keep/Adapt/Defer decisions behind this structure are recorded in [`docs/MIHON_ARCHITECTURE.md`](docs/MIHON_ARCHITECTURE.md). The reference is pinned to commit `2506b049642af2211c1ef81e7369f752363f655d`.
 
 ```text
 :app  ───────►  :logic
@@ -20,7 +18,7 @@ There is no reverse dependency. The logic module has no Compose, Activity, Fragm
 
 The UI implementation session should normally edit only `app/**` and the `:app` dependency list. A required logic behavior change belongs in `logic/**` and needs logic tests.
 
-Inside `:logic`, dependencies follow the Mihon pattern at package level:
+Inside `:logic`, dependencies follow dependency inversion at package level:
 
 ```text
 UI -> usecase -> domain repository port <- data/repository -> Room query + mapper
@@ -225,7 +223,7 @@ Room entity classes are public only because the current Room/KSP processor needs
   selection. The AndroidX original-PDF renderer remains an alpha dependency, so an explicit
   system-viewer fallback is retained.
 - Global queue pause/resume, user reorder, and bulk actions remain deferred; per-task actions are
-  implemented, so this slice does not yet claim Mihon queue parity.
+  implemented; full queue controls remain deferred.
 - Plugin discovery/binding/AIDL and signed store index. The trust/version model exists, but claiming runnable third-party plugins before an isolated-process demo would be misleading.
 - Tags, smart collections, collection reordering, highlight/note annotations, manifestation
   revision/citation updates, configurable saved-search cadence, saved-search backup/restore,

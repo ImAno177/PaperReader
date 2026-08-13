@@ -1,0 +1,19 @@
+{
+  "config": {
+    "MD013": false,
+    "MD029": {
+      "style": "ordered"
+    },
+    "MD033": {
+      "allowed_elements": ["p", "img"]
+    },
+    "MD041": false
+  },
+  "globs": [
+    "**/*.md",
+    "!**/build/**",
+    "!**/.gradle/**",
+    "!design-skills/**",
+    "!.agents/**"
+  ]
+}

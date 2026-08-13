@@ -1,100 +1,52 @@
 # PaperReader
 
-PaperReader is a local-first Android app for discovering, saving, reading, and tracking scientific
-papers. It uses real arXiv and Crossref data, keeps the library and reading state on-device, and
-prefers a mobile-readable document over a fixed two-column PDF whenever a verified structured source
-is available.
+[![Android CI](https://github.com/ImAno177/PaperReader/actions/workflows/android-ci.yml/badge.svg)](https://github.com/ImAno177/PaperReader/actions/workflows/android-ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-The current vertical slice supports Android 9 (API 28) and newer. For an exact-version arXiv paper it
-loads official arXiv HTML through the logic layer, sanitizes and integrity-checks it, embeds bounded
-same-version figures, and renders a one-column offline document with MathML, tables, search, table of
-contents, selectable text, 85–200% text sizing, themes, and progress. The immutable original PDF
-remains available as the fidelity fallback.
+## About
 
-> Status: active pre-1.0 development. Official arXiv HTML and Original PDF reading are implemented.
-> General PDF-to-reflow extraction, OCR, annotations, and community-provider execution are not yet
-> production features.
+PaperReader is an open-source, local-first Android app for discovering, collecting, reading, and
+tracking scientific papers. It turns supported papers into a responsive, mobile-readable document
+while preserving the original PDF as a fidelity fallback.
 
-## What works
+PaperReader is in active pre-1.0 development and supports Android 9 or newer.
 
-- Live federated arXiv and Crossref search with exact DOI/arXiv handling and isolated provider errors.
-- Room-backed library, reading status, collections, history, bookmarks, saved searches, and tasks.
-- Verified cancellable PDF downloads with app-private storage and an in-app AndroidX PDF reader.
-- Mobile arXiv reader using exact manifestation versions, typed fallback reasons, offline cache,
-  provenance/license disclosure, native TOC/search, responsive figures/tables/math, and Original PDF
-  fallback. Its integrity-checked document cache is capped at 160 MiB with least-recently-used
-  eviction; a cache write failure never hides an already verified document.
-- Manual metadata backup/restore with preview and transactional merge; PDFs and credentials are not
-  included.
-- English-only UI with Doodle, Retro, and Neobrutalism presets in light and dark mode.
-- Optional, disabled-by-default daily saved-search refresh through WorkManager.
+## Highlights
 
-## Reader security model
+- Search real arXiv and Crossref metadata, then save papers to an on-device Room library.
+- Read exact-version arXiv HTML offline with selectable text, figures, tables, MathML, search, a table
+  of contents, adjustable typography, and reading progress.
+- Download verified PDFs and open them in the in-app original-document reader.
+- Organize collections, history, bookmarks, saved searches, updates, and metadata backups locally.
+- Choose Doodle, Retro, or Neobrutalism themes with theme-aware Tabler Icons or Material Symbols.
+- Keep private reading data on the device with no analytics, advertising SDK, account, or cloud parser.
 
-Remote HTML is never displayed directly. `:logic` performs the bounded fetch and jsoup safelist
-normalization, allows raster figures only from the exact arXiv document path, and atomically caches a
-SHA-256-verified artifact. `:app` renders only that fragment in a non-exported WebView with JavaScript,
-file/content access, storage, mixed content, and network loading disabled under a deny-by-default CSP.
-Raw TeX is not compiled in the app process.
+## Screenshots
 
-See [SPEC.md](SPEC.md), [ARCHITECTURE.md](ARCHITECTURE.md), and
-[docs/MIHON_ARCHITECTURE.md](docs/MIHON_ARCHITECTURE.md) for the product model, module boundary, and
-the Mihon patterns that were kept, adapted, or rejected.
+<p align="center">
+  <img src="docs/screenshots/library.png" width="30%" alt="PaperReader library" />
+  <img src="docs/screenshots/discover.png" width="30%" alt="PaperReader discovery results" />
+  <img src="docs/screenshots/mobile-reader.png" width="30%" alt="PaperReader mobile paper reader" />
+</p>
 
 ## Build
 
-Requirements:
-
-- Android Studio JBR 21 or another compatible JDK 21
-- Android SDK Platform 36.1 and Build Tools 36.1.0
-- Android SDK Platform 36 for `:logic`
-
-On Windows PowerShell:
-
-```powershell
-$env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
-$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-.\gradlew.bat :app:assembleDebug
-```
-
-On macOS/Linux, configure `JAVA_HOME` and `ANDROID_HOME`, then run:
+Use JDK 21, Android SDK 36/36.1, and the Gradle wrapper:
 
 ```bash
 ./gradlew :app:assembleDebug
 ```
 
-The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. GitHub Actions runs the full
-unit/lint gate and publishes debug and unsigned release APK artifacts for each push to `main` and for
-pull requests.
+The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for the full verification gate and
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the supported module boundary.
+GitHub Actions publishes APK artifacts and an SPDX JSON software bill of materials for each build.
 
-## Verify
+## Inspiration
 
-```powershell
-.\gradlew.bat :logic:testDebugUnitTest :logic:lintDebug `
-  :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
-```
+PaperReader is inspired by [Mihon](https://mihon.app/) and its thoughtful local-first library flows.
 
-With an emulator connected:
-
-```powershell
-.\gradlew.bat :logic:connectedDebugAndroidTest :app:connectedDebugAndroidTest
-```
-
-Unit/provider tests use deterministic fixtures rather than live network calls. Manual runtime audits
-use real provider data separately.
-
-## Privacy
-
-PaperReader has no analytics, advertising SDK, cloud parser, or account requirement. Searches and
-paper downloads contact the selected public provider; external links open only after a user action.
-Library state, files, caches, progress, and backup previews stay in app-private/on-device storage
-unless the user explicitly exports a metadata backup.
-
-## Contributing and security
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing changes. Please report vulnerabilities using
-GitHub's private vulnerability reporting flow described in [SECURITY.md](SECURITY.md), not a public
-issue.
+## License
 
 Licensed under the [Apache License 2.0](LICENSE). Third-party attributions are listed in
-[NOTICE](NOTICE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[`NOTICE`](NOTICE) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

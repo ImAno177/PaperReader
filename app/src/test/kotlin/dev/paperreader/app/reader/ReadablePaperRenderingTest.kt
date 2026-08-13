@@ -40,8 +40,29 @@ class ReadablePaperRenderingTest {
         assertTrue(html.contains("table {"))
         assertTrue(html.contains("overflow-x: auto"))
         assertTrue(html.contains("font-size: 18px"))
+        assertTrue(html.contains("--reader-line-height: 1.68"))
+        assertTrue(html.contains("--reader-side-margin: 20px"))
         assertTrue(html.contains("<math><mi>x</mi></math>"))
         assertFalse(html.contains("<script", ignoreCase = true))
+    }
+
+    @Test
+    fun `renderer applies only bounded readable layout presets`() {
+        val html = renderReadablePaperHtml(
+            sanitizedBodyHtml = "<article><p>Paper</p></article>",
+            palette = palette(),
+            dark = false,
+            layout = ReadablePaperLayout(
+                spacing = ReadableTextSpacing.RELAXED,
+                sideMargin = ReadableSideMargin.WIDE,
+            ),
+        )
+
+        assertTrue(html.contains("--reader-line-height: 1.85"))
+        assertTrue(html.contains("--reader-paragraph-margin: 1.18em"))
+        assertTrue(html.contains("--reader-side-margin: 28px"))
+        assertEquals(ReadableTextSpacing.COMFORTABLE, ReadableTextSpacing.fromStorageKey("invalid"))
+        assertEquals(ReadableSideMargin.COMFORTABLE, ReadableSideMargin.fromStorageKey(null))
     }
 
     @Test(expected = IllegalArgumentException::class)

@@ -5,6 +5,7 @@ import dev.paperreader.logic.domain.ManifestationType
 import dev.paperreader.logic.domain.PaperManifestation
 import dev.paperreader.logic.domain.WorkId
 import java.nio.file.Files
+import java.nio.file.attribute.FileTime
 import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import org.jsoup.Jsoup
@@ -99,6 +100,55 @@ class ArxivReadablePaperTest {
     }
 
     @Test
+    fun `loader still returns verified content when the offline cache cannot be written`() = runTest {
+        val unavailableCachePath = Files.createTempFile("readable-paper-cache", ".blocked")
+        val loader = ArxivReadablePaperLoader(
+            fetcher = ReadableResourceFetcher { request ->
+                if (request.accept.startsWith("text/html")) {
+                    ReadableRemoteResult.Success(
+                        ReadableRemoteResource(fixtureHtml().toByteArray(), "text/html; charset=utf-8"),
+                    )
+                } else {
+                    ReadableRemoteResult.Success(ReadableRemoteResource(byteArrayOf(4, 5, 6), "image/png"))
+                }
+            },
+            cache = ReadablePaperCache(unavailableCachePath),
+        )
+
+        val result = loader.load("CGP-Tuning", manifestation())
+
+        assertTrue(result is ReadablePaperResult.Ready)
+        assertFalse((result as ReadablePaperResult.Ready).document.servedFromCache)
+    }
+
+    @Test
+    fun `cache evicts the least recently used complete document within a total byte budget`() {
+        val directory = Files.createTempDirectory("readable-paper-budget")
+        val cache = ReadablePaperCache(
+            directory = directory,
+            maximumCachedBodyBytes = 1_024,
+            maximumTotalCacheBytes = 1_800,
+        )
+        val firstKey = "1".repeat(64)
+        val secondKey = "2".repeat(64)
+        val stalePartial = Files.write(directory.resolve(".interrupted.body.part"), ByteArray(512))
+        cache.write(firstKey, cachedRecord("first"))
+        val old = FileTime.fromMillis(1)
+        Files.setLastModifiedTime(directory.resolve("$firstKey.body.html"), old)
+        Files.setLastModifiedTime(directory.resolve("$firstKey.manifest"), old)
+
+        cache.write(secondKey, cachedRecord("second"))
+
+        assertEquals(null, cache.read(firstKey))
+        assertEquals("second", cache.read(secondKey)?.sourceLicense)
+        assertFalse(Files.exists(stalePartial))
+        val cacheBytes = Files.newDirectoryStream(directory).use { paths ->
+            paths.filter(Files::isRegularFile).sumOf(Files::size)
+        }
+        assertTrue(cacheBytes <= 1_800)
+    }
+
+    @Test
     fun `sanitizer does not present a short error page as a paper`() = runTest {
         val result = ArxivHtmlSanitizer().sanitize(
             rawHtml = "<html><body><article class='ltx_document'>Not a paper.</article></body></html>",
@@ -121,6 +171,22 @@ class ArxivReadablePaperTest {
         license = "https://arxiv.org/licenses/nonexclusive-distrib/1.0/",
         updatedAt = Instant.parse("2025-07-21T00:00:00Z"),
     )
+
+    private fun cachedRecord(label: String): CachedReadablePaper {
+        val body = "<article>${label.padEnd(700, 'x')}</article>"
+        return CachedReadablePaper(
+            bodyHtml = body,
+            sourceUrl = "https://arxiv.org/html/$label",
+            sourceSha256 = "a".repeat(64),
+            documentSha256 = java.security.MessageDigest.getInstance("SHA-256")
+                .digest(body.toByteArray())
+                .joinToString("") { "%02x".format(it) },
+            retrievedAt = Instant.parse("2026-08-12T00:00:00Z"),
+            sourceLicense = label,
+            sections = emptyList(),
+            warnings = emptySet(),
+        )
+    }
 
     private fun fixtureHtml(): String {
         val paragraph = "A mobile paper reader must preserve semantic structure, mathematical notation, citations, tables, figures, and a stable reading order. "

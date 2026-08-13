@@ -122,6 +122,8 @@ Room entity classes are public only because the current Room/KSP processor needs
   markup and unsafe URLs. Figures are fetched only from the same versioned arXiv path under count and
   byte budgets, embedded as data URIs, and replaced by explicit placeholders when unavailable. The
   sanitized artifact and native section index are atomically cached with SHA-256 integrity metadata.
+  The disposable cache is capped at 160 MiB and evicts complete least-recently-used document pairs;
+  cache publication failure does not prevent the current verified document from opening.
 - Community plugin foundation: API/capability descriptor and package/signer/API compatibility trust policy.
 - Metadata backup: a bounded single-entry ZIP with a versioned ProtoBuf payload, strict relational
   and hostile-input validation, exact-identifier restore planning, and one-transaction merge. It

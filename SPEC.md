@@ -733,8 +733,9 @@ For PDF-derived content, Markdown/source blocks remain canonical and HTML remain
 render cache. The original PDF is retained for fidelity and fallback. The official versioned arXiv
 HTML path is now a runnable mobile-reader vertical slice with a bounded fetcher, jsoup safelist,
 same-path raster asset budgets, atomic integrity-checked cache, native TOC/search, local-only WebView,
-document-hash progress, and Original fallback. This does not claim universal PDF-to-reflow, TeX, or
-OCR support.
+document-hash progress, and Original fallback. The disposable HTML/figure cache is bounded to 160 MiB,
+evicts complete least-recently-used document pairs, and cannot block an already verified document when
+cache publication fails. This does not claim universal PDF-to-reflow, TeX, or OCR support.
 
 The More destination is a hub with six secondary branches: Appearance; Collections; Reading & imports;
 Updates & notifications; Data & backup; and Sources/providers. Root destinations use a left-aligned

@@ -492,6 +492,7 @@ private fun libraryStatusFilterLabel(filter: LibraryStatusFilter): String = stri
         LibraryStatusFilter.UNREAD -> R.string.status_unread
         LibraryStatusFilter.READING -> R.string.status_reading
         LibraryStatusFilter.FINISHED -> R.string.status_finished
+        LibraryStatusFilter.ANNOTATED -> R.string.filter_annotated
     },
 )
 
@@ -518,14 +519,26 @@ private fun PaperListCard(paper: PaperUi, onClick: () -> Unit) {
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        if (paper.status != ReadingStatus.UNREAD || paper.progress > 0f) {
+        if (paper.status != ReadingStatus.UNREAD || paper.progress > 0f || paper.annotationCount > 0) {
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                StatusBadge(
-                    text = readingStatusLabel(paper.status),
-                    icon = if (paper.status == ReadingStatus.FINISHED) PaperIconKey.DONE else null,
-                    color = if (paper.status == ReadingStatus.FINISHED) PaperTheme.tokens.success else PaperTheme.tokens.primary,
-                )
+                if (paper.status != ReadingStatus.UNREAD || paper.progress > 0f) {
+                    StatusBadge(
+                        text = readingStatusLabel(paper.status),
+                        icon = if (paper.status == ReadingStatus.FINISHED) PaperIconKey.DONE else null,
+                        color = if (paper.status == ReadingStatus.FINISHED) PaperTheme.tokens.success else PaperTheme.tokens.primary,
+                    )
+                }
+                if (paper.annotationCount > 0) {
+                    StatusBadge(
+                        text = pluralStringResource(
+                            R.plurals.paper_highlight_count,
+                            paper.annotationCount,
+                            paper.annotationCount,
+                        ),
+                        color = PaperTheme.tokens.secondary,
+                    )
+                }
             }
             if (paper.progress > 0f) {
                 Spacer(Modifier.height(10.dp))
@@ -564,6 +577,17 @@ private fun PaperGridCard(paper: PaperUi, onClick: () -> Unit) {
                 text = readingStatusLabel(paper.status),
                 icon = if (paper.status == ReadingStatus.FINISHED) PaperIconKey.DONE else null,
                 color = if (paper.status == ReadingStatus.FINISHED) PaperTheme.tokens.success else PaperTheme.tokens.primary,
+            )
+        }
+        if (paper.annotationCount > 0) {
+            Spacer(Modifier.height(10.dp))
+            StatusBadge(
+                text = pluralStringResource(
+                    R.plurals.paper_highlight_count,
+                    paper.annotationCount,
+                    paper.annotationCount,
+                ),
+                color = PaperTheme.tokens.secondary,
             )
         }
         if (paper.progress > 0f) {

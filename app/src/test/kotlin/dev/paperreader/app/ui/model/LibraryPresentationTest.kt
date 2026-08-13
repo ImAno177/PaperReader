@@ -104,6 +104,20 @@ class LibraryPresentationTest {
     }
 
     @Test
+    fun `annotated filter includes highlights with or without notes`() {
+        val plain = paper(id = "plain", title = "Plain")
+        val annotated = paper(id = "annotated", title = "Annotated").copy(annotationCount = 2)
+
+        val filtered = listOf(plain, annotated).filterAndSortLibrary(
+            query = "",
+            statusFilter = LibraryStatusFilter.ANNOTATED,
+            sortOrder = LibrarySortOrder.TITLE,
+        )
+
+        assertEquals(listOf("annotated"), filtered.map(PaperUi::id))
+    }
+
+    @Test
     fun `sort orders are deterministic and keep missing publication dates last`() {
         val olderSave = paper(
             id = "z",

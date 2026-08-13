@@ -7,6 +7,7 @@ enum class LibraryStatusFilter {
     UNREAD,
     READING,
     FINISHED,
+    ANNOTATED,
 }
 
 enum class LibrarySortOrder {
@@ -24,7 +25,11 @@ fun List<PaperUi>.filterAndSortLibrary(
     val needle = query.trim()
     val filtered = asSequence()
         .filter { paper ->
-            statusFilter == LibraryStatusFilter.ALL || paper.status == statusFilter.toReadingStatus()
+            when (statusFilter) {
+                LibraryStatusFilter.ALL -> true
+                LibraryStatusFilter.ANNOTATED -> paper.annotationCount > 0
+                else -> paper.status == statusFilter.toReadingStatus()
+            }
         }
         .filter { paper -> collectionId == null || collectionId in paper.collectionIds }
         .filter { paper ->
@@ -62,4 +67,5 @@ private fun LibraryStatusFilter.toReadingStatus(): ReadingStatus? = when (this) 
     LibraryStatusFilter.UNREAD -> ReadingStatus.UNREAD
     LibraryStatusFilter.READING -> ReadingStatus.READING
     LibraryStatusFilter.FINISHED -> ReadingStatus.FINISHED
+    LibraryStatusFilter.ANNOTATED -> null
 }

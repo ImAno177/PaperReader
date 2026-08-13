@@ -100,4 +100,9 @@ data class LibraryPaper(
     val readingState: ReadingState? = null,
     val localArtifacts: Map<ManifestationId, LocalPaperArtifact> = emptyMap(),
     val collectionIds: Set<CollectionId> = emptySet(),
-)
+    val annotationCount: Int = 0,
+) {
+    init {
+        require(annotationCount >= 0) { "Annotation count cannot be negative" }
+    }
+}

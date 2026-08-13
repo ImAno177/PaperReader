@@ -23,7 +23,14 @@ data class LocalPdfOwnerRow(
 @Dao
 interface LibraryDao {
     @Transaction
-    @Query("SELECT * FROM works ORDER BY createdAtEpochMillis DESC, id")
+    @Query(
+        """
+        SELECT works.*,
+               (SELECT COUNT(*) FROM annotations WHERE annotations.workId = works.id) AS annotationCount
+        FROM works
+        ORDER BY works.createdAtEpochMillis DESC, works.id
+        """,
+    )
     fun observeLibrary(): Flow<List<LibraryPaperAggregate>>
 
     @Query("SELECT * FROM collections ORDER BY sortOrder, name COLLATE NOCASE, id")

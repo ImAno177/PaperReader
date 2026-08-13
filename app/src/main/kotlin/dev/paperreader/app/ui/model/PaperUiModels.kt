@@ -48,6 +48,7 @@ data class PaperUi(
     val subjects: List<String>,
     val manifestations: List<ManifestationUi>,
     val collectionIds: Set<Long> = emptySet(),
+    val annotationCount: Int = 0,
 )
 
 data class PaperCollectionUi(
@@ -122,6 +123,7 @@ fun LibraryPaper.toPaperUi(): PaperUi {
         subjects = work.subjects.sorted(),
         manifestations = orderedManifestations,
         collectionIds = collectionIds.map { it.value }.toSet(),
+        annotationCount = annotationCount,
     )
 }
 

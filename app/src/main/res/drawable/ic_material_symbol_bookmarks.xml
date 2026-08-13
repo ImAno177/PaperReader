@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="2400"
+    android:viewportHeight="2400">
+    <path
+        android:fillColor="?attr/colorOnSurface"
+        android:fillType="nonZero"
+        android:pathData="M400 2200V800Q400 718 459 659Q518 600 600 600H1400Q1482 600 1541 659Q1600 718 1600 800V2200L1000 1900ZM600 1898 1000 1682 1400 1898V800Q1400 800 1400 800Q1400 800 1400 800H600Q600 800 600 800Q600 800 600 800ZM1800 1800V400Q1800 400 1800 400Q1800 400 1800 400H700V200H1800Q1882 200 1941 259Q2000 318 2000 400V1800ZM600 800Q600 800 600 800Q600 800 600 800H1400Q1400 800 1400 800Q1400 800 1400 800H1000Z" />
+</vector>

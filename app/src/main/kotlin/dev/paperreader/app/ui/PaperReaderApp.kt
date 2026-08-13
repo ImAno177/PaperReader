@@ -20,13 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Update
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationRail
@@ -47,7 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
@@ -89,6 +81,8 @@ import dev.paperreader.app.ui.screen.UpdatesNotificationsScreen
 import dev.paperreader.app.ui.screen.UpdatesScreen
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.theme.PaperReaderTheme
+import dev.paperreader.app.ui.theme.PaperIcon
+import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.ui.theme.PaperThemePreset
 import dev.paperreader.app.settings.PaperReaderPreferences
@@ -129,13 +123,13 @@ private fun isDestinationSelected(destination: AppDestination, currentRoute: Str
 private enum class AppDestination(
     val route: String,
     @param:StringRes val labelRes: Int,
-    val icon: ImageVector,
+    val icon: PaperIconKey,
 ) {
-    LIBRARY(AppRoutes.LIBRARY, R.string.nav_library, Icons.AutoMirrored.Outlined.MenuBook),
-    DISCOVER(AppRoutes.DISCOVER, R.string.nav_discover, Icons.Outlined.Search),
-    UPDATES(AppRoutes.UPDATES, R.string.nav_updates, Icons.Outlined.Update),
-    HISTORY(AppRoutes.HISTORY, R.string.nav_history, Icons.Outlined.History),
-    MORE(AppRoutes.MORE, R.string.nav_more, Icons.Outlined.MoreHoriz),
+    LIBRARY(AppRoutes.LIBRARY, R.string.nav_library, PaperIconKey.LIBRARY),
+    DISCOVER(AppRoutes.DISCOVER, R.string.nav_discover, PaperIconKey.SEARCH),
+    UPDATES(AppRoutes.UPDATES, R.string.nav_updates, PaperIconKey.UPDATES),
+    HISTORY(AppRoutes.HISTORY, R.string.nav_history, PaperIconKey.HISTORY),
+    MORE(AppRoutes.MORE, R.string.nav_more, PaperIconKey.MORE_HORIZONTAL),
 }
 
 @Composable
@@ -658,7 +652,7 @@ private fun AdaptiveAppShell(
 private fun PaperDestinationItem(
     selected: Boolean,
     onClick: () -> Unit,
-    icon: ImageVector,
+    icon: PaperIconKey,
     label: String,
     modifier: Modifier = Modifier,
 ) {
@@ -678,7 +672,7 @@ private fun PaperDestinationItem(
             modifier = Modifier.padding(horizontal = 1.dp, vertical = 7.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(icon, contentDescription = null)
+            PaperIcon(icon, contentDescription = null)
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,

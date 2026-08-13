@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="2400"
+    android:viewportHeight="2400">
+    <path
+        android:fillColor="?attr/colorOnSurface"
+        android:fillType="nonZero"
+        android:pathData="M1075 1700V681L750 1006L575 825L1200 200L1825 825L1650 1006L1325 681V1700ZM450 2200Q347 2200 273 2127Q200 2053 200 1950V1575H450V1950Q450 1950 450 1950Q450 1950 450 1950H1950Q1950 1950 1950 1950Q1950 1950 1950 1950V1575H2200V1950Q2200 2053 2127 2127Q2053 2200 1950 2200Z" />
+</vector>

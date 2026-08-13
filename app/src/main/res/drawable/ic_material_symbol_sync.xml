@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="2400"
+    android:viewportHeight="2400">
+    <path
+        android:fillColor="?attr/colorOnSurface"
+        android:fillType="nonZero"
+        android:pathData="M200 2200V1950H544L494 1906Q331 1762 266 1578Q200 1394 200 1206Q200 859 408 589Q616 319 950 231V494Q725 575 588 770Q450 966 450 1206Q450 1347 503 1480Q556 1612 669 1725L700 1756V1450H950V2200ZM1450 2169V1906Q1675 1825 1812 1630Q1950 1434 1950 1194Q1950 1053 1897 920Q1844 788 1731 675L1700 644V950H1450V200H2200V450H1856L1906 494Q2059 647 2130 827Q2200 1006 2200 1194Q2200 1541 1992 1811Q1784 2081 1450 2169Z" />
+</vector>

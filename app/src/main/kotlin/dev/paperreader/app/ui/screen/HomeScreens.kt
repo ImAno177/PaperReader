@@ -29,38 +29,11 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.List
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.automirrored.outlined.Sort
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Clear
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.FileDownload
-import androidx.compose.material.icons.outlined.FileUpload
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.GridView
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.PictureAsPdf
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Sync
-import androidx.compose.material.icons.outlined.BookmarkAdd
-import androidx.compose.material.icons.outlined.MarkEmailRead
-import androidx.compose.material.icons.outlined.NotificationsActive
-import androidx.compose.material.icons.outlined.NotificationsOff
-import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -128,6 +101,8 @@ import dev.paperreader.app.ui.model.displayProviderName
 import dev.paperreader.app.ui.model.filterAndSortLibrary
 import dev.paperreader.app.ui.model.toEnglishDisplayDateTime
 import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.app.ui.theme.PaperIcon
+import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperThemePreset
 import dev.paperreader.app.ui.theme.paperThemeTokens
 import dev.paperreader.logic.domain.ReadingStatus
@@ -189,8 +164,8 @@ fun LibraryScreen(
                             },
                             modifier = Modifier.size(48.dp),
                         ) {
-                            Icon(
-                                Icons.Outlined.Search,
+                            PaperIcon(
+                                PaperIconKey.SEARCH,
                                 contentDescription = stringResource(
                                     if (searchVisible) R.string.library_search_close else R.string.library_search_open,
                                 ),
@@ -198,7 +173,7 @@ fun LibraryScreen(
                         }
                         Box {
                             IconButton(onClick = { sortMenuExpanded = true }, modifier = Modifier.size(48.dp)) {
-                                Icon(Icons.AutoMirrored.Outlined.Sort, contentDescription = stringResource(R.string.sort_library))
+                                PaperIcon(PaperIconKey.SORT, contentDescription = stringResource(R.string.sort_library))
                             }
                             DropdownMenu(
                                 expanded = sortMenuExpanded,
@@ -221,8 +196,8 @@ fun LibraryScreen(
                     }
                     if (papers.isNotEmpty()) {
                         IconButton(onClick = { grid = !grid }, modifier = Modifier.size(48.dp)) {
-                            Icon(
-                                imageVector = if (grid) Icons.AutoMirrored.Outlined.List else Icons.Outlined.GridView,
+                            PaperIcon(
+                                key = if (grid) PaperIconKey.LIST else PaperIconKey.GRID,
                                 contentDescription = stringResource(if (grid) R.string.show_list else R.string.show_grid),
                             )
                         }
@@ -244,7 +219,7 @@ fun LibraryScreen(
             LoadState.Failed -> PaperStatePanel(
                 title = stringResource(R.string.data_error_title),
                 body = stringResource(R.string.data_error_body),
-                icon = Icons.Outlined.ErrorOutline,
+                icon = PaperIconKey.ERROR,
                 modifier = Modifier.fillMaxSize().padding(padding),
             )
 
@@ -252,7 +227,7 @@ fun LibraryScreen(
                 PaperStatePanel(
                     title = stringResource(R.string.library_empty_title),
                     body = stringResource(R.string.library_empty_body),
-                    icon = Icons.AutoMirrored.Outlined.MenuBook,
+                    icon = PaperIconKey.LIBRARY,
                     actionLabel = stringResource(R.string.find_paper),
                     onAction = onDiscover,
                     modifier = Modifier.fillMaxSize().padding(padding),
@@ -273,7 +248,7 @@ fun LibraryScreen(
                         PaperStatePanel(
                             title = stringResource(R.string.library_no_matches_title),
                             body = stringResource(R.string.library_no_matches_body),
-                            icon = Icons.Outlined.Search,
+                            icon = PaperIconKey.SEARCH,
                             modifier = Modifier.weight(1f),
                         )
                     } else if (grid) {
@@ -321,11 +296,11 @@ private fun LibraryControls(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 singleLine = true,
                 label = { Text(stringResource(R.string.library_search_label)) },
-                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                leadingIcon = { PaperIcon(PaperIconKey.SEARCH, contentDescription = null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Outlined.Clear, contentDescription = stringResource(R.string.search_clear))
+                            PaperIcon(PaperIconKey.CLOSE, contentDescription = stringResource(R.string.search_clear))
                         }
                     }
                 },
@@ -395,7 +370,7 @@ private fun LibraryCollectionsStateRow(
         if (loading) {
             CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
         } else if (error) {
-            Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = PaperTheme.tokens.danger)
+            PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.danger)
         }
         Text(
             text = text,
@@ -540,7 +515,7 @@ private fun PaperListCard(paper: PaperUi, onClick: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 StatusBadge(
                     text = readingStatusLabel(paper.status),
-                    icon = if (paper.status == ReadingStatus.FINISHED) Icons.Outlined.CheckCircle else null,
+                    icon = if (paper.status == ReadingStatus.FINISHED) PaperIconKey.DONE else null,
                     color = if (paper.status == ReadingStatus.FINISHED) PaperTheme.tokens.success else PaperTheme.tokens.primary,
                 )
             }
@@ -579,7 +554,7 @@ private fun PaperGridCard(paper: PaperUi, onClick: () -> Unit) {
             Spacer(Modifier.height(10.dp))
             StatusBadge(
                 text = readingStatusLabel(paper.status),
-                icon = if (paper.status == ReadingStatus.FINISHED) Icons.Outlined.CheckCircle else null,
+                icon = if (paper.status == ReadingStatus.FINISHED) PaperIconKey.DONE else null,
                 color = if (paper.status == ReadingStatus.FINISHED) PaperTheme.tokens.success else PaperTheme.tokens.primary,
             )
         }
@@ -646,7 +621,7 @@ fun DiscoverScreen(
                                         onClear()
                                     },
                                 ) {
-                                    Icon(Icons.Outlined.Clear, contentDescription = stringResource(R.string.search_clear))
+                                    PaperIcon(PaperIconKey.CLOSE, contentDescription = stringResource(R.string.search_clear))
                                 }
                             }
                         },
@@ -661,8 +636,8 @@ fun DiscoverScreen(
                         if (state.running) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         } else {
-                            Icon(
-                                Icons.Outlined.Search,
+                            PaperIcon(
+                                PaperIconKey.SEARCH,
                                 contentDescription = stringResource(R.string.search_submit),
                             )
                         }
@@ -698,7 +673,7 @@ fun DiscoverScreen(
                     PaperStatePanel(
                         title = stringResource(R.string.search_start_title),
                         body = stringResource(R.string.search_start_body),
-                        icon = Icons.Outlined.Search,
+                        icon = PaperIconKey.SEARCH,
                     )
                 }
 
@@ -718,7 +693,7 @@ fun DiscoverScreen(
                     PaperStatePanel(
                         title = stringResource(R.string.search_failed_title),
                         body = stringResource(R.string.search_failed_body),
-                        icon = Icons.Outlined.ErrorOutline,
+                        icon = PaperIconKey.ERROR,
                     )
                 }
 
@@ -726,7 +701,7 @@ fun DiscoverScreen(
                     PaperStatePanel(
                         title = stringResource(R.string.search_no_results_title),
                         body = stringResource(R.string.search_no_results_body),
-                        icon = Icons.Outlined.Search,
+                        icon = PaperIconKey.SEARCH,
                     )
                 }
 
@@ -791,7 +766,7 @@ private fun SavedSearchDiscoverAction(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Outlined.BookmarkAdd, contentDescription = null, tint = PaperTheme.tokens.secondary)
+            PaperIcon(PaperIconKey.BOOKMARK_ADD, contentDescription = null, tint = PaperTheme.tokens.secondary)
             Column(modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.save_search_title), style = MaterialTheme.typography.titleMedium)
                 Text(
@@ -843,7 +818,7 @@ private fun SavedSearchDiscoverAction(
 private fun ProviderFailureRow(failure: ProviderSearchFailure) {
     PaperSurface(contentPadding = PaddingValues(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = PaperTheme.tokens.warning)
+            PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.warning)
             Text(
                 text = when (failure.kind) {
                     ProviderFailureKind.RATE_LIMITED -> failure.retryAfterMillis?.let { retryAfterMillis ->
@@ -974,7 +949,7 @@ fun UpdatesScreen(
                     PaperStatePanel(
                         title = stringResource(R.string.saved_searches_load_failed),
                         body = stringResource(R.string.data_error_body),
-                        icon = Icons.Outlined.ErrorOutline,
+                        icon = PaperIconKey.ERROR,
                     )
                 }
 
@@ -983,7 +958,7 @@ fun UpdatesScreen(
                         PaperStatePanel(
                             title = stringResource(R.string.saved_searches_empty_title),
                             body = stringResource(R.string.saved_searches_empty_body),
-                            icon = Icons.Outlined.BookmarkAdd,
+                            icon = PaperIconKey.BOOKMARK_ADD,
                         )
                     }
                 } else {
@@ -1016,7 +991,7 @@ fun UpdatesScreen(
                                             R.string.saved_search_no_results_body
                                         },
                                     ),
-                                    icon = Icons.Outlined.Search,
+                                    icon = PaperIconKey.SEARCH,
                                 )
                             }
                         } else {
@@ -1054,7 +1029,7 @@ fun UpdatesScreen(
                     PaperStatePanel(
                         title = stringResource(R.string.data_error_title),
                         body = stringResource(R.string.data_error_body),
-                        icon = Icons.Outlined.ErrorOutline,
+                        icon = PaperIconKey.ERROR,
                     )
                 }
 
@@ -1063,7 +1038,7 @@ fun UpdatesScreen(
                         PaperStatePanel(
                             title = stringResource(R.string.download_queue_empty_title),
                             body = stringResource(R.string.download_queue_empty_body),
-                            icon = Icons.Outlined.Sync,
+                            icon = PaperIconKey.SYNC,
                         )
                     }
                 } else {
@@ -1184,7 +1159,7 @@ private fun SavedSearchHeader(
                 enabled = !refreshing && !deleting,
                 modifier = Modifier.weight(1f),
             ) {
-                Icon(Icons.Outlined.Sync, contentDescription = null)
+                PaperIcon(PaperIconKey.SYNC, contentDescription = null)
                 Spacer(Modifier.size(8.dp))
                 Text(stringResource(if (refreshing) R.string.refreshing_saved_search else R.string.refresh_saved_search))
             }
@@ -1192,7 +1167,7 @@ private fun SavedSearchHeader(
                 onClick = onDelete,
                 enabled = !refreshing && !deleting,
             ) {
-                Icon(Icons.Outlined.DeleteOutline, contentDescription = stringResource(R.string.delete_saved_search))
+                PaperIcon(PaperIconKey.DELETE, contentDescription = stringResource(R.string.delete_saved_search))
             }
         }
         if (actionFailed) {
@@ -1272,7 +1247,7 @@ private fun SavedSearchHitRow(
             }
             if (hit.unread) {
                 PaperSecondaryButton(onClick = onMarkRead, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Outlined.MarkEmailRead, contentDescription = null)
+                    PaperIcon(PaperIconKey.MARK_READ, contentDescription = null)
                     Spacer(Modifier.size(6.dp))
                     Text(stringResource(R.string.mark_update_read))
                 }
@@ -1433,7 +1408,7 @@ fun HistoryScreen(
             LoadState.Failed -> PaperStatePanel(
                 title = stringResource(R.string.data_error_title),
                 body = stringResource(R.string.data_error_body),
-                icon = Icons.Outlined.ErrorOutline,
+                icon = PaperIconKey.ERROR,
                 modifier = Modifier.fillMaxSize().padding(padding),
             )
 
@@ -1441,7 +1416,7 @@ fun HistoryScreen(
                 PaperStatePanel(
                     title = stringResource(R.string.history_empty_title),
                     body = stringResource(R.string.history_empty_body),
-                    icon = Icons.Outlined.History,
+                    icon = PaperIconKey.HISTORY,
                     modifier = Modifier.fillMaxSize().padding(padding),
                 )
             } else {
@@ -1482,7 +1457,7 @@ private fun HistoryRow(
                 }
             }
             IconButton(onClick = { onRemove(entry.workId) }, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.Outlined.DeleteOutline, contentDescription = stringResource(R.string.remove_history))
+                PaperIcon(PaperIconKey.DELETE, contentDescription = stringResource(R.string.remove_history))
             }
         }
         if (entry.progression > 0f) {
@@ -1534,7 +1509,7 @@ fun MoreScreen(
                 MoreHubRow(
                     title = stringResource(R.string.appearance_title),
                     supportingText = themeName(selectedPreset),
-                    icon = Icons.Outlined.Palette,
+                    icon = PaperIconKey.PALETTE,
                     onClick = onOpenAppearance,
                 )
             }
@@ -1542,7 +1517,7 @@ fun MoreScreen(
                 MoreHubRow(
                     title = stringResource(R.string.collections_title),
                     supportingText = collectionsHubSummary(collections),
-                    icon = Icons.Outlined.Folder,
+                    icon = PaperIconKey.FOLDER,
                     onClick = onOpenCollections,
                 )
             }
@@ -1550,7 +1525,7 @@ fun MoreScreen(
                 MoreHubRow(
                     title = stringResource(R.string.reading_and_imports_title),
                     supportingText = localPdfHubSummary(localPdfImportState),
-                    icon = Icons.Outlined.PictureAsPdf,
+                    icon = PaperIconKey.PDF,
                     onClick = onOpenReadingImports,
                 )
             }
@@ -1558,7 +1533,7 @@ fun MoreScreen(
                 MoreHubRow(
                     title = stringResource(R.string.updates_and_notifications_title),
                     supportingText = updatesHubSummary(automaticRefreshEnabled, notificationsAvailable),
-                    icon = Icons.Outlined.NotificationsActive,
+                    icon = PaperIconKey.NOTIFICATIONS_ON,
                     onClick = onOpenUpdates,
                 )
             }
@@ -1566,7 +1541,7 @@ fun MoreScreen(
                 MoreHubRow(
                     title = stringResource(R.string.data_and_backup),
                     supportingText = backupHubSummary(backupState),
-                    icon = Icons.Outlined.FileDownload,
+                    icon = PaperIconKey.DOWNLOAD,
                     onClick = onOpenDataBackup,
                 )
             }
@@ -1574,7 +1549,7 @@ fun MoreScreen(
                 MoreHubRow(
                     title = stringResource(R.string.sources_title),
                     supportingText = sourcesHubSummary(providers),
-                    icon = Icons.Outlined.Public,
+                    icon = PaperIconKey.PUBLIC,
                     onClick = onOpenSources,
                 )
             }
@@ -1586,7 +1561,7 @@ fun MoreScreen(
 private fun MoreHubRow(
     title: String,
     supportingText: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: PaperIconKey,
     onClick: () -> Unit,
 ) {
     PaperSurface(
@@ -1606,7 +1581,7 @@ private fun MoreHubRow(
                 border = BorderStroke(1.dp, PaperTheme.tokens.border),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
+                    PaperIcon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
                 }
             }
             Column(
@@ -1622,8 +1597,8 @@ private fun MoreHubRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Icon(
-                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            PaperIcon(
+                PaperIconKey.FORWARD,
                 contentDescription = null,
                 tint = PaperTheme.tokens.inkMuted,
             )
@@ -1741,8 +1716,8 @@ fun ReadingImportsScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.MenuBook,
+                    PaperIcon(
+                        PaperIconKey.LIBRARY,
                         contentDescription = null,
                         tint = PaperTheme.tokens.primary,
                     )
@@ -1755,7 +1730,7 @@ fun ReadingImportsScreen(
                 Spacer(Modifier.height(8.dp))
                 StatusBadge(
                     text = stringResource(R.string.original_pdf_available),
-                    icon = Icons.Outlined.CheckCircle,
+                    icon = PaperIconKey.DONE,
                     color = PaperTheme.tokens.success,
                 )
                 Spacer(Modifier.height(8.dp))
@@ -1783,7 +1758,7 @@ fun ReadingImportsScreen(
                     enabled = actionsEnabled,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Icon(Icons.Outlined.FileUpload, contentDescription = null)
+                    PaperIcon(PaperIconKey.UPLOAD, contentDescription = null)
                     Spacer(Modifier.size(8.dp))
                     Text(stringResource(R.string.choose_local_pdf))
                 }
@@ -1944,7 +1919,7 @@ fun UpdatesNotificationsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Outlined.NotificationsOff, contentDescription = null, tint = PaperTheme.tokens.danger)
+                        PaperIcon(PaperIconKey.NOTIFICATIONS_OFF, contentDescription = null, tint = PaperTheme.tokens.danger)
                         Text(
                             stringResource(R.string.saved_search_notifications_blocked),
                             color = PaperTheme.tokens.inkMuted,
@@ -2020,7 +1995,7 @@ fun CollectionsScreen(
         }
         item {
             PaperSecondaryButton(onClick = { openEditor(null) }, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Outlined.Add, contentDescription = null)
+                PaperIcon(PaperIconKey.ADD, contentDescription = null)
                 Spacer(Modifier.size(8.dp))
                 Text(stringResource(R.string.new_collection))
             }
@@ -2168,7 +2143,7 @@ fun DataBackupScreen(
                     enabled = actionsEnabled,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Icon(Icons.Outlined.FileDownload, contentDescription = null)
+                    PaperIcon(PaperIconKey.DOWNLOAD, contentDescription = null)
                     Spacer(Modifier.size(8.dp))
                     Text(stringResource(R.string.create_metadata_backup))
                 }
@@ -2178,7 +2153,7 @@ fun DataBackupScreen(
                     enabled = actionsEnabled,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Icon(Icons.Outlined.FileUpload, contentDescription = null)
+                    PaperIcon(PaperIconKey.UPLOAD, contentDescription = null)
                     Spacer(Modifier.size(8.dp))
                     Text(stringResource(R.string.restore_metadata_backup))
                 }
@@ -2361,7 +2336,7 @@ fun SourcesScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = PaperTheme.tokens.danger)
+                        PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.danger)
                         Text(
                             provider.packageName,
                             modifier = Modifier.weight(1f),
@@ -2466,8 +2441,8 @@ private fun MoreBranchScaffold(
                 title = { PaperAppBarTitle(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                        Icon(
-                            Icons.AutoMirrored.Outlined.ArrowBack,
+                        PaperIcon(
+                            PaperIconKey.BACK,
                             contentDescription = stringResource(R.string.back),
                         )
                     }
@@ -2519,7 +2494,7 @@ private fun LocalPdfImportStatus(
             ) {
                 StatusBadge(
                     text = stringResource(R.string.local_pdf_import_complete_badge),
-                    icon = Icons.Outlined.CheckCircle,
+                    icon = PaperIconKey.DONE,
                     color = PaperTheme.tokens.success,
                 )
                 Text(
@@ -2554,8 +2529,8 @@ private fun LocalPdfImportStatus(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        Icons.Outlined.ErrorOutline,
+                    PaperIcon(
+                        PaperIconKey.ERROR,
                         contentDescription = null,
                         tint = PaperTheme.tokens.danger,
                     )
@@ -2702,7 +2677,7 @@ private fun CollectionRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(Icons.Outlined.Folder, contentDescription = null, tint = PaperTheme.tokens.primary)
+            PaperIcon(PaperIconKey.FOLDER, contentDescription = null, tint = PaperTheme.tokens.primary)
             Text(
                 collection.name,
                 modifier = Modifier.weight(1f),
@@ -2711,14 +2686,14 @@ private fun CollectionRow(
                 overflow = TextOverflow.Ellipsis,
             )
             IconButton(onClick = onRename, modifier = Modifier.size(48.dp)) {
-                Icon(
-                    Icons.Outlined.Edit,
+                PaperIcon(
+                    PaperIconKey.EDIT,
                     contentDescription = stringResource(R.string.rename_collection_accessibility, collection.name),
                 )
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(48.dp)) {
-                Icon(
-                    Icons.Outlined.DeleteOutline,
+                PaperIcon(
+                    PaperIconKey.DELETE,
                     contentDescription = stringResource(R.string.delete_collection_accessibility, collection.name),
                     tint = PaperTheme.tokens.danger,
                 )

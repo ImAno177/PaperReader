@@ -29,12 +29,14 @@ internal fun WorkEntity.toDomain(
     readingState: ReadingStateEntity?,
     files: List<FileEntity> = emptyList(),
     collections: List<CollectionEntity> = emptyList(),
+    annotationCount: Int = 0,
 ): LibraryPaper = LibraryPaper(
     work = toDomain(authors, identifiers),
     manifestations = manifestations.sortedBy { it.id }.map(ManifestationEntity::toDomain),
     readingState = readingState?.toDomain(),
     localArtifacts = files.mapNotNull(FileEntity::toDomain).associateBy { it.manifestationId },
     collectionIds = collections.map { CollectionId(it.id) }.toSet(),
+    annotationCount = annotationCount,
 )
 
 internal fun LibraryPaperAggregate.toDomain(): LibraryPaper = work.toDomain(
@@ -44,6 +46,7 @@ internal fun LibraryPaperAggregate.toDomain(): LibraryPaper = work.toDomain(
     readingState = readingState,
     files = manifestations.flatMap { it.files },
     collections = collections,
+    annotationCount = annotationCount,
 )
 
 internal fun CollectionEntity.toDomain() = PaperCollection(

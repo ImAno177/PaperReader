@@ -50,7 +50,7 @@ val logic = PaperReaderLogic.open(
 
 The supported surface is:
 
-- `logic.useCases.observeLibrary.subscribe()` for reactive library state.
+- `logic.useCases.observeLibrary.subscribe()` for reactive library state, including aggregate collection membership, local artifacts, reading state, and annotation count without UI-side joins.
 - `logic.useCases.savePaper.await(remotePaper)`, `saveSearchResult.await(cluster)`, `getPaper.await(workId)`, `removePaper.await(workId)`, `updateReadingState.await(state)`, and `setReadingStatus.await(workId, status)` for library/reader commands. Removal is transactional and refuses to orphan local artifacts or interrupt active tasks.
 - `logic.useCases.searchPapers.subscribe(query)` for isolated multi-provider results and failures.
 - `logic.useCases.observeSavedSearches.subscribe()`,

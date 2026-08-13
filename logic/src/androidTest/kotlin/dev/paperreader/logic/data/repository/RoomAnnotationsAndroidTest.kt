@@ -52,8 +52,10 @@ class RoomAnnotationsAndroidTest {
     @Test
     fun exactDocumentAnnotationPersistsUpdatesAndDeletes() = runBlocking {
         val workId = preparedWork()
+        assertEquals(0, library.library.first().single().annotationCount)
         val first = annotations.save(workId, selection(), "Review this claim")
         assertTrue(first is SaveAnnotationResult.Saved && first.created)
+        assertEquals(1, library.library.first().single().annotationCount)
         assertEquals("Review this claim", annotations.observe(workId, documentSha).first().single().note)
 
         val updated = annotations.save(workId, selection(), "Compare with Table 2")
@@ -65,6 +67,7 @@ class RoomAnnotationsAndroidTest {
         assertEquals(null, annotations.observe(workId, documentSha).first().single().note)
         assertEquals(RemoveAnnotationResult.Removed, annotations.remove(annotation.id))
         assertTrue(annotations.observe(workId, documentSha).first().isEmpty())
+        assertEquals(0, library.library.first().single().annotationCount)
     }
 
     @Test

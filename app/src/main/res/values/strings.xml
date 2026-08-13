@@ -29,9 +29,14 @@
     <string name="sort_title">Title A–Z</string>
     <string name="sort_newest_publication">Newest publication</string>
     <string name="filter_all">All</string>
+    <string name="filter_annotated">Annotated</string>
+    <plurals name="paper_highlight_count">
+        <item quantity="one">%1$d highlight</item>
+        <item quantity="other">%1$d highlights</item>
+    </plurals>
     <string name="library_filtered_count">%1$d of %2$d</string>
     <string name="library_no_matches_title">No saved papers match</string>
-    <string name="library_no_matches_body">Change the search text or reading-status filter.</string>
+    <string name="library_no_matches_body">Change the search text, collection, or filter.</string>
 
     <string name="discover_title">Discover</string>
     <string name="discover_body">Searches run across your installed sources. Results appear as each source responds.</string>

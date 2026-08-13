@@ -19,6 +19,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -70,6 +71,8 @@ class ReadablePaperActivity : AppCompatActivity() {
     private var restorationReady = false
     private var readerResumed = false
     private var textZoom = DEFAULT_TEXT_ZOOM
+    private var textSpacing = ReadableTextSpacing.COMFORTABLE
+    private var sideMargin = ReadableSideMargin.COMFORTABLE
     private var displayedProgressPercent = -1
 
     override fun attachBaseContext(newBase: Context) {
@@ -159,6 +162,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = false
         toolbar.menu.findItem(R.id.action_search_readable).isEnabled = false
         toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = false
+        toolbar.menu.findItem(R.id.action_reading_layout).isEnabled = false
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.action_search_readable -> {
@@ -169,12 +173,8 @@ class ReadablePaperActivity : AppCompatActivity() {
                     showTableOfContents()
                     true
                 }
-                R.id.action_text_smaller -> {
-                    changeTextZoom(increase = false)
-                    true
-                }
-                R.id.action_text_larger -> {
-                    changeTextZoom(increase = true)
+                R.id.action_reading_layout -> {
+                    showReadingLayoutDialog()
                     true
                 }
                 R.id.action_open_original_pdf -> {
@@ -192,9 +192,11 @@ class ReadablePaperActivity : AppCompatActivity() {
 
     @Suppress("DEPRECATION", "SetJavaScriptEnabled")
     private fun configureWebView() {
-        textZoom = getSharedPreferences(READER_PREFERENCES, MODE_PRIVATE)
-            .getInt(PREFERENCE_TEXT_ZOOM, DEFAULT_TEXT_ZOOM)
+        val preferences = getSharedPreferences(READER_PREFERENCES, MODE_PRIVATE)
+        textZoom = preferences.getInt(PREFERENCE_TEXT_ZOOM, DEFAULT_TEXT_ZOOM)
             .coerceIn(MINIMUM_TEXT_ZOOM, MAXIMUM_TEXT_ZOOM)
+        textSpacing = ReadableTextSpacing.fromStorageKey(preferences.getString(PREFERENCE_TEXT_SPACING, null))
+        sideMargin = ReadableSideMargin.fromStorageKey(preferences.getString(PREFERENCE_SIDE_MARGIN, null))
         webView.setBackgroundColor(resolveThemeColor(com.google.android.material.R.attr.colorSurfaceVariant))
         webView.settings.apply {
             javaScriptEnabled = false
@@ -281,6 +283,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = false
         toolbar.menu.findItem(R.id.action_search_readable).isEnabled = false
         toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = false
+        toolbar.menu.findItem(R.id.action_reading_layout).isEnabled = false
         loadJob = lifecycleScope.launch {
             val result = try {
                 withContext(Dispatchers.IO) {
@@ -309,6 +312,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = true
         toolbar.menu.findItem(R.id.action_search_readable).isEnabled = true
         toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = document.sections.isNotEmpty()
+        toolbar.menu.findItem(R.id.action_reading_layout).isEnabled = true
         val provenanceText = getString(
             when {
                 document.warnings.any {
@@ -325,11 +329,19 @@ class ReadablePaperActivity : AppCompatActivity() {
             ?.let { "$provenanceText\n${getString(R.string.readable_reader_license_line, it)}" }
             ?: provenanceText
         provenance.visibility = View.VISIBLE
+        loadRenderedDocument(document)
+    }
+
+    private suspend fun loadRenderedDocument(document: ReadablePaperDocument) {
+        val palette = resolvedPalette()
+        val dark = isDarkMode()
+        val layout = ReadablePaperLayout(textSpacing, sideMargin)
         val renderedHtml = withContext(Dispatchers.Default) {
             renderReadablePaperHtml(
                 sanitizedBodyHtml = document.bodyHtml,
-                palette = resolvedPalette(),
-                dark = isDarkMode(),
+                palette = palette,
+                dark = dark,
+                layout = layout,
             )
         }
         webView.loadDataWithBaseURL(
@@ -533,14 +545,105 @@ class ReadablePaperActivity : AppCompatActivity() {
         webView.findAllAsync(title)
     }
 
-    private fun changeTextZoom(increase: Boolean) {
-        textZoom = nextReadableTextZoom(textZoom, increase)
-        webView.settings.textZoom = textZoom
-        getSharedPreferences(READER_PREFERENCES, MODE_PRIVATE)
-            .edit()
-            .putInt(PREFERENCE_TEXT_ZOOM, textZoom)
-            .apply()
-        Toast.makeText(this, getString(R.string.readable_reader_text_size, textZoom), Toast.LENGTH_SHORT).show()
+    private fun showReadingLayoutDialog() {
+        if (!documentLoaded) return
+        val content = layoutInflater.inflate(R.layout.dialog_readable_paper_layout, null)
+        val decrease = content.findViewById<Button>(R.id.readable_layout_text_decrease)
+        val increase = content.findViewById<Button>(R.id.readable_layout_text_increase)
+        val textValue = content.findViewById<TextView>(R.id.readable_layout_text_value)
+        val spacingGroup = content.findViewById<RadioGroup>(R.id.readable_layout_spacing_group)
+        val marginGroup = content.findViewById<RadioGroup>(R.id.readable_layout_margin_group)
+        var selectedZoom = textZoom
+        var selectedSpacing = textSpacing
+        var selectedMargin = sideMargin
+
+        fun updateControls() {
+            textValue.text = getString(R.string.readable_reader_text_size_value, selectedZoom)
+            decrease.isEnabled = selectedZoom > MINIMUM_TEXT_ZOOM
+            increase.isEnabled = selectedZoom < MAXIMUM_TEXT_ZOOM
+            spacingGroup.check(
+                when (selectedSpacing) {
+                    ReadableTextSpacing.COMPACT -> R.id.readable_layout_spacing_compact
+                    ReadableTextSpacing.COMFORTABLE -> R.id.readable_layout_spacing_comfortable
+                    ReadableTextSpacing.RELAXED -> R.id.readable_layout_spacing_relaxed
+                },
+            )
+            marginGroup.check(
+                when (selectedMargin) {
+                    ReadableSideMargin.NARROW -> R.id.readable_layout_margin_narrow
+                    ReadableSideMargin.COMFORTABLE -> R.id.readable_layout_margin_comfortable
+                    ReadableSideMargin.WIDE -> R.id.readable_layout_margin_wide
+                },
+            )
+        }
+
+        decrease.setOnClickListener {
+            selectedZoom = nextReadableTextZoom(selectedZoom, increase = false)
+            updateControls()
+        }
+        increase.setOnClickListener {
+            selectedZoom = nextReadableTextZoom(selectedZoom, increase = true)
+            updateControls()
+        }
+        spacingGroup.setOnCheckedChangeListener { _, checkedId ->
+            selectedSpacing = when (checkedId) {
+                R.id.readable_layout_spacing_compact -> ReadableTextSpacing.COMPACT
+                R.id.readable_layout_spacing_relaxed -> ReadableTextSpacing.RELAXED
+                else -> ReadableTextSpacing.COMFORTABLE
+            }
+        }
+        marginGroup.setOnCheckedChangeListener { _, checkedId ->
+            selectedMargin = when (checkedId) {
+                R.id.readable_layout_margin_narrow -> ReadableSideMargin.NARROW
+                R.id.readable_layout_margin_wide -> ReadableSideMargin.WIDE
+                else -> ReadableSideMargin.COMFORTABLE
+            }
+        }
+        updateControls()
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.readable_reader_layout)
+            .setView(content)
+            .setNegativeButton(R.string.cancel, null)
+            .setNeutralButton(R.string.readable_reader_reset_layout, null)
+            .setPositiveButton(R.string.readable_reader_apply_layout, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                selectedZoom = DEFAULT_TEXT_ZOOM
+                selectedSpacing = ReadableTextSpacing.COMFORTABLE
+                selectedMargin = ReadableSideMargin.COMFORTABLE
+                updateControls()
+            }
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val layoutChanged = selectedSpacing != textSpacing || selectedMargin != sideMargin
+                textZoom = selectedZoom
+                textSpacing = selectedSpacing
+                sideMargin = selectedMargin
+                webView.settings.textZoom = textZoom
+                getSharedPreferences(READER_PREFERENCES, MODE_PRIVATE)
+                    .edit()
+                    .putInt(PREFERENCE_TEXT_ZOOM, textZoom)
+                    .putString(PREFERENCE_TEXT_SPACING, textSpacing.storageKey)
+                    .putString(PREFERENCE_SIDE_MARGIN, sideMargin.storageKey)
+                    .apply()
+                dialog.dismiss()
+                if (layoutChanged) reloadReadableLayout()
+            }
+        }
+        dialog.show()
+    }
+
+    private fun reloadReadableLayout() {
+        val document = currentDocument ?: return
+        pendingRestoreProgression = webView.currentProgression()
+        progressSaveJob?.cancel()
+        documentLoaded = false
+        restorationReady = false
+        webView.visibility = View.INVISIBLE
+        loading.visibility = View.VISIBLE
+        loadJob?.cancel()
+        loadJob = lifecycleScope.launch { loadRenderedDocument(document) }
     }
 
     private fun openOriginalPdf() {
@@ -663,6 +766,8 @@ class ReadablePaperActivity : AppCompatActivity() {
         private const val STATE_PROGRESSION = "readable_progression"
         private const val READER_PREFERENCES = "readable-reader"
         private const val PREFERENCE_TEXT_ZOOM = "text-zoom"
+        private const val PREFERENCE_TEXT_SPACING = "text-spacing"
+        private const val PREFERENCE_SIDE_MARGIN = "side-margin"
         private const val LOCAL_RENDERER_HOST = "appassets.androidplatform.net"
         private const val LOCAL_RENDERER_PATH = "/readable/"
         private const val LOCAL_RENDERER_URL = "https://$LOCAL_RENDERER_HOST$LOCAL_RENDERER_PATH"

@@ -21,6 +21,44 @@ internal data class ReadablePaperPalette(
     val selection: String,
 )
 
+internal data class ReadablePaperLayout(
+    val spacing: ReadableTextSpacing = ReadableTextSpacing.COMFORTABLE,
+    val sideMargin: ReadableSideMargin = ReadableSideMargin.COMFORTABLE,
+)
+
+internal enum class ReadableTextSpacing(
+    val storageKey: String,
+    val lineHeightCss: String,
+    val paragraphMarginCss: String,
+) {
+    COMPACT("compact", "1.50", "0.78em"),
+    COMFORTABLE("comfortable", "1.68", "0.92em"),
+    RELAXED("relaxed", "1.85", "1.18em"),
+    ;
+
+    companion object {
+        fun fromStorageKey(value: String?): ReadableTextSpacing = entries
+            .firstOrNull { it.storageKey == value }
+            ?: COMFORTABLE
+    }
+}
+
+internal enum class ReadableSideMargin(
+    val storageKey: String,
+    val cssPixels: Int,
+) {
+    NARROW("narrow", 12),
+    COMFORTABLE("comfortable", 20),
+    WIDE("wide", 28),
+    ;
+
+    companion object {
+        fun fromStorageKey(value: String?): ReadableSideMargin = entries
+            .firstOrNull { it.storageKey == value }
+            ?: COMFORTABLE
+    }
+}
+
 private val READABLE_TEXT_ZOOM_LEVELS = intArrayOf(85, 100, 115, 130, 145, 160, 175, 190, 200)
 
 internal fun nextReadableTextZoom(current: Int, increase: Boolean): Int = if (increase) {
@@ -33,6 +71,7 @@ internal fun renderReadablePaperHtml(
     sanitizedBodyHtml: String,
     palette: ReadablePaperPalette,
     dark: Boolean,
+    layout: ReadablePaperLayout = ReadablePaperLayout(),
 ): String {
     listOf(
         palette.background,
@@ -59,6 +98,9 @@ internal fun renderReadablePaperHtml(
               --border: ${palette.border};
               --link: ${palette.link};
               --selection: ${palette.selection};
+              --reader-line-height: ${layout.spacing.lineHeightCss};
+              --reader-paragraph-margin: ${layout.spacing.paragraphMarginCss};
+              --reader-side-margin: ${layout.sideMargin.cssPixels}px;
               font-synthesis: none;
             }
             * { box-sizing: border-box; }
@@ -69,7 +111,7 @@ internal fun renderReadablePaperHtml(
               color: var(--text);
               font-family: system-ui, -apple-system, sans-serif;
               font-size: 18px;
-              line-height: 1.68;
+              line-height: var(--reader-line-height);
               overflow-wrap: anywhere;
               text-rendering: optimizeLegibility;
             }
@@ -77,7 +119,7 @@ internal fun renderReadablePaperHtml(
             .paperreader-document {
               width: min(100%, 48rem);
               margin: 0 auto;
-              padding: 24px 20px 112px;
+              padding: 24px var(--reader-side-margin) 112px;
             }
             article, section, nav, figure { display: block; min-width: 0; }
             h1, h2, h3, h4, h5, h6 {
@@ -93,7 +135,7 @@ internal fun renderReadablePaperHtml(
             h3 { font-size: 1.28rem; }
             h4, h5, h6 { font-size: 1.08rem; }
             p, li, dd { max-width: 72ch; }
-            p { margin: 0.88em 0; }
+            p { margin: var(--reader-paragraph-margin) 0; }
             a { color: var(--link); text-decoration-thickness: 0.08em; text-underline-offset: 0.15em; }
             a:focus { outline: 3px solid var(--link); outline-offset: 3px; }
             .ltx_authors {
@@ -203,7 +245,10 @@ internal fun renderReadablePaperHtml(
             @media (min-width: 720px) {
               body { font-size: 19px; }
               h1 { font-size: 2rem; }
-              .paperreader-document { width: min(100%, 58rem); padding-inline: 36px; }
+              .paperreader-document {
+                width: min(100%, 58rem);
+                padding-inline: calc(var(--reader-side-margin) + 16px);
+              }
             }
             @media (prefers-reduced-motion: reduce) {
               * { scroll-behavior: auto !important; }

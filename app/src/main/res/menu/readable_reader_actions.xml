@@ -12,14 +12,8 @@
         android:contentDescription="@string/readable_reader_contents"
         app:showAsAction="always" />
     <item
-        android:id="@+id/action_text_smaller"
-        android:title="@string/readable_reader_text_smaller_short"
-        android:contentDescription="@string/readable_reader_text_smaller"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_text_larger"
-        android:title="@string/readable_reader_text_larger_short"
-        android:contentDescription="@string/readable_reader_text_larger"
+        android:id="@+id/action_reading_layout"
+        android:title="@string/readable_reader_layout"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_open_original_pdf"

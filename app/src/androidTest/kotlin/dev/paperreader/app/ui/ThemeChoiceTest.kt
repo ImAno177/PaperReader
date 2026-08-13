@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import dev.paperreader.app.extensions.ThemeExtensionIssue
 import dev.paperreader.app.ui.screen.AppearanceScreen
 import dev.paperreader.app.ui.screen.CollectionsScreen
 import dev.paperreader.app.ui.screen.UpdatesNotificationsScreen
@@ -60,6 +61,32 @@ class ThemeChoiceTest {
         composeRule.runOnIdle {
             assertEquals(PaperThemePreset.RETRO, selectedPreset)
         }
+    }
+
+    @Test
+    fun blockedCommunityThemeIsVisibleInsteadOfSilentlyDisappearing() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                AppearanceScreen(
+                    selectedThemeKey = PaperThemePreset.NEOBRUTALISM.storageKey,
+                    communityThemes = emptyList(),
+                    communityThemesLoading = false,
+                    communityThemeIssues = listOf(
+                        ThemeExtensionIssue(
+                            packageName = "dev.example.unsafe.theme",
+                            message = "Theme package signer is not trusted",
+                        ),
+                    ),
+                    onThemeChange = {},
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Theme security"))
+        composeRule.onNodeWithText("dev.example.unsafe.theme").assertExists()
+        composeRule.onNodeWithText("Blocked").assertExists()
+        composeRule.onNodeWithText("Theme package signer is not trusted").assertExists()
     }
 
     @Test

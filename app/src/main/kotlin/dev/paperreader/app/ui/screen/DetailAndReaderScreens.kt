@@ -99,6 +99,7 @@ fun DetailScreen(
     state: LoadState<PaperUi?>,
     collections: LoadState<List<PaperCollectionUi>> = LoadState.Loading,
     themePreset: PaperThemePreset = PaperThemePreset.NEOBRUTALISM,
+    themeKey: String = themePreset.storageKey,
     downloadTasks: List<PaperTask> = emptyList(),
     requestingManifestations: Set<String> = emptySet(),
     failedManifestations: Set<String> = emptySet(),
@@ -181,6 +182,7 @@ fun DetailScreen(
                         ?.filter { it.id in state.value.collectionIds }
                         .orEmpty(),
                     themePreset = themePreset,
+                    themeKey = themeKey,
                     padding = padding,
                     downloadTasks = downloadTasks,
                     requestingManifestations = requestingManifestations,
@@ -444,6 +446,7 @@ private fun PaperDetailContent(
     paper: PaperUi,
     assignedCollections: List<PaperCollectionUi>,
     themePreset: PaperThemePreset,
+    themeKey: String,
     padding: PaddingValues,
     downloadTasks: List<PaperTask>,
     requestingManifestations: Set<String>,
@@ -526,6 +529,7 @@ private fun PaperDetailContent(
                     workId = paper.id,
                     paperTitle = paper.title,
                     themePreset = themePreset,
+                    themeKey = themeKey,
                     manifestation = manifestation,
                     task = downloadTasks.firstOrNull { it.targetKey == manifestation.id },
                     requesting = manifestation.id in requestingManifestations,
@@ -630,6 +634,7 @@ private fun ManifestationCard(
     workId: String,
     paperTitle: String,
     themePreset: PaperThemePreset,
+    themeKey: String,
     manifestation: ManifestationUi,
     task: PaperTask?,
     requesting: Boolean,
@@ -670,6 +675,7 @@ private fun ManifestationCard(
                         workId = workId,
                         paperTitle = paperTitle,
                         themePreset = themePreset,
+                        themeKey = themeKey,
                     )
                 }
             } catch (cancelled: CancellationException) {
@@ -778,6 +784,7 @@ private fun ManifestationCard(
                                     manifestationId = ManifestationId(manifestation.id),
                                     title = paperTitle,
                                     themePreset = themePreset,
+                                    themeKey = themeKey,
                                 ),
                             )
                         },
@@ -933,6 +940,7 @@ private fun openDownloadedPdf(
     workId: String,
     paperTitle: String,
     themePreset: PaperThemePreset,
+    themeKey: String,
 ) {
     context.startActivity(
         PdfReaderActivity.createIntent(
@@ -941,6 +949,7 @@ private fun openDownloadedPdf(
             workId = WorkId(workId),
             title = paperTitle,
             themePreset = themePreset,
+            themeKey = themeKey,
         ),
     )
 }

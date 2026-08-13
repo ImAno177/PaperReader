@@ -1,15 +1,32 @@
 package dev.paperreader.app.ui.theme
 
+import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Canvas
+import android.graphics.ColorFilter
+import android.graphics.Paint
+import android.graphics.PixelFormat
+import android.graphics.drawable.Drawable
 import androidx.annotation.DrawableRes
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.core.graphics.PathParser as AndroidPathParser
 import dev.paperreader.app.R
+import dev.paperreader.extensions.api.PaperExtensionContract
 
 enum class PaperIconKey {
     ADD,
@@ -51,16 +68,35 @@ enum class PaperIconKey {
 enum class PaperIconFamily {
     TABLER,
     MATERIAL_SYMBOLS,
+    COMMUNITY,
 }
 
 @Immutable
 data class PaperIconSet(
     val family: PaperIconFamily,
+    private val communityPaths: Map<PaperIconKey, String> = emptyMap(),
 ) {
+    init {
+        require(family == PaperIconFamily.COMMUNITY || communityPaths.isEmpty())
+        require(family != PaperIconFamily.COMMUNITY || communityPaths.keys == PaperIconKey.entries.toSet())
+    }
+
     @DrawableRes
     fun resource(key: PaperIconKey): Int = when (family) {
         PaperIconFamily.TABLER -> TABLER_RESOURCES[key.ordinal]
         PaperIconFamily.MATERIAL_SYMBOLS -> MATERIAL_SYMBOL_RESOURCES[key.ordinal]
+        PaperIconFamily.COMMUNITY -> error("Community icons are not Android resources")
+    }
+
+    fun pathData(key: PaperIconKey): String? = communityPaths[key]
+
+    fun drawable(context: Context, key: PaperIconKey): Drawable =
+        pathData(key)?.let { PaperPathDrawable(it, (24 * context.resources.displayMetrics.density).toInt()) }
+            ?: requireNotNull(AppCompatResources.getDrawable(context, resource(key)))
+
+    companion object {
+        fun community(paths: Map<PaperIconKey, String>): PaperIconSet =
+            PaperIconSet(PaperIconFamily.COMMUNITY, paths.toMap())
     }
 }
 
@@ -88,12 +124,86 @@ fun PaperIcon(
     modifier: Modifier = Modifier,
     tint: Color = Color.Unspecified,
 ) {
+    val iconSet = PaperTheme.icons
+    val pathData = iconSet.pathData(key)
     Icon(
-        painter = painterResource(PaperTheme.icons.resource(key)),
+        painter = pathData?.let { communityIconPainter(it) } ?: painterResource(iconSet.resource(key)),
         contentDescription = contentDescription,
         modifier = modifier,
         tint = if (tint == Color.Unspecified) LocalContentColor.current else tint,
     )
+}
+
+@Composable
+private fun communityIconPainter(pathData: String): Painter {
+    val image = remember(pathData) {
+        ImageVector.Builder(
+            name = "CommunityPaperIcon",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = PaperExtensionContract.ICON_VIEWPORT.toFloat(),
+            viewportHeight = PaperExtensionContract.ICON_VIEWPORT.toFloat(),
+        ).addPath(
+            pathData = PathParser().parsePathString(pathData).toNodes(),
+            fill = SolidColor(Color.Black),
+        ).build()
+    }
+    return rememberVectorPainter(image)
+}
+
+private class PaperPathDrawable(pathData: String, private val intrinsicSize: Int) : Drawable() {
+    private val path = requireNotNull(AndroidPathParser.createPathFromPathData(pathData))
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = android.graphics.Color.BLACK
+    }
+    private var tint: ColorStateList? = null
+
+    override fun draw(canvas: Canvas) {
+        val bounds = bounds
+        val checkpoint = canvas.save()
+        canvas.translate(bounds.left.toFloat(), bounds.top.toFloat())
+        canvas.scale(
+            bounds.width() / PaperExtensionContract.ICON_VIEWPORT.toFloat(),
+            bounds.height() / PaperExtensionContract.ICON_VIEWPORT.toFloat(),
+        )
+        canvas.drawPath(path, paint)
+        canvas.restoreToCount(checkpoint)
+    }
+
+    override fun setAlpha(alpha: Int) {
+        paint.alpha = alpha
+        invalidateSelf()
+    }
+
+    override fun setColorFilter(colorFilter: ColorFilter?) {
+        paint.colorFilter = colorFilter
+        invalidateSelf()
+    }
+
+    @Deprecated("Deprecated in Android")
+    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+
+    override fun getIntrinsicWidth(): Int = intrinsicSize
+
+    override fun getIntrinsicHeight(): Int = intrinsicSize
+
+    override fun setTintList(tint: ColorStateList?) {
+        this.tint = tint
+        updateTint(state)
+    }
+
+    override fun isStateful(): Boolean = tint?.isStateful == true
+
+    override fun onStateChange(state: IntArray): Boolean = updateTint(state)
+
+    private fun updateTint(state: IntArray): Boolean {
+        val nextColor = tint?.getColorForState(state, tint?.defaultColor ?: paint.color) ?: return false
+        if (paint.color == nextColor) return false
+        paint.color = nextColor
+        invalidateSelf()
+        return true
+    }
 }
 
 private val TABLER_RESOURCES = intArrayOf(

@@ -19,11 +19,12 @@ large UI, schema, provider, reader, or dependency changes.
 
 1. Create a small branch and add the smallest deterministic test that proves the behavior.
 2. Update exported Room schemas and migrations for persistence changes.
-3. Update `docs/SPEC.md` or `docs/ARCHITECTURE.md` when a documented decision changes.
+3. Update `docs/SPEC.md`, `docs/ARCHITECTURE.md`, or `docs/EXTENSIONS.md` when a documented decision changes.
 4. Run the required gate:
 
    ```powershell
-   .\gradlew.bat :logic:testDebugUnitTest :logic:lintDebug `
+   .\gradlew.bat :extension-api:testDebugUnitTest :extension-api:lintDebug `
+     :logic:testDebugUnitTest :logic:lintDebug `
      :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
    ```
 

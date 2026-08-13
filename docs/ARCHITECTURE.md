@@ -4,7 +4,10 @@ Status: enforced by Gradle direction and unit tests.
 
 ```text
 :app  ───────►  :logic
- UI only        domain + data + network + reader + plugins
+  │               │
+  └───────┬───────┘
+          ▼
+ :extension-api  ◄──── external source/theme APKs
 ```
 
 There is no reverse dependency. The logic module has no Compose, Activity, Fragment, ViewModel, View, or Widget imports. The app module must not import Room implementation packages or built-in HTTP providers directly.
@@ -13,8 +16,9 @@ There is no reverse dependency. The logic module has no Compose, Activity, Fragm
 
 | Module | Owns | Must not own |
 |---|---|---|
-| `:logic` | Paper domain models, DOI/arXiv identity, Room schema and repository, arXiv/Crossref clients, federated search, reader/extraction contracts, cache policy, task state, plugin compatibility/trust | Compose, screens, navigation, Activities, Fragments, ViewModels, visual resources |
-| `:app` | Compose UI, adaptive navigation, presentation mapping/filtering, Android lifecycle/entry points, accessibility, theme preferences and visual resources | SQL/DAO access, HTTP parsing, provider rate policy, dedupe, extraction, plugin signature policy |
+| `:extension-api` | Published AIDL and bounded source/theme data contracts shared with external APKs | Host storage, networking, UI rendering, trust policy, or provider implementations |
+| `:logic` | Paper domain models, DOI/arXiv identity, Room schema and repository, arXiv/Crossref clients, federated search, reader/extraction contracts, cache policy, task state, source-extension trust/runtime | Compose, screens, navigation, Activities, Fragments, ViewModels, visual resources |
+| `:app` | Compose UI, adaptive navigation, presentation mapping/filtering, Android lifecycle/entry points, accessibility, theme preferences, theme-extension trust/runtime, and visual resources | SQL/DAO access, HTTP parsing, provider rate policy, dedupe, or extraction |
 
 The UI implementation session should normally edit only `app/**` and the `:app` dependency list. A required logic behavior change belongs in `logic/**` and needs logic tests.
 
@@ -26,7 +30,9 @@ UI -> usecase -> domain repository port <- data/repository -> Room query + mappe
               -> task coordinator       <- data/repository -> Room task rows
 ```
 
-`LogicBoundaryTest` enforces these internal directions. A package is promoted to a Gradle module only when it has a second consumer, must be published independently (`provider-sdk`), or needs native/build isolation (`reader`).
+`LogicBoundaryTest` enforces these internal directions. `:extension-api` is separate because two
+external sample repositories compile against it and it must be published independently. Another
+package becomes a Gradle module only with a second real consumer or proven build isolation need.
 
 ## Supported UI entry point
 
@@ -122,7 +128,10 @@ Room entity classes are public only because the current Room/KSP processor needs
   sanitized artifact and native section index are atomically cached with SHA-256 integrity metadata.
   The disposable cache is capped at 160 MiB and evicts complete least-recently-used document pairs;
   cache publication failure does not prevent the current verified document from opening.
-- Community plugin foundation: API/capability descriptor and package/signer/API compatibility trust policy.
+- Community extension SDK: packaged AIDL, bounded source/theme contracts, external APK/UID runtime,
+  package/version/signer/API/kind/descriptor verification, cancellation/timeouts, complete semantic
+  theme icons, and real external OpenAlex/Blueprint samples. Release trust remains empty until a
+  signed public index and install/update flow are implemented.
 - Metadata backup: a bounded single-entry ZIP with a versioned ProtoBuf payload, strict relational
   and hostile-input validation, exact-identifier restore planning, and one-transaction merge. It
   preserves local files/tasks, reports conflicts, unavailable providers, skipped records, and
@@ -224,7 +233,9 @@ Room entity classes are public only because the current Room/KSP processor needs
   system-viewer fallback is retained.
 - Global queue pause/resume, user reorder, and bulk actions remain deferred; per-task actions are
   implemented; full queue controls remain deferred.
-- Plugin discovery/binding/AIDL and signed store index. The trust/version model exists, but claiming runnable third-party plugins before an isolated-process demo would be misleading.
+- Signed extension-store index, end-user discovery/install/update, certificate rotation, and review
+  policy remain deferred. Explicitly trusted external source and theme APKs already bind and run
+  under separate UIDs through the versioned SDK.
 - Tags, smart collections, collection reordering, highlight/note annotations, manifestation
   revision/citation updates, configurable saved-search cadence, saved-search backup/restore,
   production PDF-to-reflow extraction, isolated TeX conversion, OCR, and structured full text for
@@ -236,7 +247,9 @@ Room entity classes are public only because the current Room/KSP processor needs
 Run with Android SDK and JDK configured:
 
 ```powershell
-.\gradlew.bat :logic:testDebugUnitTest :logic:lintDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+.\gradlew.bat :extension-api:testDebugUnitTest :extension-api:lintDebug `
+  :logic:testDebugUnitTest :logic:lintDebug `
+  :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
 `LogicBoundaryTest` fails if UI framework imports enter `:logic`, if `:logic` depends on `:app`, or if future app code bypasses the public boundary.

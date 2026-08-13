@@ -24,7 +24,7 @@ object SearchResultRanker {
                 cluster.records.maxOf { record -> record.textualScore(normalizedQuery, queryTokens) }
             }.thenByDescending { cluster ->
                 cluster.records.maxOfOrNull { record ->
-                    record.citationMetrics?.takeIf { it.sourceId == "crossref" }?.count ?: 0
+                    record.citationMetrics?.takeIf { it.sourceId == "semanticscholar" }?.count ?: 0
                 } ?: 0
             }.thenByDescending { cluster ->
                 cluster.records.maxOfOrNull { it.publishedDate ?: java.time.LocalDate.MIN }

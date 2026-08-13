@@ -1,11 +1,6 @@
 package dev.paperreader.app.ui.theme
 
 import android.content.Context
-import android.content.res.ColorStateList
-import android.graphics.Canvas
-import android.graphics.ColorFilter
-import android.graphics.Paint
-import android.graphics.PixelFormat
 import android.graphics.drawable.Drawable
 import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
@@ -13,20 +8,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.PathParser
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
-import androidx.core.graphics.PathParser as AndroidPathParser
-import dev.paperreader.app.R
-import dev.paperreader.extensions.api.PaperExtensionContract
 
 enum class PaperIconKey {
     ADD,
@@ -83,15 +68,16 @@ data class PaperIconSet(
 
     @DrawableRes
     fun resource(key: PaperIconKey): Int = when (family) {
-        PaperIconFamily.TABLER -> TABLER_RESOURCES[key.ordinal]
-        PaperIconFamily.MATERIAL_SYMBOLS -> MATERIAL_SYMBOL_RESOURCES[key.ordinal]
+        PaperIconFamily.TABLER,
+        PaperIconFamily.MATERIAL_SYMBOLS,
+        -> builtinIconResource(family, key)
         PaperIconFamily.COMMUNITY -> error("Community icons are not Android resources")
     }
 
     fun pathData(key: PaperIconKey): String? = communityPaths[key]
 
     fun drawable(context: Context, key: PaperIconKey): Drawable =
-        pathData(key)?.let { PaperPathDrawable(it, (24 * context.resources.displayMetrics.density).toInt()) }
+        pathData(key)?.let { CommunityIconDrawable(it, (24 * context.resources.displayMetrics.density).toInt()) }
             ?: requireNotNull(AppCompatResources.getDrawable(context, resource(key)))
 
     companion object {
@@ -99,15 +85,6 @@ data class PaperIconSet(
             PaperIconSet(PaperIconFamily.COMMUNITY, paths.toMap())
     }
 }
-
-internal fun paperIconSet(preset: PaperThemePreset): PaperIconSet = PaperIconSet(
-    when (preset) {
-        PaperThemePreset.DOODLE,
-        PaperThemePreset.RETRO,
-        -> PaperIconFamily.TABLER
-        PaperThemePreset.NEOBRUTALISM -> PaperIconFamily.MATERIAL_SYMBOLS
-    },
-)
 
 internal val LocalPaperIcons = staticCompositionLocalOf<PaperIconSet> {
     error("PaperReaderTheme must be applied before reading PaperTheme.icons")
@@ -132,155 +109,4 @@ fun PaperIcon(
         modifier = modifier,
         tint = if (tint == Color.Unspecified) LocalContentColor.current else tint,
     )
-}
-
-@Composable
-private fun communityIconPainter(pathData: String): Painter {
-    val image = remember(pathData) {
-        ImageVector.Builder(
-            name = "CommunityPaperIcon",
-            defaultWidth = 24.dp,
-            defaultHeight = 24.dp,
-            viewportWidth = PaperExtensionContract.ICON_VIEWPORT.toFloat(),
-            viewportHeight = PaperExtensionContract.ICON_VIEWPORT.toFloat(),
-        ).addPath(
-            pathData = PathParser().parsePathString(pathData).toNodes(),
-            fill = SolidColor(Color.Black),
-        ).build()
-    }
-    return rememberVectorPainter(image)
-}
-
-private class PaperPathDrawable(pathData: String, private val intrinsicSize: Int) : Drawable() {
-    private val path = requireNotNull(AndroidPathParser.createPathFromPathData(pathData))
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = android.graphics.Color.BLACK
-    }
-    private var tint: ColorStateList? = null
-
-    override fun draw(canvas: Canvas) {
-        val bounds = bounds
-        val checkpoint = canvas.save()
-        canvas.translate(bounds.left.toFloat(), bounds.top.toFloat())
-        canvas.scale(
-            bounds.width() / PaperExtensionContract.ICON_VIEWPORT.toFloat(),
-            bounds.height() / PaperExtensionContract.ICON_VIEWPORT.toFloat(),
-        )
-        canvas.drawPath(path, paint)
-        canvas.restoreToCount(checkpoint)
-    }
-
-    override fun setAlpha(alpha: Int) {
-        paint.alpha = alpha
-        invalidateSelf()
-    }
-
-    override fun setColorFilter(colorFilter: ColorFilter?) {
-        paint.colorFilter = colorFilter
-        invalidateSelf()
-    }
-
-    @Deprecated("Deprecated in Android")
-    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
-
-    override fun getIntrinsicWidth(): Int = intrinsicSize
-
-    override fun getIntrinsicHeight(): Int = intrinsicSize
-
-    override fun setTintList(tint: ColorStateList?) {
-        this.tint = tint
-        updateTint(state)
-    }
-
-    override fun isStateful(): Boolean = tint?.isStateful == true
-
-    override fun onStateChange(state: IntArray): Boolean = updateTint(state)
-
-    private fun updateTint(state: IntArray): Boolean {
-        val nextColor = tint?.getColorForState(state, tint?.defaultColor ?: paint.color) ?: return false
-        if (paint.color == nextColor) return false
-        paint.color = nextColor
-        invalidateSelf()
-        return true
-    }
-}
-
-private val TABLER_RESOURCES = intArrayOf(
-    R.drawable.ic_tabler_add,
-    R.drawable.ic_tabler_back,
-    R.drawable.ic_tabler_bookmark_add,
-    R.drawable.ic_tabler_bookmark_remove,
-    R.drawable.ic_tabler_bookmarks,
-    R.drawable.ic_tabler_close,
-    R.drawable.ic_tabler_copy,
-    R.drawable.ic_tabler_delete,
-    R.drawable.ic_tabler_done,
-    R.drawable.ic_tabler_download,
-    R.drawable.ic_tabler_edit,
-    R.drawable.ic_tabler_error,
-    R.drawable.ic_tabler_folder,
-    R.drawable.ic_tabler_forward,
-    R.drawable.ic_tabler_grid,
-    R.drawable.ic_tabler_history,
-    R.drawable.ic_tabler_info,
-    R.drawable.ic_tabler_library,
-    R.drawable.ic_tabler_list,
-    R.drawable.ic_tabler_mark_read,
-    R.drawable.ic_tabler_more_horizontal,
-    R.drawable.ic_tabler_more_vertical,
-    R.drawable.ic_tabler_notifications_off,
-    R.drawable.ic_tabler_notifications_on,
-    R.drawable.ic_tabler_offline,
-    R.drawable.ic_tabler_open_external,
-    R.drawable.ic_tabler_palette,
-    R.drawable.ic_tabler_pdf,
-    R.drawable.ic_tabler_public,
-    R.drawable.ic_tabler_search,
-    R.drawable.ic_tabler_sort,
-    R.drawable.ic_tabler_sync,
-    R.drawable.ic_tabler_updates,
-    R.drawable.ic_tabler_upload,
-)
-
-private val MATERIAL_SYMBOL_RESOURCES = intArrayOf(
-    R.drawable.ic_material_symbol_add,
-    R.drawable.ic_material_symbol_back,
-    R.drawable.ic_material_symbol_bookmark_add,
-    R.drawable.ic_material_symbol_bookmark_remove,
-    R.drawable.ic_material_symbol_bookmarks,
-    R.drawable.ic_material_symbol_close,
-    R.drawable.ic_material_symbol_copy,
-    R.drawable.ic_material_symbol_delete,
-    R.drawable.ic_material_symbol_done,
-    R.drawable.ic_material_symbol_download,
-    R.drawable.ic_material_symbol_edit,
-    R.drawable.ic_material_symbol_error,
-    R.drawable.ic_material_symbol_folder,
-    R.drawable.ic_material_symbol_forward,
-    R.drawable.ic_material_symbol_grid,
-    R.drawable.ic_material_symbol_history,
-    R.drawable.ic_material_symbol_info,
-    R.drawable.ic_material_symbol_library,
-    R.drawable.ic_material_symbol_list,
-    R.drawable.ic_material_symbol_mark_read,
-    R.drawable.ic_material_symbol_more_horizontal,
-    R.drawable.ic_material_symbol_more_vertical,
-    R.drawable.ic_material_symbol_notifications_off,
-    R.drawable.ic_material_symbol_notifications_on,
-    R.drawable.ic_material_symbol_offline,
-    R.drawable.ic_material_symbol_open_external,
-    R.drawable.ic_material_symbol_palette,
-    R.drawable.ic_material_symbol_pdf,
-    R.drawable.ic_material_symbol_public,
-    R.drawable.ic_material_symbol_search,
-    R.drawable.ic_material_symbol_sort,
-    R.drawable.ic_material_symbol_sync,
-    R.drawable.ic_material_symbol_updates,
-    R.drawable.ic_material_symbol_upload,
-)
-
-internal fun requireCompletePaperIconSets() {
-    check(TABLER_RESOURCES.size == PaperIconKey.entries.size)
-    check(MATERIAL_SYMBOL_RESOURCES.size == PaperIconKey.entries.size)
 }

@@ -1,11 +1,14 @@
 package dev.paperreader.logic.usecase
 
 import dev.paperreader.logic.domain.identity.IdentityResolver
+import dev.paperreader.logic.domain.IdentifierType
+import dev.paperreader.logic.domain.identity.IdentifierNormalizer
 import dev.paperreader.logic.provider.PaperProvider
 import dev.paperreader.logic.provider.PaperSearchQuery
 import dev.paperreader.logic.provider.ProviderException
 import dev.paperreader.logic.provider.ProviderPage
 import dev.paperreader.logic.provider.ProviderManager
+import dev.paperreader.logic.provider.ProviderCapability
 import dev.paperreader.logic.provider.MutableProviderManager
 import dev.paperreader.logic.provider.RemotePaper
 import java.util.concurrent.atomic.AtomicInteger
@@ -29,7 +32,16 @@ class FederatedPaperSearch(private val providerManager: ProviderManager) {
     constructor(providers: Iterable<PaperProvider>) : this(MutableProviderManager(providers))
 
     fun search(query: PaperSearchQuery): Flow<FederatedSearchEvent> = channelFlow {
-        val providers = providerManager.getAll()
+        val exactIdentifierType = query.text.exactIdentifierTypeOrNull()
+        val providers = providerManager.getAll().filter { provider ->
+            if (query.sort !in provider.descriptor.supportedSorts) {
+                false
+            } else if (exactIdentifierType == null) {
+                ProviderCapability.DISCOVERY in provider.descriptor.capabilities
+            } else {
+                exactIdentifierType in provider.descriptor.identifierLookupTypes
+            }
+        }
         send(FederatedSearchEvent.Started(providers.map { it.descriptor.id }.toSet()))
         val succeeded = AtomicInteger()
         val failed = AtomicInteger()
@@ -59,6 +71,14 @@ class FederatedPaperSearch(private val providerManager: ProviderManager) {
 
         send(FederatedSearchEvent.Finished(succeeded.get(), failed.get()))
     }
+}
+
+private fun String.exactIdentifierTypeOrNull(): IdentifierType? {
+    if (runCatching { IdentifierNormalizer.doi(this) }.isSuccess) return IdentifierType.DOI
+    if (runCatching { IdentifierNormalizer.arxiv(this) }.isSuccess) return IdentifierType.ARXIV
+    if (Regex("(?i)^pmid:\\s*\\d+$").matches(trim())) return IdentifierType.PMID
+    if (Regex("(?i)^(?:pmcid:\\s*)?PMC\\d+$").matches(trim())) return IdentifierType.PMCID
+    return null
 }
 
 data class SearchResultCluster(val records: List<RemotePaper>) {

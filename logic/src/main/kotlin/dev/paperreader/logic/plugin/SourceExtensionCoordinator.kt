@@ -85,5 +85,9 @@ internal class SourceExtensionCoordinator(
         versionName = versionName,
         installedVersionCode = installedVersionCode,
         installUrl = installUrl,
+        serviceClassName = serviceClassName,
+        signerSha256 = signerSha256,
+        apkSha256 = apkSha256,
+        apkSizeBytes = apkSizeBytes,
     )
 }

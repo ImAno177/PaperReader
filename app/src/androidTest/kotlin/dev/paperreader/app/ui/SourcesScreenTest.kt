@@ -56,7 +56,7 @@ class SourcesScreenTest {
     }
 
     @Test
-    fun signedStoreShowsVerifiedReleaseAndDownloadAction() {
+    fun signedStoreShowsVerifiedReleaseAndInstallAction() {
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 SourcesScreen(
@@ -69,8 +69,8 @@ class SourcesScreenTest {
 
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
         composeRule.onNodeWithText("PaperReader community").assertIsDisplayed()
-        composeRule.onNodeWithText("OpenAlex").assertIsDisplayed()
-        composeRule.onNodeWithText("Open download page").assertIsDisplayed()
+        composeRule.onNodeWithText("Semantic Scholar").assertIsDisplayed()
+        composeRule.onNodeWithText("Install extension").assertIsDisplayed()
     }
 
     @Test
@@ -146,19 +146,21 @@ class SourcesScreenTest {
                     releases = listOf(
                         VerifiedExtensionRelease(
                             kind = ExtensionReleaseKind.SOURCE,
-                            packageName = "dev.paperreader.extensions.openalex",
-                            serviceClassName = "dev.paperreader.extensions.openalex.OpenAlexService",
-                            displayName = "OpenAlex",
+                            packageName = "dev.paperreader.extensions.semanticscholar",
+                            serviceClassName = "dev.paperreader.extensions.semanticscholar.SemanticScholarService",
+                            displayName = "Semantic Scholar",
                             versionCode = 3,
                             minimumVersionCode = 2,
                             versionName = "1.2.0",
                             signerSha256 = "cd".repeat(32),
                             minimumHostApi = 1,
                             maximumHostApi = 1,
-                            installUrl = "https://example.org/openalex.apk",
+                            installUrl = "https://example.org/semanticscholar.apk",
+                            apkSha256 = "01".repeat(32),
+                            apkSizeBytes = 1_048_576,
                             license = "Apache-2.0",
                             privacyUrl = null,
-                            providerId = "openalex",
+                            providerId = "semanticscholar",
                             minimumRequestIntervalMillis = 1_000,
                         ),
                     ),

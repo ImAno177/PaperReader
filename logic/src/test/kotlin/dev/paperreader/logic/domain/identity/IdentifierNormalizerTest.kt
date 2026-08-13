@@ -57,12 +57,12 @@ class IdentifierNormalizerTest {
 
     @Test
     fun `provider IDs only match within the same authority`() {
-        val openAlex = setOf(PaperIdentifier(IdentifierType.PROVIDER, "W123", "OpenAlex"))
-        val anotherOpenAlex = setOf(PaperIdentifier(IdentifierType.PROVIDER, "W123", "openalex"))
-        val semanticScholar = setOf(PaperIdentifier(IdentifierType.PROVIDER, "W123", "semantic-scholar"))
+        val semanticScholar = setOf(PaperIdentifier(IdentifierType.PROVIDER, "s2-123", "SemanticScholar"))
+        val anotherSemanticScholar = setOf(PaperIdentifier(IdentifierType.PROVIDER, "s2-123", "semanticscholar"))
+        val otherAuthority = setOf(PaperIdentifier(IdentifierType.PROVIDER, "s2-123", "semantic-scholar"))
 
-        assertTrue(IdentityResolver.hasExactMatch(openAlex, anotherOpenAlex))
-        assertFalse(IdentityResolver.hasExactMatch(openAlex, semanticScholar))
+        assertTrue(IdentityResolver.hasExactMatch(semanticScholar, anotherSemanticScholar))
+        assertFalse(IdentityResolver.hasExactMatch(semanticScholar, otherAuthority))
     }
 
     @Test

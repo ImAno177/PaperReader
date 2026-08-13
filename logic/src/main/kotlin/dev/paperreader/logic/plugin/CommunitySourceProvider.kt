@@ -8,13 +8,18 @@ import dev.paperreader.extensions.api.SourcePaperRecord
 import dev.paperreader.extensions.api.SourceSearchPage
 import dev.paperreader.extensions.api.SourceSearchRequest
 import dev.paperreader.extensions.api.SourceSearchSort
+import dev.paperreader.extensions.api.SourceIdentifierType
+import dev.paperreader.extensions.api.SourceRole
 import dev.paperreader.logic.domain.IdentifierType
 import dev.paperreader.logic.domain.ManifestationType
 import dev.paperreader.logic.domain.PaperAuthor
 import dev.paperreader.logic.domain.PaperIdentifier
 import dev.paperreader.logic.provider.PaperProvider
+import dev.paperreader.logic.provider.CitationMetrics
 import dev.paperreader.logic.provider.PaperSearchQuery
 import dev.paperreader.logic.provider.ProviderDescriptor
+import dev.paperreader.logic.provider.ProviderCapability
+import dev.paperreader.logic.provider.ProviderRole
 import dev.paperreader.logic.provider.ProviderException
 import dev.paperreader.logic.provider.ProviderPage
 import dev.paperreader.logic.provider.RemoteManifestation
@@ -40,6 +45,19 @@ internal class CommunitySourceProvider(
         id = transport.descriptor.providerId,
         displayName = transport.descriptor.displayName,
         minimumRequestIntervalMillis = transport.descriptor.minimumRequestIntervalMillis,
+        roles = transport.descriptor.roles.mapTo(linkedSetOf()) { it.toProviderRole() },
+        capabilities = buildSet {
+            if (dev.paperreader.extensions.api.SourceCapability.SEARCH in transport.descriptor.capabilities) {
+                add(ProviderCapability.DISCOVERY)
+            }
+            if (dev.paperreader.extensions.api.SourceCapability.DETAILS in transport.descriptor.capabilities) {
+                add(ProviderCapability.METADATA_RESOLUTION)
+            }
+        },
+        identifierLookupTypes = transport.descriptor.identifierLookupTypes.mapTo(linkedSetOf()) {
+            it.toIdentifierType()
+        },
+        supportedSorts = transport.descriptor.supportedSorts.mapTo(linkedSetOf()) { it.toSearchSort() },
     )
 
     override suspend fun search(query: PaperSearchQuery): ProviderPage = translateFailures {
@@ -73,6 +91,8 @@ internal class CommunitySourceProvider(
                 add(PaperIdentifier(IdentifierType.PROVIDER, record.providerRecordId, descriptor.id))
                 record.doi?.takeIf(String::isNotBlank)?.let { add(PaperIdentifier(IdentifierType.DOI, it)) }
                 record.arxivId?.takeIf(String::isNotBlank)?.let { add(PaperIdentifier(IdentifierType.ARXIV, it)) }
+                record.pmid?.takeIf(String::isNotBlank)?.let { add(PaperIdentifier(IdentifierType.PMID, it)) }
+                record.pmcid?.takeIf(String::isNotBlank)?.let { add(PaperIdentifier(IdentifierType.PMCID, it)) }
             }
             identifiers.forEach { identifier ->
                 dev.paperreader.logic.domain.identity.IdentifierNormalizer.canonical(identifier)
@@ -101,6 +121,9 @@ internal class CommunitySourceProvider(
                         license = manifestation.license,
                         publishedDate = manifestation.publishedDate?.let(LocalDate::parse),
                     )
+                },
+                citationMetrics = record.citationCount?.let { count ->
+                    CitationMetrics(count = count, sourceId = descriptor.id, observedAt = Instant.now())
                 },
             )
         } catch (error: IllegalArgumentException) {
@@ -140,4 +163,23 @@ private fun SearchSort.toExtensionSort(): SourceSearchSort = when (this) {
     SearchSort.RELEVANCE -> SourceSearchSort.RELEVANCE
     SearchSort.NEWEST -> SourceSearchSort.NEWEST
     SearchSort.OLDEST -> SourceSearchSort.OLDEST
+}
+
+private fun SourceSearchSort.toSearchSort(): SearchSort = when (this) {
+    SourceSearchSort.RELEVANCE -> SearchSort.RELEVANCE
+    SourceSearchSort.NEWEST -> SearchSort.NEWEST
+    SourceSearchSort.OLDEST -> SearchSort.OLDEST
+}
+
+private fun SourceRole.toProviderRole(): ProviderRole = when (this) {
+    SourceRole.SEARCH_ENGINE -> ProviderRole.SEARCH_ENGINE
+    SourceRole.CONTENT_SOURCE -> ProviderRole.CONTENT_SOURCE
+    SourceRole.METADATA_ENGINE -> ProviderRole.METADATA_ENGINE
+}
+
+private fun SourceIdentifierType.toIdentifierType(): IdentifierType = when (this) {
+    SourceIdentifierType.DOI -> IdentifierType.DOI
+    SourceIdentifierType.ARXIV -> IdentifierType.ARXIV
+    SourceIdentifierType.PMID -> IdentifierType.PMID
+    SourceIdentifierType.PMCID -> IdentifierType.PMCID
 }

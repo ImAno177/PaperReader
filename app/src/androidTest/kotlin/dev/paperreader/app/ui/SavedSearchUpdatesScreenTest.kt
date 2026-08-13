@@ -74,7 +74,7 @@ class SavedSearchUpdatesScreenTest {
                     state = SearchUiState(
                         submittedQuery = "graph learning",
                         providerCount = 2,
-                        providerIds = setOf("arxiv", "crossref"),
+                        providerIds = setOf("arxiv", "semanticscholar"),
                     ),
                     onSearch = {},
                     onClear = {},
@@ -98,7 +98,7 @@ class SavedSearchUpdatesScreenTest {
                     state = SearchUiState(
                         submittedQuery = "graph learning",
                         providerCount = 2,
-                        providerIds = setOf("arxiv", "crossref"),
+                        providerIds = setOf("arxiv", "semanticscholar"),
                     ),
                     savedSearchActions = SavedSearchActionUiState(
                         createdSearchIds = mapOf(
@@ -124,7 +124,7 @@ class SavedSearchUpdatesScreenTest {
         val result = SearchResultCluster(
             listOf(
                 RemotePaper(
-                    providerId = "crossref",
+                    providerId = "semanticscholar",
                     providerRecordId = "10.1000/preview",
                     title = "A remote paper worth previewing",
                     abstractText = "This complete abstract remains readable before the paper is saved locally.",
@@ -136,10 +136,10 @@ class SavedSearchUpdatesScreenTest {
                             license = "CC BY 4.0",
                         ),
                     ),
-                    citationMetrics = CitationMetrics(42, "crossref", NOW),
+                    citationMetrics = CitationMetrics(42, "semanticscholar", NOW),
                 ),
             ),
-        ).toSearchPaperUi(mapOf("crossref" to "Crossref"))
+        ).toSearchPaperUi(mapOf("semanticscholar" to "Semantic Scholar"))
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 DiscoverScreen(

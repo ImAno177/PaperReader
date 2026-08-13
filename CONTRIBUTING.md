@@ -23,9 +23,9 @@ large UI, schema, provider, reader, or dependency changes.
 4. Run the required gate:
 
    ```powershell
-   .\gradlew.bat :extension-api:testDebugUnitTest :extension-api:lintDebug `
-     :logic:testDebugUnitTest :logic:lintDebug `
-     :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+     .\gradlew.bat :extension-api:testDebugUnitTest :extension-api:lintDebug `
+       :logic:testDebugUnitTest :logic:lintDebug `
+       :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
    ```
 
 5. Run connected tests for Android runtime/UI changes and report the device/API used.

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
+import dev.paperreader.app.extensions.SourceExtensionInstallState
 import dev.paperreader.app.ui.ExtensionStoreActionUiState
 import dev.paperreader.app.ui.ExtensionStoreOperation
 import dev.paperreader.app.ui.components.PaperPrimaryButton
@@ -50,6 +51,7 @@ import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.logic.provider.ProviderManagerState
 import dev.paperreader.logic.provider.ProviderOrigin
 import dev.paperreader.logic.plugin.ExtensionStoreRecord
+import dev.paperreader.logic.plugin.ExtensionReleaseKind
 import dev.paperreader.logic.plugin.ExtensionStoreRegistryState
 import dev.paperreader.logic.plugin.VerifiedExtensionRelease
 
@@ -64,6 +66,9 @@ fun SourcesScreen(
     onRefreshStore: (String) -> Unit = {},
     onRemoveStore: (String) -> Unit = {},
     onOpenInstallUrl: (String) -> Unit = {},
+    installStates: Map<String, SourceExtensionInstallState> = emptyMap(),
+    onInstallSource: (VerifiedExtensionRelease) -> Unit = {},
+    onDismissInstallState: (String) -> Unit = {},
     onBack: () -> Unit,
 ) {
     var addStoreOpen by rememberSaveable { mutableStateOf(false) }
@@ -71,6 +76,9 @@ fun SourcesScreen(
     var publicKey by rememberSaveable { mutableStateOf("") }
     var pendingRemovalStoreId by rememberSaveable { mutableStateOf<String?>(null) }
     val storeBusy = extensionStoreAction is ExtensionStoreActionUiState.Working
+    val releasesByPackage = extensionStores.stores
+        .flatMap { it.index.releases }
+        .associateBy(VerifiedExtensionRelease::packageName)
     LaunchedEffect(extensionStoreAction) {
         if (extensionStoreAction is ExtensionStoreActionUiState.PreviewReady) addStoreOpen = false
     }
@@ -118,6 +126,9 @@ fun SourcesScreen(
                 onRefresh = { onRefreshStore(store.index.storeId) },
                 onRemove = { pendingRemovalStoreId = store.index.storeId },
                 onOpenInstallUrl = onOpenInstallUrl,
+                installStates = installStates,
+                onInstallSource = onInstallSource,
+                onDismissInstallState = onDismissInstallState,
             )
         }
         if (providers.installed.isEmpty() && providers.available.isEmpty() && providers.untrusted.isEmpty()) {
@@ -230,21 +241,15 @@ fun SourcesScreen(
                         ),
                         color = PaperTheme.tokens.inkMuted,
                     )
-                    provider.installUrl?.let { installUrl ->
+                    releasesByPackage[provider.packageName]?.let { release ->
                         Spacer(Modifier.height(8.dp))
-                        PaperSecondaryButton(
-                            onClick = { onOpenInstallUrl(installUrl) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
-                            Spacer(Modifier.size(8.dp))
-                            Text(
-                                stringResource(
-                                    if (installedVersion == null) R.string.open_install_page
-                                    else R.string.open_update_page,
-                                ),
-                            )
-                        }
+                        SourceInstallAction(
+                            release = release,
+                            state = installStates[provider.packageName],
+                            update = installedVersion != null,
+                            onInstall = onInstallSource,
+                            onDismissState = onDismissInstallState,
+                        )
                     }
                 }
             }
@@ -384,6 +389,9 @@ private fun ExtensionStoreCard(
     onRefresh: () -> Unit,
     onRemove: () -> Unit,
     onOpenInstallUrl: (String) -> Unit,
+    installStates: Map<String, SourceExtensionInstallState>,
+    onInstallSource: (VerifiedExtensionRelease) -> Unit,
+    onDismissInstallState: (String) -> Unit,
 ) {
     PaperSurface(contentPadding = PaddingValues(12.dp)) {
         Row(
@@ -413,7 +421,13 @@ private fun ExtensionStoreCard(
         if (store.index.releases.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             store.index.releases.forEach { release ->
-                ExtensionReleaseRow(release, onOpenInstallUrl)
+                ExtensionReleaseRow(
+                    release = release,
+                    installState = installStates[release.packageName],
+                    onInstallSource = onInstallSource,
+                    onDismissInstallState = onDismissInstallState,
+                    onOpenInstallUrl = onOpenInstallUrl,
+                )
             }
         }
     }
@@ -422,6 +436,9 @@ private fun ExtensionStoreCard(
 @Composable
 private fun ExtensionReleaseRow(
     release: VerifiedExtensionRelease,
+    installState: SourceExtensionInstallState?,
+    onInstallSource: (VerifiedExtensionRelease) -> Unit,
+    onDismissInstallState: (String) -> Unit,
     onOpenInstallUrl: (String) -> Unit,
 ) {
     Surface(
@@ -445,12 +462,78 @@ private fun ExtensionReleaseRow(
             )
             Text(release.packageName, color = PaperTheme.tokens.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (release.compatible) {
-                TextButton(onClick = { onOpenInstallUrl(release.installUrl) }) {
-                    PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
-                    Spacer(Modifier.size(8.dp))
-                    Text(stringResource(R.string.open_download_page))
+                if (release.kind == ExtensionReleaseKind.SOURCE) {
+                    SourceInstallAction(
+                        release = release,
+                        state = installState,
+                        update = false,
+                        onInstall = onInstallSource,
+                        onDismissState = onDismissInstallState,
+                    )
+                } else {
+                    TextButton(onClick = { onOpenInstallUrl(release.installUrl) }) {
+                        PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
+                        Spacer(Modifier.size(8.dp))
+                        Text(stringResource(R.string.open_download_page))
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SourceInstallAction(
+    release: VerifiedExtensionRelease,
+    state: SourceExtensionInstallState?,
+    update: Boolean,
+    onInstall: (VerifiedExtensionRelease) -> Unit,
+    onDismissState: (String) -> Unit,
+) {
+    val busy = state is SourceExtensionInstallState.Pending ||
+        state is SourceExtensionInstallState.Downloading ||
+        state is SourceExtensionInstallState.Installing ||
+        state is SourceExtensionInstallState.AwaitingConfirmation
+    val terminal = state is SourceExtensionInstallState.Installed ||
+        state is SourceExtensionInstallState.Cancelled ||
+        state is SourceExtensionInstallState.Failed
+    PaperSecondaryButton(
+        onClick = {
+            if (terminal) onDismissState(release.packageName) else onInstall(release)
+        },
+        enabled = !busy,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        if (busy) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+        } else {
+            PaperIcon(
+                if (terminal) PaperIconKey.CLOSE else PaperIconKey.DOWNLOAD,
+                contentDescription = null,
+            )
+        }
+        Spacer(Modifier.size(8.dp))
+        Text(
+            when (state) {
+                SourceExtensionInstallState.Pending -> stringResource(R.string.extension_install_pending)
+                is SourceExtensionInstallState.Downloading -> {
+                    val percentage = ((state.bytesRead * 100L) / state.totalBytes.coerceAtLeast(1L)).coerceIn(0L, 100L)
+                    stringResource(R.string.extension_download_progress, percentage)
+                }
+                SourceExtensionInstallState.Installing -> stringResource(R.string.extension_installing)
+                SourceExtensionInstallState.AwaitingConfirmation -> stringResource(R.string.extension_awaiting_confirmation)
+                SourceExtensionInstallState.Installed -> stringResource(R.string.extension_installed)
+                SourceExtensionInstallState.Cancelled -> stringResource(R.string.extension_install_cancelled)
+                is SourceExtensionInstallState.Failed -> stringResource(R.string.dismiss)
+                null -> stringResource(if (update) R.string.update_extension else R.string.install_extension)
+            },
+        )
+    }
+    if (state is SourceExtensionInstallState.Failed) {
+        Text(
+            stringResource(R.string.extension_install_failed, state.message),
+            color = PaperTheme.tokens.danger,
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }

@@ -66,6 +66,7 @@ class ExtensionStoreRegistry(
     private val verifier = ExtensionStoreIndexVerifier(clock)
     private val mutex = Mutex()
     private val pendingPreviews = linkedMapOf<String, PendingPreview>()
+    private val pinnedStoreIds = mutableSetOf<String>()
     private var cachedStores: List<CachedStore>
     private val mutableState: MutableStateFlow<ExtensionStoreRegistryState>
     val state: StateFlow<ExtensionStoreRegistryState>
@@ -101,6 +102,63 @@ class ExtensionStoreRegistry(
             while (pendingPreviews.size > MAX_PENDING_PREVIEWS) pendingPreviews.remove(pendingPreviews.keys.first())
         }
         return ExtensionStorePreview(token, normalizedUrl, index)
+    }
+
+    /** Adds the app's immutable default store or refreshes its last-known-good signed index. */
+    suspend fun ensurePinned(
+        indexUrl: String,
+        publicKeyBase64: String,
+        expectedStoreId: String,
+    ): ExtensionStoreRecord {
+        val normalizedUrl = requireIndexUrl(indexUrl)
+        val normalizedKey = normalizePublicKey(publicKeyBase64)
+        val existing = mutex.withLock {
+            pinnedStoreIds += expectedStoreId
+            cachedStores.firstOrNull { it.index.storeId == expectedStoreId }?.also { cached ->
+                require(cached.indexUrl == normalizedUrl) { "Pinned extension store URL changed" }
+                require(cached.publicKeyBase64 == normalizedKey) { "Pinned extension store key changed" }
+            }
+        }
+        if (existing != null) return refresh(expectedStoreId)
+
+        return try {
+            val envelope = fetchEnvelope(normalizedUrl)
+            val index = withContext(Dispatchers.Default) {
+                verifier.verify(envelope, normalizedKey, expectedStoreId = expectedStoreId)
+            }
+            withContext(Dispatchers.IO) {
+                mutex.withLock {
+                    cachedStores.firstOrNull { it.index.storeId == expectedStoreId }
+                        ?.let { return@withLock it.toRecord() }
+                    val existingPackages = cachedStores.flatMapTo(mutableSetOf()) { store ->
+                        store.index.releases.map(VerifiedExtensionRelease::packageName)
+                    }
+                    require(index.releases.none { it.packageName in existingPackages }) {
+                        "Extension package is already owned by another store"
+                    }
+                    val cached = CachedStore(normalizedUrl, normalizedKey, envelope, index)
+                    val updated = cachedStores + cached
+                    persist(updated)
+                    cachedStores = updated
+                    publish()
+                    cached.toRecord()
+                }
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            mutex.withLock {
+                mutableState.value = mutableState.value.copy(
+                    issues = mutableState.value.issues.filterNot { it.storeId == expectedStoreId } +
+                        ExtensionStoreIssue(
+                            expectedStoreId,
+                            error.message?.take(180)?.takeIf(String::isNotBlank)
+                                ?: "Pinned extension store refresh failed",
+                        ),
+                )
+            }
+            throw error
+        }
     }
 
     suspend fun addPreview(token: String): ExtensionStoreRecord = withContext(Dispatchers.IO) {
@@ -208,6 +266,7 @@ class ExtensionStoreRegistry(
 
     suspend fun remove(storeId: String) = withContext(Dispatchers.IO) {
         mutex.withLock {
+            require(storeId !in pinnedStoreIds) { "Pinned extension store cannot be removed" }
             require(storeId !in mutableState.value.refreshingStoreIds) { "Extension store is refreshing" }
             val updated = cachedStores.filterNot { it.index.storeId == storeId }
             require(updated.size != cachedStores.size) { "Unknown extension store" }

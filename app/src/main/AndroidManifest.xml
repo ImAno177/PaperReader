@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <queries>
         <intent>
@@ -66,5 +67,18 @@
             android:name=".reader.ReadablePaperActivity"
             android:exported="false"
             android:theme="@style/Theme.PaperReader.PdfReader" />
+        <receiver
+            android:name=".extensions.SourceExtensionInstallReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".extensions.SourceExtensionPackageReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PACKAGE_ADDED" />
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.PACKAGE_REMOVED" />
+                <data android:scheme="package" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

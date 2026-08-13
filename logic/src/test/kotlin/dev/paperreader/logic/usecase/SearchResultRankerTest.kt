@@ -13,7 +13,7 @@ class SearchResultRankerTest {
     @Test
     fun `ranking is stable across provider completion order`() {
         val strong = paper("arxiv", "2", "Attention is all you need", abstractText = "Transformer models")
-        val weak = paper("crossref", "1", "A survey", abstractText = "Attention in neural networks")
+        val weak = paper("semanticscholar", "1", "A survey", abstractText = "Attention in neural networks")
 
         val forward = SearchResultRanker.rank("attention transformer", SearchResultClusterer.cluster(listOf(weak, strong)))
         val reverse = SearchResultRanker.rank("attention transformer", SearchResultClusterer.cluster(listOf(strong, weak)))
@@ -26,7 +26,7 @@ class SearchResultRankerTest {
     fun `citation count only breaks equal textual relevance`() {
         val strong = paper("arxiv", "strong", "Graph attention networks")
         val citedWeak = paper(
-            "crossref",
+            "semanticscholar",
             "weak",
             "A broad machine learning survey",
             abstractText = "Includes a short discussion of graph methods.",
@@ -46,7 +46,7 @@ class SearchResultRankerTest {
             "Attention is all you need",
             identifiers = setOf(PaperIdentifier(IdentifierType.ARXIV, "1706.03762")),
         )
-        val popular = paper("crossref", "popular", "1706 03762 analysis", citations = 1_000_000)
+        val popular = paper("semanticscholar", "popular", "1706 03762 analysis", citations = 1_000_000)
 
         val ranked = SearchResultRanker.rank("https://arxiv.org/abs/1706.03762v7", clusters(popular, exact))
 
@@ -62,14 +62,14 @@ class SearchResultRankerTest {
             identifiers = setOf(PaperIdentifier(IdentifierType.PMID, "12345")),
         )
         val provider = paper(
-            "openalex",
-            "W123",
+            "semanticscholar",
+            "s2-123",
             "Another unrelated title",
-            identifiers = setOf(PaperIdentifier(IdentifierType.PROVIDER, "W123", "openalex")),
+            identifiers = setOf(PaperIdentifier(IdentifierType.PROVIDER, "s2-123", "semanticscholar")),
         )
 
         assertEquals("weak-title", SearchResultRanker.rank("PMID:12345", clusters(provider, pmid)).first().records.single().providerRecordId)
-        assertEquals("W123", SearchResultRanker.rank("openalex:W123", clusters(pmid, provider)).first().records.single().providerRecordId)
+        assertEquals("s2-123", SearchResultRanker.rank("semanticscholar:s2-123", clusters(pmid, provider)).first().records.single().providerRecordId)
     }
 
     @Test

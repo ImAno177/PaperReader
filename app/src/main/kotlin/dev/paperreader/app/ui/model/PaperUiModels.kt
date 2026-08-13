@@ -162,7 +162,9 @@ fun SearchResultCluster.toSearchPaperUi(providerNames: Map<String, String> = emp
     val identifiers = orderedRecords.flatMap { it.identifiers }.distinct().sortedWith(identifierComparator)
     val citationMetrics = orderedRecords.mapNotNull(RemotePaper::citationMetrics)
         .sortedWith(
-            compareBy<dev.paperreader.logic.provider.CitationMetrics> { if (it.sourceId == "crossref") 0 else 1 }
+            compareBy<dev.paperreader.logic.provider.CitationMetrics> {
+                if (it.sourceId == "semanticscholar") 0 else 1
+            }
                 .thenByDescending { it.observedAt }
                 .thenBy { it.sourceId },
         )
@@ -233,7 +235,9 @@ fun PaperIdentifier.displayValue(): String = when (type) {
 
 fun String.displayProviderName(): String = when (lowercase()) {
     "arxiv" -> "arXiv"
+    "semanticscholar" -> "Semantic Scholar"
     "crossref" -> "Crossref"
+    "europepmc" -> "Europe PMC"
     "local-pdf" -> "Local PDF"
     else -> this
 }

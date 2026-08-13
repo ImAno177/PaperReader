@@ -34,6 +34,21 @@ class ExtensionContractTest {
     }
 
     @Test
+    fun `source record preserves biomedical identifiers and citation count`() {
+        val original = SourcePaperRecord(
+            providerRecordId = "record",
+            title = "Paper",
+            pmid = "12345678",
+            pmcid = "PMC123456",
+            citationCount = 42,
+        )
+
+        assertEquals("12345678", original.pmid)
+        assertEquals("PMC123456", original.pmcid)
+        assertEquals(42, original.citationCount)
+    }
+
+    @Test
     fun `community theme requires a complete semantic icon set`() {
         assertThrows(IllegalArgumentException::class.java) {
             theme(iconKeys = ThemeSemanticIcon.entries.dropLast(1).toSet())

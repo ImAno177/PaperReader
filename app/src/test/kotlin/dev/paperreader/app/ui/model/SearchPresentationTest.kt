@@ -12,7 +12,7 @@ class SearchPresentationTest {
     fun `incremental exact alias keeps the first result key`() {
         val doi = PaperIdentifier(IdentifierType.DOI, "10.1000/stable")
         val first = RemotePaper("arxiv", "2401.00001", "Stable result", identifiers = setOf(doi))
-        val alias = RemotePaper("crossref", "10.1000/stable", "Stable result", identifiers = setOf(doi))
+        val alias = RemotePaper("semanticscholar", "s2-1000", "Stable result", identifiers = setOf(doi))
 
         val initial = SearchResultCluster(listOf(first)).toSearchPaperUi()
         val enriched = SearchResultCluster(listOf(first, alias)).toSearchPaperUi()

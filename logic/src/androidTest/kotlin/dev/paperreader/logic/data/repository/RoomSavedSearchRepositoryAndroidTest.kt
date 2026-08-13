@@ -94,11 +94,11 @@ class RoomSavedSearchRepositoryAndroidTest {
 
     @Test
     fun deletionCascadesSourcesAndHits() = runBlocking {
-        val searchId = (repository.create("deletion", setOf("crossref")) as CreateSavedSearchResult.Created).searchId
+        val searchId = (repository.create("deletion", setOf("semanticscholar")) as CreateSavedSearchResult.Created).searchId
         repository.recordSuccess(
             searchId,
-            "crossref",
-            listOf(RemotePaper("crossref", "10.1000/delete", "Delete result")),
+            "semanticscholar",
+            listOf(RemotePaper("semanticscholar", "s2-delete", "Delete result")),
             CHECK_ONE,
         )
         val hitId: SavedSearchHitId = repository.feeds.first().single().hits.single().id
@@ -167,18 +167,18 @@ class RoomSavedSearchRepositoryAndroidTest {
 
     @Test
     fun providerInboxIsBoundedAndNeverFuzzyMergesEqualTitles() = runBlocking {
-        val searchId = (repository.create("bounded", setOf("crossref")) as CreateSavedSearchResult.Created)
+        val searchId = (repository.create("bounded", setOf("semanticscholar")) as CreateSavedSearchResult.Created)
             .searchId
         val records = (0 until 205).map { index ->
             RemotePaper(
-                providerId = "crossref",
+                providerId = "semanticscholar",
                 providerRecordId = "10.1000/bounded-$index",
                 title = "An identical title is not identity",
                 updatedAt = CHECK_ONE.plusSeconds(index.toLong()),
             )
         }
 
-        repository.recordSuccess(searchId, "crossref", records, CHECK_ONE)
+        repository.recordSuccess(searchId, "semanticscholar", records, CHECK_ONE)
 
         val hits = repository.feeds.first().single().hits
         assertEquals(200, hits.size)

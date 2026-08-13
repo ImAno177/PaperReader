@@ -46,7 +46,8 @@ class LibraryPresentationTest {
     @Test
     fun `provider ids use product display names without changing unknown ids`() {
         assertEquals("arXiv", "arxiv".displayProviderName())
-        assertEquals("Crossref", "crossref".displayProviderName())
+        assertEquals("Semantic Scholar", "semanticscholar".displayProviderName())
+        assertEquals("Europe PMC", "europepmc".displayProviderName())
         assertEquals("community.example", "community.example".displayProviderName())
     }
 

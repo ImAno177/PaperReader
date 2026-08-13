@@ -13,8 +13,8 @@ PaperReader is in active pre-1.0 development and supports Android 9 or newer.
 
 ## Highlights
 
-- Search real arXiv and Crossref metadata, share DOI/arXiv references into exact search, then save
-  papers to an on-device Room library.
+- Search real Semantic Scholar, arXiv, and Europe PMC records, enrich exact DOI metadata with
+  Crossref, then save papers to an on-device Room library.
 - Read exact-version arXiv HTML offline with selectable text, figures, tables, MathML, search, a table
   of contents, adjustable typography, reading progress, and exact-document highlights with notes.
 - Download verified PDFs and open them in the in-app original-document reader.

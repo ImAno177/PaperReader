@@ -34,10 +34,10 @@ class ExtensionStoreRegistryTest {
         registry.addPreview(preview.token)
 
         assertEquals(1, registry.state.value.stores.size)
-        assertEquals("openalex", registry.trustedSourceExtensions().single().providerId)
+        assertEquals("semanticscholar", registry.trustedSourceExtensions().single().providerId)
         val reopened = registry(directory)
         assertEquals(7, reopened.state.value.stores.single().index.sequence)
-        assertEquals("openalex", reopened.trustedSourceExtensions().single().providerId)
+        assertEquals("semanticscholar", reopened.trustedSourceExtensions().single().providerId)
     }
 
     @Test
@@ -126,18 +126,18 @@ class ExtensionStoreRegistryTest {
           "generatedAt":"2026-08-13T05:59:00Z",
           "extensions":[{
             "kind":"source",
-            "packageName":"dev.paperreader.extensions.openalex",
-            "serviceClassName":"dev.paperreader.extensions.openalex.OpenAlexService",
-            "displayName":"OpenAlex",
+            "packageName":"dev.paperreader.extensions.semanticscholar",
+            "serviceClassName":"dev.paperreader.extensions.semanticscholar.SemanticScholarService",
+            "displayName":"Semantic Scholar",
             "versionCode":3,
             "minimumVersionCode":2,
             "versionName":"1.2.0",
             "signerSha256":"${"ab".repeat(32)}",
             "minimumHostApi":1,
             "maximumHostApi":1,
-            "installUrl":"https://example.org/openalex.apk",
+            "installUrl":"https://example.org/semanticscholar.apk",
             "license":"Apache-2.0",
-            "providerId":"openalex",
+            "providerId":"semanticscholar",
             "minimumRequestIntervalMillis":1000,
             "sourceCapabilities":["search","details"]
           }]

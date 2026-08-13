@@ -66,7 +66,7 @@ class MetadataBackupCodecTest {
         assertRejected(
             fixture().copy(
                 savedSearches = listOf(
-                    savedSearch.copy(hits = listOf(savedSearch.hits.single().copy(providerId = "crossref"))),
+                    savedSearch.copy(hits = listOf(savedSearch.hits.single().copy(providerId = "semanticscholar"))),
                 ),
             ),
             "invalid_payload",

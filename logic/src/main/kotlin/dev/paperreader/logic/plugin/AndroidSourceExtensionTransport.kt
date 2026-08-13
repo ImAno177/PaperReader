@@ -14,6 +14,9 @@ import dev.paperreader.extensions.api.IPaperSourceService
 import dev.paperreader.extensions.api.PaperExtensionContract
 import dev.paperreader.extensions.api.SourceExtensionDescriptor
 import dev.paperreader.extensions.api.SourceCapability
+import dev.paperreader.extensions.api.SourceIdentifierType
+import dev.paperreader.extensions.api.SourceRole
+import dev.paperreader.extensions.api.SourceSearchSort
 import dev.paperreader.extensions.api.SourceGetPaperRequest
 import dev.paperreader.extensions.api.SourcePaperRecord
 import dev.paperreader.extensions.api.SourcePaperResponse
@@ -38,8 +41,13 @@ data class TrustedSourceExtension(
     val displayName: String,
     val minimumRequestIntervalMillis: Long,
     val capabilities: Set<SourceCapability> = setOf(SourceCapability.SEARCH, SourceCapability.DETAILS),
+    val roles: Set<SourceRole> = setOf(SourceRole.CONTENT_SOURCE),
+    val identifierLookupTypes: Set<SourceIdentifierType> = SourceIdentifierType.entries.toSet(),
+    val supportedSorts: Set<SourceSearchSort> = SourceSearchSort.entries.toSet(),
     val versionName: String? = null,
     val installUrl: String? = null,
+    val apkSha256: String? = null,
+    val apkSizeBytes: Long? = null,
     val minimumVersionCode: Long = versionCode,
 ) {
     init {
@@ -53,12 +61,18 @@ data class TrustedSourceExtension(
             displayName = displayName,
             minimumRequestIntervalMillis = minimumRequestIntervalMillis,
             capabilities = capabilities,
+            roles = roles,
+            identifierLookupTypes = identifierLookupTypes,
+            supportedSorts = supportedSorts,
         )
         require(versionName == null || versionName.isNotBlank())
         installUrl?.let { rawUrl ->
             val uri = URI(rawUrl)
             require(uri.scheme == "https" && uri.host != null && uri.userInfo == null && uri.fragment == null)
         }
+        require((apkSha256 == null) == (apkSizeBytes == null))
+        apkSha256?.let { require(it.matches(Regex("[0-9a-fA-F]{64}"))) }
+        apkSizeBytes?.let { require(it in 1..100L * 1024L * 1024L) }
         require(minimumVersionCode in 1..versionCode)
     }
 
@@ -68,6 +82,9 @@ data class TrustedSourceExtension(
         displayName = displayName,
         minimumRequestIntervalMillis = minimumRequestIntervalMillis,
         capabilities = capabilities,
+        roles = roles,
+        identifierLookupTypes = identifierLookupTypes,
+        supportedSorts = supportedSorts,
     )
 }
 

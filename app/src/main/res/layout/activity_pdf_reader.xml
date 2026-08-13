@@ -19,11 +19,6 @@
         app:subtitleTextColor="?attr/colorOnSurfaceVariant"
         app:titleTextColor="?attr/colorOnSurface" />
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="3dp"
-        android:background="?attr/colorOnSurface" />
-
     <FrameLayout
         android:id="@+id/pdf_fragment_container"
         android:layout_width="match_parent"

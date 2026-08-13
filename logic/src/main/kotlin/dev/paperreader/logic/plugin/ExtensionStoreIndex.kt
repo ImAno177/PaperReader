@@ -3,6 +3,9 @@ package dev.paperreader.logic.plugin
 import com.google.crypto.tink.subtle.Ed25519Verify
 import dev.paperreader.extensions.api.PaperExtensionContract
 import dev.paperreader.extensions.api.SourceCapability
+import dev.paperreader.extensions.api.SourceIdentifierType
+import dev.paperreader.extensions.api.SourceRole
+import dev.paperreader.extensions.api.SourceSearchSort
 import dev.paperreader.extensions.api.SourceExtensionDescriptor
 import dev.paperreader.extensions.api.ThemeExtensionDescriptor
 import java.net.URI
@@ -42,11 +45,16 @@ data class VerifiedExtensionRelease(
     val minimumHostApi: Int,
     val maximumHostApi: Int,
     val installUrl: String,
+    val apkSha256: String? = null,
+    val apkSizeBytes: Long? = null,
     val license: String,
     val privacyUrl: String?,
     val providerId: String? = null,
     val minimumRequestIntervalMillis: Long? = null,
     val sourceCapabilities: Set<SourceCapability> = emptySet(),
+    val sourceRoles: Set<SourceRole> = emptySet(),
+    val sourceIdentifierTypes: Set<SourceIdentifierType> = emptySet(),
+    val sourceSupportedSorts: Set<SourceSearchSort> = emptySet(),
     val themeIds: Set<String> = emptySet(),
 ) {
     val compatible: Boolean
@@ -63,8 +71,13 @@ data class VerifiedExtensionRelease(
             displayName = displayName,
             minimumRequestIntervalMillis = requireNotNull(minimumRequestIntervalMillis),
             capabilities = sourceCapabilities,
+            roles = sourceRoles,
+            identifierLookupTypes = sourceIdentifierTypes,
+            supportedSorts = sourceSupportedSorts,
             versionName = versionName,
             installUrl = installUrl,
+            apkSha256 = apkSha256,
+            apkSizeBytes = apkSizeBytes,
             minimumVersionCode = minimumVersionCode,
         )
     }
@@ -149,12 +162,30 @@ class ExtensionStoreIndexVerifier(
             "Invalid extension API range"
         }
         requireHttpsUrl(release.installUrl, "extension install URL")
+        release.apkSha256?.let { require(it.matches(Regex("[0-9a-fA-F]{64}"))) { "Invalid APK SHA-256" } }
+        release.apkSizeBytes?.let { require(it in 1..MAX_APK_BYTES) { "Invalid APK size" } }
+        require((release.apkSha256 == null) == (release.apkSizeBytes == null)) {
+            "APK hash and size must be declared together"
+        }
         require(release.license.isNotBlank() && release.license.length <= 80) { "Invalid extension license" }
         release.privacyUrl?.let { requireHttpsUrl(it, "extension privacy URL") }
 
         val capabilities = release.sourceCapabilities.mapTo(linkedSetOf()) { wireValue ->
             requireNotNull(SourceCapability.entries.firstOrNull { it.wireValue == wireValue }) {
                 "Unknown source capability"
+            }
+        }
+        val roles = release.sourceRoles?.mapTo(linkedSetOf()) { wireValue ->
+            requireNotNull(SourceRole.entries.firstOrNull { it.wireValue == wireValue }) { "Unknown source role" }
+        }
+        val identifierTypes = release.sourceIdentifierTypes?.mapTo(linkedSetOf()) { wireValue ->
+            requireNotNull(SourceIdentifierType.entries.firstOrNull { it.wireValue == wireValue }) {
+                "Unknown source identifier type"
+            }
+        }
+        val supportedSorts = release.sourceSupportedSorts?.mapTo(linkedSetOf()) { wireValue ->
+            requireNotNull(SourceSearchSort.entries.firstOrNull { it.wireValue == wireValue }) {
+                "Unknown source sort"
             }
         }
         when (kind) {
@@ -168,11 +199,17 @@ class ExtensionStoreIndexVerifier(
                         "Source request interval is required"
                     },
                     capabilities = capabilities,
+                    roles = roles ?: setOf(SourceRole.CONTENT_SOURCE),
+                    identifierLookupTypes = identifierTypes ?: SourceIdentifierType.entries.toSet(),
+                    supportedSorts = supportedSorts ?: SourceSearchSort.entries.toSet(),
                 )
             }
 
             ExtensionReleaseKind.THEME -> {
-                require(release.providerId == null && release.minimumRequestIntervalMillis == null && capabilities.isEmpty()) {
+                require(
+                    release.providerId == null && release.minimumRequestIntervalMillis == null && capabilities.isEmpty() &&
+                        roles.isNullOrEmpty() && identifierTypes.isNullOrEmpty() && supportedSorts.isNullOrEmpty(),
+                ) {
                     "Theme extension cannot declare source metadata"
                 }
                 ThemeExtensionDescriptor(
@@ -194,11 +231,24 @@ class ExtensionStoreIndexVerifier(
             minimumHostApi = release.minimumHostApi,
             maximumHostApi = release.maximumHostApi,
             installUrl = release.installUrl,
+            apkSha256 = release.apkSha256?.lowercase(),
+            apkSizeBytes = release.apkSizeBytes,
             license = release.license.trim(),
             privacyUrl = release.privacyUrl,
             providerId = release.providerId,
             minimumRequestIntervalMillis = release.minimumRequestIntervalMillis,
             sourceCapabilities = capabilities,
+            sourceRoles = if (kind == ExtensionReleaseKind.SOURCE) roles ?: setOf(SourceRole.CONTENT_SOURCE) else emptySet(),
+            sourceIdentifierTypes = if (kind == ExtensionReleaseKind.SOURCE) {
+                identifierTypes ?: SourceIdentifierType.entries.toSet()
+            } else {
+                emptySet()
+            },
+            sourceSupportedSorts = if (kind == ExtensionReleaseKind.SOURCE) {
+                supportedSorts ?: SourceSearchSort.entries.toSet()
+            } else {
+                emptySet()
+            },
             themeIds = release.themeIds.toSet(),
         )
     }
@@ -228,6 +278,7 @@ class ExtensionStoreIndexVerifier(
         const val MAX_PAYLOAD_BYTES = 1024 * 1024
         const val MAX_ENVELOPE_BYTES = 2 * 1024 * 1024
         const val MAX_RELEASES = 200
+        const val MAX_APK_BYTES = 100L * 1024L * 1024L
         val MAXIMUM_CLOCK_SKEW: Duration = Duration.ofMinutes(15)
         val STORE_ID_REGEX = Regex("[a-z0-9][a-z0-9._-]{2,63}")
         val PACKAGE_NAME_REGEX = Regex("[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+")
@@ -269,11 +320,16 @@ private data class ExtensionReleaseWire(
     val minimumHostApi: Int,
     val maximumHostApi: Int,
     val installUrl: String,
+    val apkSha256: String? = null,
+    val apkSizeBytes: Long? = null,
     val license: String,
     val privacyUrl: String? = null,
     val providerId: String? = null,
     val minimumRequestIntervalMillis: Long? = null,
     val sourceCapabilities: List<String> = emptyList(),
+    val sourceRoles: List<String>? = null,
+    val sourceIdentifierTypes: List<String>? = null,
+    val sourceSupportedSorts: List<String>? = null,
     val themeIds: List<String> = emptyList(),
 )
 

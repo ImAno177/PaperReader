@@ -41,11 +41,11 @@
     <string name="discover_title">Discover</string>
     <string name="share_reference_invalid">Share one DOI or arXiv link at a time.</string>
     <string name="discover_body">Searches run across your installed sources. Results appear as each source responds.</string>
-    <string name="search_label">Title, DOI, or arXiv ID</string>
+    <string name="search_label">Title, DOI, arXiv ID, PMID, or PMCID</string>
     <string name="search_submit">Search</string>
     <string name="search_clear">Clear search</string>
     <string name="search_start_title">Search installed sources</string>
-    <string name="search_start_body">Enter a paper title, DOI, or arXiv identifier to search live source metadata.</string>
+    <string name="search_start_body">Enter a paper title, DOI, arXiv ID, PMID, or PMCID to search live source metadata.</string>
     <string name="searching_title">Searching providers</string>
     <plurals name="searching_provider_count">
         <item quantity="one">Waiting for %1$d provider.</item>
@@ -586,4 +586,20 @@
     <string name="restore_backup">Restore</string>
     <string name="restoring_backup">Restoring</string>
     <string name="dismiss">Dismiss</string>
+    <string name="install_extension">Install extension</string>
+    <string name="update_extension">Update extension</string>
+    <string name="extension_install_pending">Waiting to download</string>
+    <string name="extension_download_progress">%1$d%% downloaded</string>
+    <string name="extension_installing">Preparing Android installer</string>
+    <string name="extension_awaiting_confirmation">Confirm in Android installer</string>
+    <string name="extension_installed">Installed — dismiss</string>
+    <string name="extension_install_cancelled">Installation cancelled — dismiss</string>
+    <string name="extension_install_failed">Install failed: %1$s</string>
+    <string name="source_extension_notification_channel">Source extension updates</string>
+    <string name="source_extension_notification_channel_description">Compatible updates from verified extension stores</string>
+    <string name="source_extension_notification_title">Source updates are available</string>
+    <plurals name="source_extension_notification_body">
+        <item quantity="one">%1$d installed source has a verified update.</item>
+        <item quantity="other">%1$d installed sources have verified updates.</item>
+    </plurals>
 </resources>

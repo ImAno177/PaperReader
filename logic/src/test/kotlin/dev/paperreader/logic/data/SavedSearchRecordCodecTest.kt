@@ -95,7 +95,7 @@ class SavedSearchRecordCodecTest {
         ),
         citationMetrics = CitationMetrics(
             count = 42,
-            sourceId = "crossref",
+            sourceId = "semanticscholar",
             observedAt = Instant.parse("2026-08-13T00:00:00Z"),
         ),
     )

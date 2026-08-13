@@ -576,12 +576,11 @@ private fun PaperReaderNavigation(
             destinations = destinations,
             currentRoute = currentRoute,
             onNavigate = { destination ->
-                navController.navigate(destination.route) {
-                    popUpTo(AppRoutes.LIBRARY) { saveState = true }
-                    launchSingleTop = true
-                    // The library is already the retained start destination. Restoring the
-                    // state just popped above can resurrect the previous tab over it.
-                    restoreState = destination != AppDestination.LIBRARY
+                if (navController.currentDestination?.route != destination.route) {
+                    navController.navigate(destination.route) {
+                        popUpTo(AppRoutes.LIBRARY)
+                        launchSingleTop = true
+                    }
                 }
             },
         ) { modifier ->

@@ -22,7 +22,8 @@ remains available as the fidelity fallback.
 - Verified cancellable PDF downloads with app-private storage and an in-app AndroidX PDF reader.
 - Mobile arXiv reader using exact manifestation versions, typed fallback reasons, offline cache,
   provenance/license disclosure, native TOC/search, responsive figures/tables/math, and Original PDF
-  fallback.
+  fallback. Its integrity-checked document cache is capped at 160 MiB with least-recently-used
+  eviction; a cache write failure never hides an already verified document.
 - Manual metadata backup/restore with preview and transactional merge; PDFs and credentials are not
   included.
 - English-only UI with Doodle, Retro, and Neobrutalism presets in light and dark mode.

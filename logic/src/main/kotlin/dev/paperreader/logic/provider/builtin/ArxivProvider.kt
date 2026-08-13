@@ -116,6 +116,9 @@ class ArxivProvider(
             ?: "https://arxiv.org/pdf/${arxiv.versionedId}.pdf"
         val published = parseDate(text(entry, "published"))
         val updated = text(entry, "updated")?.let { Instant.parse(it) }
+        val manifestationPublished = arxiv.version
+            ?.let { updated?.atZone(java.time.ZoneOffset.UTC)?.toLocalDate() }
+            ?: published
         val doi = entry.children("doi").firstOrNull()?.textContent?.trim()?.takeIf(String::isNotBlank)
         val identifiers = linkedSetOf(PaperIdentifier(IdentifierType.ARXIV, arxiv.baseId))
         doi?.let { runCatching { IdentifierNormalizer.doi(it) }.getOrNull() }
@@ -137,7 +140,7 @@ class ArxivProvider(
                     version = arxiv.version?.let { "v$it" },
                     landingPageUrl = landing,
                     pdfUrl = pdf,
-                    publishedDate = published,
+                    publishedDate = manifestationPublished,
                 ),
             ),
         )

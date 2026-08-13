@@ -717,8 +717,18 @@ private fun ManifestationCard(
                     Text(date.toEnglishDisplayDate(), color = PaperTheme.tokens.inkMuted)
                 }
                 StatusBadge(
-                    text = manifestation.license ?: stringResource(R.string.license_unknown),
-                    color = if (manifestation.license == null) PaperTheme.tokens.warning else PaperTheme.tokens.success,
+                    text = manifestation.license ?: stringResource(
+                        if (supportsMobileReading) {
+                            R.string.license_available_in_mobile_source
+                        } else {
+                            R.string.license_unknown
+                        },
+                    ),
+                    color = when {
+                        manifestation.license != null -> PaperTheme.tokens.success
+                        supportsMobileReading -> PaperTheme.tokens.primary
+                        else -> PaperTheme.tokens.warning
+                    },
                 )
                 if (supportsMobileReading) {
                     StatusBadge(

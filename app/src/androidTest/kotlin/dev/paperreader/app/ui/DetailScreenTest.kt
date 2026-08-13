@@ -110,6 +110,28 @@ class DetailScreenTest {
     }
 
     @Test
+    fun arxivManifestationDefersLicenseToTheVerifiedMobileSource() {
+        composeRule.enableAccessibilityChecks()
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DetailScreen(
+                    state = LoadState.Ready(
+                        paper(manifestations = listOf(manifestation(id = "manifestation-1", local = true))),
+                    ),
+                    onBack = {},
+                    onStatusChange = {},
+                    onRemove = { RemovePaperResult.Removed },
+                    onRemoved = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("License shown in verified mobile source")
+            .performScrollTo()
+            .assertExists()
+    }
+
+    @Test
     fun deletingLocalPdfRequiresConfirmation() {
         composeRule.enableAccessibilityChecks()
         var deleted = false

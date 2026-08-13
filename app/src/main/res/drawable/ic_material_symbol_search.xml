@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="2400"
+    android:viewportHeight="2400">
+    <path
+        android:fillColor="?attr/colorOnSurface"
+        android:fillType="nonZero"
+        android:pathData="M2044 2200 1344 1500Q1261 1567 1153 1606Q1044 1644 922 1644Q619 1644 410 1435Q200 1225 200 922Q200 619 410 410Q619 200 922 200Q1225 200 1435 410Q1644 619 1644 922Q1644 1044 1606 1153Q1567 1261 1500 1344L2200 2044ZM922 1422Q1131 1422 1276 1276Q1422 1131 1422 922Q1422 714 1276 568Q1131 422 922 422Q714 422 568 568Q422 714 422 922Q422 1131 568 1276Q714 1422 922 1422Z" />
+</vector>

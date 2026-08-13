@@ -34,6 +34,8 @@ import androidx.lifecycle.lifecycleScope
 import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.theme.PaperThemePreset
+import dev.paperreader.app.ui.theme.PaperIconKey
+import dev.paperreader.app.ui.theme.paperIconSet
 import dev.paperreader.app.withEnglishLocale
 import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.WorkId
@@ -155,10 +157,16 @@ class ReadablePaperActivity : AppCompatActivity() {
     private fun configureToolbar() {
         toolbar.title = readerArgs.title
         toolbar.subtitle = getString(R.string.readable_reader_subtitle)
-        toolbar.setNavigationIcon(R.drawable.ic_reader_back)
+        val icons = paperIconSet(readerArgs.themePreset)
+        toolbar.setNavigationIcon(icons.resource(PaperIconKey.BACK))
         toolbar.navigationContentDescription = getString(R.string.back)
         toolbar.setNavigationOnClickListener { finish() }
         toolbar.inflateMenu(R.menu.readable_reader_actions)
+        toolbar.menu.findItem(R.id.action_search_readable).setIcon(icons.resource(PaperIconKey.SEARCH))
+        toolbar.menu.findItem(R.id.action_readable_contents).setIcon(icons.resource(PaperIconKey.LIST))
+        toolbar.menu.findItem(R.id.action_reading_layout).setIcon(icons.resource(PaperIconKey.PALETTE))
+        toolbar.menu.findItem(R.id.action_open_original_pdf).setIcon(icons.resource(PaperIconKey.OPEN_EXTERNAL))
+        toolbar.menu.findItem(R.id.action_open_readable_source).setIcon(icons.resource(PaperIconKey.OPEN_EXTERNAL))
         toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = false
         toolbar.menu.findItem(R.id.action_search_readable).isEnabled = false
         toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = false

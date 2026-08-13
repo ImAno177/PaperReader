@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -39,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -50,6 +48,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.widthIn
 import dev.paperreader.app.ui.theme.PaperDecoration
+import dev.paperreader.app.ui.theme.PaperIcon
+import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperTheme
 
 @Composable
@@ -208,7 +208,7 @@ fun PaperStatePanel(
     title: String,
     body: String,
     modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
+    icon: PaperIconKey? = null,
     loading: Boolean = false,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
@@ -232,8 +232,8 @@ fun PaperStatePanel(
         ) {
             when {
                 loading -> CircularProgressIndicator(color = PaperTheme.tokens.primary)
-                icon != null -> Icon(
-                    imageVector = icon,
+                icon != null -> PaperIcon(
+                    key = icon,
                     contentDescription = null,
                     modifier = Modifier.size(40.dp),
                     tint = PaperTheme.tokens.emptyStateAccent,
@@ -264,7 +264,7 @@ fun PaperStatePanel(
 fun StatusBadge(
     text: String,
     modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
+    icon: PaperIconKey? = null,
     color: Color = PaperTheme.tokens.primary,
 ) {
     Surface(
@@ -280,7 +280,7 @@ fun StatusBadge(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (icon != null) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
+                PaperIcon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
             }
             Text(text, style = MaterialTheme.typography.labelMedium)
         }

@@ -32,6 +32,8 @@ import androidx.pdf.view.PdfView
 import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.theme.PaperThemePreset
+import dev.paperreader.app.ui.theme.PaperIconKey
+import dev.paperreader.app.ui.theme.paperIconSet
 import dev.paperreader.app.withEnglishLocale
 import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.ReadingBookmark
@@ -206,10 +208,15 @@ class PdfReaderActivity : AppCompatActivity() {
         this.toolbar = toolbar
         toolbar.title = readerArgs.title
         toolbar.subtitle = getString(R.string.reader_subtitle)
-        toolbar.setNavigationIcon(R.drawable.ic_reader_back)
+        val icons = paperIconSet(readerArgs.themePreset)
+        toolbar.setNavigationIcon(icons.resource(PaperIconKey.BACK))
         toolbar.navigationContentDescription = getString(R.string.back)
         toolbar.setNavigationOnClickListener { finish() }
         toolbar.inflateMenu(R.menu.pdf_reader_actions)
+        toolbar.menu.findItem(R.id.action_search_pdf).setIcon(icons.resource(PaperIconKey.SEARCH))
+        toolbar.menu.findItem(R.id.action_toggle_bookmark).setIcon(icons.resource(PaperIconKey.BOOKMARK_ADD))
+        toolbar.menu.findItem(R.id.action_view_bookmarks).setIcon(icons.resource(PaperIconKey.BOOKMARKS))
+        toolbar.menu.findItem(R.id.action_open_external).setIcon(icons.resource(PaperIconKey.OPEN_EXTERNAL))
         setReaderActionsEnabled(searchEnabled = false, externalEnabled = false)
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -377,7 +384,9 @@ class PdfReaderActivity : AppCompatActivity() {
                 if (isBookmarked) R.string.reader_remove_bookmark else R.string.reader_add_bookmark,
             )
             setIcon(
-                if (isBookmarked) R.drawable.ic_reader_bookmark_remove else R.drawable.ic_reader_bookmark_add,
+                paperIconSet(readerArgs.themePreset).resource(
+                    if (isBookmarked) PaperIconKey.BOOKMARK_REMOVE else PaperIconKey.BOOKMARK_ADD,
+                ),
             )
         }
         toolbar.menu.findItem(R.id.action_view_bookmarks)?.isEnabled = documentLoaded
@@ -606,7 +615,14 @@ class PdfReaderActivity : AppCompatActivity() {
             ?.take(MAX_TITLE_LENGTH)
             ?.takeIf(String::isNotBlank)
             ?: getString(R.string.app_name)
-        ReaderArgs(uri, workId, manifestationId, sha256, title)
+        ReaderArgs(
+            contentUri = uri,
+            workId = workId,
+            manifestationId = manifestationId,
+            documentSha256 = sha256,
+            title = title,
+            themePreset = PaperThemePreset.fromStorageKey(intent.getStringExtra(EXTRA_THEME_PRESET)),
+        )
     }.getOrNull()
 
     private data class ReaderArgs(
@@ -615,6 +631,7 @@ class PdfReaderActivity : AppCompatActivity() {
         val manifestationId: ManifestationId,
         val documentSha256: String,
         val title: String,
+        val themePreset: PaperThemePreset,
     )
 
     companion object {

@@ -22,17 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.OfflinePin
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -40,7 +29,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -88,6 +76,8 @@ import dev.paperreader.app.ui.model.displayProviderName
 import dev.paperreader.app.ui.model.safeWebUrlOrNull
 import dev.paperreader.app.ui.model.toEnglishDisplayDate
 import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.app.ui.theme.PaperIcon
+import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.logic.domain.ManifestationType
 import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.LOCAL_PDF_SOURCE_ID
@@ -133,7 +123,7 @@ fun DetailScreen(
             CenterAlignedTopAppBar(
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.back))
+                        PaperIcon(PaperIconKey.BACK, contentDescription = stringResource(R.string.back))
                     }
                 },
                 title = { PaperAppBarTitle(stringResource(R.string.paper_detail_title)) },
@@ -171,7 +161,7 @@ fun DetailScreen(
             LoadState.Failed -> PaperStatePanel(
                 title = stringResource(R.string.data_error_title),
                 body = stringResource(R.string.data_error_body),
-                icon = Icons.Outlined.ErrorOutline,
+                icon = PaperIconKey.ERROR,
                 modifier = Modifier.fillMaxSize().padding(padding),
             )
 
@@ -179,7 +169,7 @@ fun DetailScreen(
                 PaperStatePanel(
                     title = stringResource(R.string.paper_not_found_title),
                     body = stringResource(R.string.paper_not_found_body),
-                    icon = Icons.Outlined.ErrorOutline,
+                    icon = PaperIconKey.ERROR,
                     actionLabel = stringResource(R.string.back),
                     onAction = onBack,
                     modifier = Modifier.fillMaxSize().padding(padding),
@@ -286,13 +276,13 @@ private fun PaperActionsMenu(
     var expanded by rememberSaveable { mutableStateOf(false) }
     val clipboard = LocalContext.current.getSystemService(ClipboardManager::class.java)
     IconButton(onClick = { expanded = true }, modifier = Modifier.size(48.dp)) {
-        Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.more_actions))
+        PaperIcon(PaperIconKey.MORE_VERTICAL, contentDescription = stringResource(R.string.more_actions))
     }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
         paper.primaryIdentifier?.let { identifier ->
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.copy_identifier)) },
-                leadingIcon = { Icon(Icons.Outlined.ContentCopy, contentDescription = null) },
+                leadingIcon = { PaperIcon(PaperIconKey.COPY, contentDescription = null) },
                 onClick = {
                     clipboard?.setPrimaryClip(
                         ClipData.newPlainText(
@@ -306,7 +296,7 @@ private fun PaperActionsMenu(
         }
         DropdownMenuItem(
             text = { Text(stringResource(R.string.manage_collections)) },
-            leadingIcon = { Icon(Icons.Outlined.Folder, contentDescription = null) },
+            leadingIcon = { PaperIcon(PaperIconKey.FOLDER, contentDescription = null) },
             onClick = {
                 expanded = false
                 onManageCollections()
@@ -315,7 +305,7 @@ private fun PaperActionsMenu(
         DropdownMenuItem(
             text = { Text(stringResource(R.string.remove_paper), color = PaperTheme.tokens.danger) },
             leadingIcon = {
-                Icon(Icons.Outlined.DeleteOutline, contentDescription = null, tint = PaperTheme.tokens.danger)
+                PaperIcon(PaperIconKey.DELETE, contentDescription = null, tint = PaperTheme.tokens.danger)
             },
             onClick = {
                 expanded = false
@@ -500,7 +490,7 @@ private fun PaperDetailContent(
         item {
             PaperSurface {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-                    Icon(Icons.Outlined.Info, contentDescription = null, tint = PaperTheme.tokens.warning)
+                    PaperIcon(PaperIconKey.INFO, contentDescription = null, tint = PaperTheme.tokens.warning)
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         val hasLocalCopy = paper.manifestations.any { it.localCopy != null }
                         val isImportedLocalPdf = paper.manifestations.any {
@@ -697,7 +687,7 @@ private fun ManifestationCard(
         else R.string.open_downloaded_pdf,
     )
     val localCopyButtonContent: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
-        Icon(Icons.Outlined.OfflinePin, contentDescription = null)
+        PaperIcon(PaperIconKey.OFFLINE, contentDescription = null)
         Spacer(Modifier.size(8.dp))
         Text(localCopyButtonLabel)
     }
@@ -793,7 +783,7 @@ private fun ManifestationCard(
                         },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
-                        Icon(Icons.Outlined.Info, contentDescription = null)
+                        PaperIcon(PaperIconKey.INFO, contentDescription = null)
                         Spacer(Modifier.size(8.dp))
                         Text(stringResource(R.string.read_mobile_version))
                     }
@@ -819,7 +809,7 @@ private fun ManifestationCard(
                         onClick = { showDeleteDialog = true },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
-                        Icon(Icons.Outlined.DeleteOutline, contentDescription = null)
+                        PaperIcon(PaperIconKey.DELETE, contentDescription = null)
                         Spacer(Modifier.size(8.dp))
                         Text(stringResource(R.string.delete_local_copy))
                     }
@@ -829,7 +819,7 @@ private fun ManifestationCard(
                         onRequestDownload()
                     }
                     val downloadContent: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
-                        Icon(Icons.Outlined.Download, contentDescription = null)
+                        PaperIcon(PaperIconKey.DOWNLOAD, contentDescription = null)
                         Spacer(Modifier.size(8.dp))
                         Text(
                             stringResource(
@@ -862,7 +852,7 @@ private fun ManifestationCard(
                         onClick = { uriHandler.openUri(url) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
-                        Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null)
+                        PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
                         Spacer(Modifier.size(8.dp))
                         Text(stringResource(R.string.open_pdf_source))
                     }
@@ -872,7 +862,7 @@ private fun ManifestationCard(
                         onClick = { uriHandler.openUri(url) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
-                        Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null)
+                        PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
                         Spacer(Modifier.size(8.dp))
                         Text(stringResource(R.string.open_landing_page))
                     }

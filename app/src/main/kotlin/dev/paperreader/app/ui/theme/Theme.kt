@@ -400,7 +400,10 @@ fun PaperReaderTheme(
         typography = tokens.materialTypography(),
         shapes = tokens.materialShapes(),
     ) {
-        androidx.compose.runtime.CompositionLocalProvider(LocalPaperTheme provides tokens) {
+        androidx.compose.runtime.CompositionLocalProvider(
+            LocalPaperTheme provides tokens,
+            LocalPaperIcons provides paperIconSet(preset),
+        ) {
             content()
         }
     }

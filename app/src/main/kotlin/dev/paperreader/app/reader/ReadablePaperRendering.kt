@@ -210,6 +210,16 @@ internal fun readableAnnotationNavigationScript(id: String): String {
     """.trimIndent()
 }
 
+internal fun List<Annotation>.hasSameRenderedAnchors(other: List<Annotation>): Boolean =
+    size == other.size && indices.all { index ->
+        val first = this[index]
+        val second = other[index]
+        first.id == second.id &&
+            first.blockId == second.blockId &&
+            first.startOffset == second.startOffset &&
+            first.endOffset == second.endOffset
+    }
+
 internal fun renderReadablePaperHtml(
     sanitizedBodyHtml: String,
     palette: ReadablePaperPalette,

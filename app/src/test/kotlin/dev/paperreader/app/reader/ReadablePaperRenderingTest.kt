@@ -81,6 +81,17 @@ class ReadablePaperRenderingTest {
         }
     }
 
+    @Test
+    fun `note-only annotation updates do not trigger a structural rerender`() {
+        val original = annotation(id = "ann-safe", note = "First note", quote = "vulnerability")
+        val noteOnly = original.copy(note = "Revised note", updatedAt = now.plusSeconds(10))
+        val moved = original.copy(startOffset = 5, endOffset = 18)
+
+        assertTrue(listOf(original).hasSameRenderedAnchors(listOf(noteOnly)))
+        assertFalse(listOf(original).hasSameRenderedAnchors(listOf(moved)))
+        assertFalse(listOf(original).hasSameRenderedAnchors(emptyList()))
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun `section navigation rejects an anchor that can change the local URL`() {
         readableSectionNavigationScript("section#https://tracker.invalid")

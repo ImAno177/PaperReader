@@ -424,9 +424,10 @@ class ReadablePaperActivity : AppCompatActivity() {
                     .subscribe(readerArgs.workId, document.documentSha256)
                     .collectLatest { annotations ->
                         if (currentDocument?.documentSha256 != document.documentSha256) return@collectLatest
+                        val anchorsChanged = !currentAnnotations.hasSameRenderedAnchors(annotations)
                         currentAnnotations = annotations
                         updateAnnotationMenu()
-                        if (documentLoaded) webView.applyAnnotations(annotations)
+                        if (documentLoaded && anchorsChanged) webView.applyAnnotations(annotations)
                     }
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -667,7 +668,10 @@ class ReadablePaperActivity : AppCompatActivity() {
         if (!documentLoaded) return
         webView.captureTextSelection { result ->
             when (result) {
-                is ReadableSelectionResult.Ready -> showCreateAnnotationDialog(result.selection)
+                is ReadableSelectionResult.Ready -> {
+                    webView.clearTextSelection()
+                    showCreateAnnotationDialog(result.selection)
+                }
                 is ReadableSelectionResult.Unavailable -> Toast.makeText(
                     this,
                     when (result.reason) {
@@ -733,7 +737,6 @@ class ReadablePaperActivity : AppCompatActivity() {
                     }
                     when (result) {
                         is SaveAnnotationResult.Saved -> {
-                            webView.clearTextSelection()
                             Toast.makeText(
                                 this@ReadablePaperActivity,
                                 if (result.created) R.string.readable_reader_annotation_saved

@@ -87,7 +87,7 @@ Mihon tách app, core, data, domain, source-api, source-local, presentation, i18
 Ký hiệu: P1 là vertical MVP; P2 là workflow nghiên cứu; P3 là hệ sinh thái; X là bỏ.
 
 | Nhóm | Hành vi Mihon đã xác minh | Tương đương cho paper | Mốc | Quyết định tái sử dụng |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Library | Thêm series vào thư viện | Thêm Work/PDF/DOI vào thư viện | P1 | Giữ luồng, đổi domain |
 | Library | Category | Collection và smart collection | P1/P2 | Giữ pattern |
 | Library | Grid/list, filter, sort, badge | Grid/list; filter theo năm, tác giả, trạng thái đọc, offline, annotated | P1 | Giữ pattern |
@@ -136,7 +136,7 @@ Ký hiệu: P1 là vertical MVP; P2 là workflow nghiên cứu; P3 là hệ sinh
 ### 5.1 Thực thể
 
 | Thực thể | Vai trò và trường tối thiểu |
-|---|---|
+| --- | --- |
 | Work | ID nội bộ; title canonical; abstract; year; type; venue; createdAt/updatedAt |
 | WorkIdentifier | workId; scheme; normalizedValue; rawValue; provider; verifiedAt |
 | Author | ID nội bộ; displayName; ORCID nếu có |
@@ -180,7 +180,7 @@ Quy tắc an toàn:
 Rate/quota dưới đây là ảnh chụp ngày 2026-08-11 và phải đọc lại header/tài liệu khi triển khai.
 
 | Nguồn | Dữ liệu phù hợp | Auth/quota hiện hành | Full text và quyền | Vai trò |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | [arXiv](https://info.arxiv.org/help/api/user-manual.html) | Preprint, version, category, Atom search; OAI-PMH cho bulk metadata | Không key; legacy API tối đa 1 request mỗi 3 giây và 1 connection | Có PDF URL nhưng license theo từng e-print; metadata CC0 | Built-in P1 |
 | [Crossref](https://crossref.org/documentation/retrieve-metadata/rest-api/access-and-authentication/) | DOI metadata, reference, updates, license, ORCID/ROR | Public 5 req/s và concurrency 1; polite mailto 10 req/s và concurrency 3 | URL không đảm bảo quyền truy cập; không phải kho PDF | Built-in P1 |
 | [OpenAlex](https://developers.openalex.org/guides/authentication) | Discovery rộng, authors, institutions, citations, OA locations | Không key có ngân sách nhỏ; free key hiện cho 1 USD/ngày, gồm 1.000 search hoặc 10.000 list/filter theo bảng giá hiện hành | Metadata/snapshot mở; PDF vẫn theo license nguồn | Optional built-in P2 |
@@ -259,7 +259,7 @@ reason thay vì được render. Điều này không biến `PdfTextExtractor` t
 Mỗi PDF có các artifact app-private sau:
 
 | Artifact | Vai trò |
-|---|---|
+| --- | --- |
 | `original.pdf` | Nguồn bất biến, đối chiếu fidelity và export |
 | `document.md` | Text chuẩn có page marker ổn định; có thể export cho người dùng |
 | `extraction-manifest.json` | PDF hash, schema, commit/parser/options, page convention, confidence, OCR/layout/encoding flags và checksum artifact |
@@ -365,7 +365,7 @@ Vấn đề là [Mihon tự cảnh báo](https://mihon.app/docs/faq/browse/exten
 Contract tối thiểu:
 
 | Lệnh | Ý nghĩa |
-|---|---|
+| --- | --- |
 | getManifest | Provider, version, SDK range, capability, allowed hosts, privacy/license |
 | search | Query/filter/cursor → provider records |
 | getWork | External ID → metadata chi tiết |
@@ -394,7 +394,7 @@ Store manifest cần:
 Đề xuất hai flavor nhưng chung code:
 
 | Flavor | Cài plugin | Quyền |
-|---|---|---|
+| --- | --- | --- |
 | oss/F-Droid | Mở custom F-Droid repo hoặc system package page; không có installer trong app | Không REQUEST_INSTALL_PACKAGES |
 | full/GitHub | Có thể tải APK từ store sau cảnh báo/consent và verify chữ ký | REQUEST_INSTALL_PACKAGES chỉ ở flavor này |
 
@@ -403,7 +403,7 @@ Tốt nhất plugin cộng đồng cũng được build reproducibly và phát h
 ### 8.5 Threat model
 
 | Nguy cơ | Kiểm soát bắt buộc |
-|---|---|
+| --- | --- |
 | Plugin lấy token/PDF/annotation | UID riêng; capability; không host DB/file access; URI grant tối thiểu |
 | Index/plugin bị thay | HTTPS; signed index; cert fingerprint; key rotation |
 | Provider trả HTML/script độc | Parse thành DTO; sanitize; không render HTML/JS trực tiếp |
@@ -418,7 +418,7 @@ Tốt nhất plugin cộng đồng cũng được build reproducibly và phát h
 Không pin “latest” trong spec. Khi scaffold phải đọc lại stable channel, khóa version catalog, bật Gradle dependency verification và lưu license notices.
 
 | Nhu cầu | Lựa chọn | Lý do/quyết định |
-|---|---|---|
+| --- | --- | --- |
 | Ngôn ngữ/concurrency | Kotlin, Coroutines, Flow | Trùng hệ Mihon và Android hiện đại |
 | UI | Jetpack Compose Material 3, Navigation Compose | Official, không cần framework navigation khác |
 | Database | Room + Room FTS4 | Official, migrations/relations/FTS phù hợp Android-only |
@@ -443,7 +443,7 @@ Mihon snapshot đang dùng Compose, WorkManager, SQLDelight, OkHttp/Okio, Corout
 ### 9.1 Dự án/thư viện gần domain đã loại hoặc giữ làm ứng viên
 
 | Dự án | Dữ kiện đã xác minh | Quyết định |
-|---|---|---|
+| --- | --- | --- |
 | [Zotero for Android](https://github.com/zotero/zotero-android) | App paper/reference manager gần nhất; có reader, pdf-worker, citation processor và translator submodule. Toàn app là AGPLv3; build còn có PSPDFKit key hook và các service Google/Firebase tùy cấu hình. | Học workflow và làm Zotero connector; không copy code vào app Apache-2.0. Chỉ đổi quyết định nếu toàn dự án chấp nhận AGPLv3 và audit lại proprietary dependency. |
 | [Readium Kotlin Toolkit](https://github.com/readium/kotlin-toolkit) | BSD-3-Clause, Kotlin, có PDF/EPUB/OPDS và locator/progression. PDF pagination/scroll/RTL có; search, highlight và TTS cho PDF đang được đánh dấu chưa hoàn chỉnh. PDF adapter dựa trên PDFium/AndroidPdfViewer và tăng app size. | Ứng viên nếu sau này hỗ trợ EPUB/OPDS; không chọn làm reader khoa học P1 vì thiếu text search/highlight PDF. |
 | [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) | Apache-2.0, port PDFBox cho Android, phù hợp parse/manipulate/export hơn là UI reader; README hiện vẫn dựa trên PDFBox 2.0.27. | Chỉ spike cho metadata, text hoặc export annotation nếu AndroidX PDF thiếu; không dùng làm renderer UI. |
@@ -458,7 +458,7 @@ Mihon snapshot đang dùng Compose, WorkManager, SQLDelight, OkHttp/Okio, Corout
 Theo yêu cầu tách tuyệt đối logic khỏi UI, project hiện có ba Gradle module:
 
 | Module | Trách nhiệm |
-|---|---|
+| --- | --- |
 | app | Chỉ UI/UX, Compose, navigation, presentation state và Android entry points; phụ thuộc một chiều vào `logic` |
 | logic | Domain model, Room, repository/Flow, identity resolver, built-in providers, federated search, extraction/pdf-inspector facade, task state và plugin trust/contract |
 | extension-api | AIDL và data contract có version, giới hạn kích thước cho source/theme APK bên ngoài; không chứa host storage, network hay UI |
@@ -668,7 +668,7 @@ Exit:
 ## 16. Rủi ro và quyết định còn mở
 
 | Vấn đề | Trạng thái |
-|---|---|
+| --- | --- |
 | AndroidX PDF vẫn alpha | Chỉ dùng sau `OriginalPdfRenderer`; PdfRenderer fallback, không khóa domain/UI vào API cụ thể |
 | pdf-inspector chưa có upstream Android package | Wrapper JNI chỉ tồn tại trong `build/native-spike`; production vẫn là P0 gate cho cancellation, isolation, bounds, corpus, provenance/checksum, SBOM/license và packaging |
 | Native CMaps cần provenance/packaging | Spike đã embed CMaps; attribution Adobe CMap/Korea1/AGL, checksum and target-filtered packaging must pass CJK/Type0 corpus before P1 |

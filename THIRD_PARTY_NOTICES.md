@@ -4,7 +4,7 @@ PaperReader's source is Apache-2.0. The Android application is built from open-s
 including:
 
 | Component | Version/source | License |
-|---|---|---|
+| --- | --- | --- |
 | AndroidX libraries, including Room, WorkManager, Compose, Navigation, and PDF | versions declared in Gradle | Apache-2.0 |
 | Kotlin and kotlinx.coroutines/serialization | versions declared in Gradle | Apache-2.0 |
 | OkHttp | 5.1.0 | Apache-2.0 |

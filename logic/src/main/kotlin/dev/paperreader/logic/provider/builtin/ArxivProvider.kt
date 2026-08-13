@@ -34,6 +34,9 @@ class ArxivProvider(
     )
 
     override suspend fun search(query: PaperSearchQuery): ProviderPage {
+        if (runCatching { IdentifierNormalizer.doi(query.text) }.isSuccess) {
+            return ProviderPage(emptyList(), null)
+        }
         val start = query.cursor?.toIntOrNull()?.coerceAtLeast(0) ?: 0
         val url = buildSearchUrl(query, start)
         val xml = try {

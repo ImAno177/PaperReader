@@ -170,7 +170,10 @@ Room entity classes are public only because the current Room/KSP processor needs
   presentation-only collection state is used.
 - Live federated arXiv/Crossref discovery with incremental results, isolated source failures,
   save/open transitions, exact-identifier behavior, and an idempotent action to track the submitted
-  query with the provider snapshot that actually ran.
+  query with the provider snapshot that actually ran. `ACTION_SEND text/plain` accepts only one
+  unambiguous DOI or arXiv identifier/URL, preserves an exact arXiv version, opens Discover, and
+  submits through that same federated pipeline. Unsupported or ambiguous text is never sent to a
+  provider and receives explicit English feedback.
 - Updates is no longer a renamed download queue. It observes persisted saved searches and hit
   snapshots, exposes manual refresh/read/save/delete actions, shows per-provider typed failures next
   to stale results, and keeps the download queue as a separate section. Real provider/task/history

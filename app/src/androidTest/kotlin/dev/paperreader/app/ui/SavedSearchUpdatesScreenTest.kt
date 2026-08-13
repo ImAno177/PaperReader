@@ -1,5 +1,8 @@
 package dev.paperreader.app.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -33,6 +36,28 @@ import org.junit.runner.RunWith
 class SavedSearchUpdatesScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Test
+    fun discoverFieldTracksANewExternallySubmittedQuery() {
+        var state by mutableStateOf(SearchUiState(submittedQuery = "old query"))
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DiscoverScreen(
+                    state = state,
+                    onSearch = {},
+                    onClear = {},
+                    onSave = {},
+                    onOpenPaper = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("old query").assertExists()
+        composeRule.runOnIdle {
+            state = SearchUiState(submittedQuery = "2501.04510v2", running = true)
+        }
+        composeRule.onNodeWithText("2501.04510v2").assertExists()
+    }
 
     @Test
     fun discoverCreatesTheSubmittedRealProviderSearch() {

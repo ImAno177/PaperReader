@@ -39,6 +39,7 @@
     <string name="library_no_matches_body">Change the search text, collection, or filter.</string>
 
     <string name="discover_title">Discover</string>
+    <string name="share_reference_invalid">Share one DOI or arXiv link at a time.</string>
     <string name="discover_body">Searches run across your installed sources. Results appear as each source responds.</string>
     <string name="search_label">Title, DOI, or arXiv ID</string>
     <string name="search_submit">Search</string>

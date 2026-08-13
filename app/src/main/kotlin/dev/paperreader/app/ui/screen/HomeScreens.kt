@@ -610,7 +610,9 @@ fun DiscoverScreen(
     onSaveSearch: (String) -> Unit = {},
     onOpenUpdates: () -> Unit = {},
 ) {
-    var query by rememberSaveable { mutableStateOf(state.submittedQuery.orEmpty()) }
+    var query by rememberSaveable(state.submittedQuery) {
+        mutableStateOf(state.submittedQuery.orEmpty())
+    }
     val focusManager = LocalFocusManager.current
     val submitSearch = {
         if (query.isNotBlank() && !state.running) {

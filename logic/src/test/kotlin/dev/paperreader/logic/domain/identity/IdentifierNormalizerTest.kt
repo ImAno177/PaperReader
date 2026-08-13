@@ -16,6 +16,14 @@ class IdentifierNormalizerTest {
             "10.1038/s41586-020-2649-2",
             IdentifierNormalizer.doi("https://doi.org/10.1038%2Fs41586-020-2649-2"),
         )
+        assertEquals(
+            "10.1000/xyz?literal",
+            IdentifierNormalizer.doi("10.1000/XYZ?literal"),
+        )
+        assertEquals(
+            "10.1000/xyz",
+            IdentifierNormalizer.doi("https://doi.org/10.1000/XYZ?utm_source=share#details"),
+        )
     }
 
     @Test
@@ -55,5 +63,51 @@ class IdentifierNormalizerTest {
 
         assertTrue(IdentityResolver.hasExactMatch(openAlex, anotherOpenAlex))
         assertFalse(IdentityResolver.hasExactMatch(openAlex, semanticScholar))
+    }
+
+    @Test
+    fun `shared paper references preserve exact provider queries`() {
+        assertEquals(
+            PaperReferenceQuery(
+                identifier = PaperIdentifier(IdentifierType.ARXIV, "2501.04510"),
+                query = "2501.04510v2",
+            ),
+            PaperReferenceParser.parseSharedText("https://arxiv.org/abs/2501.04510v2"),
+        )
+        assertEquals(
+            PaperReferenceQuery(
+                identifier = PaperIdentifier(IdentifierType.DOI, "10.1038/s41586-020-2649-2"),
+                query = "10.1038/s41586-020-2649-2",
+            ),
+            PaperReferenceParser.parseSharedText("DOI: 10.1038/S41586-020-2649-2"),
+        )
+    }
+
+    @Test
+    fun `shared text extracts one supported URL without treating prose as a query`() {
+        assertEquals(
+            "2501.04510",
+            PaperReferenceParser.parseSharedText(
+                "A paper worth reading\nhttps://arxiv.org/pdf/2501.04510.pdf",
+            )?.query,
+        )
+        assertEquals(
+            "10.1000/xyz+abc",
+            PaperReferenceParser.parseSharedText(
+                "Read this: https://doi.org/10.1000/XYZ+ABC",
+            )?.query,
+        )
+        assertEquals(null, PaperReferenceParser.parseSharedText("A paper worth reading"))
+    }
+
+    @Test
+    fun `ambiguous or oversized shared text is rejected`() {
+        assertEquals(
+            null,
+            PaperReferenceParser.parseSharedText(
+                "https://arxiv.org/abs/2501.04510 https://arxiv.org/abs/2401.12345",
+            ),
+        )
+        assertEquals(null, PaperReferenceParser.parseSharedText("x".repeat(16_385)))
     }
 }

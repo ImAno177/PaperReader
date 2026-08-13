@@ -5,6 +5,8 @@ import dev.paperreader.logic.provider.PaperSearchQuery
 import dev.paperreader.logic.provider.ProviderException
 import dev.paperreader.logic.provider.SearchSort
 import java.io.File
+import kotlinx.coroutines.test.runTest
+import okhttp3.mockwebserver.MockWebServer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -74,6 +76,21 @@ class ArxivProviderTest {
         )
 
         assertEquals("https://example.test/api?id_list=1706.03762v7&max_results=1", url)
+    }
+
+    @Test fun exactDoiDoesNotProduceArxivNoise() = runTest {
+        val server = MockWebServer()
+        server.start()
+        try {
+            val provider = ArxivProvider(endpoint = server.url("/api").toString())
+
+            val page = provider.search(PaperSearchQuery("doi:10.1234/ABC.1"))
+
+            assertTrue(page.items.isEmpty())
+            assertEquals(0, server.requestCount)
+        } finally {
+            server.shutdown()
+        }
     }
 
     @Test fun getUsesVersionedRecordId() {

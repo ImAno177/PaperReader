@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
@@ -65,6 +66,8 @@ import dev.paperreader.app.extensions.CommunityThemeCatalog
 import dev.paperreader.app.extensions.CommunityThemeExtensionManager
 import dev.paperreader.app.extensions.toTrustedThemeExtension
 import dev.paperreader.app.importer.IncomingPdfRequest
+import dev.paperreader.app.importer.IncomingPaperReferenceRequest
+import dev.paperreader.app.importer.IncomingPaperReferencePayload
 import dev.paperreader.app.backup.MetadataBackupFileGateway
 import dev.paperreader.app.backup.FileMetadataRestoreSessionStore
 import dev.paperreader.app.ui.model.PaperUi
@@ -160,6 +163,8 @@ fun PaperReaderApp(
     savedSearchRefreshScheduler: SavedSearchRefreshScheduler,
     incomingPdfRequest: IncomingPdfRequest?,
     onIncomingPdfConsumed: (Long) -> Unit,
+    incomingPaperReferenceRequest: IncomingPaperReferenceRequest?,
+    onIncomingPaperReferenceConsumed: (Long) -> Unit,
     openUpdatesRequestId: Long?,
     onOpenUpdatesConsumed: (Long) -> Unit,
 ) {
@@ -187,6 +192,8 @@ fun PaperReaderApp(
                 savedSearchRefreshScheduler = savedSearchRefreshScheduler,
                 incomingPdfRequest = incomingPdfRequest,
                 onIncomingPdfConsumed = onIncomingPdfConsumed,
+                incomingPaperReferenceRequest = incomingPaperReferenceRequest,
+                onIncomingPaperReferenceConsumed = onIncomingPaperReferenceConsumed,
                 openUpdatesRequestId = openUpdatesRequestId,
                 onOpenUpdatesConsumed = onOpenUpdatesConsumed,
             )
@@ -206,6 +213,8 @@ private fun PaperReaderContent(
     savedSearchRefreshScheduler: SavedSearchRefreshScheduler,
     incomingPdfRequest: IncomingPdfRequest?,
     onIncomingPdfConsumed: (Long) -> Unit,
+    incomingPaperReferenceRequest: IncomingPaperReferenceRequest?,
+    onIncomingPaperReferenceConsumed: (Long) -> Unit,
     openUpdatesRequestId: Long?,
     onOpenUpdatesConsumed: (Long) -> Unit,
 ) {
@@ -405,6 +414,8 @@ private fun PaperReaderContent(
         },
         openUpdatesRequestId = openUpdatesRequestId,
         onOpenUpdatesConsumed = onOpenUpdatesConsumed,
+        incomingPaperReferenceRequest = incomingPaperReferenceRequest,
+        onIncomingPaperReferenceConsumed = onIncomingPaperReferenceConsumed,
     )
 }
 
@@ -460,12 +471,30 @@ private fun PaperReaderNavigation(
     onOpenNotificationSettings: () -> Unit,
     openUpdatesRequestId: Long?,
     onOpenUpdatesConsumed: (Long) -> Unit,
+    incomingPaperReferenceRequest: IncomingPaperReferenceRequest?,
+    onIncomingPaperReferenceConsumed: (Long) -> Unit,
 ) {
+    val context = LocalContext.current
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val chromeHidden = !shouldShowPrimaryNavigation(currentRoute)
     val destinations = AppDestination.entries
+    val invalidReferenceMessage = stringResource(R.string.share_reference_invalid)
+
+    IncomingPaperReferenceEffect(
+        request = incomingPaperReferenceRequest,
+        onNavigateToDiscover = {
+            if (navController.currentDestination?.route != AppRoutes.DISCOVER) {
+                navController.navigate(AppRoutes.DISCOVER) { launchSingleTop = true }
+            }
+        },
+        onSearch = onSearch,
+        onInvalid = {
+            Toast.makeText(context, invalidReferenceMessage, Toast.LENGTH_LONG).show()
+        },
+        onConsumed = onIncomingPaperReferenceConsumed,
+    )
 
     LaunchedEffect(openUpdatesRequestId) {
         val requestId = openUpdatesRequestId ?: return@LaunchedEffect
@@ -476,6 +505,9 @@ private fun PaperReaderNavigation(
     }
 
     LaunchedEffect(metadataBackup, localPdfImport) {
+        if (incomingPaperReferenceRequest != null || openUpdatesRequestId != null) {
+            return@LaunchedEffect
+        }
         val route = when (moreAttentionDestination(metadataBackup, localPdfImport)) {
             MoreAttentionDestination.DATA_BACKUP -> AppRoutes.MORE_DATA_BACKUP
             MoreAttentionDestination.READING_IMPORTS -> AppRoutes.MORE_READING_IMPORTS
@@ -606,6 +638,27 @@ private fun PaperReaderNavigation(
                 modifier = modifier,
             )
         }
+    }
+}
+
+@Composable
+internal fun IncomingPaperReferenceEffect(
+    request: IncomingPaperReferenceRequest?,
+    onNavigateToDiscover: () -> Unit,
+    onSearch: (String) -> Unit,
+    onInvalid: () -> Unit,
+    onConsumed: (Long) -> Unit,
+) {
+    LaunchedEffect(request) {
+        val current = request ?: return@LaunchedEffect
+        when (val payload = current.payload) {
+            is IncomingPaperReferencePayload.Valid -> {
+                onNavigateToDiscover()
+                onSearch(payload.reference.query)
+            }
+            IncomingPaperReferencePayload.Invalid -> onInvalid()
+        }
+        onConsumed(current.id)
     }
 }
 

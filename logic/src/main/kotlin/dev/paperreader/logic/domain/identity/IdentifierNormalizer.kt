@@ -14,6 +14,7 @@ data class NormalizedArxivId(
 
 object IdentifierNormalizer {
     private val doiPattern = Regex("^10\\.\\d{4,9}/\\S+$", RegexOption.IGNORE_CASE)
+    private val doiResolverPrefix = Regex("^https?://(?:dx\\.)?doi\\.org/", RegexOption.IGNORE_CASE)
     private val modernArxivPattern = Regex("^(\\d{4}\\.\\d{4,5})(?:v(\\d+))?$", RegexOption.IGNORE_CASE)
     private val legacyArxivPattern =
         Regex("^([a-z][a-z0-9.-]*/\\d{7})(?:v(\\d+))?$", RegexOption.IGNORE_CASE)
@@ -21,10 +22,9 @@ object IdentifierNormalizer {
     fun doi(raw: String): String {
         var candidate = raw.trim()
         candidate = candidate.replace(Regex("^doi:\\s*", RegexOption.IGNORE_CASE), "")
-        candidate = candidate.replace(
-            Regex("^https?://(?:dx\\.)?doi\\.org/", RegexOption.IGNORE_CASE),
-            "",
-        )
+        val resolverUrl = doiResolverPrefix.containsMatchIn(candidate)
+        candidate = candidate.replace(doiResolverPrefix, "")
+        if (resolverUrl) candidate = candidate.substringBefore('?').substringBefore('#')
         candidate = decodePercentEscapes(candidate).trim().lowercase()
         require(doiPattern.matches(candidate)) { "Invalid DOI: $raw" }
         return candidate

@@ -99,7 +99,7 @@ class ArxivProvider(
 
     private fun parseEntry(entry: Element): RemotePaper {
         val rawId = text(entry, "id") ?: throw IllegalArgumentException("arXiv entry has no id")
-        val arxiv = IdentifierNormalizer.arxiv(rawId.substringAfterLast("/"))
+        val arxiv = IdentifierNormalizer.arxiv(rawId)
         val title = text(entry, "title")?.collapseWhitespace()
             ?: throw IllegalArgumentException("arXiv entry has no title")
         val authors = entry.children("author").mapNotNull { author ->

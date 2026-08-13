@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -32,6 +33,24 @@ class MainNavigationAndroidTest {
 
         composeRule.onNodeWithText("Library").performClick()
         waitForScreenTitle("Library")
+    }
+
+    @Test
+    fun everyPrimaryDestinationRemainsReachableAcrossRepeatedTabPermutations() {
+        waitForScreenTitle("Library")
+
+        val destinations = listOf(
+            "library" to "Library",
+            "discover" to "Discover",
+            "updates" to "Updates",
+            "history" to "History",
+            "more" to "More",
+        )
+
+        destinations.forEach { outerDestination ->
+            navigateToPrimaryDestination(outerDestination)
+            destinations.forEach(::navigateToPrimaryDestination)
+        }
     }
 
     @Test
@@ -112,6 +131,27 @@ class MainNavigationAndroidTest {
             // One node is the navigation label and the other is the screen title.
             composeRule.onAllNodesWithText(text).fetchSemanticsNodes().size >= 2
         }
+    }
+
+    private fun waitForText(text: String) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun navigateToPrimaryDestination(destination: Pair<String, String>) {
+        val (route, title) = destination
+        composeRule
+            .onNodeWithTag("$PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX$route")
+            .performClick()
+        if (route == "discover") {
+            waitForText(title)
+        } else {
+            waitForScreenTitle(title)
+        }
+        composeRule
+            .onNodeWithTag("$PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX$route")
+            .assertIsSelected()
     }
 
     private fun waitForPrimaryNavigation(visible: Boolean) {

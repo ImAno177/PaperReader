@@ -1,0 +1,19 @@
+<resources>
+    <style name="Theme.PaperReader.PdfReader" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">@color/reader_canvas</item>
+        <item name="android:navigationBarColor">@color/reader_canvas</item>
+        <item name="android:statusBarColor">@color/reader_canvas</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="colorPrimary">@color/reader_ink</item>
+        <item name="colorOnPrimary">@color/reader_canvas</item>
+        <item name="colorSecondary">@color/reader_accent</item>
+        <item name="colorOnSecondary">@color/reader_on_accent</item>
+        <item name="colorSurface">@color/reader_canvas</item>
+        <item name="colorOnSurface">@color/reader_ink</item>
+        <item name="colorSurfaceVariant">@color/reader_surface</item>
+        <item name="colorOnSurfaceVariant">@color/reader_ink_muted</item>
+    </style>
+</resources>

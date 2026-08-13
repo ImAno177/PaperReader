@@ -1,0 +1,100 @@
+package dev.paperreader.logic.provider
+
+import dev.paperreader.logic.domain.ManifestationType
+import dev.paperreader.logic.domain.PaperAuthor
+import dev.paperreader.logic.domain.PaperIdentifier
+import java.time.Instant
+import java.time.LocalDate
+import java.net.URI
+
+data class ProviderDescriptor(
+    val id: String,
+    val displayName: String,
+    val minimumRequestIntervalMillis: Long,
+    val requiresApiKey: Boolean = false,
+) {
+    init {
+        require(id.matches(Regex("[a-z0-9][a-z0-9._-]*")))
+        require(displayName.isNotBlank())
+        require(minimumRequestIntervalMillis >= 0)
+    }
+}
+
+enum class SearchSort {
+    RELEVANCE,
+    NEWEST,
+    OLDEST,
+}
+
+data class PaperSearchQuery(
+    val text: String,
+    val limit: Int = 20,
+    val cursor: String? = null,
+    val sort: SearchSort = SearchSort.RELEVANCE,
+) {
+    init {
+        require(text.isNotBlank())
+        require(limit in 1..100)
+    }
+}
+
+data class RemoteManifestation(
+    val type: ManifestationType,
+    val version: String? = null,
+    val landingPageUrl: String? = null,
+    val pdfUrl: String? = null,
+    val license: String? = null,
+    val publishedDate: LocalDate? = null,
+) {
+    init {
+        require(landingPageUrl == null || landingPageUrl.isSafeWebUrl()) {
+            "Landing page URL must use HTTP(S) with a host"
+        }
+        require(pdfUrl == null || pdfUrl.isSafeWebUrl()) {
+            "PDF URL must use HTTP(S) with a host"
+        }
+    }
+}
+
+data class RemotePaper(
+    val providerId: String,
+    val providerRecordId: String,
+    val title: String,
+    val abstractText: String? = null,
+    val authors: List<PaperAuthor> = emptyList(),
+    val identifiers: Set<PaperIdentifier> = emptySet(),
+    val subjects: Set<String> = emptySet(),
+    val publishedDate: LocalDate? = null,
+    val updatedAt: Instant? = null,
+    val manifestations: List<RemoteManifestation> = emptyList(),
+) {
+    init {
+        require(providerId.isNotBlank())
+        require(providerRecordId.isNotBlank())
+        require(title.isNotBlank())
+    }
+}
+
+data class ProviderPage(
+    val items: List<RemotePaper>,
+    val nextCursor: String? = null,
+)
+
+interface PaperProvider {
+    val descriptor: ProviderDescriptor
+
+    suspend fun search(query: PaperSearchQuery): ProviderPage
+
+    suspend fun get(recordId: String): RemotePaper?
+}
+
+sealed class ProviderException(message: String, cause: Throwable? = null) : Exception(message, cause) {
+    class RateLimited(val retryAfterMillis: Long?) : ProviderException("Provider rate limited the request")
+    class Unavailable(cause: Throwable? = null) : ProviderException("Provider is unavailable", cause)
+    class InvalidResponse(cause: Throwable? = null) : ProviderException("Provider returned invalid data", cause)
+}
+
+private fun String.isSafeWebUrl(): Boolean = runCatching {
+    val uri = URI(this)
+    uri.scheme?.lowercase() in setOf("http", "https") && !uri.host.isNullOrBlank()
+}.getOrDefault(false)

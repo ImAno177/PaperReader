@@ -1,0 +1,1099 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 4,
+    "identityHash": "e4c86faf1074b1b8479a9fc413a22ba5",
+    "entities": [
+      {
+        "tableName": "works",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `abstractText` TEXT, `subjects` TEXT NOT NULL, `publishedDateEpochDay` INTEGER, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "abstractText",
+            "columnName": "abstractText",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "subjects",
+            "columnName": "subjects",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "publishedDateEpochDay",
+            "columnName": "publishedDateEpochDay",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "collections",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL COLLATE NOCASE, `sortOrder` INTEGER NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_collections_name",
+            "unique": true,
+            "columnNames": [
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_collections_name` ON `${TABLE_NAME}` (`name`)"
+          }
+        ]
+      },
+      {
+        "tableName": "work_collections",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workId` TEXT NOT NULL, `collectionId` INTEGER NOT NULL, PRIMARY KEY(`workId`, `collectionId`), FOREIGN KEY(`workId`) REFERENCES `works`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`collectionId`) REFERENCES `collections`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "workId",
+            "columnName": "workId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "collectionId",
+            "columnName": "collectionId",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "workId",
+            "collectionId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_work_collections_workId",
+            "unique": false,
+            "columnNames": [
+              "workId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_work_collections_workId` ON `${TABLE_NAME}` (`workId`)"
+          },
+          {
+            "name": "index_work_collections_collectionId",
+            "unique": false,
+            "columnNames": [
+              "collectionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_work_collections_collectionId` ON `${TABLE_NAME}` (`collectionId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "works",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "workId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "collections",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "collectionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "authors",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workId` TEXT NOT NULL, `position` INTEGER NOT NULL, `displayName` TEXT NOT NULL, `givenName` TEXT, `familyName` TEXT, `orcid` TEXT, PRIMARY KEY(`workId`, `position`))",
+        "fields": [
+          {
+            "fieldPath": "workId",
+            "columnName": "workId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "givenName",
+            "columnName": "givenName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "familyName",
+            "columnName": "familyName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "orcid",
+            "columnName": "orcid",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "workId",
+            "position"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_authors_workId",
+            "unique": false,
+            "columnNames": [
+              "workId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_authors_workId` ON `${TABLE_NAME}` (`workId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "identifiers",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workId` TEXT NOT NULL, `type` TEXT NOT NULL, `value` TEXT NOT NULL, `authority` TEXT NOT NULL, PRIMARY KEY(`workId`, `type`, `value`, `authority`))",
+        "fields": [
+          {
+            "fieldPath": "workId",
+            "columnName": "workId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "authority",
+            "columnName": "authority",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "workId",
+            "type",
+            "value",
+            "authority"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_identifiers_type_value_authority",
+            "unique": false,
+            "columnNames": [
+              "type",
+              "value",
+              "authority"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_identifiers_type_value_authority` ON `${TABLE_NAME}` (`type`, `value`, `authority`)"
+          }
+        ]
+      },
+      {
+        "tableName": "manifestations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workId` TEXT NOT NULL, `type` TEXT NOT NULL, `sourceProvider` TEXT NOT NULL, `sourceRecordId` TEXT NOT NULL, `version` TEXT, `landingPageUrl` TEXT, `pdfUrl` TEXT, `license` TEXT, `publishedDateEpochDay` INTEGER, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workId",
+            "columnName": "workId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceProvider",
+            "columnName": "sourceProvider",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceRecordId",
+            "columnName": "sourceRecordId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "landingPageUrl",
+            "columnName": "landingPageUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pdfUrl",
+            "columnName": "pdfUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "license",
+            "columnName": "license",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "publishedDateEpochDay",
+            "columnName": "publishedDateEpochDay",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_manifestations_workId",
+            "unique": false,
+            "columnNames": [
+              "workId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_manifestations_workId` ON `${TABLE_NAME}` (`workId`)"
+          },
+          {
+            "name": "index_manifestations_sourceProvider_sourceRecordId",
+            "unique": false,
+            "columnNames": [
+              "sourceProvider",
+              "sourceRecordId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_manifestations_sourceProvider_sourceRecordId` ON `${TABLE_NAME}` (`sourceProvider`, `sourceRecordId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "files",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `manifestationId` TEXT NOT NULL, `localPath` TEXT, `sha256` TEXT, `byteLength` INTEGER, `mimeType` TEXT NOT NULL, `extractionStatus` TEXT NOT NULL, `extractionManifestPath` TEXT, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "manifestationId",
+            "columnName": "manifestationId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localPath",
+            "columnName": "localPath",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "byteLength",
+            "columnName": "byteLength",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "mimeType",
+            "columnName": "mimeType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "extractionStatus",
+            "columnName": "extractionStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "extractionManifestPath",
+            "columnName": "extractionManifestPath",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_files_manifestationId",
+            "unique": false,
+            "columnNames": [
+              "manifestationId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_files_manifestationId` ON `${TABLE_NAME}` (`manifestationId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "reading_state",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workId` TEXT NOT NULL, `manifestationId` TEXT, `documentSha256` TEXT, `blockId` TEXT, `characterOffset` INTEGER NOT NULL, `pageIndex` INTEGER, `progression` REAL NOT NULL, `status` TEXT NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`workId`))",
+        "fields": [
+          {
+            "fieldPath": "workId",
+            "columnName": "workId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "manifestationId",
+            "columnName": "manifestationId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "documentSha256",
+            "columnName": "documentSha256",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "blockId",
+            "columnName": "blockId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "characterOffset",
+            "columnName": "characterOffset",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageIndex",
+            "columnName": "pageIndex",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "progression",
+            "columnName": "progression",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "workId"
+          ]
+        }
+      },
+      {
+        "tableName": "reading_bookmarks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workId` TEXT NOT NULL, `manifestationId` TEXT NOT NULL, `documentSha256` TEXT NOT NULL, `pageIndex` INTEGER NOT NULL, `id` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`workId`, `manifestationId`, `documentSha256`, `pageIndex`), FOREIGN KEY(`workId`) REFERENCES `works`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "workId",
+            "columnName": "workId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "manifestationId",
+            "columnName": "manifestationId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "documentSha256",
+            "columnName": "documentSha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageIndex",
+            "columnName": "pageIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "workId",
+            "manifestationId",
+            "documentSha256",
+            "pageIndex"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_reading_bookmarks_workId",
+            "unique": false,
+            "columnNames": [
+              "workId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_reading_bookmarks_workId` ON `${TABLE_NAME}` (`workId`)"
+          },
+          {
+            "name": "index_reading_bookmarks_manifestationId",
+            "unique": false,
+            "columnNames": [
+              "manifestationId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_reading_bookmarks_manifestationId` ON `${TABLE_NAME}` (`manifestationId`)"
+          },
+          {
+            "name": "index_reading_bookmarks_workId_manifestationId_documentSha256",
+            "unique": false,
+            "columnNames": [
+              "workId",
+              "manifestationId",
+              "documentSha256"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_reading_bookmarks_workId_manifestationId_documentSha256` ON `${TABLE_NAME}` (`workId`, `manifestationId`, `documentSha256`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "works",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "workId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "annotations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `workId` TEXT NOT NULL, `documentSha256` TEXT NOT NULL, `blockId` TEXT NOT NULL, `startOffset` INTEGER NOT NULL, `endOffset` INTEGER NOT NULL, `quotePrefix` TEXT NOT NULL, `quoteExact` TEXT NOT NULL, `quoteSuffix` TEXT NOT NULL, `pageIndex` INTEGER, `note` TEXT, `color` TEXT, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workId",
+            "columnName": "workId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "documentSha256",
+            "columnName": "documentSha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "blockId",
+            "columnName": "blockId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startOffset",
+            "columnName": "startOffset",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endOffset",
+            "columnName": "endOffset",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "quotePrefix",
+            "columnName": "quotePrefix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "quoteExact",
+            "columnName": "quoteExact",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "quoteSuffix",
+            "columnName": "quoteSuffix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pageIndex",
+            "columnName": "pageIndex",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "color",
+            "columnName": "color",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_annotations_workId",
+            "unique": false,
+            "columnNames": [
+              "workId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_annotations_workId` ON `${TABLE_NAME}` (`workId`)"
+          },
+          {
+            "name": "index_annotations_documentSha256",
+            "unique": false,
+            "columnNames": [
+              "documentSha256"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_annotations_documentSha256` ON `${TABLE_NAME}` (`documentSha256`)"
+          }
+        ]
+      },
+      {
+        "tableName": "paper_tasks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `kind` TEXT NOT NULL, `workId` TEXT, `targetKey` TEXT NOT NULL, `state` TEXT NOT NULL, `progress` REAL NOT NULL, `attempt` INTEGER NOT NULL, `failureCode` TEXT, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workId",
+            "columnName": "workId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "targetKey",
+            "columnName": "targetKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "progress",
+            "columnName": "progress",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attempt",
+            "columnName": "attempt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "failureCode",
+            "columnName": "failureCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_paper_tasks_state",
+            "unique": false,
+            "columnNames": [
+              "state"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_paper_tasks_state` ON `${TABLE_NAME}` (`state`)"
+          },
+          {
+            "name": "index_paper_tasks_workId",
+            "unique": false,
+            "columnNames": [
+              "workId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_paper_tasks_workId` ON `${TABLE_NAME}` (`workId`)"
+          },
+          {
+            "name": "index_paper_tasks_kind_targetKey",
+            "unique": false,
+            "columnNames": [
+              "kind",
+              "targetKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_paper_tasks_kind_targetKey` ON `${TABLE_NAME}` (`kind`, `targetKey`)"
+          }
+        ]
+      },
+      {
+        "tableName": "reading_history",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`workId` TEXT NOT NULL, `lastReadAtEpochMillis` INTEGER NOT NULL, `totalReadDurationMillis` INTEGER NOT NULL, `sessionCount` INTEGER NOT NULL, PRIMARY KEY(`workId`))",
+        "fields": [
+          {
+            "fieldPath": "workId",
+            "columnName": "workId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastReadAtEpochMillis",
+            "columnName": "lastReadAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalReadDurationMillis",
+            "columnName": "totalReadDurationMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionCount",
+            "columnName": "sessionCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "workId"
+          ]
+        }
+      },
+      {
+        "tableName": "saved_searches",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `queryText` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "queryText",
+            "columnName": "queryText",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "saved_search_sources",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`searchId` TEXT NOT NULL, `providerId` TEXT NOT NULL, `lastCheckedAtEpochMillis` INTEGER, `lastSuccessAtEpochMillis` INTEGER, `failureKind` TEXT, `retryAfterEpochMillis` INTEGER, PRIMARY KEY(`searchId`, `providerId`), FOREIGN KEY(`searchId`) REFERENCES `saved_searches`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "searchId",
+            "columnName": "searchId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "providerId",
+            "columnName": "providerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastCheckedAtEpochMillis",
+            "columnName": "lastCheckedAtEpochMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastSuccessAtEpochMillis",
+            "columnName": "lastSuccessAtEpochMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "failureKind",
+            "columnName": "failureKind",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "retryAfterEpochMillis",
+            "columnName": "retryAfterEpochMillis",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "searchId",
+            "providerId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_saved_search_sources_searchId",
+            "unique": false,
+            "columnNames": [
+              "searchId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_saved_search_sources_searchId` ON `${TABLE_NAME}` (`searchId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "saved_searches",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "searchId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "saved_search_hits",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `searchId` TEXT NOT NULL, `providerId` TEXT NOT NULL, `providerRecordId` TEXT NOT NULL, `fingerprint` TEXT NOT NULL, `recordPayload` TEXT NOT NULL, `linkedWorkId` TEXT, `providerUpdatedAtEpochMillis` INTEGER, `firstSeenAtEpochMillis` INTEGER NOT NULL, `lastSeenAtEpochMillis` INTEGER NOT NULL, `unread` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`searchId`) REFERENCES `saved_searches`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`linkedWorkId`) REFERENCES `works`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "searchId",
+            "columnName": "searchId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "providerId",
+            "columnName": "providerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "providerRecordId",
+            "columnName": "providerRecordId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fingerprint",
+            "columnName": "fingerprint",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordPayload",
+            "columnName": "recordPayload",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "linkedWorkId",
+            "columnName": "linkedWorkId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "providerUpdatedAtEpochMillis",
+            "columnName": "providerUpdatedAtEpochMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "firstSeenAtEpochMillis",
+            "columnName": "firstSeenAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSeenAtEpochMillis",
+            "columnName": "lastSeenAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unread",
+            "columnName": "unread",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_saved_search_hits_searchId",
+            "unique": false,
+            "columnNames": [
+              "searchId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_saved_search_hits_searchId` ON `${TABLE_NAME}` (`searchId`)"
+          },
+          {
+            "name": "index_saved_search_hits_linkedWorkId",
+            "unique": false,
+            "columnNames": [
+              "linkedWorkId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_saved_search_hits_linkedWorkId` ON `${TABLE_NAME}` (`linkedWorkId`)"
+          },
+          {
+            "name": "index_saved_search_hits_searchId_providerId_providerRecordId",
+            "unique": true,
+            "columnNames": [
+              "searchId",
+              "providerId",
+              "providerRecordId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_saved_search_hits_searchId_providerId_providerRecordId` ON `${TABLE_NAME}` (`searchId`, `providerId`, `providerRecordId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "saved_searches",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "searchId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "works",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "linkedWorkId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e4c86faf1074b1b8479a9fc413a22ba5')"
+    ]
+  }
+}

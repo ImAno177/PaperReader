@@ -2,9 +2,9 @@ package dev.paperreader.logic.provider.builtin
 
 import dev.paperreader.logic.domain.IdentifierType
 import dev.paperreader.logic.provider.PaperSearchQuery
+import dev.paperreader.logic.provider.ProviderException
 import dev.paperreader.logic.provider.SearchSort
 import java.io.File
-import dev.paperreader.logic.provider.ProviderException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -21,6 +21,8 @@ class ArxivProviderTest {
         assertTrue(paper.identifiers.any { it.type == IdentifierType.ARXIV && it.value == "2401.01234" })
         assertTrue(paper.identifiers.any { it.type == IdentifierType.DOI && it.value == "10.5555/quantum.1" })
         assertEquals("v2", paper.manifestations.single().version)
+        assertEquals("2024-01-05", paper.publishedDate.toString())
+        assertEquals("2024-02-03", paper.manifestations.single().publishedDate.toString())
         assertEquals(setOf("quant-ph", "cs.IT"), paper.subjects)
     }
 

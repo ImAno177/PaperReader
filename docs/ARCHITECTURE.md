@@ -205,13 +205,19 @@ Room entity classes are public only because the current Room/KSP processor needs
   barely visible `firstVisiblePage`, keeping indicator, bookmark, and progress semantics aligned.
   Editing/highlight/note UI stays disabled until richer sidecar anchors exist.
 - The mobile reader is the primary action for exact-version arXiv manifestations. It renders only
-  the logic-owned sanitized document in a non-exported, JavaScript-free, network-blocked WebView
-  with a deny-by-default CSP. It provides a native table of contents, in-document search,
+  the logic-owned sanitized document in a non-exported, source-script-free, network-blocked WebView
+  with a deny-by-default CSP. Native TOC navigation temporarily executes only an app-owned
+  `getElementById(safeAnchor).scrollIntoView()` command, with a forced disable timeout. It provides
+  a native table of contents, in-document search,
   selectable text, 85–200% reversible text sizing, responsive figures, scrollable math/tables,
   source/version/license disclosure, dark/light theme palettes, offline cache reopening, exact
   document-hash progress restoration, reading sessions, and an always-available Original PDF
   fallback when the verified local file exists. Other providers and PDFs without structured HTML
   still fall back honestly; the app does not claim universal reflow yet.
+- arXiv work publication dates remain distinct from exact-version manifestation update dates. Atom
+  metadata does not prove a content license; the detail screen defers the license label until the
+  sanitized official HTML source has supplied it, and the reader reports narrowly normalized source
+  conversion artifacts without interpreting arbitrary TeX.
 - Three separate visual token packs (Doodle, Retro, and Neobrutalism) sharing one information
   architecture and accessible content typography. Empty-state accents are semantic theme tokens,
   not a hard-coded purple. The selected preset and its light/dark palette continue into the
@@ -239,9 +245,11 @@ Room entity classes are public only because the current Room/KSP processor needs
   system-viewer fallback is retained.
 - Global queue pause/resume, user reorder, and bulk actions remain deferred; per-task actions are
   implemented; full queue controls remain deferred.
-- Signed extension-store index, end-user discovery/install/update, certificate rotation, and review
-  policy remain deferred. Explicitly trusted external source and theme APKs already bind and run
-  under separate UIDs through the versioned SDK.
+- Remaining store work includes publisher signing-material rotation, lifecycle states for disabled
+  or orphaned packages, review policy, a preconfigured official store, and an in-app APK downloader.
+  User-managed Ed25519-signed stores,
+  compatible release discovery, system-mediated install/update, and isolated source/theme APKs are
+  implemented.
 - Tags, smart collections, collection reordering, highlight/note annotations, manifestation
   revision/citation updates, configurable saved-search cadence, saved-search backup/restore,
   production PDF-to-reflow extraction, isolated TeX conversion, OCR, and structured full text for

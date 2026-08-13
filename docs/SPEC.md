@@ -313,7 +313,7 @@ Quy tắc bắt buộc:
 
 - Chỉ load origin local `https://appassets.androidplatform.net`; hình/font/CSS đều bundle hoặc app-private, không dùng CDN.
 - Chuẩn hóa riêng markup `<u>` do parser sinh thành node cho phép; escape mọi raw HTML khác, sanitize URL/protocol, chặn remote image/navigation, tắt file/content access, universal file URL và mixed content.
-- P1 tắt JavaScript và dùng CSP `default-src 'none'`; link ngoài đi qua allowlist + explicit intent. HTML do provider trả về không bao giờ render trực tiếp.
+- P1 không cho document script chạy và dùng CSP `default-src 'none'`; link ngoài đi qua allowlist + explicit intent. HTML do provider trả về không bao giờ render trực tiếp. Native TOC chỉ bật JavaScript tạm thời cho lệnh app-owned `getElementById(safeAnchor).scrollIntoView()`, rồi tắt trong callback hoặc timeout; anchor đã qua allowlist ký tự và không nhận source script.
 - Khi P2 cần selection bridge cho highlight, chỉ dùng script bundle cố định và `WebMessageListener` giới hạn đúng appassets origin; không dùng `addJavascriptInterface` rộng.
 - `document.html` là cache theo renderer version. Annotation/progress không lưu DOM selector hoặc pixel vì HTML/CSS/WebView có thể đổi.
 - Bảng rộng cuộn ngang trong block; figure thiếu dùng placeholder + caption/alt + hành động mở trang gốc. KaTeX không vào P1 vì `pdf-inspector` không sinh LaTeX; chỉ xét khi có nguồn TeX/MathML thật.
@@ -322,12 +322,18 @@ Quy tắc bắt buộc:
 
 Provider-HTML slice đã chọn cùng một local WebView renderer nhưng không đi qua CommonMark: jsoup
 parse official arXiv LaTeXML HTML, giữ semantic headings/tables/citations/MathML, chỉ nhúng raster
-figure cùng host/path dưới ngân sách byte/count, và xuất sanitized body fragment. WebView tắt
-JavaScript, file/content access, storage, mixed content và network loads; CSP mặc định từ chối mọi
+figure cùng host/path dưới ngân sách byte/count, và xuất sanitized body fragment. WebView từ chối
+document JavaScript, file/content access, storage, mixed content và network loads; CSP mặc định từ chối mọi
 resource ngoại trừ inline style do app tạo và data-image đã kiểm tra. HTML nguồn, cache và document
 hash là ba khái niệm riêng; progress chỉ khôi phục khi manifestation và sanitized document hash đều
 khớp. Đây là đường production cho official arXiv HTML, không làm thay đổi quy tắc Markdown là artifact
 chuẩn của nhánh PDF extraction tương lai.
+
+Với arXiv, ngày của `PaperWork` lấy từ Atom `published`, còn ngày của một manifestation có version
+chính xác lấy từ Atom `updated` của version đó. License không được suy đoán từ metadata Atom: detail
+chỉ báo rằng license sẽ xuất hiện sau khi mobile source được xác minh, rồi reader hiển thị đúng license
+từ official HTML. Sanitizer chỉ chuẩn hóa đúng mẫu LaTeXML circled-step đã biết, giữ nguyên TeX lạ và
+hiển thị warning rằng artifact nguồn đã được normalize; PDF và trang nguồn luôn còn để đối chiếu.
 
 ### 7.6 Original PDF mode
 
@@ -434,7 +440,7 @@ Không pin “latest” trong spec. Khi scaffold phải đọc lại stable chan
 | Background | WorkManager | Download/update/backup/OCR có constraint/retry |
 | Images | Coil | Cover/thumbnail/author avatar nếu có |
 | Extraction | `pdf-inspector` commit-pinned + Rust facade/JNI build bằng cargo-ndk | Local-first; P0 gate CMap/perf/16 KB page |
-| Reflow | commonmark-java AST/HTML + AndroidX WebKit/WebViewAssetLoader | Tận dụng engine HTML/CSS; local-only, JS off ở P1 |
+| Reflow | commonmark-java AST/HTML + AndroidX WebKit/WebViewAssetLoader | Tận dụng engine HTML/CSS; local-only, không chạy source script ở P1 |
 | PDF fidelity | AndroidX PDF alpha sau spike; PdfRenderer fallback | Chỉ Original mode, sau interface thay thế được |
 | OCR | Tesseract4Android ở P2 | FLOSS/offline; model size là trade-off |
 | Plugin IPC | AIDL + Protobuf Lite | ABI rõ, DTO versioned, process isolation |
@@ -642,7 +648,9 @@ Exit:
   revision/citation update, delta cursor và cadence tùy chỉnh vẫn còn trong P2.
 - Per-page Tesseract OCR cho trang được classifier đánh dấu.
 - Highlight/note/bookmark với source/page anchors; CSL JSON/BibTeX/RIS.
-- Signed store index và end-user install/update UI; host hiện chỉ nhận explicit trusted development entries.
+- Remaining store work includes publisher signing-material rotation, lifecycle states for disabled
+  or orphaned packages, review policy, and an optional preconfigured store. User-managed signed
+  stores and system-mediated install/update are already implemented.
 
 Exit:
 
@@ -679,7 +687,7 @@ Exit:
 | pdf-inspector chưa có upstream Android package | Wrapper JNI chỉ tồn tại trong `build/native-spike`; production vẫn là P0 gate cho cancellation, isolation, bounds, corpus, provenance/checksum, SBOM/license và packaging |
 | Native CMaps cần provenance/packaging | Spike đã embed CMaps; attribution Adobe CMap/Korea1/AGL, checksum and target-filtered packaging must pass CJK/Type0 corpus before P1 |
 | Markdown mất formula/figure/layout fidelity | Hiển thị confidence/unsupported state, page chip và Original fallback; không suy diễn LaTeX/ảnh |
-| Local HTML/WebView mở thêm attack surface | Appassets origin, raw HTML escaped, URL allowlist, file/content/mixed-content off, JS off ở P1, CSP và network-deny tests |
+| Local HTML/WebView mở thêm attack surface | Appassets origin, raw HTML escaped, URL allowlist, file/content/mixed-content off, source script bị loại, TOC command bounded, CSP và network-deny tests |
 | Markwon dễ hơn nhưng upstream cũ | Chỉ là P0 fallback; pin/audit nếu chọn và không duy trì hai renderer production |
 | OCR FLOSS tăng APK/model size | Tải language pack theo nhu cầu ở P2 |
 | OpenAlex chuyển sang freemium/API key | App hỗ trợ user key và provider fallback |

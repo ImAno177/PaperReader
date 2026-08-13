@@ -67,6 +67,18 @@ internal fun nextReadableTextZoom(current: Int, increase: Boolean): Int = if (in
     READABLE_TEXT_ZOOM_LEVELS.lastOrNull { it < current } ?: READABLE_TEXT_ZOOM_LEVELS.first()
 }
 
+internal fun readableSectionNavigationScript(anchor: String): String {
+    require(anchor.matches(Regex("[A-Za-z0-9._:-]{1,160}")))
+    return """
+        (() => {
+          const target = document.getElementById('$anchor');
+          if (!target) return false;
+          target.scrollIntoView({ block: 'start', behavior: 'auto' });
+          return true;
+        })()
+    """.trimIndent()
+}
+
 internal fun renderReadablePaperHtml(
     sanitizedBodyHtml: String,
     palette: ReadablePaperPalette,
@@ -265,6 +277,8 @@ class ReadablePaperWebView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
 ) : WebView(context, attrs) {
     var onProgressionChanged: ((Double) -> Unit)? = null
+    private var anchorNavigationSerial = 0
+    private var anchorNavigationTimeout: Runnable? = null
 
     override fun onScrollChanged(left: Int, top: Int, oldLeft: Int, oldTop: Int) {
         super.onScrollChanged(left, top, oldLeft, oldTop)
@@ -283,6 +297,43 @@ class ReadablePaperWebView @JvmOverloads constructor(
             val maximumScroll = (computeVerticalScrollRange() - height).coerceAtLeast(0)
             scrollTo(0, (maximumScroll * bounded).roundToInt())
         }
+    }
+
+    fun scrollToDocumentAnchor(anchor: String, onResult: (Boolean) -> Unit) {
+        val script = readableSectionNavigationScript(anchor)
+        cancelDocumentAnchorNavigation()
+        val serial = ++anchorNavigationSerial
+        settings.javaScriptEnabled = true
+        val timeout = Runnable { finishAnchorNavigation(serial, found = false, onResult) }
+        anchorNavigationTimeout = timeout
+        postDelayed(timeout, ANCHOR_NAVIGATION_TIMEOUT_MILLIS)
+        evaluateJavascript(script) { result ->
+            finishAnchorNavigation(serial, result == "true", onResult)
+        }
+    }
+
+    fun cancelDocumentAnchorNavigation() {
+        anchorNavigationSerial += 1
+        anchorNavigationTimeout?.let(::removeCallbacks)
+        anchorNavigationTimeout = null
+        settings.javaScriptEnabled = false
+    }
+
+    private fun finishAnchorNavigation(
+        serial: Int,
+        found: Boolean,
+        onResult: (Boolean) -> Unit,
+    ) {
+        if (serial != anchorNavigationSerial) return
+        anchorNavigationTimeout?.let(::removeCallbacks)
+        anchorNavigationTimeout = null
+        anchorNavigationSerial += 1
+        settings.javaScriptEnabled = false
+        onResult(found)
+    }
+
+    companion object {
+        private const val ANCHOR_NAVIGATION_TIMEOUT_MILLIS = 1_500L
     }
 }
 

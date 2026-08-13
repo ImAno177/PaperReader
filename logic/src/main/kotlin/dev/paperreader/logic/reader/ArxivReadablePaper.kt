@@ -47,6 +47,7 @@ enum class ReadablePaperWarning {
     TABLE_OF_CONTENTS_MISSING,
     FIGURE_UNAVAILABLE,
     FIGURE_LIMIT_REACHED,
+    SOURCE_CONVERSION_ARTIFACT_NORMALIZED,
 }
 
 enum class ReadablePaperFailure {
@@ -208,7 +209,7 @@ internal class ArxivReadablePaperLoader(
 
     companion object {
         private const val ARXIV_PROVIDER_ID = "arxiv"
-        private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-5"
+        private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-6"
         private const val RENDERER_CONTRACT_VERSION = "mobile-html-4"
         private const val MAXIMUM_HTML_BYTES = 4L * 1024L * 1024L
         private val UNVERSIONED_ARXIV_ID = Regex(
@@ -256,6 +257,9 @@ internal class ArxivHtmlSanitizer(
             ?.takeIf(String::isNotBlank)
 
         val warnings = linkedSetOf<ReadablePaperWarning>()
+        if (normalizeKnownConversionArtifacts(article)) {
+            warnings += ReadablePaperWarning.SOURCE_CONVERSION_ARTIFACT_NORMALIZED
+        }
         val container = Element("div").addClass("paperreader-document")
         val sections = extractSections(parsed)
         if (sections.isEmpty()) warnings.add(ReadablePaperWarning.TABLE_OF_CONTENTS_MISSING)
@@ -274,6 +278,25 @@ internal class ArxivHtmlSanitizer(
         if (cleanedDocument.body().text().length < MINIMUM_ARTICLE_TEXT_LENGTH) return null
         if (containsExecutableMarkup(cleanedDocument)) return null
         return SanitizedReadableHtml(bodyHtml, sourceLicense, sections, warnings)
+    }
+
+    /**
+     * arXiv's LaTeXML output occasionally leaves a narrow, human-readable circled-step command
+     * as literal TeX. Preserve the authored step number without interpreting arbitrary TeX.
+     */
+    private fun normalizeKnownConversionArtifacts(article: Element): Boolean {
+        var normalized = false
+        article.getAllElements().forEach { element ->
+            element.textNodes().forEach { node ->
+                val source = node.text()
+                val replacement = CIRCLED_STEP_ARTIFACT.replace(source) { match ->
+                    normalized = true
+                    "${match.groupValues[1]}⃝"
+                }
+                if (replacement != source) node.text(replacement)
+            }
+        }
+        return normalized
     }
 
     private fun extractSections(document: Document): List<ReadablePaperSection> = document
@@ -423,6 +446,9 @@ internal class ArxivHtmlSanitizer(
         private const val MAXIMUM_SECTION_TITLE_LENGTH = 180
         private const val MAXIMUM_SECTION_COUNT = 120
         private val SAFE_ANCHOR = Regex("[A-Za-z0-9._:-]{1,160}")
+        private val CIRCLED_STEP_ARTIFACT = Regex(
+            """\\raisebox\{[-+]?(?:\d+(?:\.\d+)?|\.\d+)pt\}\{\\scriptsize\s*([0-9]{1,2})\}⃝""",
+        )
         private val SAFE_IMAGE_MEDIA_TYPES = setOf("image/png", "image/jpeg", "image/webp", "image/gif")
         private val SAFE_HTML_TAGS = arrayOf(
             "article", "section", "nav", "header", "footer", "div", "span",

@@ -27,6 +27,20 @@ class ReadablePaperRenderingTest {
     }
 
     @Test
+    fun `section navigation uses the verified document anchor instead of text search`() {
+        val script = readableSectionNavigationScript("S3.SS2")
+
+        assertTrue(script.contains("document.getElementById('S3.SS2')"))
+        assertTrue(script.contains("scrollIntoView"))
+        assertFalse(script.contains("https://"))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `section navigation rejects an anchor that can change the local URL`() {
+        readableSectionNavigationScript("section#https://tracker.invalid")
+    }
+
+    @Test
     fun `renderer is single column local only and supports wide scientific blocks`() {
         val html = renderReadablePaperHtml(
             sanitizedBodyHtml = "<article><h1>Paper</h1><math><mi>x</mi></math><table><tr><td>1</td></tr></table></article>",

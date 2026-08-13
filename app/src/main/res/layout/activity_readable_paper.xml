@@ -30,7 +30,7 @@
         android:layout_height="wrap_content"
         android:background="?attr/colorSurfaceVariant"
         android:ellipsize="end"
-        android:maxLines="2"
+        android:maxLines="4"
         android:minHeight="44dp"
         android:paddingStart="16dp"
         android:paddingTop="10dp"

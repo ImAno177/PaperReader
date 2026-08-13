@@ -44,6 +44,7 @@ import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.reader.ReadablePaperFailure
 import dev.paperreader.logic.reader.ReadablePaperResult
+import dev.paperreader.logic.reader.ReadablePaperSection
 import dev.paperreader.logic.reader.ReadablePaperWarning
 import java.io.ByteArrayInputStream
 import java.time.Instant
@@ -144,6 +145,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         loadJob?.cancel()
         progressSaveJob?.cancel()
         if (::webView.isInitialized) {
+            webView.cancelDocumentAnchorNavigation()
             webView.onProgressionChanged = null
             webView.webViewClient = WebViewClient()
             webView.stopLoading()
@@ -334,20 +336,31 @@ class ReadablePaperActivity : AppCompatActivity() {
         toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = document.sections.isNotEmpty()
         toolbar.menu.findItem(R.id.action_reading_layout).isEnabled = true
         val provenanceText = getString(
-            when {
-                document.warnings.any {
-                    it == ReadablePaperWarning.FIGURE_UNAVAILABLE ||
-                        it == ReadablePaperWarning.FIGURE_LIMIT_REACHED
-                } -> R.string.readable_reader_provenance_warning
-                document.servedFromCache -> R.string.readable_reader_provenance
-                else -> R.string.readable_reader_provenance_fresh
+            if (document.servedFromCache) {
+                R.string.readable_reader_provenance
+            } else {
+                R.string.readable_reader_provenance_fresh
             },
             document.sourceVersion,
         )
-        provenance.text = document.license
-            ?.takeIf(String::isNotBlank)
-            ?.let { "$provenanceText\n${getString(R.string.readable_reader_license_line, it)}" }
-            ?: provenanceText
+        provenance.text = buildList {
+            add(provenanceText)
+            document.license?.takeIf(String::isNotBlank)?.let {
+                add(getString(R.string.readable_reader_license_line, it))
+            }
+            if (ReadablePaperWarning.SOURCE_CONVERSION_ARTIFACT_NORMALIZED in document.warnings) {
+                add(getString(R.string.readable_reader_conversion_warning))
+            }
+            if (
+                ReadablePaperWarning.FIGURE_UNAVAILABLE in document.warnings ||
+                ReadablePaperWarning.FIGURE_LIMIT_REACHED in document.warnings
+            ) {
+                add(getString(R.string.readable_reader_figure_warning))
+            }
+            if (ReadablePaperWarning.TABLE_OF_CONTENTS_MISSING in document.warnings) {
+                add(getString(R.string.readable_reader_contents_warning))
+            }
+        }.joinToString("\n")
         provenance.visibility = View.VISIBLE
         loadRenderedDocument(document)
     }
@@ -549,20 +562,20 @@ class ReadablePaperActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(R.string.readable_reader_contents)
             .setItems(labels) { dialog, index ->
-                navigateToSection(sections[index].title)
+                navigateToSection(sections[index])
                 dialog.dismiss()
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
-    private fun navigateToSection(title: String) {
-        webView.setFindListener { _, numberOfMatches, isDoneCounting ->
-            if (isDoneCounting && numberOfMatches == 0) {
+    private fun navigateToSection(section: ReadablePaperSection) {
+        webView.clearMatches()
+        webView.scrollToDocumentAnchor(section.anchor) { found ->
+            if (!found && !isDestroyed) {
                 Toast.makeText(this, R.string.readable_reader_contents_empty, Toast.LENGTH_SHORT).show()
             }
         }
-        webView.findAllAsync(title)
     }
 
     private fun showReadingLayoutDialog() {

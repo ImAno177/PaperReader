@@ -310,8 +310,10 @@
     <string name="readable_reader_subtitle_progress">Mobile paper &#8226; %1$d%% read</string>
     <string name="readable_reader_provenance">Official arXiv HTML &#8226; %1$s &#8226; saved offline</string>
     <string name="readable_reader_provenance_fresh">Official arXiv HTML &#8226; %1$s &#8226; verified and cached</string>
-    <string name="readable_reader_provenance_warning">Official arXiv HTML &#8226; %1$s &#8226; some figures unavailable</string>
     <string name="readable_reader_license_line">%1$s</string>
+    <string name="readable_reader_conversion_warning">A known arXiv conversion artifact was normalized; originals remain available.</string>
+    <string name="readable_reader_figure_warning">Some figures could not be saved for offline reading.</string>
+    <string name="readable_reader_contents_warning">Section navigation is unavailable for this HTML version.</string>
     <string name="readable_reader_failed_title">Mobile version unavailable</string>
     <string name="readable_reader_paper_missing">This saved paper no longer exists in the local library.</string>
     <string name="readable_reader_manifestation_missing">This exact paper version is no longer saved.</string>
@@ -385,6 +387,7 @@
     <string name="download_failed_retry_exhausted">The source remained unavailable after several attempts. Try again later.</string>
     <string name="delete">Delete</string>
     <string name="license_unknown">License not supplied</string>
+    <string name="license_available_in_mobile_source">License shown in verified mobile source</string>
     <string name="version_label">Version %1$s</string>
     <string name="manifestation_preprint">Preprint</string>
     <string name="manifestation_accepted">Accepted manuscript</string>

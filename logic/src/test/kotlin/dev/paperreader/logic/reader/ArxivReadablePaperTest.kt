@@ -43,6 +43,10 @@ class ArxivReadablePaperTest {
         assertFalse(result.bodyHtml.contains("href=\"http:"))
         assertFalse(result.bodyHtml.contains("onerror", ignoreCase = true))
         assertFalse(result.bodyHtml.contains("https://tracker.invalid", ignoreCase = true))
+        assertFalse(result.bodyHtml.contains("\\raisebox{0.1pt}"))
+        assertTrue(result.bodyHtml.contains("\\raisebox{1em}{unknown}"))
+        assertTrue(document.body().text().contains("Step 10⃝"))
+        assertTrue(result.warnings.contains(ReadablePaperWarning.SOURCE_CONVERSION_ARTIFACT_NORMALIZED))
     }
 
     @Test
@@ -202,7 +206,7 @@ class ArxivReadablePaperTest {
               <article class="ltx_document">
                 <h1>CGP-Tuning</h1>
                 <div class="ltx_authors"><span class="ltx_creator">A. Author<span class="ltx_author_notes"><span class="ltx_contact_name">Thanks: </span>Supported by a public grant.</span></span></div>
-                <section id="S1"><h2>Introduction</h2><p>$paragraph</p></section>
+                <section id="S1"><h2>Introduction</h2><p>$paragraph Step \raisebox{0.1pt}{\scriptsize10}⃝ is preserved, while \raisebox{1em}{unknown} remains literal.</p></section>
                 <figure><img src="2501.04510v2/figure.png" alt="Refer to caption" onerror="steal()"><figcaption>Architecture overview</figcaption></figure>
                 <p><a href="javascript:alert(1)">bad</a> <a href="http://insecure.invalid">insecure</a> <a href="https://example.org/reference">reference</a></p>
                 <math display="block" alttext="x squared"><semantics><msup><mi>x</mi><mn>2</mn></msup><annotation encoding="application/x-tex">x^2</annotation></semantics></math>

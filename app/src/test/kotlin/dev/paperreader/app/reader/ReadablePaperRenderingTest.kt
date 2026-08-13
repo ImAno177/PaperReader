@@ -1,5 +1,6 @@
 package dev.paperreader.app.reader
 
+import dev.paperreader.logic.domain.Annotation
 import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.ReadingLocator
 import dev.paperreader.logic.domain.ReadingState
@@ -33,6 +34,51 @@ class ReadablePaperRenderingTest {
         assertTrue(script.contains("document.getElementById('S3.SS2')"))
         assertTrue(script.contains("scrollIntoView"))
         assertFalse(script.contains("https://"))
+    }
+
+    @Test
+    fun `selection capture is bounded to one sanitized document block`() {
+        val script = readableSelectionCaptureScript()
+
+        assertTrue(script.contains("window.getSelection()"))
+        assertTrue(script.contains("[data-paperreader-block-id]"))
+        assertTrue(script.contains("startBlock !== endBlock"))
+        assertTrue(script.contains("exact.length > 2000"))
+        assertTrue(script.contains("full.slice(start, end) !== exact"))
+        assertFalse(script.contains("https://"))
+        assertFalse(script.contains("fetch("))
+    }
+
+    @Test
+    fun `annotation renderer emits only structural anchors and never note or quote content`() {
+        val annotation = annotation(
+            id = "ann-safe",
+            note = "'); fetch('https://tracker.invalid'); //",
+            quote = "User-selected <script>alert(1)</script>",
+        )
+
+        val script = readableAnnotationRenderScript(listOf(annotation))
+
+        assertTrue(script.contains("id:'ann-safe'"))
+        assertTrue(script.contains("blockId:'prx-b00012'"))
+        assertTrue(script.contains("start:4,end:17"))
+        assertTrue(script.contains("mark.paperreader-highlight"))
+        assertFalse(script.contains(annotation.note!!))
+        assertFalse(script.contains(annotation.quoteExact))
+        assertFalse(script.contains("tracker.invalid"))
+    }
+
+    @Test
+    fun `annotation renderer drops unsafe identifiers and navigation rejects them`() {
+        val unsafe = annotation(id = "ann-'unsafe", note = null, quote = "vulnerability")
+
+        val script = readableAnnotationRenderScript(listOf(unsafe))
+
+        assertFalse(script.contains("ann-'unsafe"))
+        assertTrue(script.contains("const annotations = [];"))
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            readableAnnotationNavigationScript("ann-'unsafe")
+        }
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -117,5 +163,26 @@ class ReadablePaperRenderingTest {
         border = "#222222",
         link = "#0044AA",
         selection = "#FFEE99",
+    )
+
+    private fun annotation(
+        id: String,
+        note: String?,
+        quote: String,
+    ) = Annotation(
+        id = id,
+        workId = workId,
+        documentSha256 = sha256,
+        blockId = "prx-b00012",
+        startOffset = 4,
+        endOffset = 17,
+        quotePrefix = "The ",
+        quoteExact = quote,
+        quoteSuffix = " model",
+        pageIndex = null,
+        note = note,
+        color = "highlight",
+        createdAt = now,
+        updatedAt = now,
     )
 }

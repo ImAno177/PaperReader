@@ -11,6 +11,14 @@
         android:contentDescription="@string/readable_reader_contents"
         app:showAsAction="always" />
     <item
+        android:id="@+id/action_annotate_selection"
+        android:title="@string/readable_reader_annotate_selection"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_readable_annotations"
+        android:title="@string/readable_reader_annotations"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_reading_layout"
         android:title="@string/readable_reader_layout"
         app:showAsAction="never" />

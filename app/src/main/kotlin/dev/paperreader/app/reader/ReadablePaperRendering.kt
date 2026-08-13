@@ -1,8 +1,15 @@
 package dev.paperreader.app.reader
 
 import android.content.Context
+import android.graphics.Rect
 import android.util.AttributeSet
+import android.view.ActionMode
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
 import android.webkit.WebView
+import dev.paperreader.app.R
+import dev.paperreader.logic.domain.Annotation
 import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.ReadingLocator
 import dev.paperreader.logic.domain.ReadingState
@@ -10,6 +17,7 @@ import dev.paperreader.logic.domain.ReadingStatus
 import dev.paperreader.logic.domain.WorkId
 import java.time.Instant
 import kotlin.math.roundToInt
+import org.json.JSONObject
 
 internal data class ReadablePaperPalette(
     val background: String,
@@ -79,6 +87,129 @@ internal fun readableSectionNavigationScript(anchor: String): String {
     """.trimIndent()
 }
 
+internal data class ReadableTextSelection(
+    val blockId: String,
+    val startOffset: Int,
+    val endOffset: Int,
+    val quotePrefix: String,
+    val quoteExact: String,
+    val quoteSuffix: String,
+)
+
+internal enum class ReadableSelectionFailure {
+    EMPTY,
+    CROSS_BLOCK,
+    TOO_LONG,
+    INVALID,
+}
+
+internal sealed interface ReadableSelectionResult {
+    data class Ready(val selection: ReadableTextSelection) : ReadableSelectionResult
+    data class Unavailable(val reason: ReadableSelectionFailure) : ReadableSelectionResult
+}
+
+internal fun readableSelectionCaptureScript(): String = """
+    (() => {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount !== 1 || selection.isCollapsed) return { status: 'empty' };
+      const range = selection.getRangeAt(0);
+      const blockFor = node => {
+        const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+        return element ? element.closest('[data-paperreader-block-id]') : null;
+      };
+      const startBlock = blockFor(range.startContainer);
+      const endBlock = blockFor(range.endContainer);
+      if (!startBlock || startBlock !== endBlock) return { status: 'cross_block' };
+      const before = range.cloneRange();
+      before.selectNodeContents(startBlock);
+      before.setEnd(range.startContainer, range.startOffset);
+      const start = before.toString().length;
+      const exact = range.toString();
+      const end = start + exact.length;
+      if (!exact.trim()) return { status: 'empty' };
+      if (exact.length > 2000) return { status: 'too_long' };
+      const full = startBlock.textContent || '';
+      if (start < 0 || end > full.length || full.slice(start, end) !== exact) return { status: 'invalid' };
+      return {
+        status: 'ready',
+        blockId: startBlock.getAttribute('data-paperreader-block-id'),
+        startOffset: start,
+        endOffset: end,
+        quotePrefix: full.slice(Math.max(0, start - 64), start),
+        quoteExact: exact,
+        quoteSuffix: full.slice(end, Math.min(full.length, end + 64))
+      };
+    })()
+""".trimIndent()
+
+internal fun readableAnnotationRenderScript(annotations: List<Annotation>): String {
+    val safe = annotations
+        .asSequence()
+        .filter { it.id.matches(SAFE_READER_ID) && it.blockId.matches(SAFE_READER_ID) }
+        .filter { it.startOffset >= 0 && it.endOffset > it.startOffset }
+        .sortedWith(compareBy<Annotation> { it.blockId }.thenByDescending { it.startOffset })
+        .map { annotation ->
+            "{id:'${annotation.id}',blockId:'${annotation.blockId}',start:${annotation.startOffset},end:${annotation.endOffset}}"
+        }
+        .joinToString(",")
+    return """
+        (() => {
+          document.querySelectorAll('mark.paperreader-highlight').forEach(mark => {
+            const parent = mark.parentNode;
+            while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+            parent.removeChild(mark);
+            parent.normalize();
+          });
+          const annotations = [$safe];
+          let applied = 0;
+          const textNodes = block => {
+            const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+            const nodes = [];
+            while (walker.nextNode()) nodes.push(walker.currentNode);
+            return nodes;
+          };
+          annotations.forEach(annotation => {
+            const block = document.querySelector('[data-paperreader-block-id="' + annotation.blockId + '"]');
+            if (!block || annotation.start < 0 || annotation.end <= annotation.start || annotation.end > block.textContent.length) return;
+            let cursor = 0;
+            let wrapped = false;
+            textNodes(block).forEach(node => {
+              const nodeStart = cursor;
+              const nodeEnd = cursor + node.data.length;
+              cursor = nodeEnd;
+              if (nodeEnd <= annotation.start || nodeStart >= annotation.end) return;
+              const localStart = Math.max(0, annotation.start - nodeStart);
+              const localEnd = Math.min(node.data.length, annotation.end - nodeStart);
+              if (localEnd <= localStart) return;
+              const selected = node.splitText(localStart);
+              selected.splitText(localEnd - localStart);
+              const mark = document.createElement('mark');
+              mark.className = 'paperreader-highlight';
+              mark.setAttribute('data-paperreader-annotation-id', annotation.id);
+              mark.setAttribute('title', 'Highlighted passage');
+              selected.parentNode.replaceChild(mark, selected);
+              mark.appendChild(selected);
+              wrapped = true;
+            });
+            if (wrapped) applied += 1;
+          });
+          return applied;
+        })()
+    """.trimIndent()
+}
+
+internal fun readableAnnotationNavigationScript(id: String): String {
+    require(id.matches(SAFE_READER_ID))
+    return """
+        (() => {
+          const target = document.querySelector('[data-paperreader-annotation-id="$id"]');
+          if (!target) return false;
+          target.scrollIntoView({ block: 'center', behavior: 'auto' });
+          return true;
+        })()
+    """.trimIndent()
+}
+
 internal fun renderReadablePaperHtml(
     sanitizedBodyHtml: String,
     palette: ReadablePaperPalette,
@@ -128,6 +259,12 @@ internal fun renderReadablePaperHtml(
               text-rendering: optimizeLegibility;
             }
             ::selection { background: var(--selection); color: var(--text); }
+            mark.paperreader-highlight {
+              background: var(--selection);
+              color: inherit;
+              padding: 0.04em 0;
+              border-bottom: 2px solid var(--link);
+            }
             .paperreader-document {
               width: min(100%, 48rem);
               margin: 0 auto;
@@ -277,13 +414,20 @@ class ReadablePaperWebView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
 ) : WebView(context, attrs) {
     var onProgressionChanged: ((Double) -> Unit)? = null
-    private var anchorNavigationSerial = 0
-    private var anchorNavigationTimeout: Runnable? = null
+    var onHighlightSelectionRequested: (() -> Unit)? = null
+    private var appCommandSerial = 0
+    private var appCommandTimeout: Runnable? = null
 
     override fun onScrollChanged(left: Int, top: Int, oldLeft: Int, oldTop: Int) {
         super.onScrollChanged(left, top, oldLeft, oldTop)
         onProgressionChanged?.invoke(currentProgression())
     }
+
+    override fun startActionMode(callback: ActionMode.Callback): ActionMode? =
+        super.startActionMode(HighlightSelectionActionModeCallback(callback))
+
+    override fun startActionMode(callback: ActionMode.Callback, type: Int): ActionMode? =
+        super.startActionMode(HighlightSelectionActionModeCallback(callback), type)
 
     fun currentProgression(): Double {
         val maximumScroll = (computeVerticalScrollRange() - height).coerceAtLeast(0)
@@ -300,42 +444,134 @@ class ReadablePaperWebView @JvmOverloads constructor(
     }
 
     fun scrollToDocumentAnchor(anchor: String, onResult: (Boolean) -> Unit) {
-        val script = readableSectionNavigationScript(anchor)
-        cancelDocumentAnchorNavigation()
-        val serial = ++anchorNavigationSerial
-        settings.javaScriptEnabled = true
-        val timeout = Runnable { finishAnchorNavigation(serial, found = false, onResult) }
-        anchorNavigationTimeout = timeout
-        postDelayed(timeout, ANCHOR_NAVIGATION_TIMEOUT_MILLIS)
-        evaluateJavascript(script) { result ->
-            finishAnchorNavigation(serial, result == "true", onResult)
+        runAppOwnedCommand(readableSectionNavigationScript(anchor)) { result ->
+            onResult(result == "true")
         }
     }
 
-    fun cancelDocumentAnchorNavigation() {
-        anchorNavigationSerial += 1
-        anchorNavigationTimeout?.let(::removeCallbacks)
-        anchorNavigationTimeout = null
+    internal fun captureTextSelection(onResult: (ReadableSelectionResult) -> Unit) {
+        runAppOwnedCommand(readableSelectionCaptureScript()) { raw ->
+            onResult(parseReadableSelection(raw))
+        }
+    }
+
+    fun applyAnnotations(annotations: List<Annotation>, onResult: (Int) -> Unit = {}) {
+        runAppOwnedCommand(readableAnnotationRenderScript(annotations)) { raw ->
+            onResult(raw?.toIntOrNull() ?: 0)
+        }
+    }
+
+    fun scrollToAnnotation(id: String, onResult: (Boolean) -> Unit) {
+        runAppOwnedCommand(readableAnnotationNavigationScript(id)) { raw -> onResult(raw == "true") }
+    }
+
+    fun clearTextSelection() {
+        runAppOwnedCommand(
+            "(() => { const selection = window.getSelection(); " +
+                "if (selection) selection.removeAllRanges(); return true; })()",
+        ) {}
+    }
+
+    fun cancelAppOwnedCommand() {
+        appCommandSerial += 1
+        appCommandTimeout?.let(::removeCallbacks)
+        appCommandTimeout = null
         settings.javaScriptEnabled = false
     }
 
-    private fun finishAnchorNavigation(
-        serial: Int,
-        found: Boolean,
-        onResult: (Boolean) -> Unit,
-    ) {
-        if (serial != anchorNavigationSerial) return
-        anchorNavigationTimeout?.let(::removeCallbacks)
-        anchorNavigationTimeout = null
-        anchorNavigationSerial += 1
+    private fun runAppOwnedCommand(script: String, onResult: (String?) -> Unit) {
+        cancelAppOwnedCommand()
+        val serial = ++appCommandSerial
+        settings.javaScriptEnabled = true
+        val timeout = Runnable { finishAppOwnedCommand(serial, null, onResult) }
+        appCommandTimeout = timeout
+        postDelayed(timeout, APP_COMMAND_TIMEOUT_MILLIS)
+        evaluateJavascript(script) { result -> finishAppOwnedCommand(serial, result, onResult) }
+    }
+
+    private fun finishAppOwnedCommand(serial: Int, result: String?, onResult: (String?) -> Unit) {
+        if (serial != appCommandSerial) return
+        appCommandTimeout?.let(::removeCallbacks)
+        appCommandTimeout = null
+        appCommandSerial += 1
         settings.javaScriptEnabled = false
-        onResult(found)
+        onResult(result)
+    }
+
+    private inner class HighlightSelectionActionModeCallback(
+        private val delegate: ActionMode.Callback,
+    ) : ActionMode.Callback2() {
+        override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+            val created = delegate.onCreateActionMode(mode, menu)
+            if (
+                created &&
+                onHighlightSelectionRequested != null &&
+                menu.findItem(HIGHLIGHT_SELECTION_ACTION_ID) == null
+            ) {
+                menu.add(
+                    Menu.NONE,
+                    HIGHLIGHT_SELECTION_ACTION_ID,
+                    HIGHLIGHT_SELECTION_ACTION_ORDER,
+                    context.getString(R.string.readable_reader_context_highlight),
+                ).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+            }
+            return created
+        }
+
+        override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean =
+            delegate.onPrepareActionMode(mode, menu)
+
+        override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+            if (item.itemId == HIGHLIGHT_SELECTION_ACTION_ID) {
+                onHighlightSelectionRequested?.invoke()
+                return true
+            }
+            return delegate.onActionItemClicked(mode, item)
+        }
+
+        override fun onDestroyActionMode(mode: ActionMode) = delegate.onDestroyActionMode(mode)
+
+        override fun onGetContentRect(mode: ActionMode, view: View, outRect: Rect) {
+            val positioned = delegate as? ActionMode.Callback2
+            if (positioned != null) {
+                positioned.onGetContentRect(mode, view, outRect)
+            } else {
+                super.onGetContentRect(mode, view, outRect)
+            }
+        }
     }
 
     companion object {
-        private const val ANCHOR_NAVIGATION_TIMEOUT_MILLIS = 1_500L
+        private const val APP_COMMAND_TIMEOUT_MILLIS = 1_500L
+        private const val HIGHLIGHT_SELECTION_ACTION_ID = 0x50525801
+        private const val HIGHLIGHT_SELECTION_ACTION_ORDER = 80
     }
 }
+
+private fun parseReadableSelection(raw: String?): ReadableSelectionResult {
+    val json = runCatching { raw?.let(::JSONObject) }.getOrNull()
+        ?: return ReadableSelectionResult.Unavailable(ReadableSelectionFailure.INVALID)
+    return when (json.optString("status")) {
+        "ready" -> runCatching {
+            ReadableSelectionResult.Ready(
+                ReadableTextSelection(
+                    blockId = json.getString("blockId"),
+                    startOffset = json.getInt("startOffset"),
+                    endOffset = json.getInt("endOffset"),
+                    quotePrefix = json.getString("quotePrefix"),
+                    quoteExact = json.getString("quoteExact"),
+                    quoteSuffix = json.getString("quoteSuffix"),
+                ),
+            )
+        }.getOrElse { ReadableSelectionResult.Unavailable(ReadableSelectionFailure.INVALID) }
+        "empty" -> ReadableSelectionResult.Unavailable(ReadableSelectionFailure.EMPTY)
+        "cross_block" -> ReadableSelectionResult.Unavailable(ReadableSelectionFailure.CROSS_BLOCK)
+        "too_long" -> ReadableSelectionResult.Unavailable(ReadableSelectionFailure.TOO_LONG)
+        else -> ReadableSelectionResult.Unavailable(ReadableSelectionFailure.INVALID)
+    }
+}
+
+private val SAFE_READER_ID = Regex("[A-Za-z0-9._:-]{1,160}")
 
 internal fun readableStateForOpen(
     existing: ReadingState?,

@@ -93,6 +93,27 @@ interface LibraryDao {
     @Query("SELECT * FROM annotations WHERE id = :id LIMIT 1")
     suspend fun getAnnotation(id: String): AnnotationEntity?
 
+    @Query(
+        "SELECT * FROM annotations WHERE workId = :workId " +
+            "AND LOWER(documentSha256) = :documentSha256 " +
+            "ORDER BY blockId, startOffset, endOffset, id",
+    )
+    fun observeAnnotations(workId: String, documentSha256: String): Flow<List<AnnotationEntity>>
+
+    @Query(
+        "SELECT * FROM annotations WHERE workId = :workId " +
+            "AND LOWER(documentSha256) = :documentSha256 AND blockId = :blockId " +
+            "AND startOffset < :endOffset AND endOffset > :startOffset " +
+            "ORDER BY startOffset, endOffset, id",
+    )
+    suspend fun getOverlappingAnnotations(
+        workId: String,
+        documentSha256: String,
+        blockId: String,
+        startOffset: Int,
+        endOffset: Int,
+    ): List<AnnotationEntity>
+
     @Query("SELECT * FROM reading_history ORDER BY workId")
     suspend fun getAllReadingHistory(): List<ReadingHistoryEntity>
 
@@ -212,6 +233,12 @@ interface LibraryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAnnotations(annotations: List<AnnotationEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAnnotation(annotation: AnnotationEntity)
+
+    @Query("DELETE FROM annotations WHERE id = :id")
+    suspend fun deleteAnnotation(id: String): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertReadingHistory(history: List<ReadingHistoryEntity>)

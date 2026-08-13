@@ -116,7 +116,7 @@ Ký hiệu: P1 là vertical MVP; P2 là workflow nghiên cứu; P3 là hệ sinh
 | Reader | Không có PDF text layer | Search, select, copy, heading/TOC/link trong reflow | P1 | Tính năng domain mới |
 | Reader | Không có source mapping | Chip trang và nhảy Reflow ↔ Original cùng vị trí | P1 | Tính năng domain mới |
 | Reader | Reader ảnh giữ fidelity từng trang | Công thức/hình/bảng trích xuất kém hiển thị cảnh báo + mở đúng vùng/trang PDF | P1/P2 | Không giả vờ fidelity |
-| Reader | Không có scholarly annotation | Highlight + note sidecar với quote/source/page anchors; ink sau | P2 | Tính năng domain mới |
+| Reader | Không có scholarly annotation | Highlight + note sidecar theo exact sanitized document + block/text offsets đã có trong mobile reader; PDF geometry, ink và export để sau | P1/P2 | Tính năng domain mới |
 | Downloads | Queue, pause, retry, reorder | PDF/attachment download queue | P1 | Giữ pattern |
 | Downloads | Không tải song song cùng source | Token bucket theo host, Retry-After và giới hạn provider | P1 | Giữ nguyên tắc |
 | Downloads | SAF và reindex | App-private store, SAF import/export, integrity scan | P1 | Adapt |
@@ -314,7 +314,7 @@ Quy tắc bắt buộc:
 - Chỉ load origin local `https://appassets.androidplatform.net`; hình/font/CSS đều bundle hoặc app-private, không dùng CDN.
 - Chuẩn hóa riêng markup `<u>` do parser sinh thành node cho phép; escape mọi raw HTML khác, sanitize URL/protocol, chặn remote image/navigation, tắt file/content access, universal file URL và mixed content.
 - P1 không cho document script chạy và dùng CSP `default-src 'none'`; link ngoài đi qua allowlist + explicit intent. HTML do provider trả về không bao giờ render trực tiếp. Native TOC chỉ bật JavaScript tạm thời cho lệnh app-owned `getElementById(safeAnchor).scrollIntoView()`, rồi tắt trong callback hoặc timeout; anchor đã qua allowlist ký tự và không nhận source script.
-- Khi P2 cần selection bridge cho highlight, chỉ dùng script bundle cố định và `WebMessageListener` giới hạn đúng appassets origin; không dùng `addJavascriptInterface` rộng.
+- Selection/highlight chỉ dùng lệnh app-owned cố định qua `evaluateJavascript` trên origin local đã xác minh; không nhận source script, không dùng `addJavascriptInterface`, và buộc tắt JavaScript sau callback hoặc timeout. Dữ liệu note/quote không được nội suy vào renderer script.
 - `document.html` là cache theo renderer version. Annotation/progress không lưu DOM selector hoặc pixel vì HTML/CSS/WebView có thể đổi.
 - Bảng rộng cuộn ngang trong block; figure thiếu dùng placeholder + caption/alt + hành động mở trang gốc. KaTeX không vào P1 vì `pdf-inspector` không sinh LaTeX; chỉ xét khi có nguồn TeX/MathML thật.
 
@@ -337,7 +337,7 @@ hiển thị warning rằng artifact nguồn đã được normalize; PDF và tr
 
 ### 7.6 Original PDF mode
 
-[AndroidX PDF 1.0.0-alpha19](https://developer.android.com/jetpack/androidx/releases/pdf) đang được dùng cho Original mode. Artifact khai báo minSdk 28 và nhánh read/render đã được backport, nhưng alpha19 yêu cầu compile Android 16 QPR2 (API 36.1 / extension 19+); `:app` vì vậy compile bằng SDK 36.1 trong khi `:logic` vẫn ở compileSdk 36, minSdk toàn project vẫn là 28 và targetSdk là 36. Viewer hiện có search, zoom/scroll, page restore theo exact PDF SHA-256, bookmark trang và system-viewer fallback. Bookmark Room v3 gắn với Work + manifestation + SHA-256 + page index zero-based; toolbar toggle trang hiện tại, list/jump theo thứ tự, và từ chối artifact không còn local hoặc sai hash. Preset Doodle/Retro/Neobrutalism cùng light/dark palette được giữ khi đi từ Compose sang reader View. Rotation không tách giả một lần đọc thành nhiều history session; thời gian paused/background không được cộng. Highlight/note/edit của thư viện bị ẩn cho tới khi sidecar anchor + export an toàn được triển khai. Không chọn fork AndroidPdfViewer/Pdfium chưa audit chỉ vì API tiện; MuPDF chỉ phù hợp nếu đổi license toàn app sang AGPL hoặc mua license.
+[AndroidX PDF 1.0.0-alpha19](https://developer.android.com/jetpack/androidx/releases/pdf) đang được dùng cho Original mode. Artifact khai báo minSdk 28 và nhánh read/render đã được backport, nhưng alpha19 yêu cầu compile Android 16 QPR2 (API 36.1 / extension 19+); `:app` vì vậy compile bằng SDK 36.1 trong khi `:logic` vẫn ở compileSdk 36, minSdk toàn project vẫn là 28 và targetSdk là 36. Viewer hiện có search, zoom/scroll, page restore theo exact PDF SHA-256, bookmark trang và system-viewer fallback. Bookmark Room v3 gắn với Work + manifestation + SHA-256 + page index zero-based; toolbar toggle trang hiện tại, list/jump theo thứ tự, và từ chối artifact không còn local hoặc sai hash. Preset Doodle/Retro/Neobrutalism cùng light/dark palette được giữ khi đi từ Compose sang reader View. Rotation không tách giả một lần đọc thành nhiều history session; thời gian paused/background không được cộng. Original mode vẫn chưa có highlight/note vì AndroidX PDF chưa cung cấp selection/source-map contract đủ tin cậy; highlight + note sidecar hiện chỉ bật trong mobile HTML reader. Không chọn fork AndroidPdfViewer/Pdfium chưa audit chỉ vì API tiện; MuPDF chỉ phù hợp nếu đổi license toàn app sang AGPL hoặc mua license.
 
 Vertical slice tải PDF hiện dùng Room làm queue source of truth và WorkManager chỉ làm executor. UI có action theo state: active → Cancel, failed/cancelled → Retry/Clear, completed → Clear; Clear không xóa PDF. Cancel ghi `CANCELLED` bằng compare-and-set trước khi hủy unique work, manual retry reset attempt/progress/failure sau khi dọn chain cũ, và worker không được ghi `SUCCEEDED` đè lên cancellation thắng race. Global pause/resume, reorder và bulk action vẫn là parity gap P1 đã ghi rõ, chưa được coi là ngang Mihon.
 
@@ -346,7 +346,7 @@ Corpus phải có native text, scanned, mixed, multi-column, table, RTL, CJK/Typ
 ### 7.7 OCR và annotation
 
 - Bản F-Droid không dùng Google ML Kit làm dependency lõi. Ứng viên FLOSS là [Tesseract4Android](https://github.com/adaptech-cz/Tesseract4Android), Apache-2.0, chạy theo trang ở P2; language pack tải có consent/checksum/license và job cancel được.
-- Mốc annotation đầu tiên ở P2 là highlight + note sidecar. Sau đó mới có ink và export một PDF copy có annotation.
+- Mốc annotation đầu tiên đã có trong mobile HTML reader: highlight + optional note sidecar, gắn với exact sanitized-document SHA-256, sanitizer block ID, UTF-16 offsets và quote context. Selection chỉ được chấp nhận trong một block; overlap bị từ chối; đổi document không tự re-anchor. PDF geometry, ink và export một PDF copy có annotation vẫn để sau.
 - Annotation giữ PDF SHA-256, extraction version, block ID, source/plain-text range, quote prefix/exact/suffix, page và optional verified PDF geometry. Re-anchor theo exact source rồi quote+context; confidence thấp trở thành orphan cần người dùng xử lý, không tự gắn sai sang revision/parser mới.
 
 ## 8. Plugin cộng đồng
@@ -486,7 +486,7 @@ UI chỉ gọi `PaperReaderLogic` và đọc Flow từ repository/use case → u
 
 Named collections hiện đã là vertical slice thật trên Room v2: tên được chuẩn hóa và duy nhất không phân biệt hoa/thường, một Work có thể thuộc nhiều collection, thay toàn bộ membership chạy trong transaction, xóa collection chỉ xóa junction và không xóa paper. Library lọc theo collection từ cùng aggregate Flow; More tạo/đổi tên/xóa, Detail gán/bỏ gán. Migration `1 -> 2` giữ nguyên dữ liệu v1. Tags, smart collections, reorder và bulk assignment vẫn được hoãn, không được quảng bá là parity đầy đủ.
 
-Page bookmark hiện là vertical slice thật trên Room v3, không phải state UI tạm: bookmark chỉ được tạo khi manifestation thuộc đúng Work và DB có local PDF path với SHA-256 khớp không phân biệt hoa/thường. Danh sách được observe qua Flow, sắp theo trang, tồn tại qua force-stop, và bị xóa khi Work được xóa thành công; nếu việc xóa paper bị chặn bởi local artifact thì bookmark cũng được giữ. Migration `2 -> 3` giữ dữ liệu v2. Highlight/note, geometry và re-anchor qua parser revision vẫn là lát cắt annotation riêng.
+Page bookmark hiện là vertical slice thật trên Room v3, không phải state UI tạm: bookmark chỉ được tạo khi manifestation thuộc đúng Work và DB có local PDF path với SHA-256 khớp không phân biệt hoa/thường. Danh sách được observe qua Flow, sắp theo trang, tồn tại qua force-stop, và bị xóa khi Work được xóa thành công; nếu việc xóa paper bị chặn bởi local artifact thì bookmark cũng được giữ. Migration `2 -> 3` giữ dữ liệu v2. Highlight/note exact-document đã là vertical slice riêng trong mobile HTML reader và dùng bảng annotation có sẵn của Room v4; PDF geometry, annotation export và re-anchor qua parser revision vẫn chưa triển khai.
 
 Original-PDF reader hiện có chỉ báo `Page X of Y` sau khi tài liệu load và dialog nhảy tới số trang 1-based có kiểm tra biên; nhảy trang đi qua `PdfView.scrollToPage`, cập nhật bookmark/progress và vẫn khôi phục theo đúng manifestation + SHA-256. Chỉ báo bị ẩn trong loading/error; nhập sai không tự clamp. Đây là affordance của Original mode, không phải bằng chứng reflow đã chạy.
 
@@ -647,7 +647,8 @@ Exit:
 - Federated search, persisted saved-search inbox và opt-in daily background refresh/notification đã có;
   revision/citation update, delta cursor và cadence tùy chỉnh vẫn còn trong P2.
 - Per-page Tesseract OCR cho trang được classifier đánh dấu.
-- Highlight/note/bookmark với source/page anchors; CSL JSON/BibTeX/RIS.
+- Exact-document highlight + note đã có cho official arXiv HTML; PDF/source geometry,
+  cross-revision re-anchor, annotation export và CSL JSON/BibTeX/RIS vẫn còn trong P2.
 - Remaining store work includes publisher signing-material rotation, lifecycle states for disabled
   or orphaned packages, review policy, and an optional preconfigured store. User-managed signed
   stores and system-mediated install/update are already implemented.

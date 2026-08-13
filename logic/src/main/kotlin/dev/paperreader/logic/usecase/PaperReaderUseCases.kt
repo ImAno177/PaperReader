@@ -1,6 +1,8 @@
 package dev.paperreader.logic.usecase
 
 import dev.paperreader.logic.domain.LibraryPaper
+import dev.paperreader.logic.domain.Annotation
+import dev.paperreader.logic.domain.AnnotationSelection
 import dev.paperreader.logic.domain.CollectionId
 import dev.paperreader.logic.domain.PaperCollection
 import dev.paperreader.logic.domain.ReadingState
@@ -10,6 +12,10 @@ import dev.paperreader.logic.domain.ReadingBookmarkId
 import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.domain.repository.LibraryRepository
+import dev.paperreader.logic.domain.repository.AnnotationRepository
+import dev.paperreader.logic.domain.repository.RemoveAnnotationResult
+import dev.paperreader.logic.domain.repository.SaveAnnotationResult
+import dev.paperreader.logic.domain.repository.UpdateAnnotationNoteResult
 import dev.paperreader.logic.domain.repository.LocalPdfImportRepository
 import dev.paperreader.logic.domain.repository.CreateCollectionResult
 import dev.paperreader.logic.domain.repository.DeleteCollectionResult
@@ -118,6 +124,27 @@ class RemoveReadingBookmark(private val repository: ReadingBookmarkRepository) {
     suspend fun await(id: ReadingBookmarkId): RemoveReadingBookmarkResult = repository.remove(id)
 }
 
+class ObserveAnnotations(private val repository: AnnotationRepository) {
+    fun subscribe(workId: WorkId, documentSha256: String): Flow<List<Annotation>> =
+        repository.observe(workId, documentSha256)
+}
+
+class SaveAnnotation(private val repository: AnnotationRepository) {
+    suspend fun await(
+        workId: WorkId,
+        selection: AnnotationSelection,
+        note: String?,
+    ): SaveAnnotationResult = repository.save(workId, selection, note)
+}
+
+class UpdateAnnotationNote(private val repository: AnnotationRepository) {
+    suspend fun await(id: String, note: String?): UpdateAnnotationNoteResult = repository.updateNote(id, note)
+}
+
+class RemoveAnnotation(private val repository: AnnotationRepository) {
+    suspend fun await(id: String): RemoveAnnotationResult = repository.remove(id)
+}
+
 class SetReadingStatus(
     private val repository: LibraryRepository,
     private val now: () -> Instant = Instant::now,
@@ -213,6 +240,10 @@ data class PaperReaderUseCases(
     val observeReadingBookmarks: ObserveReadingBookmarks,
     val toggleReadingBookmark: ToggleReadingBookmark,
     val removeReadingBookmark: RemoveReadingBookmark,
+    val observeAnnotations: ObserveAnnotations,
+    val saveAnnotation: SaveAnnotation,
+    val updateAnnotationNote: UpdateAnnotationNote,
+    val removeAnnotation: RemoveAnnotation,
     val setReadingStatus: SetReadingStatus,
     val searchPapers: SearchPapers,
     val observeReadingHistory: ObserveReadingHistory,
@@ -248,6 +279,7 @@ internal fun paperReaderUseCases(
     readablePaperLoader: ReadablePaperLoader = ReadablePaperLoader { _, _ ->
         ReadablePaperResult.Unavailable(ReadablePaperFailure.OFFLINE_OR_UNAVAILABLE)
     },
+    annotationRepository: AnnotationRepository = UnavailableAnnotationRepository,
 ) : PaperReaderUseCases {
     val refreshSavedSearch = RefreshSavedSearch(savedSearchRepository, providerManager)
     return PaperReaderUseCases(
@@ -265,6 +297,10 @@ internal fun paperReaderUseCases(
     observeReadingBookmarks = ObserveReadingBookmarks(bookmarkRepository),
     toggleReadingBookmark = ToggleReadingBookmark(bookmarkRepository),
     removeReadingBookmark = RemoveReadingBookmark(bookmarkRepository),
+    observeAnnotations = ObserveAnnotations(annotationRepository),
+    saveAnnotation = SaveAnnotation(annotationRepository),
+    updateAnnotationNote = UpdateAnnotationNote(annotationRepository),
+    removeAnnotation = RemoveAnnotation(annotationRepository),
     setReadingStatus = SetReadingStatus(repository),
     searchPapers = SearchPapers(search),
     observeReadingHistory = ObserveReadingHistory(historyRepository),
@@ -286,6 +322,22 @@ internal fun paperReaderUseCases(
     markSavedSearchHitRead = MarkSavedSearchHitRead(savedSearchRepository),
     saveSavedSearchHit = SaveSavedSearchHit(savedSearchRepository, repository),
 )
+}
+
+private object UnavailableAnnotationRepository : AnnotationRepository {
+    override fun observe(workId: WorkId, documentSha256: String): Flow<List<Annotation>> =
+        kotlinx.coroutines.flow.flowOf(emptyList())
+
+    override suspend fun save(
+        workId: WorkId,
+        selection: AnnotationSelection,
+        note: String?,
+    ): SaveAnnotationResult = SaveAnnotationResult.DocumentNotCurrent
+
+    override suspend fun updateNote(id: String, note: String?): UpdateAnnotationNoteResult =
+        UpdateAnnotationNoteResult.NotFound
+
+    override suspend fun remove(id: String): RemoveAnnotationResult = RemoveAnnotationResult.NotFound
 }
 
 private object UnavailableLocalPdfImportRepository : LocalPdfImportRepository {

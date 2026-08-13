@@ -15,6 +15,7 @@ import dev.paperreader.logic.data.repository.RoomLocalFileRepository
 import dev.paperreader.logic.data.repository.RoomTaskRepository
 import dev.paperreader.logic.data.repository.RoomReadingHistoryRepository
 import dev.paperreader.logic.data.repository.RoomReadingBookmarkRepository
+import dev.paperreader.logic.data.repository.RoomAnnotationRepository
 import dev.paperreader.logic.data.repository.RoomMetadataBackupRepository
 import dev.paperreader.logic.data.repository.RoomLocalPdfImportRepository
 import dev.paperreader.logic.data.repository.RoomSavedSearchRepository
@@ -158,6 +159,7 @@ class PaperReaderLogic private constructor(
                     savedSearches,
                     providers,
                     readablePaperLoader,
+                    RoomAnnotationRepository(database),
                 ),
                 providers = providers,
                 tasks = tasks,

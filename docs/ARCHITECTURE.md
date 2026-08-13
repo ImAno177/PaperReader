@@ -65,6 +65,10 @@ The supported surface is:
 - `logic.useCases.observeReadingBookmarks.subscribe(workId, manifestationId, documentSha256)`,
   `toggleReadingBookmark.await(...)`, and `removeReadingBookmark.await(id)` for page bookmarks
   anchored to one exact local PDF.
+- `logic.useCases.observeAnnotations.subscribe(workId, documentSha256)`,
+  `saveAnnotation.await(workId, selection, note)`, `updateAnnotationNote.await(id, note)`, and
+  `removeAnnotation.await(id)` for highlights and optional notes anchored to one exact sanitized
+  document hash and stable readable block offsets.
 - `logic.useCases.createMetadataBackup.await()`, `previewMetadataRestore.await(bytes)`, and
   `restoreMetadataBackup.await(bytes)` for typed, versioned metadata export, validation/preview,
   and transactional merge restore. The app owns SAF URI access; logic never receives a file path.
@@ -203,11 +207,17 @@ Room entity classes are public only because the current Room/KSP processor needs
   accepted only for a readable local artifact with the same Work, manifestation, and canonical
   SHA-256. Viewport callbacks select the page with greatest visible area rather than trusting a
   barely visible `firstVisiblePage`, keeping indicator, bookmark, and progress semantics aligned.
-  Editing/highlight/note UI stays disabled until richer sidecar anchors exist.
+  Original-PDF text highlights remain disabled because AndroidX PDF does not expose a verified text
+  selection/source-map contract; page bookmarks remain the only annotation affordance in that mode.
 - The mobile reader is the primary action for exact-version arXiv manifestations. It renders only
   the logic-owned sanitized document in a non-exported, source-script-free, network-blocked WebView
   with a deny-by-default CSP. Native TOC navigation temporarily executes only an app-owned
-  `getElementById(safeAnchor).scrollIntoView()` command, with a forced disable timeout. It provides
+  `getElementById(safeAnchor).scrollIntoView()` command, with a forced disable timeout. The same
+  bounded command channel captures a native selection within one sanitizer-assigned block and
+  renders Room-backed highlights; JavaScript is disabled again after every callback or timeout.
+  Anchors use UTF-16 block offsets, quote prefix/exact/suffix, and the exact sanitized-document
+  SHA-256. Notes never enter renderer JavaScript, overlaps are rejected transactionally, and a
+  changed document remains stale rather than being silently re-anchored. The reader provides
   a native table of contents, in-document search,
   selectable text, 85–200% reversible text sizing, responsive figures, scrollable math/tables,
   source/version/license disclosure, dark/light theme palettes, offline cache reopening, exact
@@ -250,8 +260,9 @@ Room entity classes are public only because the current Room/KSP processor needs
   User-managed Ed25519-signed stores,
   compatible release discovery, system-mediated install/update, and isolated source/theme APKs are
   implemented.
-- Tags, smart collections, collection reordering, highlight/note annotations, manifestation
-  revision/citation updates, configurable saved-search cadence, saved-search backup/restore,
+- Tags, smart collections, collection reordering, Original-PDF highlights, annotation export and
+  cross-revision re-anchoring, manifestation revision/citation updates, configurable saved-search
+  cadence, saved-search backup/restore,
   production PDF-to-reflow extraction, isolated TeX conversion, OCR, and structured full text for
   non-arXiv providers. The official arXiv HTML reader and Original-PDF reader are real; unsupported
   content still receives a typed fallback and the app never invents extracted text.

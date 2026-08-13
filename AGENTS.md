@@ -54,6 +54,8 @@ Update the relevant document when a decision changes.
 - Preserve paper provenance, license, acquisition time, and original PDF fallback independently.
 - Never invent extracted text, silently upload a paper, render unsanitized remote HTML, or compile
   untrusted TeX in the app process.
+- Keep annotations bound to an exact canonical document hash and stable source/text anchor; never
+  silently move them across a manifestation, sanitizer, renderer, parser, or PDF revision.
 - Community extensions run as separate Android packages/UIDs over a versioned bounded IPC contract.
   Never load third-party DEX/JAR/JavaScript into the host process or expose host storage/database paths.
 - A theme extension is declarative data and includes a complete validated semantic icon set; the host

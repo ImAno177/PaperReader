@@ -47,6 +47,10 @@ class ArxivReadablePaperTest {
         assertTrue(result.bodyHtml.contains("\\raisebox{1em}{unknown}"))
         assertTrue(document.body().text().contains("Step 10⃝"))
         assertTrue(result.warnings.contains(ReadablePaperWarning.SOURCE_CONVERSION_ARTIFACT_NORMALIZED))
+        val blockIds = document.select("[data-paperreader-block-id]").map { it.attr("data-paperreader-block-id") }
+        assertTrue(blockIds.isNotEmpty())
+        assertEquals(blockIds.size, blockIds.distinct().size)
+        assertTrue(blockIds.all { it.matches(Regex("prx-b[0-9]{5}")) })
     }
 
     @Test

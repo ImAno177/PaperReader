@@ -15,7 +15,7 @@ There is no reverse dependency. The logic module has no Compose, Activity, Fragm
 ## Module ownership
 
 | Module | Owns | Must not own |
-|---|---|---|
+| --- | --- | --- |
 | `:extension-api` | Published AIDL and bounded source/theme data contracts shared with external APKs | Host storage, networking, UI rendering, trust policy, or provider implementations |
 | `:logic` | Paper domain models, DOI/arXiv identity, Room schema and repository, arXiv/Crossref clients, federated search, reader/extraction contracts, cache policy, task state, source-extension trust/runtime | Compose, screens, navigation, Activities, Fragments, ViewModels, visual resources |
 | `:app` | Compose UI, adaptive navigation, presentation mapping/filtering, Android lifecycle/entry points, accessibility, theme preferences, theme-extension trust/runtime, and visual resources | SQL/DAO access, HTTP parsing, provider rate policy, dedupe, or extraction |

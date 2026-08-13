@@ -96,6 +96,34 @@ class ArxivReadablePaperTest {
     }
 
     @Test
+    fun `attention paper loads its exact v7 html with sections equations and bibliography`() = runTest {
+        val requestedUrls = mutableListOf<String>()
+        val loader = ArxivReadablePaperLoader(
+            fetcher = ReadableResourceFetcher { request ->
+                requestedUrls += request.url
+                ReadableRemoteResult.Success(
+                    ReadableRemoteResource(attentionFixtureHtml().toByteArray(), "text/html; charset=utf-8"),
+                )
+            },
+            cache = ReadablePaperCache(Files.createTempDirectory("attention-readable-paper")),
+        )
+
+        val result = loader.load("Attention Is All You Need", attentionManifestation()) as ReadablePaperResult.Ready
+        val document = Jsoup.parseBodyFragment(result.document.bodyHtml, result.document.sourceUrl)
+
+        assertEquals(listOf("https://arxiv.org/html/1706.03762v7"), requestedUrls)
+        assertEquals("v7", result.document.sourceVersion)
+        assertTrue(
+            result.document.sections.toString(),
+            result.document.sections.any { it.title.contains("Model Architecture") },
+        )
+        assertTrue(document.select("math annotation[encoding=application/x-tex]").isNotEmpty())
+        assertTrue(document.select("section.ltx_bibliography li#bib-bib1").isNotEmpty())
+        assertEquals("#bib-bib1", document.selectFirst("a.ltx_ref")?.attr("href"))
+        assertTrue(result.document.bodyHtml.length > 1_000)
+    }
+
+    @Test
     fun `sanitizer policy v8 bypasses a document cached under v7`() = runTest {
         val directory = Files.createTempDirectory("readable-paper-policy")
         val cache = ReadablePaperCache(directory)
@@ -218,6 +246,19 @@ class ArxivReadablePaperTest {
         updatedAt = Instant.parse("2025-07-21T00:00:00Z"),
     )
 
+    private fun attentionManifestation() = PaperManifestation(
+        id = ManifestationId("attention-v7"),
+        workId = WorkId("attention"),
+        type = ManifestationType.PREPRINT,
+        sourceProvider = "arxiv",
+        sourceRecordId = "1706.03762v7",
+        version = "v7",
+        landingPageUrl = "https://arxiv.org/abs/1706.03762v7",
+        pdfUrl = "https://arxiv.org/pdf/1706.03762v7",
+        license = "https://arxiv.org/licenses/nonexclusive-distrib/1.0/",
+        updatedAt = Instant.parse("2023-08-02T00:00:00Z"),
+    )
+
     private fun cachedRecord(label: String): CachedReadablePaper {
         val body = "<article>${label.padEnd(700, 'x')}</article>"
         return CachedReadablePaper(
@@ -262,6 +303,33 @@ class ArxivReadablePaperTest {
                 <math display="block" alttext="x squared"><semantics><msup><mi>x</mi><mn>2</mn></msup><annotation encoding="application/x-tex">x^2</annotation></semantics></math>
                 <table><thead><tr><th scope="col">Model</th></tr></thead><tbody><tr><td>CGP</td></tr></tbody></table>
                 <svg onload="steal()"><script>steal()</script></svg>
+              </article>
+            </body></html>
+        """.trimIndent()
+    }
+
+    private fun attentionFixtureHtml(): String {
+        val body = "The Transformer follows an encoder-decoder architecture using stacked self-attention and point-wise, fully connected layers. "
+            .repeat(12)
+        return """
+            <!doctype html><html><body>
+              <nav class="ltx_TOC"><ol><li class="ltx_tocentry_section"><a href="#S3">Model Architecture</a></li></ol></nav>
+              <a id="license-tr" href="https://info.arxiv.org/help/license/">License: arXiv.org perpetual non-exclusive license</a>
+              <article class="ltx_document">
+                <h1 class="ltx_title">Attention Is All You Need</h1>
+                <section id="S3" class="ltx_section">
+                  <h2 class="ltx_title ltx_title_section">3 Model Architecture</h2>
+                  <p>$body <a class="ltx_ref" href="#bib-bib1">[1]</a></p>
+                  <table class="ltx_equation"><tbody><tr><td>
+                    <math display="block" alttext="Attention(Q,K,V)">
+                      <semantics><mrow><mi>Attention</mi><mo>(</mo><mi>Q</mi><mo>,</mo><mi>K</mi><mo>,</mo><mi>V</mi><mo>)</mo></mrow>
+                      <annotation encoding="application/x-tex">Attention(Q,K,V)</annotation></semantics>
+                    </math>
+                  </td></tr></tbody></table>
+                </section>
+                <section class="ltx_bibliography" id="bib"><h2>References</h2>
+                  <ul class="ltx_biblist"><li id="bib-bib1" class="ltx_bibitem">A referenced work.</li></ul>
+                </section>
               </article>
             </body></html>
         """.trimIndent()

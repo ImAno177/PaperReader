@@ -113,7 +113,8 @@ Semantic Scholar owns natural-language search; Crossref owns exact DOI enrichmen
 ### Federated search
 
 - Exact DOI/arXiv/PMID/PMCID input routes only to extensions that declare the matching identifier.
-- Unstructured queries exclude metadata-only engines.
+- Unstructured queries call enabled `SEARCH_ENGINE` providers only; the official default is Semantic
+  Scholar. Content and metadata engines remain available for exact supported identifiers.
 - Provider requests are cancellable, rate-limited, bounded, and independently fail.
 - Results cluster only on exact canonical aliases and preserve provider alternatives.
 - Ranking is deterministic: exact identifier match, title/text match, Semantic Scholar citation
@@ -215,7 +216,7 @@ The provider repository must publish:
 - A signed registry containing compatibility, roles, identifiers, sorts, APK URL, SHA-256, size, and
   signer certificate fingerprint.
 - Deterministic parser/request tests and static analysis.
-- A CycloneDX SBOM, dependency review, secret scanning, and biweekly Dependabot updates.
+- An SPDX SBOM, dependency review, secret scanning, and twice-monthly Dependabot updates.
 - A release workflow that updates the registry only after signed APK verification succeeds.
 
 ## Library, updates, and backup

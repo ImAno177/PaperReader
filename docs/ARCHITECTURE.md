@@ -74,6 +74,10 @@ extension that declares that identifier type. A provider failure remains isolate
 successful providers. Ranking is deterministic: exact identifier, title/text match, then a Semantic
 Scholar citation tie-break, publication date, and stable record key.
 
+Installed providers are enabled by default. A user may disable an engine without uninstalling it;
+the disabled provider remains available for saved-record provenance and direct access but is excluded
+from new federated discovery and identifier-resolution calls. This selection is persisted by the app.
+
 ## Extension trust and updates
 
 PaperReader follows Mihon's useful lifecycle model while keeping a stricter trust boundary:
@@ -148,6 +152,10 @@ Host gate:
   :logic:testDebugUnitTest :logic:lintDebug `
   :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
+
+When a production-signed host is already installed on the shared emulator, connected UI tests use
+`-PpaperReaderConnectedTestApplicationIdSuffix=.uitest`. This installs an isolated debug test host
+without replacing the release app or deleting its data; it is not set for normal debug/release builds.
 
 Provider parser, fixture, lint, signed-APK, registry, and SBOM checks run in the external provider
 repository. Android-runtime or UI changes additionally run connected tests on a declared emulator.

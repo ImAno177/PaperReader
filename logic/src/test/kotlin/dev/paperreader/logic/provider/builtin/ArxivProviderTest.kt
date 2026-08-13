@@ -24,6 +24,25 @@ class ArxivProviderTest {
         assertEquals(setOf("quant-ph", "cs.IT"), paper.subjects)
     }
 
+    @Test fun preservesTheArchivePrefixOfLegacyArxivIds() {
+        val paper = ArxivProvider().parse(
+            """<?xml version="1.0" encoding="UTF-8"?>
+                <feed xmlns="http://www.w3.org/2005/Atom">
+                  <entry>
+                    <id>http://arxiv.org/abs/hep-th/9707234v2</id>
+                    <updated>1997-08-21T09:31:53Z</updated>
+                    <published>1997-07-29T07:42:59Z</published>
+                    <title>Legacy identifier</title>
+                    <author><name>Ada Researcher</name></author>
+                  </entry>
+                </feed>
+            """.trimIndent(),
+        ).single()
+
+        assertEquals("hep-th/9707234v2", paper.providerRecordId)
+        assertTrue(paper.identifiers.any { it.type == IdentifierType.ARXIV && it.value == "hep-th/9707234" })
+    }
+
     @Test fun buildsStableSearchUrlAndCursor() {
         val url = ArxivProvider(endpoint = "https://example.test/api").buildSearchUrl(
             PaperSearchQuery("machine learning", limit = 10, sort = SearchSort.OLDEST),

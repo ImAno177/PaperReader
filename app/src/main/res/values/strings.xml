@@ -490,16 +490,13 @@
     <string name="reader_close">Close</string>
     <string name="data_and_backup">Data &amp; backup</string>
     <string name="metadata_backup_title">Manual metadata backup</string>
-    <string name="metadata_backup_body">Save papers, collections, reading progress, history, bookmarks, and annotations. PDFs, active downloads, caches, plugins, and credentials are never included. Keep PaperReader open until it confirms the file was saved.</string>
+    <string name="metadata_backup_body">Save papers, collections, reading progress, history, bookmarks, annotations, and saved searches. PDFs, active downloads, caches, plugins, and credentials are never included. Keep PaperReader open until it confirms the file was saved.</string>
     <string name="create_metadata_backup">Create metadata backup</string>
     <string name="restore_metadata_backup">Restore from backup</string>
     <string name="creating_metadata_backup">Creating and saving the backup</string>
     <string name="inspecting_metadata_backup">Checking the backup before restore</string>
-    <plurals name="metadata_backup_saved">
-        <item quantity="one">Backup saved with %1$d paper.</item>
-        <item quantity="other">Backup saved with %1$d papers.</item>
-    </plurals>
-    <string name="metadata_backup_restored">Restore complete: applied papers %1$d · skipped papers %2$d · skipped related records %3$d.</string>
+    <string name="metadata_backup_saved_details">Backup saved: %1$d papers · %2$d saved searches.</string>
+    <string name="metadata_backup_restored">Restore complete: applied papers %1$d · saved searches %2$d · saved-search results %3$d · skipped papers %4$d · skipped related records %5$d.</string>
     <string name="metadata_backup_too_large">This file exceeds PaperReader\'s metadata backup limit.</string>
     <string name="metadata_backup_file_unavailable">The selected file could not be opened or written.</string>
     <string name="metadata_backup_incomplete_file_may_remain">The storage provider stopped the write and PaperReader could not restore the destination\'s previous contents. Treat that file as incomplete before trying again.</string>
@@ -536,6 +533,14 @@
     <plurals name="restore_count_annotations">
         <item quantity="one">%1$d annotation</item>
         <item quantity="other">%1$d annotations</item>
+    </plurals>
+    <plurals name="restore_count_saved_searches">
+        <item quantity="one">%1$d saved search</item>
+        <item quantity="other">%1$d saved searches</item>
+    </plurals>
+    <plurals name="restore_count_saved_search_hits">
+        <item quantity="one">%1$d saved-search result</item>
+        <item quantity="other">%1$d saved-search results</item>
     </plurals>
     <string name="restore_backup_plan">New papers %1$d · exact matches %2$d · skipped papers %3$d · skipped related records %4$d</string>
     <plurals name="restore_backup_missing_providers">

@@ -15,6 +15,7 @@ import dev.paperreader.app.ui.model.MetadataBackupSummaryUi
 import dev.paperreader.app.ui.model.MetadataBackupUiState
 import dev.paperreader.app.ui.model.MetadataRestorePreviewUi
 import dev.paperreader.app.ui.model.MetadataRestoreIssueUi
+import dev.paperreader.app.ui.model.MetadataRestoreReportUi
 import dev.paperreader.app.ui.screen.DataBackupScreen
 import dev.paperreader.app.ui.theme.PaperReaderTheme
 import dev.paperreader.app.ui.theme.PaperThemePreset
@@ -119,6 +120,35 @@ class MetadataBackupScreenTest {
     }
 
     @Test
+    fun completionStatusReportsSavedSearchCoverage() {
+        val report = MetadataRestoreReportUi(
+            summary = summary(),
+            appliedWorks = 3,
+            skippedWorks = 1,
+            appliedBookmarks = 1,
+            appliedAnnotations = 0,
+            skippedRecords = 2,
+            appliedSavedSearches = 2,
+            appliedSavedSearchHits = 4,
+        )
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DataBackupScreen(
+                    state = MetadataBackupUiState.Restored(report),
+                    onRequestExport = {},
+                    onRequestImport = {},
+                    onConfirmRestore = {},
+                    onDismissState = {},
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("saved searches 2 · saved-search results 4", substring = true)
+            .assertIsDisplayed()
+    }
+
+    @Test
     fun restorePreviewReportsEverySectionAndMakesTruncationExplicit() {
         val preview = MetadataRestorePreviewUi(
             createdAt = Instant.parse("2026-08-12T00:00:00Z"),
@@ -152,6 +182,8 @@ class MetadataBackupScreenTest {
             .assertIsDisplayed()
         composeRule.onNodeWithText("2 reading states · 2 history entries", substring = true)
             .assertIsDisplayed()
+        composeRule.onNodeWithText("2 saved searches · 4 saved-search results", substring = true)
+            .assertIsDisplayed()
         composeRule.onNodeWithText("skipped papers 1 · skipped related records 4", substring = true)
             .assertIsDisplayed()
         composeRule.onNodeWithText("5 unavailable providers", substring = true).assertIsDisplayed()
@@ -168,5 +200,7 @@ class MetadataBackupScreenTest {
         bookmarks = 1,
         annotations = 0,
         historyEntries = 2,
+        savedSearches = 2,
+        savedSearchHits = 4,
     )
 }

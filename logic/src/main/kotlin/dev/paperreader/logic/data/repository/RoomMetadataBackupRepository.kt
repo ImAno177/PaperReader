@@ -10,6 +10,9 @@ import dev.paperreader.logic.backup.BackupIdentifierProto
 import dev.paperreader.logic.backup.BackupManifestationProto
 import dev.paperreader.logic.backup.BackupMembershipProto
 import dev.paperreader.logic.backup.BackupReadingStateProto
+import dev.paperreader.logic.backup.BackupSavedSearchHitProto
+import dev.paperreader.logic.backup.BackupSavedSearchProto
+import dev.paperreader.logic.backup.BackupSavedSearchSourceProto
 import dev.paperreader.logic.backup.BackupWorkProto
 import dev.paperreader.logic.backup.DecodedBackup
 import dev.paperreader.logic.backup.FORMAT_MARKER
@@ -36,12 +39,17 @@ import dev.paperreader.logic.data.ManifestationEntity
 import dev.paperreader.logic.data.ReadingBookmarkEntity
 import dev.paperreader.logic.data.ReadingHistoryEntity
 import dev.paperreader.logic.data.ReadingStateEntity
+import dev.paperreader.logic.data.SavedSearchEntity
+import dev.paperreader.logic.data.SavedSearchHitEntity
+import dev.paperreader.logic.data.SavedSearchRecordCodec
+import dev.paperreader.logic.data.SavedSearchSourceEntity
 import dev.paperreader.logic.data.WorkCollectionEntity
 import dev.paperreader.logic.data.WorkEntity
 import dev.paperreader.logic.data.stableWorkId
 import dev.paperreader.logic.domain.LOCAL_PDF_SOURCE_ID
 import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.PaperIdentifier
+import dev.paperreader.logic.domain.SavedSearchId
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.domain.readingBookmarkId
 import dev.paperreader.logic.domain.identity.IdentifierNormalizer
@@ -61,6 +69,7 @@ internal class RoomMetadataBackupRepository(
 ) : MetadataBackupRepository {
     private val dao = database.libraryDao()
     private val bookmarkDao = database.readingBookmarkDao()
+    private val savedSearchDao = database.savedSearchDao()
 
     override suspend fun export(): MetadataBackupExportResult = try {
         val proto = database.withTransaction { buildExportProto() }
@@ -129,6 +138,9 @@ internal class RoomMetadataBackupRepository(
         val manifestations = dao.getAllManifestations().groupBy(ManifestationEntity::workId)
         val collections = dao.getAllCollections()
         val collectionNames = collections.associateBy(CollectionEntity::id, CollectionEntity::name)
+        val workIds = works.mapTo(HashSet(), WorkEntity::id)
+        val savedSearchSources = savedSearchDao.getAllSources().groupBy(SavedSearchSourceEntity::searchId)
+        val savedSearchHits = savedSearchDao.getAllHits().groupBy(SavedSearchHitEntity::searchId)
         return MetadataBackupProto(
             formatMarker = FORMAT_MARKER,
             schemaVersion = METADATA_BACKUP_SCHEMA_VERSION,
@@ -238,6 +250,47 @@ internal class RoomMetadataBackupRepository(
                     updatedAtEpochMillis = annotation.updatedAtEpochMillis,
                 )
             },
+            savedSearches = savedSearchDao.getAllSearches().map { search ->
+                val sources = savedSearchSources[search.id].orEmpty().sortedBy(SavedSearchSourceEntity::providerId)
+                check(sources.isNotEmpty()) { "Saved search ${search.id} has no sources" }
+                BackupSavedSearchProto(
+                    queryText = search.queryText,
+                    createdAtEpochMillis = search.createdAtEpochMillis,
+                    sources = sources.map { source ->
+                        BackupSavedSearchSourceProto(
+                            providerId = source.providerId,
+                            lastCheckedAtEpochMillis = source.lastCheckedAtEpochMillis,
+                            lastSuccessAtEpochMillis = source.lastSuccessAtEpochMillis,
+                            failureKind = source.failureKind,
+                            retryAfterEpochMillis = source.retryAfterEpochMillis,
+                        )
+                    },
+                    hits = savedSearchHits[search.id].orEmpty()
+                        .sortedWith(compareBy(SavedSearchHitEntity::providerId, SavedSearchHitEntity::providerRecordId))
+                        .map { hit ->
+                            check(hit.linkedWorkId == null || hit.linkedWorkId in workIds) {
+                                "Saved-search hit ${hit.id} links to a missing work"
+                            }
+                            val record = SavedSearchRecordCodec.decode(hit.recordPayload)
+                            check(
+                                record.providerId.lowercase(Locale.ROOT) == hit.providerId &&
+                                    record.providerRecordId == hit.providerRecordId &&
+                                    SavedSearchRecordCodec.fingerprint(hit.recordPayload) == hit.fingerprint,
+                            ) { "Saved-search hit ${hit.id} has invalid snapshot metadata" }
+                            BackupSavedSearchHitProto(
+                                providerId = hit.providerId,
+                                providerRecordId = hit.providerRecordId,
+                                fingerprint = hit.fingerprint,
+                                recordPayload = hit.recordPayload,
+                                linkedWorkSourceId = hit.linkedWorkId,
+                                providerUpdatedAtEpochMillis = hit.providerUpdatedAtEpochMillis,
+                                firstSeenAtEpochMillis = hit.firstSeenAtEpochMillis,
+                                lastSeenAtEpochMillis = hit.lastSeenAtEpochMillis,
+                                unread = hit.unread,
+                            )
+                        },
+                )
+            },
         )
     }
 
@@ -257,6 +310,7 @@ internal class RoomMetadataBackupRepository(
         val documentSha256: String,
         val pageIndex: Int,
     )
+    private data class SavedSearchHitKey(val providerId: String, val providerRecordId: String)
 
     private data class ManifestationPlan(
         val source: BackupManifestationProto,
@@ -276,6 +330,12 @@ internal class RoomMetadataBackupRepository(
         val eligible: Boolean get() = conflict == null && targetId != null
     }
 
+    private data class SavedSearchPlan(
+        val search: SavedSearchEntity,
+        val sources: List<SavedSearchSourceEntity>,
+        val hits: List<SavedSearchHitEntity>,
+    )
+
     private data class RestorePlan(
         val proto: MetadataBackupProto,
         val preview: MetadataRestorePreview,
@@ -285,6 +345,7 @@ internal class RoomMetadataBackupRepository(
         val histories: List<ReadingHistoryEntity>,
         val bookmarks: List<ReadingBookmarkEntity>,
         val annotations: List<AnnotationEntity>,
+        val savedSearches: List<SavedSearchPlan>,
     )
 
     private suspend fun analyze(proto: MetadataBackupProto): RestorePlan {
@@ -463,6 +524,88 @@ internal class RoomMetadataBackupRepository(
             }
         }
 
+        val localSavedSearches = savedSearchDao.getAllSearches().associateBy(SavedSearchEntity::id)
+        val localSavedSearchSources = savedSearchDao.getAllSources().groupBy(SavedSearchSourceEntity::searchId)
+        val localSavedSearchHits = savedSearchDao.getAllHits().groupBy(SavedSearchHitEntity::searchId)
+        var skippedSavedSearchRecords = 0
+        val savedSearchPlans = proto.savedSearches.mapNotNull { source ->
+            val providerIds = source.sources.map(BackupSavedSearchSourceProto::providerId)
+            val searchId = stableSavedSearchId(source.queryText, providerIds)
+            val existing = localSavedSearches[searchId.value]
+            val existingSources = localSavedSearchSources[searchId.value].orEmpty()
+            if (
+                existing != null &&
+                (existing.queryText != source.queryText ||
+                    existingSources.map(SavedSearchSourceEntity::providerId).sorted() != providerIds)
+            ) {
+                issues += MetadataRestoreIssue("saved_search_id_conflict", source.queryText)
+                skippedSavedSearchRecords += 1 + source.sources.size + source.hits.size
+                return@mapNotNull null
+            }
+            val incomingSources = source.sources.associate { incoming ->
+                incoming.providerId to SavedSearchSourceEntity(
+                    searchId = searchId.value,
+                    providerId = incoming.providerId,
+                    lastCheckedAtEpochMillis = incoming.lastCheckedAtEpochMillis,
+                    lastSuccessAtEpochMillis = incoming.lastSuccessAtEpochMillis,
+                    failureKind = incoming.failureKind,
+                    retryAfterEpochMillis = incoming.retryAfterEpochMillis,
+                )
+            }
+            val mergedSources = providerIds.map { providerId ->
+                mergeSavedSearchSource(
+                    existing = existingSources.firstOrNull { it.providerId == providerId },
+                    incoming = checkNotNull(incomingSources[providerId]),
+                )
+            }
+
+            val existingHits = localSavedSearchHits[searchId.value].orEmpty().associateBy { hit ->
+                SavedSearchHitKey(hit.providerId, hit.providerRecordId)
+            }
+            val incomingHits = source.hits.associate { hit ->
+                val linkedWorkId = hit.linkedWorkSourceId?.let { workSourceId ->
+                    val mapped = workBySource[workSourceId]?.targetId?.value
+                    if (mapped == null) skippedSavedSearchRecords++
+                    mapped
+                }
+                val entity = SavedSearchHitEntity(
+                    id = stableHitId(searchId, hit.providerId, hit.providerRecordId),
+                    searchId = searchId.value,
+                    providerId = hit.providerId,
+                    providerRecordId = hit.providerRecordId,
+                    fingerprint = hit.fingerprint,
+                    recordPayload = hit.recordPayload,
+                    linkedWorkId = linkedWorkId,
+                    providerUpdatedAtEpochMillis = hit.providerUpdatedAtEpochMillis,
+                    firstSeenAtEpochMillis = hit.firstSeenAtEpochMillis,
+                    lastSeenAtEpochMillis = hit.lastSeenAtEpochMillis,
+                    unread = hit.unread,
+                )
+                SavedSearchHitKey(hit.providerId, hit.providerRecordId) to entity
+            }
+            val retainedHits = (existingHits.keys + incomingHits.keys)
+                .map { key -> mergeSavedSearchHit(existingHits[key], incomingHits[key]) }
+                .groupBy(SavedSearchHitEntity::providerId)
+                .values
+                .flatMap { hits ->
+                    hits.sortedWith(
+                        compareByDescending<SavedSearchHitEntity> {
+                            it.providerUpdatedAtEpochMillis ?: it.firstSeenAtEpochMillis
+                        }.thenByDescending(SavedSearchHitEntity::firstSeenAtEpochMillis)
+                            .thenBy(SavedSearchHitEntity::id),
+                    ).take(MAX_SAVED_SEARCH_HITS_PER_SOURCE)
+                }
+            SavedSearchPlan(
+                search = existing ?: SavedSearchEntity(
+                    id = searchId.value,
+                    queryText = source.queryText,
+                    createdAtEpochMillis = source.createdAtEpochMillis,
+                ),
+                sources = mergedSources,
+                hits = retainedHits,
+            )
+        }
+
         val localAnchors = dao.getLocalDocumentAnchors().mapTo(HashSet()) { it.toAnchor() }
         val localWorkHashes = localAnchors.mapNotNullTo(HashSet()) { anchor ->
             localManifestationsById[anchor.manifestationId]?.let { manifestation ->
@@ -491,7 +634,8 @@ internal class RoomMetadataBackupRepository(
             proto.histories.count { it.workSourceId in skippedWorkSources } +
             proto.bookmarks.count { it.workSourceId in skippedWorkSources } +
             proto.annotations.count { it.workSourceId in skippedWorkSources } +
-            annotationConflicts
+            annotationConflicts +
+            skippedSavedSearchRecords
         val preview = MetadataRestorePreview(
             summary = summary(proto),
             createdAt = Instant.ofEpochMilli(proto.createdAtEpochMillis),
@@ -499,9 +643,10 @@ internal class RoomMetadataBackupRepository(
             mergedWorks = eligibleWorks.count { it.existing != null },
             skippedWorks = workPlans.count { !it.eligible },
             conflicts = issues,
-            missingProviders = eligibleWorks
-                .flatMap { it.source.manifestations }
-                .map(BackupManifestationProto::sourceProvider)
+            missingProviders = (
+                eligibleWorks.flatMap { it.source.manifestations }.map(BackupManifestationProto::sourceProvider) +
+                    savedSearchPlans.flatMap { it.sources }.map(SavedSearchSourceEntity::providerId)
+                )
                 .filterNot(installedProviderIds()::contains)
                 .toSet(),
             dormantReadingStates = dormantReadingStates,
@@ -518,6 +663,7 @@ internal class RoomMetadataBackupRepository(
             histories = histories,
             bookmarks = bookmarks,
             annotations = annotations,
+            savedSearches = savedSearchPlans,
         )
     }
 
@@ -576,6 +722,18 @@ internal class RoomMetadataBackupRepository(
         dao.upsertReadingHistory(plan.histories)
         bookmarkDao.upsertAll(plan.bookmarks)
         dao.upsertAnnotations(plan.annotations)
+        plan.savedSearches.forEach { savedSearch ->
+            savedSearchDao.insertSearch(savedSearch.search)
+            savedSearchDao.upsertSources(savedSearch.sources)
+            savedSearchDao.upsertHits(savedSearch.hits)
+            savedSearch.sources.forEach { source ->
+                savedSearchDao.pruneHits(
+                    searchId = savedSearch.search.id,
+                    providerId = source.providerId,
+                    keep = MAX_SAVED_SEARCH_HITS_PER_SOURCE,
+                )
+            }
+        }
 
         return MetadataRestoreResult.Applied(
             preview = plan.preview,
@@ -583,8 +741,61 @@ internal class RoomMetadataBackupRepository(
             skippedWorks = plan.preview.skippedWorks,
             appliedBookmarks = plan.bookmarks.size,
             appliedAnnotations = plan.annotations.size,
+            appliedSavedSearches = plan.savedSearches.size,
+            appliedSavedSearchHits = plan.savedSearches.sumOf { it.hits.size },
             skippedRecords = plan.preview.skippedRecords,
         )
+    }
+
+    private fun mergeSavedSearchSource(
+        existing: SavedSearchSourceEntity?,
+        incoming: SavedSearchSourceEntity,
+    ): SavedSearchSourceEntity {
+        if (existing == null) return incoming
+        val incomingIsNewer = (incoming.lastCheckedAtEpochMillis ?: Long.MIN_VALUE) >
+            (existing.lastCheckedAtEpochMillis ?: Long.MIN_VALUE)
+        val status = if (incomingIsNewer) incoming else existing
+        return status.copy(
+            searchId = incoming.searchId,
+            providerId = incoming.providerId,
+            lastCheckedAtEpochMillis = maxNullable(
+                existing.lastCheckedAtEpochMillis,
+                incoming.lastCheckedAtEpochMillis,
+            ),
+            lastSuccessAtEpochMillis = maxNullable(
+                existing.lastSuccessAtEpochMillis,
+                incoming.lastSuccessAtEpochMillis,
+            ),
+        )
+    }
+
+    private fun mergeSavedSearchHit(
+        existing: SavedSearchHitEntity?,
+        incoming: SavedSearchHitEntity?,
+    ): SavedSearchHitEntity = when {
+        existing == null -> checkNotNull(incoming)
+        incoming == null -> existing
+        else -> {
+            val incomingFreshness = incoming.providerUpdatedAtEpochMillis ?: incoming.lastSeenAtEpochMillis
+            val existingFreshness = existing.providerUpdatedAtEpochMillis ?: existing.lastSeenAtEpochMillis
+            val metadata = if (incomingFreshness > existingFreshness) incoming else existing
+            metadata.copy(
+                id = incoming.id,
+                searchId = incoming.searchId,
+                providerId = incoming.providerId,
+                providerRecordId = incoming.providerRecordId,
+                linkedWorkId = existing.linkedWorkId ?: incoming.linkedWorkId,
+                firstSeenAtEpochMillis = minOf(existing.firstSeenAtEpochMillis, incoming.firstSeenAtEpochMillis),
+                lastSeenAtEpochMillis = maxOf(existing.lastSeenAtEpochMillis, incoming.lastSeenAtEpochMillis),
+                unread = existing.unread,
+            )
+        }
+    }
+
+    private fun maxNullable(first: Long?, second: Long?): Long? = when {
+        first == null -> second
+        second == null -> first
+        else -> maxOf(first, second)
     }
 
     private fun canonicalIdentifiers(work: BackupWorkProto): List<PaperIdentifier> = work.identifiers
@@ -698,6 +909,8 @@ internal class RoomMetadataBackupRepository(
         bookmarks = proto.bookmarks.size,
         annotations = proto.annotations.size,
         history = proto.histories.size,
+        savedSearches = proto.savedSearches.size,
+        savedSearchHits = proto.savedSearches.sumOf { it.hits.size },
     )
 
     private fun invalidLocalDataError() = MetadataBackupError.Rejected(
@@ -755,6 +968,7 @@ internal class RoomMetadataBackupRepository(
     private companion object {
         const val SUBJECT_SEPARATOR = "\u001f"
         const val HASH_SEPARATOR = "\u001e"
+        const val MAX_SAVED_SEARCH_HITS_PER_SOURCE = 200
         val SHA256_REGEX = Regex("[0-9a-f]{64}")
     }
 }

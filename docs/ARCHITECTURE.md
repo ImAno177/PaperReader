@@ -145,7 +145,9 @@ Room entity classes are public only because the current Room/KSP processor needs
 - Metadata backup: a bounded single-entry ZIP with a versioned ProtoBuf payload, strict relational
   and hostile-input validation, exact-identifier restore planning, and one-transaction merge. It
   preserves local files/tasks, reports conflicts, unavailable providers, skipped records, and
-  document anchors that remain dormant because the exact local PDF is unavailable.
+  document anchors that remain dormant because the exact local PDF is unavailable. Schema v2 also
+  carries saved-search query/provider checkpoints and bounded hit snapshots; restore derives stable
+  IDs, remaps exact Work links, and keeps the device's existing read/unread state on collisions.
 - Local PDF import: content-only URI validation, bounded streaming, `%PDF-` validation, SHA-256
   identity, durable app-private staging, verified atomic publication, and one Room transaction for
   Work/manifestation/file provenance. Exact duplicates are idempotent only inside the
@@ -265,7 +267,7 @@ Room entity classes are public only because the current Room/KSP processor needs
   implemented.
 - Tags, smart collections, collection reordering, Original-PDF highlights, annotation export and
   cross-revision re-anchoring, manifestation revision/citation updates, configurable saved-search
-  cadence, saved-search backup/restore,
+  cadence,
   production PDF-to-reflow extraction, isolated TeX conversion, OCR, and structured full text for
   non-arXiv providers. The official arXiv HTML reader and Original-PDF reader are real; unsupported
   content still receives a typed fallback and the app never invents extracted text.

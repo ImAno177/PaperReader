@@ -27,6 +27,7 @@ import dev.paperreader.logic.domain.PaperAuthor
 import dev.paperreader.logic.domain.PaperIdentifier
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.domain.readingBookmarkId
+import dev.paperreader.logic.domain.repository.CreateSavedSearchResult
 import dev.paperreader.logic.provider.RemoteManifestation
 import dev.paperreader.logic.provider.RemotePaper
 import java.time.Clock
@@ -93,11 +94,17 @@ class RoomMetadataBackupAndroidTest {
         assertEquals(0, preview.preview.skippedWorks)
         assertEquals(0, preview.preview.dormantBookmarks)
         assertEquals(0, preview.preview.dormantAnnotations)
+        assertEquals(1, preview.preview.summary.savedSearches)
+        assertEquals(1, preview.preview.summary.savedSearchHits)
 
         val first = repository.restore(archive.archiveBytes) as MetadataRestoreResult.Applied
+        val firstSavedHit = targetDb.savedSearchDao().getAllHits().single()
+        targetDb.savedSearchDao().upsertHits(listOf(firstSavedHit.copy(unread = true)))
         val second = repository.restore(archive.archiveBytes) as MetadataRestoreResult.Applied
 
         assertEquals(1, first.appliedWorks)
+        assertEquals(1, first.appliedSavedSearches)
+        assertEquals(1, first.appliedSavedSearchHits)
         assertEquals(0, first.skippedRecords)
         assertEquals(first.preview, second.preview)
         assertEquals(1, targetDb.libraryDao().getAllWorks().size)
@@ -121,6 +128,11 @@ class RoomMetadataBackupAndroidTest {
         assertEquals("https://local.example/newer.pdf", mergedManifestation.pdfUrl)
         assertEquals("CC-BY-4.0", mergedManifestation.license)
         assertEquals(NEWER_TIME, mergedManifestation.updatedAtEpochMillis)
+        assertEquals(1, targetDb.savedSearchDao().getAllSearches().size)
+        assertEquals(listOf("fixture"), targetDb.savedSearchDao().getAllSources().map { it.providerId })
+        val restoredHit = targetDb.savedSearchDao().getAllHits().single()
+        assertEquals(targetWork.value, restoredHit.linkedWorkId)
+        assertTrue(restoredHit.unread)
     }
 
     @Test
@@ -359,6 +371,15 @@ class RoomMetadataBackupAndroidTest {
         )
         database.libraryDao().upsertAnnotations(
             listOf(annotation(annotationId, workId.value, DOCUMENT_SHA, "Quoted text", "Research note")),
+        )
+        val savedSearches = RoomSavedSearchRepository(database, FIXED_CLOCK)
+        val savedSearch = savedSearches.create("graph learning", setOf("fixture"))
+        val savedSearchId = (savedSearch as CreateSavedSearchResult.Created).searchId
+        savedSearches.recordSuccess(
+            id = savedSearchId,
+            providerId = "fixture",
+            records = listOf(paper()),
+            checkedAt = Instant.ofEpochMilli(FIXED_TIME),
         )
         database.libraryDao().upsertFile(
             FileEntity(

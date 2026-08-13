@@ -509,7 +509,7 @@ API 33+ kiểm `POST_NOTIFICATIONS`, channel/global block được phản ánh r
 Trong contract này “newly unread” gồm provider record mới hoặc fingerprint metadata đã đổi mà trước
 đó không còn unread; copy notification không được gọi tất cả là paper mới. Tap notification mở
 Updates. Migration `3 -> 4` giữ dữ liệu v3; scheduler không đổi schema.
-Cursor/ETag delta, revision/citation feed, cadence tùy chỉnh và backup saved search vẫn chưa triển khai.
+Cursor/ETag delta, revision/citation feed và cadence tùy chỉnh vẫn chưa triển khai.
 
 Local PDF/share intent hiện cũng là vertical slice thật. OpenDocument, `ACTION_VIEW` và
 `ACTION_SEND` chỉ nhận `content://` với MIME PDF; logic giới hạn byte, kiểm `%PDF-`, tính SHA-256 và
@@ -562,15 +562,16 @@ Reader:
 Vertical slice hiện tại đã có manual metadata backup thật qua Storage Access Framework. Archive là
 một ZIP entry duy nhất chứa ProtoBuf có format/schema/database version và giới hạn kích thước. Nội
 dung hiện có Work, identifier, author, manifestation/provenance, collection membership, reading
-state, history, exact-PDF page bookmark và annotation sidecar hiện có trong Room. Restore luôn
+state, history, exact-PDF page bookmark, annotation sidecar, saved-search query, provider checkpoint
+và tối đa 200 hit snapshot cho mỗi provider hiện có trong Room. Restore luôn
 decode/validate toàn bộ graph trước, hiển thị preview new/merged/skipped/conflict, provider còn thiếu
 và anchor dormant, rồi dùng lại đúng plan đó trong một transaction. Chỉ exact canonical alias được
 merge; title giống nhau không đủ bằng chứng. PDF/file row, download/task row, cache, plugin APK,
 credential và private path không vào archive và không bị restore ghi đè. Pending preview được lưu
 tạm trong app-private `noBackupFilesDir` để sống qua process recreation. Automatic backup,
 attachment bundle, settings/provider-config backup và sync vẫn chưa được coi là đã triển khai.
-Saved-search query/source/hit của Room v4 hiện cũng chưa nằm trong archive; mục này vẫn thuộc phạm vi
-Backup P1 bên dưới và không được quảng bá là đã hoàn thành.
+Saved-search restore suy ra lại ID ổn định từ query/provider set, remap exact Work link, giữ trạng thái
+read/unread cục bộ khi merge và vẫn giữ snapshot khi provider tương ứng chưa được cài.
 
 Backup P1 gồm:
 

@@ -2,6 +2,8 @@
 
 package dev.paperreader.logic.backup
 
+import dev.paperreader.logic.data.SavedSearchRecordCodec
+import dev.paperreader.logic.provider.RemotePaper
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -37,6 +39,46 @@ class MetadataBackupCodecTest {
     fun `older database version with current wire schema remains readable`() {
         val result = MetadataBackupCodec.decode(MetadataBackupCodec.encode(fixture().copy(databaseVersion = 1)))
         assertTrue(result is DecodedBackup.Valid)
+    }
+
+    @Test
+    fun `schema one archives without saved searches remain readable`() {
+        val result = MetadataBackupCodec.decode(
+            MetadataBackupCodec.encode(fixture().copy(schemaVersion = 1, savedSearches = emptyList())),
+        )
+
+        assertTrue(result is DecodedBackup.Valid)
+    }
+
+    @Test
+    fun `saved searches and bounded snapshots round trip`() {
+        val value = fixture().copy(savedSearches = listOf(savedSearch()))
+
+        val decoded = MetadataBackupCodec.decode(MetadataBackupCodec.encode(value)) as DecodedBackup.Valid
+
+        assertEquals(value, decoded.value)
+    }
+
+    @Test
+    fun `saved search wire data rejects unsupported schema dangling sources and changed snapshots`() {
+        val savedSearch = savedSearch()
+        assertRejected(fixture().copy(schemaVersion = 1, savedSearches = listOf(savedSearch)), "schema_feature_mismatch")
+        assertRejected(
+            fixture().copy(
+                savedSearches = listOf(
+                    savedSearch.copy(hits = listOf(savedSearch.hits.single().copy(providerId = "crossref"))),
+                ),
+            ),
+            "invalid_payload",
+        )
+        assertRejected(
+            fixture().copy(
+                savedSearches = listOf(
+                    savedSearch.copy(hits = listOf(savedSearch.hits.single().copy(recordPayload = "changed"))),
+                ),
+            ),
+            "invalid_payload",
+        )
     }
 
     @Test
@@ -354,4 +396,37 @@ class MetadataBackupCodecTest {
         createdAtEpochMillis = 1,
         updatedAtEpochMillis = 1,
     )
+
+    private fun savedSearch(): BackupSavedSearchProto {
+        val payload = SavedSearchRecordCodec.encode(
+            RemotePaper(
+                providerId = "arxiv",
+                providerRecordId = "1234.5678",
+                title = "Paper",
+            ),
+        )
+        return BackupSavedSearchProto(
+            queryText = "graph learning",
+            createdAtEpochMillis = 1,
+            sources = listOf(
+                BackupSavedSearchSourceProto(
+                    providerId = "arxiv",
+                    lastCheckedAtEpochMillis = 2,
+                    lastSuccessAtEpochMillis = 2,
+                ),
+            ),
+            hits = listOf(
+                BackupSavedSearchHitProto(
+                    providerId = "arxiv",
+                    providerRecordId = "1234.5678",
+                    fingerprint = SavedSearchRecordCodec.fingerprint(payload),
+                    recordPayload = payload,
+                    linkedWorkSourceId = "w-old",
+                    firstSeenAtEpochMillis = 2,
+                    lastSeenAtEpochMillis = 2,
+                    unread = true,
+                ),
+            ),
+        )
+    }
 }

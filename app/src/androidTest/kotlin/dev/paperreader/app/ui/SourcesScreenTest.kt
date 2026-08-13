@@ -5,6 +5,7 @@ import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -24,6 +25,7 @@ import dev.paperreader.logic.plugin.ExtensionStoreRegistryState
 import dev.paperreader.logic.plugin.VerifiedExtensionRelease
 import dev.paperreader.logic.plugin.VerifiedExtensionStoreIndex
 import java.time.Instant
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -71,6 +73,64 @@ class SourcesScreenTest {
         composeRule.onNodeWithText("PaperReader community").assertIsDisplayed()
         composeRule.onNodeWithText("Semantic Scholar").assertIsDisplayed()
         composeRule.onNodeWithText("Install extension").assertIsDisplayed()
+    }
+
+    @Test
+    fun pinnedStoreAndBlockedInstalledReleaseDoNotOfferDestructiveOrRepeatActions() {
+        val blockedPackage = "dev.paperreader.extensions.semanticscholar"
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                SourcesScreen(
+                    providers = ProviderManagerState(
+                        untrusted = listOf(
+                            UntrustedProviderPlugin(
+                                packageName = blockedPackage,
+                                signerSha256 = "cd".repeat(32),
+                                reason = "Signer mismatch",
+                            ),
+                        ),
+                    ),
+                    extensionStores = signedStoreState(pinned = true),
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
+        composeRule.onNodeWithText("Official").assertIsDisplayed()
+        composeRule.onNodeWithText("Installed but blocked").assertIsDisplayed()
+        composeRule.onNodeWithText("Install extension").assertDoesNotExist()
+    }
+
+    @Test
+    fun currentInstalledReleaseDoesNotOfferInstallAgain() {
+        val installedPackage = "dev.paperreader.extensions.semanticscholar"
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                SourcesScreen(
+                    providers = ProviderManagerState(
+                        installed = listOf(
+                            InstalledProvider(
+                                descriptor = ProviderDescriptor(
+                                    id = "semanticscholar",
+                                    displayName = "Semantic Scholar",
+                                    minimumRequestIntervalMillis = 1_000,
+                                ),
+                                origin = ProviderOrigin.COMMUNITY_PLUGIN,
+                                packageName = installedPackage,
+                                versionCode = 3,
+                            ),
+                        ),
+                    ),
+                    extensionStores = signedStoreState(),
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
+        composeRule.onNodeWithText("Install extension").assertDoesNotExist()
+        assertTrue(composeRule.onAllNodesWithText("Installed").fetchSemanticsNodes().isNotEmpty())
     }
 
     @Test
@@ -131,10 +191,11 @@ class SourcesScreenTest {
         ),
     )
 
-    private fun signedStoreState() = ExtensionStoreRegistryState(
+    private fun signedStoreState(pinned: Boolean = false) = ExtensionStoreRegistryState(
         stores = listOf(
             ExtensionStoreRecord(
                 indexUrl = "https://example.org/index.json",
+                pinned = pinned,
                 index = VerifiedExtensionStoreIndex(
                     storeId = "paperreader.community",
                     displayName = "PaperReader community",

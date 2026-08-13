@@ -268,6 +268,7 @@
     <string name="provider_available_section">Available packages</string>
     <string name="provider_blocked">Blocked</string>
     <string name="provider_blocked_body">This package cannot run because its trust check failed.</string>
+    <string name="store_pinned">Official</string>
     <string name="provider_block_reason">Reason: %1$s</string>
     <string name="provider_signer">Signer SHA-256: %1$s</string>
     <string name="provider_available_notice">PaperReader opens the publisher-signed HTTPS download page. Android keeps the final install confirmation under your control.</string>
@@ -593,6 +594,7 @@
     <string name="extension_installing">Preparing Android installer</string>
     <string name="extension_awaiting_confirmation">Confirm in Android installer</string>
     <string name="extension_installed">Installed — dismiss</string>
+    <string name="extension_installed_blocked">Installed but blocked</string>
     <string name="extension_install_cancelled">Installation cancelled — dismiss</string>
     <string name="extension_install_failed">Install failed: %1$s</string>
     <string name="source_extension_notification_channel">Source extension updates</string>

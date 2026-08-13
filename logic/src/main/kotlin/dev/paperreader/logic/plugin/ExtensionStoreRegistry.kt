@@ -36,6 +36,7 @@ import java.io.IOException
 data class ExtensionStoreRecord(
     val indexUrl: String,
     val index: VerifiedExtensionStoreIndex,
+    val pinned: Boolean = false,
 )
 
 data class ExtensionStoreIssue(
@@ -437,12 +438,16 @@ class ExtensionStoreRegistry(
         val publicKeyBase64: String,
         val envelope: ByteArray,
         val index: VerifiedExtensionStoreIndex,
-    ) {
-        fun toRecord() = ExtensionStoreRecord(indexUrl, index)
-    }
+    )
+
+    private fun CachedStore.toRecord() = ExtensionStoreRecord(
+        indexUrl = indexUrl,
+        index = index,
+        pinned = index.storeId in pinnedStoreIds,
+    )
 
     private fun List<CachedStore>.toRecords(): List<ExtensionStoreRecord> =
-        map(CachedStore::toRecord).sortedBy { it.index.displayName }
+        map { it.toRecord() }.sortedBy { it.index.displayName }
 
     private companion object {
         const val REGISTRY_SCHEMA_VERSION = 1

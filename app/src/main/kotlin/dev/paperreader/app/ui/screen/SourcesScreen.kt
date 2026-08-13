@@ -79,6 +79,14 @@ fun SourcesScreen(
     val releasesByPackage = extensionStores.stores
         .flatMap { it.index.releases }
         .associateBy(VerifiedExtensionRelease::packageName)
+    val blockedPackages = providers.untrusted.mapTo(hashSetOf()) { it.packageName }
+    val installedVersions = providers.installed
+        .mapNotNull { installed ->
+            installed.packageName?.let { packageName ->
+                installed.versionCode?.let { versionCode -> packageName to versionCode }
+            }
+        }
+        .toMap()
     LaunchedEffect(extensionStoreAction) {
         if (extensionStoreAction is ExtensionStoreActionUiState.PreviewReady) addStoreOpen = false
     }
@@ -127,6 +135,8 @@ fun SourcesScreen(
                 onRemove = { pendingRemovalStoreId = store.index.storeId },
                 onOpenInstallUrl = onOpenInstallUrl,
                 installStates = installStates,
+                blockedPackages = blockedPackages,
+                installedVersions = installedVersions,
                 onInstallSource = onInstallSource,
                 onDismissInstallState = onDismissInstallState,
             )
@@ -390,6 +400,8 @@ private fun ExtensionStoreCard(
     onRemove: () -> Unit,
     onOpenInstallUrl: (String) -> Unit,
     installStates: Map<String, SourceExtensionInstallState>,
+    blockedPackages: Set<String>,
+    installedVersions: Map<String, Long>,
     onInstallSource: (VerifiedExtensionRelease) -> Unit,
     onDismissInstallState: (String) -> Unit,
 ) {
@@ -409,8 +421,15 @@ private fun ExtensionStoreCard(
                     PaperIcon(PaperIconKey.SYNC, contentDescription = stringResource(R.string.refresh_store))
                 }
             }
-            IconButton(onClick = onRemove, enabled = enabled) {
-                PaperIcon(PaperIconKey.DELETE, contentDescription = stringResource(R.string.remove_store))
+            if (store.pinned) {
+                StatusBadge(
+                    text = stringResource(R.string.store_pinned),
+                    color = PaperTheme.tokens.success,
+                )
+            } else {
+                IconButton(onClick = onRemove, enabled = enabled) {
+                    PaperIcon(PaperIconKey.DELETE, contentDescription = stringResource(R.string.remove_store))
+                }
             }
         }
         Text(store.index.websiteUrl, color = PaperTheme.tokens.inkMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -424,6 +443,8 @@ private fun ExtensionStoreCard(
                 ExtensionReleaseRow(
                     release = release,
                     installState = installStates[release.packageName],
+                    blocked = release.packageName in blockedPackages,
+                    installedVersionCode = installedVersions[release.packageName],
                     onInstallSource = onInstallSource,
                     onDismissInstallState = onDismissInstallState,
                     onOpenInstallUrl = onOpenInstallUrl,
@@ -437,6 +458,8 @@ private fun ExtensionStoreCard(
 private fun ExtensionReleaseRow(
     release: VerifiedExtensionRelease,
     installState: SourceExtensionInstallState?,
+    blocked: Boolean,
+    installedVersionCode: Long?,
     onInstallSource: (VerifiedExtensionRelease) -> Unit,
     onDismissInstallState: (String) -> Unit,
     onOpenInstallUrl: (String) -> Unit,
@@ -461,12 +484,23 @@ private fun ExtensionReleaseRow(
                 color = PaperTheme.tokens.inkMuted,
             )
             Text(release.packageName, color = PaperTheme.tokens.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (release.compatible) {
+            if (blocked) {
+                StatusBadge(
+                    text = stringResource(R.string.extension_installed_blocked),
+                    icon = PaperIconKey.ERROR,
+                    color = PaperTheme.tokens.danger,
+                )
+            } else if (installedVersionCode != null && installedVersionCode >= release.versionCode) {
+                StatusBadge(
+                    text = stringResource(R.string.provider_installed_section),
+                    color = PaperTheme.tokens.success,
+                )
+            } else if (release.compatible) {
                 if (release.kind == ExtensionReleaseKind.SOURCE) {
                     SourceInstallAction(
                         release = release,
                         state = installState,
-                        update = false,
+                        update = installedVersionCode != null,
                         onInstall = onInstallSource,
                         onDismissState = onDismissInstallState,
                     )

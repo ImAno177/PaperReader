@@ -16,6 +16,9 @@ import dev.paperreader.logic.plugin.VerifiedExtensionRelease
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
+import java.net.Inet4Address
+import java.net.Inet6Address
+import java.net.InetAddress
 import java.net.URI
 import java.net.URL
 import java.security.MessageDigest
@@ -370,10 +373,50 @@ class SourceExtensionPackageReceiver : BroadcastReceiver() {
     }
 }
 
-internal fun requireAllowedDownloadUri(uri: URI) {
+internal fun requireAllowedDownloadUri(
+    uri: URI,
+    resolveHost: (String) -> List<InetAddress> = ::resolveHostAddresses,
+) {
     require(uri.scheme.equals("https", ignoreCase = true)) { "Extension APK URL must use HTTPS" }
-    require(uri.userInfo == null && uri.port == -1) { "Extension APK URL contains forbidden authority data" }
-    require(uri.host?.lowercase() in ALLOWED_DOWNLOAD_HOSTS) { "Extension APK host is not trusted" }
+    require(uri.userInfo == null && uri.port in setOf(-1, 443) && uri.fragment == null) {
+        "Extension APK URL contains forbidden authority data"
+    }
+    val host = requireNotNull(uri.host).lowercase()
+    require(host != "localhost" && !host.endsWith(".localhost") && !host.endsWith(".local")) {
+        "Extension APK host is local"
+    }
+    val addresses = runCatching { resolveHost(host) }
+        .getOrElse { throw IllegalArgumentException("Extension APK host could not be resolved", it) }
+    require(addresses.isNotEmpty() && addresses.all(::isPublicAddress)) {
+        "Extension APK host does not resolve to a public address"
+    }
+}
+
+private fun resolveHostAddresses(host: String): List<InetAddress> = InetAddress.getAllByName(host).toList()
+
+internal fun isPublicAddress(address: InetAddress): Boolean {
+    if (address.isAnyLocalAddress || address.isLoopbackAddress || address.isLinkLocalAddress ||
+        address.isSiteLocalAddress || address.isMulticastAddress
+    ) {
+        return false
+    }
+    val bytes = address.address.map(Byte::toInt).map { it and 0xff }
+    return when (address) {
+        is Inet4Address -> when {
+            bytes[0] == 0 || bytes[0] == 127 || bytes[0] >= 224 -> false
+            bytes[0] == 100 && bytes[1] in 64..127 -> false
+            bytes[0] == 192 && bytes[1] == 0 && bytes[2] in setOf(0, 2) -> false
+            bytes[0] == 198 && (bytes[1] in 18..19 || bytes[1] == 51 && bytes[2] == 100) -> false
+            bytes[0] == 203 && bytes[1] == 0 && bytes[2] == 113 -> false
+            else -> true
+        }
+        is Inet6Address -> {
+            val uniqueLocal = (bytes[0] and 0xfe) == 0xfc
+            val documentation = bytes.take(4) == listOf(0x20, 0x01, 0x0d, 0xb8)
+            !uniqueLocal && !documentation
+        }
+        else -> false
+    }
 }
 
 internal fun verifyDownloadedApk(file: File, expectedHash: String, expectedSize: Long) {
@@ -405,9 +448,3 @@ private const val MAX_REDIRECTS = 5
 private const val CONNECT_TIMEOUT_MILLIS = 15_000
 private const val READ_TIMEOUT_MILLIS = 60_000
 private const val DOWNLOAD_BUFFER_BYTES = 32 * 1024
-private val ALLOWED_DOWNLOAD_HOSTS = setOf(
-    "github.com",
-    "objects.githubusercontent.com",
-    "release-assets.githubusercontent.com",
-    "raw.githubusercontent.com",
-)

@@ -244,6 +244,14 @@ Room entity classes are public only because the current Room/KSP processor needs
   document-hash progress restoration, reading sessions, and an always-available Original PDF
   fallback when the verified local file exists. Other providers and PDFs without structured HTML
   still fall back honestly; the app does not claim universal reflow yet.
+- `ReadablePaperActivity` owns Android lifecycle, the WebView security boundary, and reader
+  orchestration. Annotation loading, exact-hash mutations, dialogs, and rendered-anchor refreshes
+  live in `ReadablePaperAnnotationController`; native find state lives in
+  `ReadablePaperFindController`. Neither controller may acquire a DAO or provider directly.
+- `PaperReaderViewModel` remains the application-facing facade for Compose, while the metadata
+  backup/restore and local-PDF import state machines live in dedicated controllers. These
+  controllers consume only `PaperReaderLogic` use cases and a ViewModel-owned coroutine scope;
+  UI code must not duplicate their pending-operation state.
 - arXiv work publication dates remain distinct from exact-version manifestation update dates. Atom
   metadata does not prove a content license; the detail screen defers the license label until the
   sanitized official HTML source has supplied it, and the reader reports narrowly normalized source

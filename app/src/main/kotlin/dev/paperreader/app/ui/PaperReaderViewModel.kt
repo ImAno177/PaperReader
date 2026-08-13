@@ -6,21 +6,12 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import dev.paperreader.app.download.DownloadWorkScheduler
-import dev.paperreader.app.backup.BackupDestinationWriteException
-import dev.paperreader.app.backup.BackupDestinationRecoveryCancellationException
-import dev.paperreader.app.backup.BackupFileTooLargeException
 import dev.paperreader.app.backup.MetadataRestoreSessionStore
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.model.ReadingHistoryUi
 import dev.paperreader.app.ui.model.SearchPaperUi
-import dev.paperreader.app.ui.model.MetadataBackupFailure
-import dev.paperreader.app.ui.model.MetadataBackupOperation
-import dev.paperreader.app.ui.model.MetadataBackupSummaryUi
 import dev.paperreader.app.ui.model.MetadataBackupUiState
-import dev.paperreader.app.ui.model.MetadataRestorePreviewUi
-import dev.paperreader.app.ui.model.MetadataRestoreIssueUi
-import dev.paperreader.app.ui.model.MetadataRestoreReportUi
 import dev.paperreader.app.ui.model.LocalPdfImportUiState
 import dev.paperreader.app.ui.model.toPaperUi
 import dev.paperreader.app.ui.model.toPaperCollectionUi
@@ -34,20 +25,12 @@ import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.domain.SavedSearchHitId
 import dev.paperreader.logic.domain.SavedSearchId
 import dev.paperreader.logic.domain.normalizeSavedSearchQuery
-import dev.paperreader.logic.domain.PrepareLocalPdfResult
-import dev.paperreader.logic.domain.LocalPdfImportResult
-import dev.paperreader.logic.domain.LocalPdfImportFailure
 import dev.paperreader.logic.domain.repository.RemovePaperResult
 import dev.paperreader.logic.domain.repository.CreateCollectionResult
 import dev.paperreader.logic.domain.repository.DeleteCollectionResult
 import dev.paperreader.logic.domain.repository.RenameCollectionResult
 import dev.paperreader.logic.domain.repository.SetPaperCollectionsResult
 import dev.paperreader.logic.backup.MetadataBackupExport
-import dev.paperreader.logic.backup.MetadataBackupExportResult
-import dev.paperreader.logic.backup.MetadataBackupSummary
-import dev.paperreader.logic.backup.MetadataRestorePreview
-import dev.paperreader.logic.backup.MetadataRestorePreviewResult
-import dev.paperreader.logic.backup.MetadataRestoreResult
 import dev.paperreader.logic.provider.PaperSearchQuery
 import dev.paperreader.logic.provider.ProviderException
 import dev.paperreader.logic.plugin.ExtensionStorePreview
@@ -69,7 +52,6 @@ import dev.paperreader.logic.domain.repository.CreateSavedSearchResult
 import dev.paperreader.logic.domain.repository.DeleteSavedSearchResult
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -80,7 +62,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 
 sealed interface LoadState<out T> {
     data object Loading : LoadState<Nothing>
@@ -190,20 +171,17 @@ class PaperReaderViewModel internal constructor(
     private var searchGeneration = 0L
     private val mutableSavedSearchActions = MutableStateFlow(SavedSearchActionUiState())
     val savedSearchActions: StateFlow<SavedSearchActionUiState> = mutableSavedSearchActions
-    private val mutableMetadataBackup = MutableStateFlow<MetadataBackupUiState>(MetadataBackupUiState.Inspecting)
-    val metadataBackup: StateFlow<MetadataBackupUiState> = mutableMetadataBackup
-    private val mutableLocalPdfImport = MutableStateFlow<LocalPdfImportUiState>(LocalPdfImportUiState.Preparing)
-    val localPdfImport: StateFlow<LocalPdfImportUiState> = mutableLocalPdfImport
-    private var pendingRestoreBytes: ByteArray? = null
-    private val metadataBackupMutex = Mutex()
+    private val metadataBackupController = PaperReaderMetadataBackupController(
+        logic = logic,
+        sessionStore = metadataRestoreSessionStore,
+        scope = viewModelScope,
+    )
+    val metadataBackup: StateFlow<MetadataBackupUiState> = metadataBackupController.state
+    private val localPdfImportController = PaperReaderLocalPdfImportController(logic, viewModelScope)
+    val localPdfImport: StateFlow<LocalPdfImportUiState> = localPdfImportController.state
     private val extensionStoreMutex = Mutex()
     private val mutableExtensionStoreAction = MutableStateFlow<ExtensionStoreActionUiState>(ExtensionStoreActionUiState.Idle)
     val extensionStoreAction: StateFlow<ExtensionStoreActionUiState> = mutableExtensionStoreAction
-
-    init {
-        recoverPendingMetadataRestore()
-        recoverPendingLocalPdf()
-    }
 
     fun previewExtensionStore(indexUrl: String, publicKeyBase64: String) {
         if (mutableExtensionStoreAction.value is ExtensionStoreActionUiState.Working) return
@@ -687,303 +665,21 @@ class PaperReaderViewModel internal constructor(
     suspend fun deleteDownload(workId: String, manifestationId: String): DeleteDownloadResult =
         logic.downloads.deleteDownload(WorkId(workId), ManifestationId(manifestationId))
 
-    fun prepareLocalPdf(sourceUri: String): Boolean {
-        if (!mutableLocalPdfImport.value.canStartLocalPdfImport()) return false
-        mutableLocalPdfImport.value = LocalPdfImportUiState.Preparing
-        viewModelScope.launch {
-            try {
-                mutableLocalPdfImport.value = when (val result = logic.useCases.prepareLocalPdf.await(sourceUri)) {
-                    is PrepareLocalPdfResult.Ready -> LocalPdfImportUiState.Confirming(result.candidate)
-                    is PrepareLocalPdfResult.Rejected -> LocalPdfImportUiState.Failed(result.reason)
-                }
-            } catch (cancelled: CancellationException) {
-                mutableLocalPdfImport.value = LocalPdfImportUiState.Idle
-                throw cancelled
-            } catch (_: Exception) {
-                mutableLocalPdfImport.value = LocalPdfImportUiState.Failed(LocalPdfImportFailure.IO_FAILURE)
-            }
-        }
-        return true
-    }
+    fun prepareLocalPdf(sourceUri: String): Boolean = localPdfImportController.prepare(sourceUri)
 
-    fun confirmLocalPdfImport(title: String) {
-        val candidate = (mutableLocalPdfImport.value as? LocalPdfImportUiState.Confirming)?.candidate ?: return
-        mutableLocalPdfImport.value = LocalPdfImportUiState.Importing(candidate, title)
-        viewModelScope.launch {
-            try {
-                mutableLocalPdfImport.value = when (
-                    val result = logic.useCases.importLocalPdf.await(candidate.importToken, title)
-                ) {
-                    is LocalPdfImportResult.Imported -> LocalPdfImportUiState.Complete(
-                        workId = result.document.workId.value,
-                        title = title.trim(),
-                        alreadyImported = false,
-                    )
+    fun confirmLocalPdfImport(title: String) = localPdfImportController.confirm(title)
 
-                    is LocalPdfImportResult.AlreadyImported -> LocalPdfImportUiState.Complete(
-                        workId = result.document.workId.value,
-                        title = title.trim(),
-                        alreadyImported = true,
-                    )
-
-                    is LocalPdfImportResult.Rejected -> LocalPdfImportUiState.Failed(
-                        reason = result.reason,
-                        pendingCandidate = candidate.takeIf {
-                            result.reason == LocalPdfImportFailure.IO_FAILURE ||
-                                result.reason == LocalPdfImportFailure.INVALID_TITLE
-                        },
-                    )
-                }
-            } catch (cancelled: CancellationException) {
-                mutableLocalPdfImport.value = LocalPdfImportUiState.Confirming(candidate)
-                throw cancelled
-            } catch (_: Exception) {
-                mutableLocalPdfImport.value = LocalPdfImportUiState.Failed(
-                    reason = LocalPdfImportFailure.IO_FAILURE,
-                    pendingCandidate = candidate,
-                )
-            }
-        }
-    }
-
-    fun dismissLocalPdfImport() {
-        when (val state = mutableLocalPdfImport.value) {
-            LocalPdfImportUiState.Preparing,
-            is LocalPdfImportUiState.Importing,
-            -> Unit
-
-            is LocalPdfImportUiState.Confirming -> {
-                mutableLocalPdfImport.value = LocalPdfImportUiState.Idle
-                viewModelScope.launch {
-                    withContext(NonCancellable) {
-                        logic.useCases.discardPendingLocalPdf.await(state.candidate.importToken)
-                    }
-                }
-            }
-
-            is LocalPdfImportUiState.Failed -> {
-                mutableLocalPdfImport.value = LocalPdfImportUiState.Idle
-                state.pendingCandidate?.let { candidate ->
-                    viewModelScope.launch {
-                        withContext(NonCancellable) {
-                            logic.useCases.discardPendingLocalPdf.await(candidate.importToken)
-                        }
-                    }
-                }
-            }
-
-            else -> mutableLocalPdfImport.value = LocalPdfImportUiState.Idle
-        }
-    }
-
-    private fun recoverPendingLocalPdf() {
-        viewModelScope.launch {
-            try {
-                mutableLocalPdfImport.value = logic.useCases.recoverPendingLocalPdf.await()
-                    ?.let(LocalPdfImportUiState::Confirming)
-                    ?: LocalPdfImportUiState.Idle
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                mutableLocalPdfImport.value = LocalPdfImportUiState.Failed(LocalPdfImportFailure.IO_FAILURE)
-            }
-        }
-    }
+    fun dismissLocalPdfImport() = localPdfImportController.dismiss()
 
     fun createMetadataBackup(
         write: suspend (MetadataBackupExport) -> Unit,
-    ) {
-        if (!mutableMetadataBackup.value.canStartNewOperation()) return
-        mutableMetadataBackup.value = MetadataBackupUiState.Exporting
-        viewModelScope.launch {
-            metadataBackupMutex.withLock {
-                pendingRestoreBytes = null
-                if (!clearRestoreSession()) {
-                    mutableMetadataBackup.value = MetadataBackupUiState.Failed(
-                        operation = MetadataBackupOperation.EXPORT,
-                        reason = MetadataBackupFailure.FILE_UNAVAILABLE,
-                    )
-                    return@withLock
-                }
-                try {
-                    mutableMetadataBackup.value = executeMetadataBackupExport(
-                        export = { logic.useCases.createMetadataBackup.await() },
-                        write = write,
-                    )
-                } catch (cancelled: CancellationException) {
-                    mutableMetadataBackup.value = metadataBackupStateAfterCancellation(cancelled)
-                    throw cancelled
-                }
-            }
-        }
-    }
+    ) = metadataBackupController.create(write)
 
-    fun previewMetadataRestore(read: suspend () -> ByteArray) {
-        if (!mutableMetadataBackup.value.canStartNewOperation()) return
-        pendingRestoreBytes = null
-        mutableMetadataBackup.value = MetadataBackupUiState.Inspecting
-        viewModelScope.launch {
-            metadataBackupMutex.withLock {
-                try {
-                    if (!clearRestoreSession()) {
-                        mutableMetadataBackup.value = MetadataBackupUiState.Failed(
-                            operation = MetadataBackupOperation.PREVIEW,
-                            reason = MetadataBackupFailure.FILE_UNAVAILABLE,
-                        )
-                        return@withLock
-                    }
-                    val bytes = read()
-                    metadataRestoreSessionStore.save(bytes)
-                    inspectMetadataRestore(bytes)
-                } catch (cancelled: CancellationException) {
-                    pendingRestoreBytes = null
-                    withContext(NonCancellable) { clearRestoreSession() }
-                    mutableMetadataBackup.value = MetadataBackupUiState.Idle
-                    throw cancelled
-                } catch (_: BackupFileTooLargeException) {
-                    clearRestoreSessionQuietly()
-                    mutableMetadataBackup.value = MetadataBackupUiState.Failed(
-                        operation = MetadataBackupOperation.PREVIEW,
-                        reason = MetadataBackupFailure.FILE_TOO_LARGE,
-                    )
-                } catch (_: java.io.IOException) {
-                    clearRestoreSessionQuietly()
-                    mutableMetadataBackup.value = MetadataBackupUiState.Failed(
-                        operation = MetadataBackupOperation.PREVIEW,
-                        reason = MetadataBackupFailure.FILE_UNAVAILABLE,
-                    )
-                } catch (_: Exception) {
-                    clearRestoreSessionQuietly()
-                    mutableMetadataBackup.value = MetadataBackupUiState.Failed(
-                        operation = MetadataBackupOperation.PREVIEW,
-                        reason = MetadataBackupFailure.INVALID_OR_UNSUPPORTED,
-                    )
-                }
-            }
-        }
-    }
+    fun previewMetadataRestore(read: suspend () -> ByteArray) = metadataBackupController.previewRestore(read)
 
-    fun confirmMetadataRestore() {
-        val bytes = pendingRestoreBytes ?: return
-        val preview = (mutableMetadataBackup.value as? MetadataBackupUiState.Preview)?.value ?: return
-        mutableMetadataBackup.value = MetadataBackupUiState.Restoring(preview)
-        viewModelScope.launch {
-            metadataBackupMutex.withLock {
-                try {
-                    when (val result = logic.useCases.restoreMetadataBackup.await(bytes)) {
-                        is MetadataRestoreResult.Applied -> {
-                            pendingRestoreBytes = null
-                            clearRestoreSessionQuietly()
-                            mutableMetadataBackup.value = MetadataBackupUiState.Restored(
-                                MetadataRestoreReportUi(
-                                    summary = result.preview.summary.toUi(),
-                                    appliedWorks = result.appliedWorks,
-                                    skippedWorks = result.skippedWorks,
-                                    appliedBookmarks = result.appliedBookmarks,
-                                    appliedAnnotations = result.appliedAnnotations,
-                                    appliedSavedSearches = result.appliedSavedSearches,
-                                    appliedSavedSearchHits = result.appliedSavedSearchHits,
-                                    skippedRecords = result.skippedRecords,
-                                ),
-                            )
-                        }
+    fun confirmMetadataRestore() = metadataBackupController.confirmRestore()
 
-                        is MetadataRestoreResult.Rejected -> {
-                            pendingRestoreBytes = null
-                            clearRestoreSessionQuietly()
-                            mutableMetadataBackup.value = MetadataBackupUiState.Failed(
-                                operation = MetadataBackupOperation.RESTORE,
-                                reason = MetadataBackupFailure.INVALID_OR_UNSUPPORTED,
-                            )
-                        }
-                    }
-                } catch (cancelled: CancellationException) {
-                    mutableMetadataBackup.value = MetadataBackupUiState.Preview(preview)
-                    throw cancelled
-                } catch (_: Exception) {
-                    mutableMetadataBackup.value = MetadataBackupUiState.Failed(
-                        operation = MetadataBackupOperation.RESTORE,
-                        reason = MetadataBackupFailure.RESTORE_FAILED,
-                    )
-                }
-            }
-        }
-    }
-
-    fun dismissMetadataBackupState() {
-        if (mutableMetadataBackup.value.isBusy()) return
-        mutableMetadataBackup.value = MetadataBackupUiState.Inspecting
-        viewModelScope.launch {
-            metadataBackupMutex.withLock {
-                pendingRestoreBytes = null
-                mutableMetadataBackup.value = if (clearRestoreSession()) {
-                    MetadataBackupUiState.Idle
-                } else {
-                    MetadataBackupUiState.Failed(
-                        operation = MetadataBackupOperation.PREVIEW,
-                        reason = MetadataBackupFailure.FILE_UNAVAILABLE,
-                    )
-                }
-            }
-        }
-    }
-
-    private fun recoverPendingMetadataRestore() {
-        viewModelScope.launch {
-            metadataBackupMutex.withLock {
-                try {
-                    val bytes = metadataRestoreSessionStore.load()
-                    if (bytes == null) {
-                        mutableMetadataBackup.value = MetadataBackupUiState.Idle
-                    } else {
-                        inspectMetadataRestore(bytes)
-                    }
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) {
-                    clearRestoreSessionQuietly()
-                    mutableMetadataBackup.value = MetadataBackupUiState.Failed(
-                        operation = MetadataBackupOperation.PREVIEW,
-                        reason = MetadataBackupFailure.INVALID_OR_UNSUPPORTED,
-                    )
-                }
-            }
-        }
-    }
-
-    private suspend fun inspectMetadataRestore(bytes: ByteArray) {
-        when (val result = logic.useCases.previewMetadataRestore.await(bytes)) {
-            is MetadataRestorePreviewResult.Ready -> {
-                pendingRestoreBytes = bytes
-                mutableMetadataBackup.value = MetadataBackupUiState.Preview(result.preview.toUi())
-            }
-
-            is MetadataRestorePreviewResult.Rejected -> {
-                pendingRestoreBytes = null
-                clearRestoreSessionQuietly()
-                mutableMetadataBackup.value = MetadataBackupUiState.Failed(
-                    operation = MetadataBackupOperation.PREVIEW,
-                    reason = MetadataBackupFailure.INVALID_OR_UNSUPPORTED,
-                )
-            }
-        }
-    }
-
-    private suspend fun clearRestoreSessionQuietly() {
-        clearRestoreSession()
-    }
-
-    private suspend fun clearRestoreSession(): Boolean {
-        try {
-            metadataRestoreSessionStore.clear()
-            return true
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            // A stale private session is safe to retry or reject during the next process start.
-            return false
-        }
-    }
+    fun dismissMetadataBackupState() = metadataBackupController.dismiss()
 
     private fun performTaskAction(taskId: String, action: suspend () -> Unit) {
         val current = mutableDownloadActions.value
@@ -1034,118 +730,8 @@ class PaperReaderViewModel internal constructor(
     }
 }
 
-private fun MetadataBackupUiState.isBusy(): Boolean = this == MetadataBackupUiState.Exporting ||
-    this == MetadataBackupUiState.Inspecting || this is MetadataBackupUiState.Restoring
-
-private fun MetadataBackupUiState.canStartNewOperation(): Boolean = when (this) {
-    MetadataBackupUiState.Idle,
-    is MetadataBackupUiState.Exported,
-    is MetadataBackupUiState.Restored,
-    is MetadataBackupUiState.Failed,
-    -> true
-
-    MetadataBackupUiState.Exporting,
-    MetadataBackupUiState.Inspecting,
-    is MetadataBackupUiState.Preview,
-    is MetadataBackupUiState.Restoring,
-    -> false
-}
-
-private fun LocalPdfImportUiState.canStartLocalPdfImport(): Boolean = when (this) {
-    LocalPdfImportUiState.Idle,
-    is LocalPdfImportUiState.Complete,
-    is LocalPdfImportUiState.Failed,
-    -> true
-
-    LocalPdfImportUiState.Preparing,
-    is LocalPdfImportUiState.Confirming,
-    is LocalPdfImportUiState.Importing,
-    -> false
-}
-
 private fun Exception.extensionStoreMessage(fallback: String): String =
     message?.trim()?.take(180)?.takeIf(String::isNotBlank) ?: fallback
-
-internal suspend fun executeMetadataBackupExport(
-    export: suspend () -> MetadataBackupExportResult,
-    write: suspend (MetadataBackupExport) -> Unit,
-): MetadataBackupUiState {
-    return try {
-        when (val result = export()) {
-            is MetadataBackupExportResult.Success -> {
-                write(result.export)
-                MetadataBackupUiState.Exported(result.export.summary.toUi())
-            }
-
-            is MetadataBackupExportResult.Rejected -> MetadataBackupUiState.Failed(
-                operation = MetadataBackupOperation.EXPORT,
-                reason = if (result.error.code.endsWith("too_large")) {
-                    MetadataBackupFailure.LIBRARY_TOO_LARGE
-                } else {
-                    MetadataBackupFailure.EXPORT_FAILED
-                },
-            )
-        }
-    } catch (cancelled: CancellationException) {
-        throw cancelled
-    } catch (failure: BackupDestinationWriteException) {
-        MetadataBackupUiState.Failed(
-            operation = MetadataBackupOperation.EXPORT,
-            reason = if (failure.destinationRecovered) {
-                MetadataBackupFailure.FILE_UNAVAILABLE
-            } else {
-                MetadataBackupFailure.INCOMPLETE_FILE_MAY_REMAIN
-            },
-        )
-    } catch (_: java.io.IOException) {
-        MetadataBackupUiState.Failed(
-            operation = MetadataBackupOperation.EXPORT,
-            reason = MetadataBackupFailure.FILE_UNAVAILABLE,
-        )
-    } catch (_: Exception) {
-        MetadataBackupUiState.Failed(
-            operation = MetadataBackupOperation.EXPORT,
-            reason = MetadataBackupFailure.EXPORT_FAILED,
-        )
-    }
-}
-
-internal fun metadataBackupStateAfterCancellation(
-    cancellation: CancellationException,
-): MetadataBackupUiState = if (cancellation is BackupDestinationRecoveryCancellationException) {
-    MetadataBackupUiState.Failed(
-        operation = MetadataBackupOperation.EXPORT,
-        reason = MetadataBackupFailure.INCOMPLETE_FILE_MAY_REMAIN,
-    )
-} else {
-    MetadataBackupUiState.Idle
-}
-
-private fun MetadataBackupSummary.toUi() = MetadataBackupSummaryUi(
-    works = works,
-    collections = collections,
-    manifestations = manifestations,
-    readingStates = readingStates,
-    bookmarks = bookmarks,
-    annotations = annotations,
-    historyEntries = history,
-    savedSearches = savedSearches,
-    savedSearchHits = savedSearchHits,
-)
-
-private fun MetadataRestorePreview.toUi() = MetadataRestorePreviewUi(
-    createdAt = createdAt,
-    summary = summary.toUi(),
-    newWorks = newWorks,
-    mergedWorks = mergedWorks,
-    skippedWorks = skippedWorks,
-    conflicts = conflicts.map { MetadataRestoreIssueUi(it.code, it.detail) },
-    missingProviders = missingProviders.sorted(),
-    dormantReadingStates = dormantReadingStates,
-    dormantBookmarks = dormantBookmarks,
-    dormantAnnotations = dormantAnnotations,
-    skippedRecords = skippedRecords,
-)
 
 private fun ProviderException.toUiFailure(
     providerId: String,

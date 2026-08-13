@@ -62,7 +62,10 @@ jobs:
           :app:assembleRelease
           --stacktrace
       - name: Verify APK signature
-        run: "$ANDROID_HOME/build-tools/36.1.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
+        run: >-
+          "$ANDROID_HOME/build-tools/36.1.0/apksigner"
+          verify --verbose --print-certs
+          app/build/outputs/apk/release/app-release.apk
       - name: Generate release SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
         with:

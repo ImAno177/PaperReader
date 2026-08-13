@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
             }
             PaperReaderApp(
                 preferences = app.preferences,
+                themeExtensionManager = app.themeExtensionManager,
                 logic = logic,
                 downloadWorkScheduler = app.downloadWorkScheduler,
                 savedSearchRefreshScheduler = app.savedSearchRefreshScheduler,

@@ -391,10 +391,12 @@ object PaperTheme {
 @Composable
 fun PaperReaderTheme(
     preset: PaperThemePreset,
+    communityTheme: CommunityPaperTheme? = null,
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val tokens = paperThemeTokens(preset, darkTheme)
+    val tokens = communityTheme?.tokens(darkTheme) ?: paperThemeTokens(preset, darkTheme)
+    val icons = communityTheme?.let { PaperIconSet.community(it.iconPaths) } ?: paperIconSet(preset)
     MaterialTheme(
         colorScheme = tokens.materialScheme(darkTheme),
         typography = tokens.materialTypography(),
@@ -402,7 +404,7 @@ fun PaperReaderTheme(
     ) {
         androidx.compose.runtime.CompositionLocalProvider(
             LocalPaperTheme provides tokens,
-            LocalPaperIcons provides paperIconSet(preset),
+            LocalPaperIcons provides icons,
         ) {
             content()
         }

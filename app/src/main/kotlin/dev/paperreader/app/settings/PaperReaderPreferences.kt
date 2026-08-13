@@ -20,16 +20,26 @@ class PaperReaderPreferences(context: Context) {
         if (error is IOException) emit(emptyPreferences()) else throw error
     }
 
-    val theme: Flow<PaperThemePreset> = preferences.map { values ->
-        PaperThemePreset.fromStorageKey(values[THEME_KEY])
+    val themeKey: Flow<String> = preferences.map { values ->
+        values[THEME_KEY] ?: PaperThemePreset.NEOBRUTALISM.storageKey
     }
+
+    val theme: Flow<PaperThemePreset> = themeKey.map(PaperThemePreset::fromStorageKey)
 
     val automaticSavedSearchRefreshEnabled: Flow<Boolean> = preferences.map { values ->
         values[AUTOMATIC_SAVED_SEARCH_REFRESH_KEY] ?: false
     }
 
     suspend fun setTheme(preset: PaperThemePreset) {
-        dataStore.edit { values -> values[THEME_KEY] = preset.storageKey }
+        setThemeKey(preset.storageKey)
+    }
+
+    suspend fun setThemeKey(storageKey: String) {
+        require(
+            storageKey in PaperThemePreset.entries.map(PaperThemePreset::storageKey) ||
+                storageKey.matches(Regex("community:[a-zA-Z0-9._-]+:[a-z0-9][a-z0-9._-]{1,63}")),
+        ) { "Invalid theme storage key" }
+        dataStore.edit { values -> values[THEME_KEY] = storageKey }
     }
 
     suspend fun setAutomaticSavedSearchRefreshEnabled(enabled: Boolean) {

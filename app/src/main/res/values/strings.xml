@@ -17,7 +17,7 @@
     <string name="library_loading_title">Opening your library</string>
     <string name="library_loading_body">Reading saved metadata from this device.</string>
     <string name="library_empty_title">Your library is empty</string>
-    <string name="library_empty_body">Search arXiv and Crossref, or import a PDF you already have. Papers stay in this local library.</string>
+    <string name="library_empty_body">Search your installed sources, or import a PDF you already have. Papers stay in this local library.</string>
     <string name="find_paper">Find a paper</string>
     <string name="show_grid">Show grid</string>
     <string name="show_list">Show list</string>
@@ -34,11 +34,11 @@
     <string name="library_no_matches_body">Change the search text or reading-status filter.</string>
 
     <string name="discover_title">Discover</string>
-    <string name="discover_body">Searches run against arXiv and Crossref. Results appear as each source responds.</string>
+    <string name="discover_body">Searches run across your installed sources. Results appear as each source responds.</string>
     <string name="search_label">Title, DOI, or arXiv ID</string>
     <string name="search_submit">Search</string>
     <string name="search_clear">Clear search</string>
-    <string name="search_start_title">Search arXiv and Crossref</string>
+    <string name="search_start_title">Search installed sources</string>
     <string name="search_start_body">Enter a paper title, DOI, or arXiv identifier to search live source metadata.</string>
     <string name="searching_title">Searching providers</string>
     <plurals name="searching_provider_count">
@@ -79,7 +79,7 @@
     <string name="saved_searches_loading_body">Queries and results are stored only on this device.</string>
     <string name="saved_searches_load_failed">Saved searches could not be loaded</string>
     <string name="saved_searches_empty_title">No saved searches</string>
-    <string name="saved_searches_empty_body">Run a real search in Discover, then save it to check arXiv and Crossref again later.</string>
+    <string name="saved_searches_empty_body">Run a real search in Discover, then save it to check your installed sources again later.</string>
     <string name="saved_search_not_checked_title">Ready for the first check</string>
     <string name="saved_search_not_checked_body">Refresh to establish a baseline. Existing results will not be marked as new.</string>
     <string name="saved_search_no_results_title">No results in the latest check</string>
@@ -132,6 +132,13 @@
     <string name="more_title">More</string>
     <string name="more_overview_body">Settings and tools are grouped by purpose so each area stays focused.</string>
     <string name="appearance_title">Appearance</string>
+    <string name="built_in_themes_title">Built-in themes</string>
+    <string name="community_themes_title">Community themes</string>
+    <string name="community_themes_loading">Loading community themes</string>
+    <string name="community_themes_loading_body">Validating installed packages, signatures, and theme assets.</string>
+    <string name="community_themes_attention">Theme security</string>
+    <string name="community_theme_blocked">Blocked</string>
+    <string name="community_theme_provider">Provided by %1$s</string>
     <string name="appearance_body">Choose a complete visual system. Previews follow the device light or dark setting.</string>
     <string name="reading_and_imports_title">Reading &amp; imports</string>
     <string name="reading_and_imports_summary">Reader options and private local PDF import</string>
@@ -166,7 +173,7 @@
     <string name="mobile_reading_formats_title">Mobile reading formats</string>
     <string name="original_pdf_available">Original PDF</string>
     <string name="mobile_reading_formats_body">Verified original PDFs open in the current in-app reader and remain available as the fidelity fallback.</string>
-    <string name="mobile_reflow_planned">Structured provider HTML and local PDF reflow are the next reader format, not a current capability. Remote HTML will be sanitized and cached locally; untrusted TeX will never be compiled inside the app process.</string>
+    <string name="mobile_reflow_planned">Supported arXiv versions open as sanitized, offline mobile HTML. Other sources and local PDFs keep the original document fallback while local extraction is developed. Untrusted TeX is never compiled inside the app process.</string>
     <string name="updates_hub_on_blocked">Automatic checks on; notifications blocked</string>
     <string name="updates_hub_on">Automatic provider checks on</string>
     <string name="updates_hub_off">Automatic provider checks off</string>
@@ -206,7 +213,7 @@
     <string name="provider_blocked_body">This package cannot run because its trust check failed.</string>
     <string name="provider_block_reason">Reason: %1$s</string>
     <string name="provider_signer">Signer SHA-256: %1$s</string>
-    <string name="provider_available_notice">Discovery only. Community packages cannot search until isolated IPC, signer verification, cancellation, and payload limits pass the production gate.</string>
+    <string name="provider_available_notice">These trusted packages are not installed. Automatic install and update are not available yet.</string>
     <string name="provider_package">Package: %1$s</string>
     <string name="provider_version_code">Version code: %1$d</string>
     <plurals name="provider_id_count">

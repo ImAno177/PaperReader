@@ -32,6 +32,8 @@ import androidx.pdf.view.PdfView
 import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.theme.PaperThemePreset
+import dev.paperreader.app.ui.theme.CommunityPaperTheme
+import dev.paperreader.app.ui.theme.PaperIconSet
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.paperIconSet
 import dev.paperreader.app.withEnglishLocale
@@ -70,6 +72,8 @@ class PdfReaderActivity : AppCompatActivity() {
     private lateinit var loadingIndicator: ProgressBar
     private lateinit var pageIndicator: TextView
     private var readerResumed = false
+    private var communityTheme: CommunityPaperTheme? = null
+    private lateinit var readerIcons: PaperIconSet
 
     private val viewportListener = object : PdfView.OnViewportChangedListener {
         override fun onViewportChanged(
@@ -122,13 +126,18 @@ class PdfReaderActivity : AppCompatActivity() {
             return
         }
         readerArgs = parsedArgs
+        communityTheme = (application as PaperReaderApplication).themeExtensionManager.theme(readerArgs.themeKey)
+        readerIcons = communityTheme?.let { PaperIconSet.community(it.iconPaths) }
+            ?: paperIconSet(readerArgs.themePreset)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_pdf_reader)
-        applySystemBarInsets(findViewById(R.id.reader_root))
+        val readerRoot = findViewById<View>(R.id.reader_root)
+        applySystemBarInsets(readerRoot)
         loadingIndicator = findViewById(R.id.reader_loading)
         pageIndicator = findViewById(R.id.reader_page_indicator)
         pageIndicator.setOnClickListener { showJumpToPageDialog() }
         configureToolbar(findViewById(R.id.reader_toolbar))
+        applyCommunityChrome(readerRoot)
         verifyArtifactAndConfigureReader()
     }
 
@@ -208,15 +217,16 @@ class PdfReaderActivity : AppCompatActivity() {
         this.toolbar = toolbar
         toolbar.title = readerArgs.title
         toolbar.subtitle = getString(R.string.reader_subtitle)
-        val icons = paperIconSet(readerArgs.themePreset)
-        toolbar.setNavigationIcon(icons.resource(PaperIconKey.BACK))
+        toolbar.navigationIcon = readerIcons.drawable(this, PaperIconKey.BACK)
         toolbar.navigationContentDescription = getString(R.string.back)
         toolbar.setNavigationOnClickListener { finish() }
         toolbar.inflateMenu(R.menu.pdf_reader_actions)
-        toolbar.menu.findItem(R.id.action_search_pdf).setIcon(icons.resource(PaperIconKey.SEARCH))
-        toolbar.menu.findItem(R.id.action_toggle_bookmark).setIcon(icons.resource(PaperIconKey.BOOKMARK_ADD))
-        toolbar.menu.findItem(R.id.action_view_bookmarks).setIcon(icons.resource(PaperIconKey.BOOKMARKS))
-        toolbar.menu.findItem(R.id.action_open_external).setIcon(icons.resource(PaperIconKey.OPEN_EXTERNAL))
+        toolbar.menu.findItem(R.id.action_search_pdf).icon = readerIcons.drawable(this, PaperIconKey.SEARCH)
+        toolbar.menu.findItem(R.id.action_toggle_bookmark).icon =
+            readerIcons.drawable(this, PaperIconKey.BOOKMARK_ADD)
+        toolbar.menu.findItem(R.id.action_view_bookmarks).icon = readerIcons.drawable(this, PaperIconKey.BOOKMARKS)
+        toolbar.menu.findItem(R.id.action_open_external).icon =
+            readerIcons.drawable(this, PaperIconKey.OPEN_EXTERNAL)
         setReaderActionsEnabled(searchEnabled = false, externalEnabled = false)
         toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -383,10 +393,9 @@ class PdfReaderActivity : AppCompatActivity() {
             title = getString(
                 if (isBookmarked) R.string.reader_remove_bookmark else R.string.reader_add_bookmark,
             )
-            setIcon(
-                paperIconSet(readerArgs.themePreset).resource(
-                    if (isBookmarked) PaperIconKey.BOOKMARK_REMOVE else PaperIconKey.BOOKMARK_ADD,
-                ),
+            icon = readerIcons.drawable(
+                this@PdfReaderActivity,
+                if (isBookmarked) PaperIconKey.BOOKMARK_REMOVE else PaperIconKey.BOOKMARK_ADD,
             )
         }
         toolbar.menu.findItem(R.id.action_view_bookmarks)?.isEnabled = documentLoaded
@@ -622,6 +631,7 @@ class PdfReaderActivity : AppCompatActivity() {
             documentSha256 = sha256,
             title = title,
             themePreset = PaperThemePreset.fromStorageKey(intent.getStringExtra(EXTRA_THEME_PRESET)),
+            themeKey = intent.getStringExtra(EXTRA_THEME_PRESET) ?: PaperThemePreset.NEOBRUTALISM.storageKey,
         )
     }.getOrNull()
 
@@ -632,6 +642,7 @@ class PdfReaderActivity : AppCompatActivity() {
         val documentSha256: String,
         val title: String,
         val themePreset: PaperThemePreset,
+        val themeKey: String,
     )
 
     companion object {
@@ -652,6 +663,7 @@ class PdfReaderActivity : AppCompatActivity() {
             workId: WorkId,
             title: String,
             themePreset: PaperThemePreset,
+            themeKey: String = themePreset.storageKey,
         ): Intent {
             val uri = downloadedPaper.contentUri.toUri()
             return Intent(context, PdfReaderActivity::class.java).apply {
@@ -662,9 +674,21 @@ class PdfReaderActivity : AppCompatActivity() {
                 putExtra(EXTRA_MANIFESTATION_ID, downloadedPaper.manifestationId.value)
                 putExtra(EXTRA_SHA256, downloadedPaper.sha256)
                 putExtra(EXTRA_TITLE, title.take(MAX_TITLE_LENGTH))
-                putExtra(EXTRA_THEME_PRESET, themePreset.storageKey)
+                putExtra(EXTRA_THEME_PRESET, themeKey)
             }
         }
+    }
+
+    private fun applyCommunityChrome(root: View) {
+        val theme = communityTheme ?: return
+        val dark = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val palette = theme.palette(dark)
+        root.setBackgroundColor(palette.canvas)
+        toolbar.setBackgroundColor(palette.surface)
+        toolbar.setTitleTextColor(palette.ink)
+        toolbar.setSubtitleTextColor(palette.inkMuted)
+        pageIndicator.setTextColor(palette.ink)
     }
 }
 

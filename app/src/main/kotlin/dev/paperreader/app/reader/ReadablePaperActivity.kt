@@ -34,6 +34,8 @@ import androidx.lifecycle.lifecycleScope
 import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.theme.PaperThemePreset
+import dev.paperreader.app.ui.theme.CommunityPaperTheme
+import dev.paperreader.app.ui.theme.PaperIconSet
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.paperIconSet
 import dev.paperreader.app.withEnglishLocale
@@ -76,6 +78,8 @@ class ReadablePaperActivity : AppCompatActivity() {
     private var textSpacing = ReadableTextSpacing.COMFORTABLE
     private var sideMargin = ReadableSideMargin.COMFORTABLE
     private var displayedProgressPercent = -1
+    private var communityTheme: CommunityPaperTheme? = null
+    private lateinit var readerIcons: PaperIconSet
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(newBase.withEnglishLocale())
@@ -92,6 +96,9 @@ class ReadablePaperActivity : AppCompatActivity() {
             return
         }
         readerArgs = parsedArgs
+        communityTheme = (application as PaperReaderApplication).themeExtensionManager.theme(readerArgs.themeKey)
+        readerIcons = communityTheme?.let { PaperIconSet.community(it.iconPaths) }
+            ?: paperIconSet(readerArgs.themePreset)
         restoredInstanceProgression = savedInstanceState
             ?.takeIf { it.getString(STATE_MANIFESTATION_ID) == readerArgs.manifestationId.value }
             ?.getDouble(STATE_PROGRESSION)
@@ -100,6 +107,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         setContentView(R.layout.activity_readable_paper)
         applySystemBarInsets(findViewById(R.id.readable_reader_root))
         bindViews()
+        applyCommunityChrome()
         configureToolbar()
         configureWebView()
         findViewById<Button>(R.id.readable_reader_retry).setOnClickListener { loadDocument() }
@@ -157,16 +165,17 @@ class ReadablePaperActivity : AppCompatActivity() {
     private fun configureToolbar() {
         toolbar.title = readerArgs.title
         toolbar.subtitle = getString(R.string.readable_reader_subtitle)
-        val icons = paperIconSet(readerArgs.themePreset)
-        toolbar.setNavigationIcon(icons.resource(PaperIconKey.BACK))
+        toolbar.navigationIcon = readerIcons.drawable(this, PaperIconKey.BACK)
         toolbar.navigationContentDescription = getString(R.string.back)
         toolbar.setNavigationOnClickListener { finish() }
         toolbar.inflateMenu(R.menu.readable_reader_actions)
-        toolbar.menu.findItem(R.id.action_search_readable).setIcon(icons.resource(PaperIconKey.SEARCH))
-        toolbar.menu.findItem(R.id.action_readable_contents).setIcon(icons.resource(PaperIconKey.LIST))
-        toolbar.menu.findItem(R.id.action_reading_layout).setIcon(icons.resource(PaperIconKey.PALETTE))
-        toolbar.menu.findItem(R.id.action_open_original_pdf).setIcon(icons.resource(PaperIconKey.OPEN_EXTERNAL))
-        toolbar.menu.findItem(R.id.action_open_readable_source).setIcon(icons.resource(PaperIconKey.OPEN_EXTERNAL))
+        toolbar.menu.findItem(R.id.action_search_readable).icon = readerIcons.drawable(this, PaperIconKey.SEARCH)
+        toolbar.menu.findItem(R.id.action_readable_contents).icon = readerIcons.drawable(this, PaperIconKey.LIST)
+        toolbar.menu.findItem(R.id.action_reading_layout).icon = readerIcons.drawable(this, PaperIconKey.PALETTE)
+        toolbar.menu.findItem(R.id.action_open_original_pdf).icon =
+            readerIcons.drawable(this, PaperIconKey.OPEN_EXTERNAL)
+        toolbar.menu.findItem(R.id.action_open_readable_source).icon =
+            readerIcons.drawable(this, PaperIconKey.OPEN_EXTERNAL)
         toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = false
         toolbar.menu.findItem(R.id.action_search_readable).isEnabled = false
         toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = false
@@ -205,7 +214,10 @@ class ReadablePaperActivity : AppCompatActivity() {
             .coerceIn(MINIMUM_TEXT_ZOOM, MAXIMUM_TEXT_ZOOM)
         textSpacing = ReadableTextSpacing.fromStorageKey(preferences.getString(PREFERENCE_TEXT_SPACING, null))
         sideMargin = ReadableSideMargin.fromStorageKey(preferences.getString(PREFERENCE_SIDE_MARGIN, null))
-        webView.setBackgroundColor(resolveThemeColor(com.google.android.material.R.attr.colorSurfaceVariant))
+        webView.setBackgroundColor(
+            communityTheme?.palette(isDarkMode())?.surfaceMuted
+                ?: resolveThemeColor(com.google.android.material.R.attr.colorSurfaceVariant),
+        )
         webView.settings.apply {
             javaScriptEnabled = false
             javaScriptCanOpenWindowsAutomatically = false
@@ -687,6 +699,7 @@ class ReadablePaperActivity : AppCompatActivity() {
                         readerArgs.workId,
                         readerArgs.title,
                         readerArgs.themePreset,
+                        readerArgs.themeKey,
                     ),
                 )
                 return@launch
@@ -714,15 +727,35 @@ class ReadablePaperActivity : AppCompatActivity() {
         }
     }
 
-    private fun resolvedPalette() = ReadablePaperPalette(
-        background = resolveThemeColor(com.google.android.material.R.attr.colorSurface).toCssColor(),
-        surface = resolveThemeColor(com.google.android.material.R.attr.colorSurfaceVariant).toCssColor(),
-        text = resolveThemeColor(com.google.android.material.R.attr.colorOnSurface).toCssColor(),
-        mutedText = resolveThemeColor(com.google.android.material.R.attr.colorOnSurfaceVariant).toCssColor(),
-        border = resolveThemeColor(com.google.android.material.R.attr.colorOutline).toCssColor(),
-        link = resolveThemeColor(com.google.android.material.R.attr.colorPrimary).toCssColor(),
-        selection = resolveThemeColor(com.google.android.material.R.attr.colorSecondaryContainer).toCssColor(),
-    )
+    private fun resolvedPalette(): ReadablePaperPalette {
+        val community = communityTheme?.palette(isDarkMode())
+        return ReadablePaperPalette(
+            background = (community?.surface
+                ?: resolveThemeColor(com.google.android.material.R.attr.colorSurface)).toCssColor(),
+            surface = (community?.surfaceMuted
+                ?: resolveThemeColor(com.google.android.material.R.attr.colorSurfaceVariant)).toCssColor(),
+            text = (community?.ink
+                ?: resolveThemeColor(com.google.android.material.R.attr.colorOnSurface)).toCssColor(),
+            mutedText = (community?.inkMuted
+                ?: resolveThemeColor(com.google.android.material.R.attr.colorOnSurfaceVariant)).toCssColor(),
+            border = (community?.border
+                ?: resolveThemeColor(com.google.android.material.R.attr.colorOutline)).toCssColor(),
+            link = (community?.primary
+                ?: resolveThemeColor(com.google.android.material.R.attr.colorPrimary)).toCssColor(),
+            selection = (community?.secondaryContainer
+                ?: resolveThemeColor(com.google.android.material.R.attr.colorSecondaryContainer)).toCssColor(),
+        )
+    }
+
+    private fun applyCommunityChrome() {
+        val palette = communityTheme?.palette(isDarkMode()) ?: return
+        findViewById<View>(R.id.readable_reader_root).setBackgroundColor(palette.canvas)
+        toolbar.setBackgroundColor(palette.surface)
+        toolbar.setTitleTextColor(palette.ink)
+        toolbar.setSubtitleTextColor(palette.inkMuted)
+        provenance.setBackgroundColor(palette.primaryContainer)
+        provenance.setTextColor(palette.onPrimaryContainer)
+    }
 
     private fun resolveThemeColor(attribute: Int): Int {
         val value = TypedValue()
@@ -755,6 +788,7 @@ class ReadablePaperActivity : AppCompatActivity() {
             manifestationId,
             title,
             PaperThemePreset.fromStorageKey(intent.getStringExtra(EXTRA_THEME_PRESET)),
+            intent.getStringExtra(EXTRA_THEME_PRESET) ?: PaperThemePreset.NEOBRUTALISM.storageKey,
         )
     }.getOrNull()
 
@@ -763,6 +797,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         val manifestationId: ManifestationId,
         val title: String,
         val themePreset: PaperThemePreset,
+        val themeKey: String,
     )
 
     companion object {
@@ -793,11 +828,12 @@ class ReadablePaperActivity : AppCompatActivity() {
             manifestationId: ManifestationId,
             title: String,
             themePreset: PaperThemePreset,
+            themeKey: String = themePreset.storageKey,
         ): Intent = Intent(context, ReadablePaperActivity::class.java).apply {
             putExtra(EXTRA_WORK_ID, workId.value)
             putExtra(EXTRA_MANIFESTATION_ID, manifestationId.value)
             putExtra(EXTRA_TITLE, title.take(MAX_TITLE_LENGTH))
-            putExtra(EXTRA_THEME_PRESET, themePreset.storageKey)
+            putExtra(EXTRA_THEME_PRESET, themeKey)
         }
     }
 }

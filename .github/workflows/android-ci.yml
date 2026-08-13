@@ -57,9 +57,12 @@ jobs:
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
-      - name: Verify logic, UI, lint, and debug APK
+      - name: Verify SDK, logic, UI, lint, and debug APK
         run: >-
           ./gradlew
+          :extension-api:testDebugUnitTest
+          :extension-api:lintDebug
+          :extension-api:assembleRelease
           :logic:testDebugUnitTest
           :logic:lintDebug
           :app:testDebugUnitTest

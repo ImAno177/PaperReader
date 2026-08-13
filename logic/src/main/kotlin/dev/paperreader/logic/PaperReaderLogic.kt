@@ -10,6 +10,9 @@ import dev.paperreader.logic.provider.builtin.CrossrefProvider
 import dev.paperreader.logic.network.ProviderHttpClient
 import dev.paperreader.logic.provider.MutableProviderManager
 import dev.paperreader.logic.provider.ProviderManager
+import dev.paperreader.logic.provider.ProviderOrigin
+import dev.paperreader.logic.provider.AvailableProviderPlugin
+import dev.paperreader.logic.provider.UntrustedProviderPlugin
 import dev.paperreader.logic.data.repository.RoomLibraryRepository
 import dev.paperreader.logic.data.repository.RoomLocalFileRepository
 import dev.paperreader.logic.data.repository.RoomTaskRepository
@@ -29,6 +32,9 @@ import dev.paperreader.logic.network.PdfDownloader
 import dev.paperreader.logic.network.ArxivReadableResourceFetcher
 import dev.paperreader.logic.reader.ArxivReadablePaperLoader
 import dev.paperreader.logic.reader.ReadablePaperCache
+import dev.paperreader.logic.plugin.AndroidSourceExtensionTransport
+import dev.paperreader.logic.plugin.CommunitySourceProvider
+import dev.paperreader.logic.plugin.TrustedSourceExtension
 import okhttp3.OkHttpClient
 import java.io.Closeable
 
@@ -37,12 +43,15 @@ data class PaperReaderConfiguration(
     val userAgent: String = "PaperReader/0.1 (Android)",
     val contactEmail: String? = null,
     val maximumPdfBytes: Long = 200L * 1024L * 1024L,
+    val trustedSourceExtensions: List<TrustedSourceExtension> = emptyList(),
 ) {
     init {
         require(databaseName.isNotBlank())
         require(userAgent.isNotBlank())
         require(contactEmail == null || contactEmail.isNotBlank())
         require(maximumPdfBytes > 0)
+        require(trustedSourceExtensions.map(TrustedSourceExtension::providerId).distinct().size == trustedSourceExtensions.size)
+        require(trustedSourceExtensions.map(TrustedSourceExtension::packageName).distinct().size == trustedSourceExtensions.size)
     }
 }
 
@@ -72,12 +81,64 @@ class PaperReaderLogic private constructor(
                 userAgent = configuration.userAgent,
                 mailto = configuration.contactEmail,
             )
+            val applicationContext = context.applicationContext
+            val availableCommunityProviders = mutableListOf<AvailableProviderPlugin>()
+            val untrustedCommunityProviders = mutableListOf<UntrustedProviderPlugin>()
+            val communityProviders = configuration.trustedSourceExtensions.mapNotNull { trustedRelease ->
+                val packageInstalled = runCatching {
+                    applicationContext.packageManager.getPackageInfo(trustedRelease.packageName, 0)
+                }.isSuccess
+                if (!packageInstalled) {
+                    availableCommunityProviders += AvailableProviderPlugin(
+                        packageName = trustedRelease.packageName,
+                        displayName = trustedRelease.displayName,
+                        versionCode = trustedRelease.versionCode,
+                        providerIds = setOf(trustedRelease.providerId),
+                    )
+                    return@mapNotNull null
+                }
+                try {
+                    val transport = AndroidSourceExtensionTransport(
+                        context = applicationContext,
+                        descriptor = trustedRelease.descriptor(),
+                        trustedRelease = trustedRelease,
+                    )
+                    transport.verifyInstalledPackage()
+                    trustedRelease to CommunitySourceProvider(transport)
+                } catch (error: Exception) {
+                    untrustedCommunityProviders += UntrustedProviderPlugin(
+                        packageName = trustedRelease.packageName,
+                        signerSha256 = trustedRelease.signerSha256.lowercase(),
+                        reason = error.message?.take(160)?.takeIf(String::isNotBlank)
+                            ?: "Provider package failed trust validation",
+                    )
+                    null
+                }
+            }
             val providers = MutableProviderManager(
                 listOf(
                     ArxivProvider(transport),
                     CrossrefProvider(transport),
                 ),
             )
+            communityProviders.forEach { (trustedRelease, provider) ->
+                try {
+                    providers.register(
+                        provider = provider,
+                        origin = ProviderOrigin.COMMUNITY_PLUGIN,
+                        packageName = trustedRelease.packageName,
+                        versionCode = trustedRelease.versionCode,
+                    )
+                } catch (error: IllegalArgumentException) {
+                    untrustedCommunityProviders += UntrustedProviderPlugin(
+                        packageName = trustedRelease.packageName,
+                        signerSha256 = trustedRelease.signerSha256.lowercase(),
+                        reason = error.message?.take(160) ?: "Provider ID conflicts with an installed provider",
+                    )
+                }
+            }
+            providers.updateAvailable(availableCommunityProviders)
+            providers.updateUntrusted(untrustedCommunityProviders)
             val library = RoomLibraryRepository(database)
             val search = FederatedPaperSearch(providers)
             val metadataBackup = RoomMetadataBackupRepository(
@@ -87,7 +148,6 @@ class PaperReaderLogic private constructor(
                 },
             )
             val tasks = TaskCoordinator(RoomTaskRepository(database))
-            val applicationContext = context.applicationContext
             val downloads = PaperDownloadCoordinator(
                 library = library,
                 localFiles = RoomLocalFileRepository(database),

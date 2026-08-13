@@ -59,6 +59,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.paperreader.app.R
 import dev.paperreader.app.download.DownloadWorkScheduler
+import dev.paperreader.app.extensions.CommunityThemeCatalog
+import dev.paperreader.app.extensions.CommunityThemeExtensionManager
 import dev.paperreader.app.importer.IncomingPdfRequest
 import dev.paperreader.app.backup.MetadataBackupFileGateway
 import dev.paperreader.app.backup.FileMetadataRestoreSessionStore
@@ -135,6 +137,7 @@ private enum class AppDestination(
 @Composable
 fun PaperReaderApp(
     preferences: PaperReaderPreferences,
+    themeExtensionManager: CommunityThemeExtensionManager,
     logic: PaperReaderLogic?,
     downloadWorkScheduler: DownloadWorkScheduler,
     savedSearchRefreshScheduler: SavedSearchRefreshScheduler,
@@ -143,8 +146,11 @@ fun PaperReaderApp(
     openUpdatesRequestId: Long?,
     onOpenUpdatesConsumed: (Long) -> Unit,
 ) {
-    val preset by preferences.theme.collectAsStateWithLifecycle(PaperThemePreset.NEOBRUTALISM)
-    PaperReaderTheme(preset) {
+    val themeKey by preferences.themeKey.collectAsStateWithLifecycle(PaperThemePreset.NEOBRUTALISM.storageKey)
+    val themeCatalog by themeExtensionManager.catalog.collectAsStateWithLifecycle()
+    val preset = PaperThemePreset.fromStorageKey(themeKey)
+    val communityTheme = themeCatalog.themes.firstOrNull { it.storageKey == themeKey }
+    PaperReaderTheme(preset, communityTheme = communityTheme) {
         if (logic == null) {
             PaperStatePanel(
                 title = stringResource(R.string.app_initializing_title),
@@ -157,6 +163,8 @@ fun PaperReaderApp(
                 preferences = preferences,
                 logic = logic,
                 preset = preset,
+                themeKey = themeKey,
+                themeCatalog = themeCatalog,
                 downloadWorkScheduler = downloadWorkScheduler,
                 savedSearchRefreshScheduler = savedSearchRefreshScheduler,
                 incomingPdfRequest = incomingPdfRequest,
@@ -173,6 +181,8 @@ private fun PaperReaderContent(
     preferences: PaperReaderPreferences,
     logic: PaperReaderLogic,
     preset: PaperThemePreset,
+    themeKey: String,
+    themeCatalog: CommunityThemeCatalog,
     downloadWorkScheduler: DownloadWorkScheduler,
     savedSearchRefreshScheduler: SavedSearchRefreshScheduler,
     incomingPdfRequest: IncomingPdfRequest?,
@@ -290,6 +300,8 @@ private fun PaperReaderContent(
         metadataBackup = metadataBackup,
         localPdfImport = localPdfImport,
         preset = preset,
+        themeKey = themeKey,
+        themeCatalog = themeCatalog,
         onSearch = viewModel::search,
         onClearSearch = viewModel::clearSearch,
         onSave = viewModel::save,
@@ -326,7 +338,7 @@ private fun PaperReaderContent(
         },
         onConfirmBackupRestore = viewModel::confirmMetadataRestore,
         onDismissBackupState = viewModel::dismissMetadataBackupState,
-        onPresetChange = { next -> scope.launch { preferences.setTheme(next) } },
+        onThemeChange = { next -> scope.launch { preferences.setThemeKey(next) } },
         automaticRefreshEnabled = automaticRefreshEnabled,
         onAutomaticRefreshChange = { enabled ->
             val changed = savedSearchRefreshScheduler.setEnabled(enabled)
@@ -365,6 +377,8 @@ private fun PaperReaderNavigation(
     metadataBackup: dev.paperreader.app.ui.model.MetadataBackupUiState,
     localPdfImport: LocalPdfImportUiState,
     preset: PaperThemePreset,
+    themeKey: String,
+    themeCatalog: CommunityThemeCatalog,
     onSearch: (String) -> Unit,
     onClearSearch: () -> Unit,
     onSave: (dev.paperreader.app.ui.model.SearchPaperUi) -> Unit,
@@ -393,7 +407,7 @@ private fun PaperReaderNavigation(
     onRequestBackupImport: () -> Unit,
     onConfirmBackupRestore: () -> Unit,
     onDismissBackupState: () -> Unit,
-    onPresetChange: (PaperThemePreset) -> Unit,
+    onThemeChange: (String) -> Unit,
     automaticRefreshEnabled: Boolean,
     onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
     notificationsAvailable: Boolean,
@@ -441,6 +455,8 @@ private fun PaperReaderNavigation(
             metadataBackup = metadataBackup,
             localPdfImport = localPdfImport,
             preset = preset,
+            themeKey = themeKey,
+            themeCatalog = themeCatalog,
             onSearch = onSearch,
             onClearSearch = onClearSearch,
             onSave = onSave,
@@ -469,7 +485,7 @@ private fun PaperReaderNavigation(
             onRequestBackupImport = onRequestBackupImport,
             onConfirmBackupRestore = onConfirmBackupRestore,
             onDismissBackupState = onDismissBackupState,
-            onPresetChange = onPresetChange,
+            onThemeChange = onThemeChange,
             automaticRefreshEnabled = automaticRefreshEnabled,
             onAutomaticRefreshChange = onAutomaticRefreshChange,
             notificationsAvailable = notificationsAvailable,
@@ -504,6 +520,8 @@ private fun PaperReaderNavigation(
                 metadataBackup = metadataBackup,
                 localPdfImport = localPdfImport,
                 preset = preset,
+                themeKey = themeKey,
+                themeCatalog = themeCatalog,
                 onSearch = onSearch,
                 onClearSearch = onClearSearch,
                 onSave = onSave,
@@ -532,7 +550,7 @@ private fun PaperReaderNavigation(
                 onRequestBackupImport = onRequestBackupImport,
                 onConfirmBackupRestore = onConfirmBackupRestore,
                 onDismissBackupState = onDismissBackupState,
-                onPresetChange = onPresetChange,
+                onThemeChange = onThemeChange,
                 automaticRefreshEnabled = automaticRefreshEnabled,
                 onAutomaticRefreshChange = onAutomaticRefreshChange,
                 notificationsAvailable = notificationsAvailable,
@@ -700,6 +718,8 @@ private fun AppNavHost(
     metadataBackup: dev.paperreader.app.ui.model.MetadataBackupUiState,
     localPdfImport: LocalPdfImportUiState,
     preset: PaperThemePreset,
+    themeKey: String,
+    themeCatalog: CommunityThemeCatalog,
     onSearch: (String) -> Unit,
     onClearSearch: () -> Unit,
     onSave: (dev.paperreader.app.ui.model.SearchPaperUi) -> Unit,
@@ -728,7 +748,7 @@ private fun AppNavHost(
     onRequestBackupImport: () -> Unit,
     onConfirmBackupRestore: () -> Unit,
     onDismissBackupState: () -> Unit,
-    onPresetChange: (PaperThemePreset) -> Unit,
+    onThemeChange: (String) -> Unit,
     automaticRefreshEnabled: Boolean,
     onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
     notificationsAvailable: Boolean,
@@ -787,8 +807,10 @@ private fun AppNavHost(
             )
         }
         composable(AppRoutes.MORE) {
+            val selectedThemeName = themeCatalog.themes.firstOrNull { it.storageKey == themeKey }?.displayName
             MoreScreen(
                 selectedPreset = preset,
+                selectedThemeName = selectedThemeName,
                 automaticRefreshEnabled = automaticRefreshEnabled,
                 notificationsAvailable = notificationsAvailable,
                 providers = providers,
@@ -805,8 +827,11 @@ private fun AppNavHost(
         }
         composable(AppRoutes.MORE_APPEARANCE) {
             AppearanceScreen(
-                selectedPreset = preset,
-                onPresetChange = onPresetChange,
+                selectedThemeKey = themeKey,
+                communityThemes = themeCatalog.themes,
+                communityThemesLoading = themeCatalog.loading,
+                communityThemeIssues = themeCatalog.issues,
+                onThemeChange = onThemeChange,
                 onBack = navController::popBackStack,
             )
         }
@@ -868,6 +893,7 @@ private fun AppNavHost(
                 state = detail,
                 collections = collections,
                 themePreset = preset,
+                themeKey = themeKey,
                 downloadTasks = (tasks as? LoadState.Ready)?.value
                     ?.filter { it.workId?.value == workId }
                     .orEmpty(),

@@ -8,24 +8,31 @@ existing user work, and never present a stub as a production feature.
 - [`README.md`](README.md) — concise product overview, feature highlights, screenshots, and build entry point.
 - [`docs/SPEC.md`](docs/SPEC.md) — product scope, domain decisions, provider research, reader constraints, and roadmap.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — module ownership, supported logic facade, implemented behavior, and deferred work.
+- [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md) — external source/theme SDK, trust checks, runtime limits, and sample repositories.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — pull-request workflow, required checks, and contribution boundaries.
 - [`SECURITY.md`](SECURITY.md) — private vulnerability-reporting process and security-sensitive areas.
 - [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — dependency, icon, and content-license attributions.
 
 Read `docs/SPEC.md` and `docs/ARCHITECTURE.md` before changing domain models, module boundaries,
-providers, readers, persistence, or extensions. Update the relevant document when a decision changes.
+providers, readers, or persistence; read `docs/EXTENSIONS.md` before changing extension contracts.
+Update the relevant document when a decision changes.
 
 ## Project boundary
 
 ```text
 :app  ─────►  :logic
-UI/UX only    domain, use cases, data, providers, reader, tasks, extensions
+  │             │
+  └──────┬──────┘
+         ▼
+:extension-api ◄──── external APKs
 ```
 
 - `:app` owns Compose, Activities, navigation, view-model state, accessibility, English strings,
   themes, icons, and presentation mapping.
 - `:logic` owns immutable domain models, repository ports, Room, provider/network policy, reader
   artifacts, task state, backup, and extension trust/runtime boundaries.
+- `:extension-api` owns only the published, versioned, bounded AIDL/data contract used by the host
+  and separately built extension APKs.
 - UI code consumes one application-scoped `PaperReaderLogic` facade. It must not import Room DAOs,
   concrete repositories, OkHttp clients, provider parsers, extraction internals, or plugin binders.
 - `:logic` must not import Compose, Android UI classes, navigation, or visual resources.
@@ -63,7 +70,8 @@ UI/UX only    domain, use cases, data, providers, reader, tasks, extensions
 - Reuse a connected emulator; do not wipe it, factory-reset it, or start a duplicate instance.
 
 ```powershell
-.\gradlew.bat :logic:testDebugUnitTest :logic:lintDebug `
+.\gradlew.bat :extension-api:testDebugUnitTest :extension-api:lintDebug `
+  :logic:testDebugUnitTest :logic:lintDebug `
   :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 

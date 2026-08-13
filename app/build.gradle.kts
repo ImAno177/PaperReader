@@ -6,6 +6,27 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+private fun String.asBuildConfigString(): String =
+    "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
+val devSourcePackage = providers.gradleProperty("paperReaderDevSourcePackage").orElse("").get()
+val devSourceService = providers.gradleProperty("paperReaderDevSourceService").orElse("").get()
+val devSourceProviderId = providers.gradleProperty("paperReaderDevSourceProviderId").orElse("").get()
+val devSourceDisplayName = providers.gradleProperty("paperReaderDevSourceDisplayName").orElse("").get()
+val devSourceSigner = providers.gradleProperty("paperReaderDevSourceSignerSha256").orElse("").get()
+val devSourceVersion = providers.gradleProperty("paperReaderDevSourceVersionCode").orElse("0").get()
+val devThemePackage = providers.gradleProperty("paperReaderDevThemePackage").orElse("").get()
+val devThemeService = providers.gradleProperty("paperReaderDevThemeService").orElse("").get()
+val devThemeDisplayName = providers.gradleProperty("paperReaderDevThemeDisplayName").orElse("").get()
+val devThemeId = providers.gradleProperty("paperReaderDevThemeId").orElse("").get()
+val devThemeSigner = providers.gradleProperty("paperReaderDevThemeSignerSha256").orElse("").get()
+val devThemeVersion = providers.gradleProperty("paperReaderDevThemeVersionCode").orElse("0").get()
+
+require(devSourceSigner.isBlank() || devSourceSigner.matches(Regex("[0-9a-fA-F]{64}")))
+require(devSourceVersion.toLongOrNull() != null)
+require(devThemeSigner.isBlank() || devThemeSigner.matches(Regex("[0-9a-fA-F]{64}")))
+require(devThemeVersion.toLongOrNull() != null)
+
 android {
     namespace = "dev.paperreader.app"
     compileSdk {
@@ -21,6 +42,18 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "DEV_SOURCE_PACKAGE", devSourcePackage.asBuildConfigString())
+        buildConfigField("String", "DEV_SOURCE_SERVICE", devSourceService.asBuildConfigString())
+        buildConfigField("String", "DEV_SOURCE_PROVIDER_ID", devSourceProviderId.asBuildConfigString())
+        buildConfigField("String", "DEV_SOURCE_DISPLAY_NAME", devSourceDisplayName.asBuildConfigString())
+        buildConfigField("String", "DEV_SOURCE_SIGNER_SHA256", devSourceSigner.asBuildConfigString())
+        buildConfigField("long", "DEV_SOURCE_VERSION_CODE", "${devSourceVersion}L")
+        buildConfigField("String", "DEV_THEME_PACKAGE", devThemePackage.asBuildConfigString())
+        buildConfigField("String", "DEV_THEME_SERVICE", devThemeService.asBuildConfigString())
+        buildConfigField("String", "DEV_THEME_DISPLAY_NAME", devThemeDisplayName.asBuildConfigString())
+        buildConfigField("String", "DEV_THEME_ID", devThemeId.asBuildConfigString())
+        buildConfigField("String", "DEV_THEME_SIGNER_SHA256", devThemeSigner.asBuildConfigString())
+        buildConfigField("long", "DEV_THEME_VERSION_CODE", "${devThemeVersion}L")
     }
 
     buildTypes {
@@ -41,6 +74,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
@@ -66,6 +100,7 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2026.06.00")
 
     implementation(project(":logic"))
+    implementation(project(":extension-api"))
     implementation(composeBom)
     androidTestImplementation(composeBom)
 

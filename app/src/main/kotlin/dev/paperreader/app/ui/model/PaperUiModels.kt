@@ -61,6 +61,7 @@ data class SearchPaperUi(
     val authors: List<String>,
     val publishedDate: LocalDate?,
     val sources: List<String>,
+    val sourceDisplayNames: List<String> = sources.map(String::displayProviderName),
     val primaryIdentifier: PaperIdentifier?,
     val abstractText: String?,
     val records: List<RemotePaper>,
@@ -126,7 +127,7 @@ fun LibraryPaper.toPaperUi(): PaperUi {
 
 fun PaperCollection.toPaperCollectionUi() = PaperCollectionUi(id.value, name)
 
-fun SearchResultCluster.toSearchPaperUi(): SearchPaperUi {
+fun SearchResultCluster.toSearchPaperUi(providerNames: Map<String, String> = emptyMap()): SearchPaperUi {
     val orderedRecords = records.sortedWith(
         compareByDescending<RemotePaper> { !it.abstractText.isNullOrBlank() }
             .thenByDescending { it.identifiers.size }
@@ -142,6 +143,9 @@ fun SearchResultCluster.toSearchPaperUi(): SearchPaperUi {
         authors = primary.authors.map { it.displayName },
         publishedDate = primary.publishedDate,
         sources = orderedRecords.map { it.providerId }.distinct().sorted(),
+        sourceDisplayNames = orderedRecords.map { record ->
+            providerNames[record.providerId] ?: record.providerId.displayProviderName()
+        }.distinct().sorted(),
         primaryIdentifier = identifiers.firstOrNull(),
         abstractText = orderedRecords.firstNotNullOfOrNull { it.abstractText?.takeIf(String::isNotBlank) },
         records = orderedRecords,

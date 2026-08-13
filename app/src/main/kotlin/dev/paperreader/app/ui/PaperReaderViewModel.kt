@@ -212,7 +212,12 @@ class PaperReaderViewModel internal constructor(
                         is FederatedSearchEvent.PageReceived -> {
                             records += event.page.items
                             mutableSearch.value = mutableSearch.value.copy(
-                                results = SearchResultClusterer.cluster(records).map { it.toSearchPaperUi() },
+                                results = SearchResultClusterer.cluster(records).map { cluster ->
+                                    val names = providers.value.installed.associate {
+                                        it.descriptor.id to it.descriptor.displayName
+                                    }
+                                    cluster.toSearchPaperUi(names)
+                                },
                             )
                         }
 

@@ -2,6 +2,7 @@ package dev.paperreader.app.ui.theme
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class PaperIconSetTest {
@@ -22,11 +23,18 @@ class PaperIconSetTest {
     @Test
     fun `every semantic icon has a resource in every family`() {
         requireCompletePaperIconSets()
-        PaperIconFamily.entries.forEach { family ->
+        listOf(PaperIconFamily.TABLER, PaperIconFamily.MATERIAL_SYMBOLS).forEach { family ->
             val iconSet = PaperIconSet(family)
             PaperIconKey.entries.forEach { key ->
                 assertNotEquals("Missing $family resource for $key", 0, iconSet.resource(key))
             }
+        }
+    }
+
+    @Test
+    fun `community icon family rejects an incomplete semantic set`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            PaperIconSet.community(mapOf(PaperIconKey.SEARCH to "M0 0Z"))
         }
     }
 }

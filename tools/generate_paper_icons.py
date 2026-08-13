@@ -120,7 +120,7 @@ def vector_xml(path_data: str) -> str:
     android:viewportWidth=\"{VIEWPORT}\"
     android:viewportHeight=\"{VIEWPORT}\">
     <path
-        android:fillColor=\"?attr/colorOnSurface\"
+        android:fillColor=\"#FF000000\"
         android:fillType=\"nonZero\"
         android:pathData=\"{path_data}\" />
 </vector>

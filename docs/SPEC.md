@@ -455,14 +455,18 @@ Mihon snapshot đang dùng Compose, WorkManager, SQLDelight, OkHttp/Okio, Corout
 
 ## 10. Cấu trúc code tối thiểu cho vòng triển khai
 
-Theo yêu cầu tách tuyệt đối logic khỏi UI, vòng triển khai bắt đầu với đúng hai Gradle module:
+Theo yêu cầu tách tuyệt đối logic khỏi UI, project hiện có ba Gradle module:
 
 | Module | Trách nhiệm |
 |---|---|
 | app | Chỉ UI/UX, Compose, navigation, presentation state và Android entry points; phụ thuộc một chiều vào `logic` |
 | logic | Domain model, Room, repository/Flow, identity resolver, built-in providers, federated search, extraction/pdf-inspector facade, task state và plugin trust/contract |
+| extension-api | AIDL và data contract có version, giới hạn kích thước cho source/theme APK bên ngoài; không chứa host storage, network hay UI |
 
-Built-in provider chưa cần mỗi provider một module. `provider-sdk` chỉ được tách thành artifact thứ ba khi có plugin demo bên ngoài thực sự compile và bind với host; trước mốc đó, contract/version/trust policy ở trong `logic`. Rust/JNI facade cũng ở `logic`; chỉ tách `reader` khi có consumer thứ hai hoặc native build isolation thực sự cần.
+Built-in provider chưa cần mỗi provider một module. `extension-api` được tách vì hai repo mẫu bên ngoài
+đã compile và bind thật với host, đồng thời contract phải được publish độc lập. Trust/runtime source
+vẫn thuộc `logic`; trust/runtime theme thuộc `app` vì host sở hữu visual rendering. Rust/JNI facade
+vẫn ở `logic`; chỉ tách `reader` khi có consumer thứ hai hoặc native build isolation thực sự cần.
 
 Luồng local-first:
 
@@ -593,7 +597,8 @@ Import/export:
   corpus on Android before considering production integration.
 - Prototype Markdown → CommonMark AST → local HTML/WebView; đo long-document memory, selection/search, TalkBack, 200% font scale, table/RTL/CJK và link/network isolation. Chỉ giữ một `ReflowRenderer` sau spike.
 - So sánh AndroidX PDF alpha19 với PdfRenderer cho Original fidelity mode.
-- Proof external demo provider: cài APK riêng, cert verify, bind, search, timeout/cancel.
+- External source/theme proof đã có: APK/UID riêng, verify certificate/API/kind/descriptor, bind,
+  real OpenAlex search, complete theme icons, timeout và cancellation.
 - Contract test arXiv/Crossref với fixture và 429/backoff.
 - Room schema + identity resolver + migration test.
 - Dependency/license/reproducible-build baseline.
@@ -614,8 +619,8 @@ Exit:
 - arXiv search/detail + Crossref DOI enrichment.
 - Library/collection/filter, download queue, auto-extraction, offline reflow reader mặc định, Original fallback, progress/history.
 - Manifestation/provenance/license display.
-- Manual + automatic metadata backup.
-- Demo community provider qua provider-sdk.
+- Manual metadata backup đã có; automatic backup vẫn được hoãn.
+- Demo community source và theme qua `extension-api` đã có ở hai repo độc lập.
 
 Exit:
 
@@ -631,7 +636,7 @@ Exit:
   revision/citation update, delta cursor và cadence tùy chỉnh vẫn còn trong P2.
 - Per-page Tesseract OCR cho trang được classifier đánh dấu.
 - Highlight/note/bookmark với source/page anchors; CSL JSON/BibTeX/RIS.
-- Store index ký số và extension manager UI.
+- Signed store index và end-user install/update UI; host hiện chỉ nhận explicit trusted development entries.
 
 Exit:
 

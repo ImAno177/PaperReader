@@ -45,7 +45,8 @@ class SourcesScreenTest {
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Available packages"))
         composeRule.onNodeWithText("Available packages").assertIsDisplayed()
         composeRule.onNodeWithText("Example provider").assertIsDisplayed()
-        composeRule.onNodeWithText("Discovery only.", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Automatic install and update are not available yet.", substring = true)
+            .assertIsDisplayed()
     }
 
     @Test

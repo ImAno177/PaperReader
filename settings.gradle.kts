@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "PaperReader"
-include(":app", ":logic")
+include(":app", ":logic", ":extension-api")

@@ -21,7 +21,7 @@ without wiping it:
 .\gradlew.bat :logic:connectedDebugAndroidTest
 .\gradlew.bat :app:connectedDebugAndroidTest `
   -PpaperReaderConnectedTestApplicationIdSuffix=.uitest `
-  -PappVersionCode=3
+  -PappVersionCode=4
 ```
 
 The isolated app suffix avoids replacing a production-signed installation. Connected XML results are
@@ -49,11 +49,14 @@ denominator and connected test device are deterministic in CI.
 
 ## CI model
 
-The workflow follows Mihon's useful build shape: dependency review on pull requests, a dedicated
-`testDebugUnitTest` step, failure-only test report artifacts, format/lint checks, migration checks,
-and APK artifacts. PaperReader additionally publishes JaCoCo unit reports and an SPDX SBOM. Mihon's
-reference workflow is [`build.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/build.yml);
-its tag-based APK publishing is in [`release.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/release.yml).
+The workflow follows the parts of Mihon's build shape that fit this repository: dependency review on
+pull requests, a dedicated `testDebugUnitTest` step, failure-only test-report artifacts, lint checks,
+and APK artifacts. PaperReader additionally publishes JaCoCo unit reports and an SPDX SBOM. Mihon
+also runs Spotless and SQLDelight migration verification; PaperReader has no formatter plugin and
+keeps Room schema/migration coverage in `logic` Android tests, so those are reported separately
+instead of pretending an equivalent task exists. Mihon's reference workflow is
+[`build.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/build.yml); its tag-based
+APK publishing is in [`release.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/release.yml).
 
 ## Test-case policy
 

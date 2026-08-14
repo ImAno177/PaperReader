@@ -34,5 +34,10 @@ Provider unit tests must use recorded local fixtures. Live API calls belong in a
 verification, not the deterministic suite. Never weaken `LogicBoundaryTest`, add a lint baseline, or
 use destructive Room migration as a shortcut.
 
+Dependabot opens grouped Gradle and GitHub Actions updates weekly on Monday at 09:00 ICT because its
+configuration does not accept arbitrary cron expressions. Maintainers review and merge that queue
+every other Monday; security-update groups remain separate so urgent fixes are not held for the
+biweekly review.
+
 Pull requests should explain the user-visible change, public facade/schema impact, tests run, and any
 deliberately deferred behavior.

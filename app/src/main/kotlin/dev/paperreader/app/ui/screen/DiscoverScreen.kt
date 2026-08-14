@@ -177,7 +177,11 @@ fun DiscoverScreen(
             if (state.running && state.results.isNotEmpty()) {
                 item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth()) }
             }
-            items(state.failures, key = ProviderSearchFailure::providerId) { failure ->
+            items(
+                state.failures,
+                key = ProviderSearchFailure::providerId,
+                contentType = { "provider-failure" },
+            ) { failure ->
                 ProviderFailureRow(failure)
             }
             state.submittedQuery?.let { submittedQuery ->
@@ -244,7 +248,11 @@ fun DiscoverScreen(
                             },
                         )
                     }
-                    items(state.results, key = SearchPaperUi::key) { result ->
+                    items(
+                        state.results,
+                        key = SearchPaperUi::key,
+                        contentType = { "search-result" },
+                    ) { result ->
                         SearchResultCard(
                             result = result,
                             saving = result.key in state.savingKeys,

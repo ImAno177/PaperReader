@@ -10,6 +10,8 @@ import dev.paperreader.logic.provider.RemotePaper
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -98,5 +100,124 @@ class LibraryMappersTest {
         assertEquals(10L, merged.publishedDateEpochDay)
         assertEquals(1L, merged.createdAtEpochMillis)
         assertEquals(5L, merged.updatedAtEpochMillis)
+    }
+
+    @Test
+    fun workMappingSortsAuthorsAndManifestationsAndDropsIncompleteFiles() {
+        val work = WorkEntity(
+            id = "w-1",
+            title = "Mapped paper",
+            abstractText = null,
+            subjects = "z\u001fa\u001f",
+            publishedDateEpochDay = 10,
+            createdAtEpochMillis = 1,
+            updatedAtEpochMillis = 2,
+        )
+        val manifestations = listOf(
+            ManifestationEntity(
+                id = "m-2", workId = "w-1", type = "OTHER", sourceProvider = "fixture",
+                sourceRecordId = "2", version = null, landingPageUrl = null, pdfUrl = null,
+                license = null, publishedDateEpochDay = null, updatedAtEpochMillis = 2,
+            ),
+            ManifestationEntity(
+                id = "m-1", workId = "w-1", type = "PREPRINT", sourceProvider = "fixture",
+                sourceRecordId = "1", version = "v1", landingPageUrl = "https://example.org",
+                pdfUrl = "https://example.org/paper.pdf", license = "CC-BY",
+                publishedDateEpochDay = 9, updatedAtEpochMillis = 1,
+            ),
+        )
+        val paper = work.toDomain(
+            authors = listOf(
+                AuthorEntity("w-1", 2, "Second", null, null, null),
+                AuthorEntity("w-1", 1, "First", "Ada", "Lovelace", null),
+            ),
+            identifiers = listOf(IdentifierEntity("w-1", "DOI", "10.1000/x", "")),
+            manifestations = manifestations,
+            readingState = null,
+            files = listOf(
+                FileEntity("valid", "m-1", "/paper.pdf", "a".repeat(64), 12, "application/pdf", "READY", null, 3),
+                FileEntity("missing-path", "m-1", null, "a".repeat(64), 12, "application/pdf", "READY", null, 3),
+                FileEntity("missing-hash", "m-1", "/paper.pdf", null, 12, "application/pdf", "READY", null, 3),
+                FileEntity("missing-length", "m-1", "/paper.pdf", "a".repeat(64), null, "application/pdf", "READY", null, 3),
+            ),
+            collections = listOf(CollectionEntity(4, "Reading", 0, 1, 2)),
+            annotationCount = 2,
+        )
+
+        assertEquals(listOf("First", "Second"), paper.work.authors.map { it.displayName })
+        assertEquals(listOf("m-1", "m-2"), paper.manifestations.map { it.id.value })
+        assertEquals(setOf("a", "z"), paper.work.subjects)
+        assertEquals(setOf(4L), paper.collectionIds.map { it.value }.toSet())
+        assertEquals(setOf("valid"), paper.localArtifacts.values.map { it.id }.toSet())
+        assertEquals(2, paper.annotationCount)
+    }
+
+    @Test
+    fun readingStateRoundTripsAndRemoteMappingUsesCurrentTimeWhenProviderHasNoUpdate() {
+        val now = Instant.parse("2026-01-04T00:00:00Z")
+        val state = dev.paperreader.logic.domain.ReadingState(
+            workId = WorkId("w-1"),
+            manifestationId = dev.paperreader.logic.domain.ManifestationId("m-1"),
+            locator = dev.paperreader.logic.domain.ReadingLocator("a".repeat(64), "block-1", 4, 2, 0.5),
+            status = dev.paperreader.logic.domain.ReadingStatus.READING,
+            updatedAt = now,
+        )
+        val mappedWork = WorkEntity("w-1", "Paper", null, "", null, 1, 2).toDomain(
+            authors = emptyList(),
+            identifiers = emptyList(),
+            manifestations = emptyList(),
+            readingState = state.toEntity(),
+        )
+        assertEquals(state, mappedWork.readingState)
+
+        val remote = RemotePaper(
+            providerId = "fixture",
+            providerRecordId = "record-1",
+            title = "Remote",
+            identifiers = emptySet(),
+            manifestations = emptyList(),
+            updatedAt = null,
+        )
+        val rows = remote.toEntities(WorkId("w-2"), now)
+        assertEquals(now.toEpochMilli(), rows.work.updatedAtEpochMillis)
+        assertEquals(emptyList<ManifestationEntity>(), rows.manifestations)
+        assertTrue(rows.identifiers.any { it.type == "PROVIDER" && it.value == "record-1" })
+    }
+
+    @Test
+    fun mergeWorkUsesIncomingWhenNoExistingAndStableIdRejectsNoExactIdentity() {
+        val incoming = WorkEntity("w-2", "incoming", null, "", null, 1, 2)
+        assertEquals(incoming, mergeWork(null, incoming))
+        assertThrows(IllegalStateException::class.java) { stableWorkId(emptyList()) }
+        assertTrue(stableWorkId(listOf(PaperIdentifier(IdentifierType.DOI, "10.1000/x")).asIterable()).value.startsWith("w-"))
+    }
+
+    @Test
+    fun aggregateMappingIncludesFilesCollectionsAndOptionalState() {
+        val work = WorkEntity("w-aggregate", "Aggregate", "abstract", "", null, 1, 2)
+        val manifestation = ManifestationEntity(
+            id = "m-aggregate", workId = work.id, type = "PREPRINT", sourceProvider = "fixture",
+            sourceRecordId = "record", version = null, landingPageUrl = null, pdfUrl = null,
+            license = null, publishedDateEpochDay = null, updatedAtEpochMillis = 2,
+        )
+        val aggregate = LibraryPaperAggregate(
+            work = work,
+            annotationCount = 0,
+            authors = emptyList(),
+            identifiers = emptyList(),
+            manifestations = listOf(
+                ManifestationWithFiles(
+                    manifestation,
+                    listOf(FileEntity("file", manifestation.id, "/paper.pdf", "a".repeat(64), 1, "application/pdf", "READY", null, 2)),
+                ),
+            ),
+            readingState = null,
+            collections = emptyList(),
+        )
+
+        val paper = aggregate.toDomain()
+        assertNull(paper.readingState)
+        assertEquals("/paper.pdf", paper.localArtifacts.values.single().storagePath)
+        assertEquals("m-aggregate", paper.manifestations.single().id.value)
     }
 }

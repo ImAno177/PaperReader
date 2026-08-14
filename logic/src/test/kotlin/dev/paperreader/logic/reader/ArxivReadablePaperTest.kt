@@ -233,6 +233,159 @@ class ArxivReadablePaperTest {
         assertEquals(null, result)
     }
 
+    @Test
+    fun `loader maps source and transport failures without attempting unsafe requests`() = runTest {
+        val directory = Files.createTempDirectory("readable-paper-failures")
+        val unsupported = ArxivReadablePaperLoader(
+            fetcher = ReadableResourceFetcher { error("must not fetch") },
+            cache = ReadablePaperCache(directory),
+        ).load("Title", manifestation().copy(sourceProvider = "crossref"))
+        assertEquals(ReadablePaperFailure.UNSUPPORTED_SOURCE, (unsupported as ReadablePaperResult.Unavailable).reason)
+
+        val outcomes = listOf(
+            ReadableRemoteResult.NotFound to ReadablePaperFailure.SOURCE_NOT_FOUND,
+            ReadableRemoteResult.RateLimited(2_000) to ReadablePaperFailure.RATE_LIMITED,
+            ReadableRemoteResult.Unavailable to ReadablePaperFailure.OFFLINE_OR_UNAVAILABLE,
+            ReadableRemoteResult.TooLarge to ReadablePaperFailure.RESPONSE_TOO_LARGE,
+            ReadableRemoteResult.Invalid to ReadablePaperFailure.INVALID_RESPONSE,
+        )
+        outcomes.forEachIndexed { index, (remote, expected) ->
+            val result = ArxivReadablePaperLoader(
+                fetcher = ReadableResourceFetcher { remote },
+                cache = ReadablePaperCache(directory.resolve("failure-$index")),
+            ).load("Title", manifestation()) as ReadablePaperResult.Unavailable
+            assertEquals(expected, result.reason)
+            if (remote is ReadableRemoteResult.RateLimited) assertEquals(2_000L, result.retryAfterMillis)
+        }
+    }
+
+    @Test
+    fun `loader rejects non-html responses and malformed versions`() = runTest {
+        val directory = Files.createTempDirectory("readable-paper-media")
+        val nonHtml = ArxivReadablePaperLoader(
+            fetcher = ReadableResourceFetcher {
+                ReadableRemoteResult.Success(ReadableRemoteResource("pdf".toByteArray(), "application/pdf"))
+            },
+            cache = ReadablePaperCache(directory.resolve("non-html")),
+        ).load("Title", manifestation())
+        assertEquals(ReadablePaperFailure.INVALID_RESPONSE, (nonHtml as ReadablePaperResult.Unavailable).reason)
+
+        val malformed = manifestation().copy(sourceRecordId = "2501.04510", version = "bad")
+        val result = ArxivReadablePaperLoader(
+            fetcher = ReadableResourceFetcher { error("must not fetch") },
+            cache = ReadablePaperCache(directory.resolve("malformed-version")),
+        ).load("Title", malformed)
+        assertEquals(ReadablePaperFailure.UNVERSIONED_SOURCE, (result as ReadablePaperResult.Unavailable).reason)
+    }
+
+    @Test
+    fun `sanitizer fails closed for invalid origins missing articles and short content`() = runTest {
+        val sanitizer = ArxivHtmlSanitizer()
+        val valid = longArticleHtml()
+        listOf(
+            "http://arxiv.org/html/2501.04510v2",
+            "https://evil.example/html/2501.04510v2",
+            "https://arxiv.org/html/2501.04510v2#fragment",
+        ).forEach { url ->
+            assertEquals(null, sanitizer.sanitize(valid, url) { _, _ -> error("no asset") })
+        }
+        assertEquals(
+            null,
+            sanitizer.sanitize("<article class='other'>${"text ".repeat(100)}</article>", SOURCE_URL) { _, _ ->
+                error("no asset")
+            },
+        )
+        assertEquals(
+            null,
+            sanitizer.sanitize("<article class='ltx_document'>short</article>", SOURCE_URL) { _, _ ->
+                error("no asset")
+            },
+        )
+    }
+
+    @Test
+    fun `sanitizer handles unsafe figures limits captions and link policies`() = runTest {
+        val html = longArticleHtml(
+            body = """
+                <nav class="ltx_TOC"><ul>
+                  <li class="ltx_tocentry_subsection"><a href="#S1">Subsection</a></li>
+                  <li class="ltx_tocentry_subsubsection"><a href="#S1">Duplicate</a></li>
+                  <li><a href="#bad'anchor">Unsafe</a></li>
+                  <li><a href="#">Blank</a></li>
+                </ul></nav>
+                <p><a href="#S1">local</a>
+                  <a href="https://arxiv.org/html/2501.04510v2#S1">same</a>
+                  <a href="https://example.org/out">external</a>
+                  <a href="mailto:paper@example.org">mail</a>
+                  <a href="http://insecure.example">http</a>
+                  <a href="https://user:pass@example.org/private">userinfo</a>
+                  <a href="%%%">malformed</a></p>
+                <section id="S1"><h2>Section</h2><p>${"content ".repeat(60)}</p></section>
+                <figure><img src="https://evil.example/figure.png" alt="" /></figure>
+                <figure><img src="2501.04510v2/bad.bmp" alt="[uncaptioned image]" /></figure>
+                <figure><img src="2501.04510v2/empty.png" alt="Figure 3" /></figure>
+                <figure><img src="2501.04510v2/good.png" alt="Refer to caption" srcset="bad" /><figcaption>Good caption</figcaption></figure>
+                <figure><img src="2501.04510v2/limited.png" alt="Figure 5" /></figure>
+            """.trimIndent(),
+        )
+        val result = ArxivHtmlSanitizer(
+            maximumFigureCount = 1,
+            maximumFigureBytes = 1,
+            maximumSingleFigureBytes = 4,
+        ).sanitize(
+            rawHtml = html,
+            sourceUrl = SOURCE_URL,
+            fetchAsset = { url, _ ->
+                when {
+                    url.endsWith("bad.bmp") -> ReadableRemoteResult.Success(
+                        ReadableRemoteResource(byteArrayOf(1), "image/bmp"),
+                    )
+                    url.endsWith("empty.png") -> ReadableRemoteResult.Success(
+                        ReadableRemoteResource(byteArrayOf(), "image/png"),
+                    )
+                    url.endsWith("good.png") -> ReadableRemoteResult.Success(
+                        ReadableRemoteResource(byteArrayOf(7), "image/png"),
+                    )
+                    else -> ReadableRemoteResult.Unavailable
+                }
+            },
+        ) ?: error("Expected readable document")
+
+        val document = Jsoup.parseBodyFragment(result.bodyHtml, SOURCE_URL)
+        assertTrue(result.warnings.contains(ReadablePaperWarning.FIGURE_LIMIT_REACHED))
+        assertTrue(result.warnings.contains(ReadablePaperWarning.FIGURE_UNAVAILABLE))
+        assertEquals(1, document.select("img").size)
+        assertEquals("Good caption", document.selectFirst("img")?.attr("alt"))
+        assertTrue(document.select("a[href='#S1']").size >= 2)
+        assertTrue(document.select("a[rel*='external']").isNotEmpty())
+        assertTrue(document.select("a[href^='mailto:']").isNotEmpty())
+        assertTrue(document.select("a[href^='http:']").isEmpty())
+        assertTrue(document.select("a[href*='user:pass']").isEmpty())
+        assertTrue(document.select("a[href='%']").isEmpty())
+        assertEquals(1, result.sections.size)
+        assertEquals(2, result.sections.single().level)
+    }
+
+    @Test
+    fun `sanitizer rejects unsupported executable output and accepts documents without a toc`() = runTest {
+        val noToc = longArticleHtml(
+            body = "<section><h2>No TOC</h2><p>${"content ".repeat(80)}</p></section>",
+        )
+        val result = ArxivHtmlSanitizer().sanitize(noToc, SOURCE_URL) { _, _ -> error("no asset") }
+            ?: error("Expected readable document")
+        assertTrue(result.warnings.contains(ReadablePaperWarning.TABLE_OF_CONTENTS_MISSING))
+
+        val executable = longArticleHtml(
+            body = """<p>${"content ".repeat(80)}</p><button onclick="doBadThing()">bad</button>""",
+        )
+        val cleaned = ArxivHtmlSanitizer().sanitize(executable, SOURCE_URL) { _, _ -> error("no asset") }
+            ?: error("Expected sanitizer to keep safe paper text")
+        assertTrue(Jsoup.parseBodyFragment(cleaned.bodyHtml).select("button").isEmpty())
+    }
+
+    private fun longArticleHtml(body: String = "<p>${"content ".repeat(80)}</p>"): String =
+        "<html><body><article class='ltx_document'><h1>Title</h1>$body</article></body></html>"
+
     private fun manifestation() = PaperManifestation(
         id = ManifestationId("manifestation-1"),
         workId = WorkId("work-1"),

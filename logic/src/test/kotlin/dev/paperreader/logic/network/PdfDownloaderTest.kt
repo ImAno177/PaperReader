@@ -9,6 +9,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -109,6 +110,72 @@ class PdfDownloaderTest {
             assertEquals(9_000L, (error as PdfDownloadException.RetryableHttp).retryAfterMillis)
         } finally {
             server.shutdown()
+        }
+    }
+
+    @Test
+    fun mapsRetryableAndPermanentHttpStatuses() = runTest {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setResponseCode(408))
+        server.enqueue(MockResponse().setResponseCode(425))
+        server.enqueue(MockResponse().setResponseCode(503))
+        server.enqueue(MockResponse().setResponseCode(404))
+        server.start()
+        try {
+            val downloader = PdfDownloader(
+                OkHttpClient.Builder().retryOnConnectionFailure(false).build(),
+                "PaperReader/Test",
+                null,
+                1_024,
+            )
+            listOf(408, 425, 503).forEach { status ->
+                val error = runCatching {
+                    downloader.download(server.url("/status").toString(), temporaryFolder.root.toPath())
+                }.exceptionOrNull()
+                assertTrue(error is PdfDownloadException.RetryableHttp)
+                assertEquals(status, (error as PdfDownloadException.RetryableHttp).statusCode)
+            }
+            val permanent = runCatching {
+                downloader.download(server.url("/status").toString(), temporaryFolder.root.toPath())
+            }.exceptionOrNull()
+            assertTrue(permanent is PdfDownloadException.Http)
+            assertEquals(404, (permanent as PdfDownloadException.Http).statusCode)
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun rejectsEmptyAndStreamingOversizedBodies() = runTest {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setBody(""))
+        server.enqueue(MockResponse().setChunkedBody("%PDF-1.7\n123456789", 2))
+        server.start()
+        try {
+            val downloader = PdfDownloader(OkHttpClient(), "PaperReader/Test", null, 8)
+            val empty = runCatching {
+                downloader.download(server.url("/body").toString(), temporaryFolder.root.toPath())
+            }.exceptionOrNull()
+            assertTrue(empty is PdfDownloadException.InvalidPdf)
+            val large = runCatching {
+                downloader.download(server.url("/body").toString(), temporaryFolder.root.toPath())
+            }.exceptionOrNull()
+            assertTrue(large is PdfDownloadException.TooLarge)
+            Files.list(temporaryFolder.root.toPath()).use { files ->
+                assertTrue(files.noneMatch { it.fileName.toString().startsWith(".paper-download-") })
+            }
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun rejectsInvalidDownloaderConfiguration() {
+        assertThrows(IllegalArgumentException::class.java) {
+            PdfDownloader(OkHttpClient(), " ", null, 1)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            PdfDownloader(OkHttpClient(), "PaperReader/Test", null, 0)
         }
     }
 }

@@ -1,6 +1,7 @@
 package dev.paperreader.logic.reader
 
 import java.time.Clock
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -37,6 +38,47 @@ class ReaderDocumentLoaderTest {
         assertEquals(source, result.source)
     }
 
+    @Test
+    fun `invalid cache and unexpected extraction errors remain explicit fallbacks`() = runTest {
+        val invalid = ReaderDocumentLoader(
+            ExtractionService(
+                extractor = errorExtractor(ExtractionException.InvalidCachedArtifact()),
+                store = emptyStore(),
+                clock = Clock.systemUTC(),
+            ),
+        ).load(source, configuration) as ReaderDocument.OriginalPdfFallback
+        assertEquals(FallbackReason.INVALID_CACHE, invalid.reason)
+        assertEquals("Extraction cache is invalid", invalid.detail)
+
+        val failed = ReaderDocumentLoader(
+            ExtractionService(
+                extractor = errorExtractor(IllegalStateException("parser exploded")),
+                store = emptyStore(),
+                clock = Clock.systemUTC(),
+            ),
+        ).load(source, configuration) as ReaderDocument.OriginalPdfFallback
+        assertEquals(FallbackReason.EXTRACTION_FAILED, failed.reason)
+        assertEquals("parser exploded", failed.detail)
+    }
+
+    @Test
+    fun `cancellation is never converted into a fallback`() = runTest {
+        val loader = ReaderDocumentLoader(
+            ExtractionService(
+                extractor = errorExtractor(CancellationException("cancelled")),
+                store = emptyStore(),
+                clock = Clock.systemUTC(),
+            ),
+        )
+        var propagated = false
+        try {
+            loader.load(source, configuration)
+        } catch (_: CancellationException) {
+            propagated = true
+        }
+        assertTrue(propagated)
+    }
+
     private fun loader(document: ExtractedDocument): ReaderDocumentLoader {
         val extractor = object : PdfTextExtractor {
             override suspend fun extract(source: PdfSource, options: ParseOptions) = document
@@ -46,5 +88,14 @@ class ReaderDocumentLoaderTest {
             override suspend fun write(document: PreparedDocument) = Unit
         }
         return ReaderDocumentLoader(ExtractionService(extractor, store, Clock.systemUTC()))
+    }
+
+    private fun emptyStore() = object : ExtractionArtifactStore {
+        override suspend fun read(cacheDigest: String): PreparedDocument? = null
+        override suspend fun write(document: PreparedDocument) = Unit
+    }
+
+    private fun errorExtractor(error: Exception) = object : PdfTextExtractor {
+        override suspend fun extract(source: PdfSource, options: ParseOptions): ExtractedDocument = throw error
     }
 }

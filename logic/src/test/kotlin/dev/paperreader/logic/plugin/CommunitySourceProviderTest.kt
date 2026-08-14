@@ -8,12 +8,21 @@ import dev.paperreader.extensions.api.SourceManifestation
 import dev.paperreader.extensions.api.SourcePaperRecord
 import dev.paperreader.extensions.api.SourceSearchPage
 import dev.paperreader.extensions.api.SourceSearchRequest
+import dev.paperreader.extensions.api.SourceCapability
+import dev.paperreader.extensions.api.SourceRole
+import dev.paperreader.extensions.api.SourceSearchSort
+import dev.paperreader.extensions.api.SourceIdentifierType
 import dev.paperreader.logic.domain.IdentifierType
 import dev.paperreader.logic.domain.ManifestationType
 import dev.paperreader.logic.provider.PaperSearchQuery
 import dev.paperreader.logic.provider.ProviderException
+import dev.paperreader.logic.provider.ProviderRole
+import dev.paperreader.logic.provider.ProviderCapability
+import dev.paperreader.logic.provider.SearchSort
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -101,6 +110,90 @@ class CommunitySourceProviderTest {
         assertTrue(failure is ProviderException.InvalidResponse)
     }
 
+    @Test
+    fun `maps every descriptor capability role identifier and sort`() {
+        val descriptor = SourceExtensionDescriptor(
+            packageName = "dev.paperreader.sample.source",
+            providerId = "sample",
+            displayName = "Sample source",
+            capabilities = SourceCapability.entries.toSet(),
+            roles = SourceRole.entries.toSet(),
+            identifierLookupTypes = SourceIdentifierType.entries.toSet(),
+            supportedSorts = SourceSearchSort.entries.toSet(),
+        )
+
+        val provider = CommunitySourceProvider(FakeTransport(descriptor = descriptor))
+
+        assertEquals(setOf(ProviderCapability.DISCOVERY, ProviderCapability.METADATA_RESOLUTION), provider.descriptor.capabilities)
+        assertEquals(ProviderRole.entries.toSet(), provider.descriptor.roles)
+        assertEquals(
+            setOf(IdentifierType.DOI, IdentifierType.ARXIV, IdentifierType.PMID, IdentifierType.PMCID),
+            provider.descriptor.identifierLookupTypes,
+        )
+        assertEquals(SearchSort.entries.toSet(), provider.descriptor.supportedSorts)
+    }
+
+    @Test
+    fun `get maps a record and preserves a missing record`() = runTest {
+        val record = record().copy(
+            manifestations = listOf(
+                SourceManifestation("accepted_manuscript", version = "accepted"),
+                SourceManifestation("version_of_record", version = "published"),
+                SourceManifestation("other", version = "other"),
+            ),
+        )
+        val provider = CommunitySourceProvider(
+            FakeTransport(SourceSearchPage("request", listOf(record)))
+        )
+
+        val paper = provider.get("sample-1")
+        assertEquals(3, paper?.manifestations?.size)
+        assertEquals(ManifestationType.ACCEPTED_MANUSCRIPT, paper?.manifestations?.first()?.type)
+        assertEquals(ManifestationType.VERSION_OF_RECORD, paper?.manifestations?.get(1)?.type)
+        assertEquals(ManifestationType.OTHER, paper?.manifestations?.last()?.type)
+
+        assertNull(CommunitySourceProvider(FakeTransport(SourceSearchPage("request", emptyList()))).get("missing"))
+    }
+
+    @Test
+    fun `translates every extension failure category and preserves cancellation`() = runTest {
+        val failures = listOf(
+            ExtensionFailureCode.UNAVAILABLE to ProviderException.Unavailable::class.java,
+            ExtensionFailureCode.INTERNAL_ERROR to ProviderException.Unavailable::class.java,
+            ExtensionFailureCode.INVALID_REQUEST to ProviderException.InvalidResponse::class.java,
+            ExtensionFailureCode.INVALID_RESPONSE to ProviderException.InvalidResponse::class.java,
+        )
+        failures.forEach { (code, expected) ->
+            val failure = runCatching {
+                CommunitySourceProvider(
+                    FakeTransport(
+                        searchFailure = ExtensionFailure("request", code, "failure"),
+                    ),
+                ).search(PaperSearchQuery("query"))
+            }.exceptionOrNull()
+            assertTrue("$code -> $failure", expected.isInstance(failure))
+        }
+
+        val cancelled = runCatching {
+            CommunitySourceProvider(
+                FakeTransport(searchThrowable = CancellationException("cancelled")),
+            ).search(PaperSearchQuery("query"))
+        }.exceptionOrNull()
+        assertTrue(cancelled is CancellationException)
+
+        val providerFailure = ProviderException.InvalidResponse(IllegalArgumentException("bad"))
+        val preserved = runCatching {
+            CommunitySourceProvider(FakeTransport(searchThrowable = providerFailure)).search(PaperSearchQuery("query"))
+        }.exceptionOrNull()
+        assertTrue(preserved === providerFailure)
+
+        val unavailable = runCatching {
+            CommunitySourceProvider(FakeTransport(searchThrowable = IllegalStateException("offline")))
+                .search(PaperSearchQuery("query"))
+        }.exceptionOrNull()
+        assertTrue(unavailable is ProviderException.Unavailable)
+    }
+
     private fun record() = SourcePaperRecord(
         providerRecordId = "sample-1",
         title = "A readable paper",
@@ -127,14 +220,15 @@ class CommunitySourceProviderTest {
     private class FakeTransport(
         private val page: SourceSearchPage? = null,
         private val searchFailure: ExtensionFailure? = null,
-    ) : SourceExtensionTransport {
-        override val descriptor = SourceExtensionDescriptor(
+        override val descriptor: SourceExtensionDescriptor = SourceExtensionDescriptor(
             packageName = "dev.paperreader.sample.source",
             providerId = "sample",
             displayName = "Sample source",
-        )
-
+        ),
+        private val searchThrowable: Throwable? = null,
+    ) : SourceExtensionTransport {
         override suspend fun search(request: SourceSearchRequest): SourceSearchPage {
+            searchThrowable?.let { throw it }
             searchFailure?.let { throw SourceExtensionRequestException(it) }
             return requireNotNull(page)
         }

@@ -2,6 +2,7 @@ package dev.paperreader.logic.plugin
 
 import java.security.KeyPairGenerator
 import java.security.Signature
+import java.nio.file.Files
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -119,6 +120,74 @@ class ExtensionStoreRegistryTest {
         assertTrue(!isSameHttpsOrigin("https://example.org/index.json", "https://cdn.example.org/index.json".toHttpUrl()))
         assertTrue(!isSameHttpsOrigin("https://example.org/index.json", "https://example.org:8443/index.json".toHttpUrl()))
         assertTrue(!isSameHttpsOrigin("https://example.org/index.json", "http://example.org/index.json".toHttpUrl()))
+    }
+
+    @Test
+    fun `ensure pinned creates a pinned store and refreshes the existing record`() = runTest {
+        val registry = registry(temporaryFolder.newFolder("pinned").toPath())
+
+        val first = registry.ensurePinned(INDEX_URL, publicKey, "paperreader.community")
+        assertTrue(first.pinned)
+        assertEquals(7, first.index.sequence)
+
+        envelope = signedEnvelope(payload(sequence = 8))
+        val refreshed = registry.ensurePinned(INDEX_URL, publicKey, "paperreader.community")
+        assertTrue(refreshed.pinned)
+        assertEquals(8, refreshed.index.sequence)
+        assertEquals(emptyList<ExtensionStoreIssue>(), registry.state.value.issues)
+    }
+
+    @Test
+    fun `pinned store rejects changed identity and cannot be removed`() = runTest {
+        val registry = registry(temporaryFolder.newFolder("pinned-identity").toPath())
+        registry.ensurePinned(INDEX_URL, publicKey, "paperreader.community")
+
+        assertFails { registry.ensurePinned("https://example.org/changed.json", publicKey, "paperreader.community") }
+        assertFails { registry.remove("paperreader.community") }
+        assertFails { registry.refresh("missing.store") }
+    }
+
+    @Test
+    fun `preview validation is strict and older pending previews are evicted`() = runTest {
+        val registry = registry(temporaryFolder.newFolder("previews").toPath())
+        assertFails { registry.preview("http://example.org/index.json", publicKey) }
+        assertFails { registry.preview(INDEX_URL, "bad") }
+
+        val previews = (1..4).map { registry.preview(INDEX_URL, publicKey) }
+        assertFails { registry.addPreview(previews.first().token) }
+        val added = registry.addPreview(previews.last().token)
+        assertEquals("paperreader.community", added.index.storeId)
+        assertFails { registry.addPreview(previews.last().token) }
+    }
+
+    @Test
+    fun `refresh all can exclude stores and removing a user store clears it`() = runTest {
+        val registry = registry(temporaryFolder.newFolder("remove").toPath())
+        registry.addPreview(registry.preview(INDEX_URL, publicKey).token)
+        assertTrue(registry.refreshAll(excludedStoreIds = setOf("paperreader.community")))
+
+        registry.remove("paperreader.community")
+        assertTrue(registry.state.value.stores.isEmpty())
+        assertFails { registry.remove("paperreader.community") }
+    }
+
+    @Test
+    fun `malformed persisted registries fail closed with a state issue`() {
+        val malformed = temporaryFolder.newFolder("malformed-registry").toPath()
+        Files.createDirectories(malformed)
+        Files.write(malformed.resolve("stores.json"), "not-json".toByteArray())
+
+        val malformedState = registry(malformed).state.value
+        assertTrue(malformedState.stores.isEmpty())
+        assertTrue(malformedState.issues.isNotEmpty())
+
+        val unsupported = temporaryFolder.newFolder("unsupported-registry").toPath()
+        Files.write(unsupported.resolve("stores.json"), "{\"schemaVersion\":2,\"stores\":[]}".toByteArray())
+        assertTrue(registry(unsupported).state.value.issues.single().message.contains("Unsupported"))
+
+        val oversized = temporaryFolder.newFolder("oversized-registry").toPath()
+        Files.write(oversized.resolve("stores.json"), ByteArray(24 * 1024 * 1024 + 1))
+        assertTrue(registry(oversized).state.value.issues.single().message.contains("too large"))
     }
 
     private fun registry(directory: java.nio.file.Path) = ExtensionStoreRegistry(

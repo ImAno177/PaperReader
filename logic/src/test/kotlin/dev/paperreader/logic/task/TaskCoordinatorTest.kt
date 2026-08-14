@@ -6,10 +6,13 @@ import java.time.Instant
 import java.time.ZoneOffset
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TaskCoordinatorTest {
@@ -131,6 +134,45 @@ class TaskCoordinatorTest {
 
         assertEquals(true, lower.await().exceptionOrNull() is ConcurrentTaskUpdateException)
         assertEquals(0.8, coordinator.get(task.id)?.progress ?: -1.0, 0.0)
+    }
+
+    @Test
+    fun `terminal and missing task commands are explicit`() = runTest {
+        val missing = TaskId("missing")
+        assertEquals(CancelTaskResult.NotFound, coordinator.cancel(missing))
+        assertEquals(RetryTaskResult.NotFound, coordinator.retry(missing))
+        assertEquals(RemoveTaskResult.NotFound, coordinator.remove(missing))
+        assertEquals(null, coordinator.find(TaskKind.DOWNLOAD, null, "missing"))
+
+        val succeeded = coordinator.enqueue(TaskKind.DOWNLOAD, null, "done")
+        coordinator.transition(succeeded.id, TaskState.RUNNING)
+        coordinator.transition(succeeded.id, TaskState.SUCCEEDED)
+        assertTrue(coordinator.cancel(succeeded.id) is CancelTaskResult.AlreadyTerminal)
+        assertTrue(coordinator.retry(succeeded.id) is RetryTaskResult.NotRetryable)
+        assertTrue(coordinator.removeTerminal(succeeded.id))
+        val active = coordinator.enqueue(TaskKind.DOWNLOAD, null, "active")
+        assertThrows(IllegalStateException::class.java) {
+            runBlocking { coordinator.removeTerminal(active.id) }
+        }
+    }
+
+    @Test
+    fun `transition and progress validate state and failure code ownership`() = runTest {
+        val task = coordinator.enqueue(TaskKind.DOWNLOAD, null, "validation")
+        assertThrows(IllegalStateException::class.java) {
+            runBlocking { coordinator.transition(TaskId("unknown"), TaskState.RUNNING) }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { coordinator.transition(task.id, TaskState.RUNNING, "not-failed") }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { coordinator.updateProgress(task.id, 0.1) }
+        }
+        coordinator.transition(task.id, TaskState.RUNNING)
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { coordinator.updateProgress(task.id, 1.1) }
+        }
+        assertEquals(task.id, coordinator.find(TaskKind.DOWNLOAD, null, "validation")?.id)
     }
 
     private class FakeTaskRepository : PaperTaskRepository {

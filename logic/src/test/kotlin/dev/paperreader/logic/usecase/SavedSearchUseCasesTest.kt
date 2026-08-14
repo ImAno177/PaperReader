@@ -8,10 +8,20 @@ import dev.paperreader.logic.domain.SavedSearchHit
 import dev.paperreader.logic.domain.SavedSearchHitId
 import dev.paperreader.logic.domain.SavedSearchId
 import dev.paperreader.logic.domain.SavedSearchSource
+import dev.paperreader.logic.domain.CollectionId
+import dev.paperreader.logic.domain.LibraryPaper
+import dev.paperreader.logic.domain.PaperCollection
+import dev.paperreader.logic.domain.ReadingState
 import dev.paperreader.logic.domain.WorkId
+import dev.paperreader.logic.domain.repository.CreateCollectionResult
 import dev.paperreader.logic.domain.repository.CreateSavedSearchResult
+import dev.paperreader.logic.domain.repository.DeleteCollectionResult
 import dev.paperreader.logic.domain.repository.DeleteSavedSearchResult
+import dev.paperreader.logic.domain.repository.LibraryRepository
+import dev.paperreader.logic.domain.repository.RemovePaperResult
+import dev.paperreader.logic.domain.repository.RenameCollectionResult
 import dev.paperreader.logic.domain.repository.SavedSearchRepository
+import dev.paperreader.logic.domain.repository.SetPaperCollectionsResult
 import dev.paperreader.logic.provider.MutableProviderManager
 import dev.paperreader.logic.provider.PaperProvider
 import dev.paperreader.logic.provider.PaperSearchQuery
@@ -28,6 +38,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -123,6 +134,68 @@ class SavedSearchUseCasesTest {
     }
 
     @Test
+    fun `refresh records unavailable and invalid provider outcomes without aborting siblings`() = runTest {
+        val invalid = RecordingProvider("invalid") { ProviderPage(emptyList()) }
+        val exploding = RecordingProvider("exploding") { error("provider crashed") }
+        val repository = FakeSavedSearchRepository(
+            feed().copy(
+                search = feed().search.copy(
+                    sources = listOf(
+                        SavedSearchSource("missing"),
+                        SavedSearchSource("invalid"),
+                        SavedSearchSource("exploding"),
+                    ),
+                ),
+            ),
+        )
+        repository.invalidRecordSuccess = true
+        val result = RefreshSavedSearch(
+            repository,
+            MutableProviderManager(listOf(invalid, exploding)),
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
+        ).await(SEARCH_ID)
+
+        assertEquals(RefreshSavedSearchResult.Completed(0, 3, 0), result)
+        assertEquals(
+            setOf("missing", "invalid", "exploding"),
+            repository.failures.map(FailureRecord::providerId).toSet(),
+        )
+        assertTrue(repository.failures.all { it.failure.kind == SavedSearchFailureKind.UNAVAILABLE ||
+            it.failure.kind == SavedSearchFailureKind.INVALID_RESPONSE })
+    }
+
+    @Test
+    fun `refresh returns not found and save hit keeps durable work when link fails`() = runTest {
+        val emptyRepository = FakeSavedSearchRepository()
+        assertEquals(
+            RefreshSavedSearchResult.NotFound,
+            RefreshSavedSearch(emptyRepository, MutableProviderManager(emptyList())).await(SEARCH_ID),
+        )
+
+        val paper = RemotePaper("arxiv", "2401.1v1", "Paper")
+        val hit = SavedSearchHit(
+            id = SavedSearchHitId("hit-1"),
+            searchId = SEARCH_ID,
+            paper = paper,
+            fingerprint = "a".repeat(64),
+            firstSeenAt = Instant.EPOCH,
+            lastSeenAt = Instant.EPOCH,
+            unread = true,
+        )
+        val repository = FakeSavedSearchRepository(feed(), hit)
+        repository.failLink = true
+        val library = FakeLibraryRepository()
+        assertEquals(
+            SaveSavedSearchHitResult.Saved(WorkId("w-saved")),
+            SaveSavedSearchHit(repository, library).await(hit.id),
+        )
+        assertEquals(listOf(paper), library.saved)
+        assertFalse(repository.linked)
+        assertEquals(SaveSavedSearchHitResult.NotFound,
+            SaveSavedSearchHit(repository, library).await(SavedSearchHitId("missing")))
+    }
+
+    @Test
     fun `background refresh checks saved searches sequentially and aggregates only completed work`() = runTest {
         val first = feed(
             id = SEARCH_ID,
@@ -191,15 +264,19 @@ class SavedSearchUseCasesTest {
 
     private class FakeSavedSearchRepository(
         feed: SavedSearchFeed? = null,
+        private val hit: SavedSearchHit? = null,
         initialFeeds: List<SavedSearchFeed> = listOfNotNull(feed),
         private val availableFeeds: Map<SavedSearchId, SavedSearchFeed> = initialFeeds.associateBy { it.search.id },
     ) : SavedSearchRepository {
         override val feeds: Flow<List<SavedSearchFeed>> = MutableStateFlow(initialFeeds)
         val failures = mutableListOf<FailureRecord>()
         val successes = mutableListOf<SuccessRecord>()
+        var invalidRecordSuccess = false
+        var failLink = false
+        var linked = false
 
         override suspend fun get(id: SavedSearchId): SavedSearchFeed? = availableFeeds[id]
-        override suspend fun getHit(id: SavedSearchHitId): SavedSearchHit? = null
+        override suspend fun getHit(id: SavedSearchHitId): SavedSearchHit? = hit?.takeIf { it.id == id }
         override suspend fun create(queryText: String, providerIds: Set<String>) =
             CreateSavedSearchResult.Created(SEARCH_ID)
 
@@ -210,6 +287,7 @@ class SavedSearchUseCasesTest {
             records: List<RemotePaper>,
             checkedAt: Instant,
         ): Int {
+            if (invalidRecordSuccess) throw IllegalArgumentException("invalid provider response")
             successes += SuccessRecord(providerId, checkedAt)
             return 2
         }
@@ -224,7 +302,11 @@ class SavedSearchUseCasesTest {
         }
 
         override suspend fun markHitRead(id: SavedSearchHitId) = true
-        override suspend fun linkHit(id: SavedSearchHitId, workId: WorkId) = true
+        override suspend fun linkHit(id: SavedSearchHitId, workId: WorkId): Boolean {
+            if (failLink) error("link failed")
+            linked = true
+            return true
+        }
     }
 
     private data class FailureRecord(
@@ -237,6 +319,26 @@ class SavedSearchUseCasesTest {
         val providerId: String,
         val checkedAt: Instant,
     )
+
+    private class FakeLibraryRepository : LibraryRepository {
+        override val library: Flow<List<LibraryPaper>> = MutableStateFlow(emptyList())
+        override val collections: Flow<List<PaperCollection>> = MutableStateFlow(emptyList())
+        val saved = mutableListOf<RemotePaper>()
+
+        override suspend fun save(remote: RemotePaper): WorkId {
+            saved += remote
+            return WorkId("w-saved")
+        }
+
+        override suspend fun get(workId: WorkId): LibraryPaper? = null
+        override suspend fun updateReadingState(state: ReadingState) = Unit
+        override suspend fun remove(workId: WorkId): RemovePaperResult = RemovePaperResult.NotFound
+        override suspend fun createCollection(name: String): CreateCollectionResult = CreateCollectionResult.InvalidName
+        override suspend fun renameCollection(id: CollectionId, name: String): RenameCollectionResult = RenameCollectionResult.NotFound
+        override suspend fun deleteCollection(id: CollectionId): DeleteCollectionResult = DeleteCollectionResult.NotFound
+        override suspend fun setPaperCollections(workId: WorkId, collectionIds: Set<CollectionId>): SetPaperCollectionsResult =
+            SetPaperCollectionsResult.PaperNotFound
+    }
 
     private companion object {
         val SEARCH_ID = SavedSearchId("saved-search-1")

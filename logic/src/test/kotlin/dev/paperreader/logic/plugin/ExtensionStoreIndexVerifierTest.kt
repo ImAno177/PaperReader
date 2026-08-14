@@ -133,6 +133,46 @@ class ExtensionStoreIndexVerifierTest {
     }
 
     @Test
+    fun `signed index validation rejects every malformed boundary before trust`() {
+        val mutations = listOf(
+            { validPayload().replaceFirst("\"schemaVersion\":1", "\"schemaVersion\":2") },
+            { validPayload().replaceFirst("\"storeId\":\"paperreader.community\"", "\"storeId\":\"X\"") },
+            { validPayload().replaceFirst("\"displayName\":\"PaperReader community\"", "\"displayName\":\" \"") },
+            { validPayload().replaceFirst("https://example.org/extensions", "http://example.org/extensions") },
+            { validPayload().replaceFirst("\"sequence\":7", "\"sequence\":0") },
+            { validPayload().replaceFirst("2026-08-13T05:59:00Z", "2099-08-13T05:59:00Z") },
+            { validPayload().replaceFirst("\"kind\":\"source\"", "\"kind\":\"unknown\"") },
+            { validPayload().replaceFirst("\"packageName\":\"dev.paperreader.extensions.semanticscholar\"", "\"packageName\":\"bad\"") },
+            { validPayload().replaceFirst("dev.paperreader.extensions.semanticscholar.SemanticScholarService", "dev.attacker.Service") },
+            { validPayload().replaceFirst("\"displayName\":\"Semantic Scholar\"", "\"displayName\":\" \"") },
+            { validPayload().replaceFirst("\"versionCode\":3", "\"versionCode\":0") },
+            { validPayload().replaceFirst("\"versionName\":\"1.2.0\"", "\"versionName\":\" \"") },
+            { validPayload().replaceFirst("${"ab".repeat(32)}", "zz") },
+            { validPayload().replaceFirst("\"minimumHostApi\":1", "\"minimumHostApi\":0") },
+            { validPayload().replaceFirst("\"maximumHostApi\":1", "\"maximumHostApi\":0") },
+            { validPayload().replaceFirst("https://example.org/extensions/semanticscholar.apk", "http://example.org/extensions/semanticscholar.apk") },
+            { validPayload().replaceFirst("${"01".repeat(32)}", "bad") },
+            { validPayload().replaceFirst("\"apkSizeBytes\":1048576", "\"apkSizeBytes\":0") },
+            { validPayload().replaceFirst("\"license\":\"Apache-2.0\"", "\"license\":\" \"") },
+            { validPayload().replaceFirst("https://example.org/privacy/semanticscholar", "http://example.org/privacy/semanticscholar") },
+            { validPayload().replaceFirst("\"content_source\"", "\"unknown_role\"") },
+            { validPayload().replaceFirst("\"doi\"", "\"unknown_identifier\"") },
+            { validPayload().replaceFirst("\"relevance\"", "\"unknown_sort\"") },
+            { validPayload().replaceFirst("\"themeIds\":[\"blueprint\"]", "\"themeIds\":[\"?\"]") },
+            { validPayload().replaceFirst("\"packageName\":\"dev.paperreader.extensions.blueprint\"", "\"packageName\":\"dev.paperreader.extensions.semanticscholar\"") },
+        )
+        mutations.forEachIndexed { index, mutation ->
+            assertFails("mutation $index") {
+                verifier.verify(signedEnvelope(mutation()), publicKey.base64())
+            }
+        }
+
+        assertFails { verifier.verify(ByteArray(0), publicKey.base64()) }
+        assertFails { verifier.verify("not-json".toByteArray(), publicKey.base64()) }
+        assertFails { verifier.verify(signedEnvelope(validPayload()), "bad") }
+    }
+
+    @Test
     fun `incompatible release remains visible but cannot become trusted transport`() {
         val payload = validPayload().replaceFirst("\"maximumHostApi\":1", "\"maximumHostApi\":0")
             .replaceFirst("\"minimumHostApi\":1", "\"minimumHostApi\":2")
@@ -171,7 +211,10 @@ class ExtensionStoreIndexVerifierTest {
               "privacyUrl":"https://example.org/privacy/semanticscholar",
               "providerId":"semanticscholar-sample",
               "minimumRequestIntervalMillis":1000,
-              "sourceCapabilities":["search","details","pdf_link"]
+              "sourceCapabilities":["search","details","pdf_link"],
+              "sourceRoles":["content_source"],
+              "sourceIdentifierTypes":["doi"],
+              "sourceSupportedSorts":["relevance"]
             },
             {
               "kind":"theme",
@@ -206,13 +249,15 @@ class ExtensionStoreIndexVerifierTest {
 
     private fun ByteArray.base64(): String = Base64.getEncoder().encodeToString(this)
 
-    private fun assertFails(block: () -> Unit) {
+    private fun assertFails(block: () -> Unit) = assertFails("Expected extension store verification to fail", block)
+
+    private fun assertFails(message: String, block: () -> Unit) {
         var failed = false
         try {
             block()
         } catch (_: ExtensionStoreIndexException) {
             failed = true
         }
-        assertTrue("Expected extension store verification to fail", failed)
+        assertTrue(message, failed)
     }
 }

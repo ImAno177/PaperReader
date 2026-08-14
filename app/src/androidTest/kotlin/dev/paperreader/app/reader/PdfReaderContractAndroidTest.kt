@@ -46,7 +46,7 @@ class PdfReaderContractAndroidTest {
             downloaded,
             WorkId("work"),
             "Paper title",
-            PaperThemePreset.RETRO,
+            PaperThemePreset.DOODLE,
             themeMode = PaperThemeMode.DARK,
         )
 
@@ -55,7 +55,7 @@ class PdfReaderContractAndroidTest {
         assertEquals("application/pdf", intent.type)
         assertTrue(intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
         assertEquals(contentUri, intent.clipData?.getItemAt(0)?.uri?.toString())
-        assertEquals("retro", intent.getStringExtra(PdfReaderActivity.EXTRA_THEME_PRESET))
+        assertEquals("doodle", intent.getStringExtra(PdfReaderActivity.EXTRA_THEME_PRESET))
         assertEquals("dark", intent.getStringExtra(PdfReaderActivity.EXTRA_THEME_MODE))
     }
 

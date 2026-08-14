@@ -74,13 +74,6 @@ fun MoreScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Text(
-                    text = stringResource(R.string.more_overview_body),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = PaperTheme.tokens.inkMuted,
-                )
-            }
-            item {
                 MoreHubRow(
                     title = stringResource(R.string.appearance_title),
                     supportingText = selectedThemeName ?: themeName(selectedPreset),
@@ -161,7 +154,10 @@ private fun MoreHubRow(
                 shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
                 color = PaperTheme.tokens.primaryContainer,
                 contentColor = PaperTheme.tokens.onPrimaryContainer,
-                border = BorderStroke(1.dp, PaperTheme.tokens.border),
+                border = BorderStroke(
+                    PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp),
+                    PaperTheme.tokens.border,
+                ),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     PaperIcon(icon, contentDescription = null, modifier = Modifier.size(24.dp))

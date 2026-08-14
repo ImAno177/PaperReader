@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 
-/** Immutable built-in token spec for the high-contrast Neobrutalism visual pack. */
+/** Built-in Neobrutalism tokens: yellow and violet accents, hard outlines, and offset shadows. */
 internal fun neobrutalismThemeTokens(dark: Boolean): PaperThemeTokens = if (dark) {
     PaperThemeTokens(
         canvas = Color(0xFF121316),
@@ -13,7 +13,7 @@ internal fun neobrutalismThemeTokens(dark: Boolean): PaperThemeTokens = if (dark
         ink = Color(0xFFF7F0E0),
         inkMuted = Color(0xFFC7C1B4),
         border = Color(0xFFF7F0E0),
-        primary = Color(0xFFFFD84A),
+        primary = NeoMustard,
         onPrimary = Color(0xFF241F00),
         primaryContainer = Color(0xFF6A5600),
         onPrimaryContainer = Color(0xFFFFF0A5),
@@ -21,10 +21,10 @@ internal fun neobrutalismThemeTokens(dark: Boolean): PaperThemeTokens = if (dark
         onSecondary = Color(0xFF1E115D),
         secondaryContainer = Color(0xFF403783),
         onSecondaryContainer = Color(0xFFE4DEFF),
-        success = Color(0xFF72D69B),
-        warning = Color(0xFFFFC76B),
-        danger = Color(0xFFFF8A80),
-        emptyStateAccent = Color(0xFFFFD84A),
+        success = Color(0xFF4ADE80),
+        warning = Color(0xFFF59E0B),
+        danger = Color(0xFFFF7A75),
+        emptyStateAccent = NeoMustard,
         selection = Color(0xFF5A4E00),
         hardShadow = Color(0xFF000000),
         cornerRadius = 4.dp,
@@ -54,7 +54,7 @@ internal fun neobrutalismThemeTokens(dark: Boolean): PaperThemeTokens = if (dark
         success = BuiltinSuccess,
         warning = BuiltinWarning,
         danger = BuiltinDanger,
-        emptyStateAccent = Color(0xFF574800),
+        emptyStateAccent = Color(0xFF6B5300),
         selection = Color(0xFFFFE066),
         hardShadow = Color(0xFF1C293C),
         cornerRadius = 4.dp,

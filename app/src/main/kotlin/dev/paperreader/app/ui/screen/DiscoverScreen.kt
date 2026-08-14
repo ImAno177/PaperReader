@@ -167,11 +167,6 @@ fun DiscoverScreen(
                         }
                     }
                     }
-                    Text(
-                        text = stringResource(R.string.discover_body),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = PaperTheme.tokens.inkMuted,
-                    )
                 }
             }
             if (state.running && state.results.isNotEmpty()) {

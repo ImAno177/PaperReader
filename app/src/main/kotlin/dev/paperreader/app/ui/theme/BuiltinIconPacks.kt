@@ -82,7 +82,6 @@ private val MATERIAL_SYMBOL_RESOURCES: Map<PaperIconKey, Int> = mapOf(
 internal fun paperIconSet(preset: PaperThemePreset): PaperIconSet = PaperIconSet(
     when (preset) {
         PaperThemePreset.DOODLE -> PaperIconFamily.TABLER
-        PaperThemePreset.RETRO -> PaperIconFamily.TABLER
         PaperThemePreset.NEOBRUTALISM -> PaperIconFamily.MATERIAL_SYMBOLS
     },
 )

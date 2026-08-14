@@ -42,21 +42,6 @@
         <item name="colorOutline">@color/reader_doodle_border</item>
     </style>
 
-    <style name="Theme.PaperReader.PdfReader.Retro" parent="Theme.PaperReader.PdfReader">
-        <item name="android:windowBackground">@color/reader_retro_canvas</item>
-        <item name="android:navigationBarColor">@color/reader_retro_canvas</item>
-        <item name="android:statusBarColor">@color/reader_retro_canvas</item>
-        <item name="colorPrimary">@color/reader_retro_border</item>
-        <item name="colorOnPrimary">@color/reader_retro_on_primary</item>
-        <item name="colorSecondary">@color/reader_retro_primary</item>
-        <item name="colorOnSecondary">@color/reader_retro_on_primary</item>
-        <item name="colorSurface">@color/reader_retro_surface</item>
-        <item name="colorOnSurface">@color/reader_retro_ink</item>
-        <item name="colorSurfaceVariant">@color/reader_retro_surface_muted</item>
-        <item name="colorOnSurfaceVariant">@color/reader_retro_ink_muted</item>
-        <item name="colorOutline">@color/reader_retro_border</item>
-    </style>
-
     <style name="Theme.PaperReader.PdfReader.Neobrutalism" parent="Theme.PaperReader.PdfReader">
         <item name="android:windowBackground">@color/reader_neo_canvas</item>
         <item name="android:navigationBarColor">@color/reader_neo_canvas</item>

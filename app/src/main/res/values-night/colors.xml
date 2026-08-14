@@ -16,15 +16,6 @@
     <color name="reader_doodle_on_primary">#08202D</color>
     <color name="reader_doodle_on_secondary">#112536</color>
 
-    <color name="reader_retro_canvas">#17121F</color>
-    <color name="reader_retro_surface">#221A2D</color>
-    <color name="reader_retro_surface_muted">#352344</color>
-    <color name="reader_retro_ink">#F7EEFF</color>
-    <color name="reader_retro_ink_muted">#D0BCD9</color>
-    <color name="reader_retro_border">#E1C8F2</color>
-    <color name="reader_retro_primary">#8DB7FF</color>
-    <color name="reader_retro_on_primary">#0C234D</color>
-
     <color name="reader_neo_canvas">#121316</color>
     <color name="reader_neo_surface">#1D2129</color>
     <color name="reader_neo_surface_muted">#303642</color>

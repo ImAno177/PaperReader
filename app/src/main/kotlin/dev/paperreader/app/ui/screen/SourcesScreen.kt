@@ -100,16 +100,14 @@ fun SourcesScreen(
     }
     MoreBranchScaffold(title = stringResource(R.string.sources_title), onBack = onBack) {
         item {
-            Text(
-                stringResource(R.string.sources_body),
-                style = MaterialTheme.typography.bodyLarge,
-                color = PaperTheme.tokens.inkMuted,
-            )
-        }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            PaperSurface(contentPadding = PaddingValues(12.dp)) {
                 Text(stringResource(R.string.extension_stores_title), style = MaterialTheme.typography.titleLarge)
-                Text(stringResource(R.string.extension_stores_body), color = PaperTheme.tokens.inkMuted)
+                Text(
+                    stringResource(R.string.extension_stores_body),
+                    color = PaperTheme.tokens.inkMuted,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(Modifier.height(8.dp))
                 PaperPrimaryButton(
                     onClick = { addStoreOpen = true },
                     modifier = Modifier.fillMaxWidth(),
@@ -199,7 +197,6 @@ fun SourcesScreen(
         }
         if (providers.installed.isNotEmpty()) {
             item { PaperSectionHeader(stringResource(R.string.provider_installed_section)) }
-            item { Text(stringResource(R.string.provider_selection_explanation), color = PaperTheme.tokens.inkMuted) }
             items(providers.installed, key = { it.descriptor.id }) { provider ->
                 PaperSurface(contentPadding = PaddingValues(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -238,7 +235,11 @@ fun SourcesScreen(
         if (providers.available.isNotEmpty()) {
             item { PaperSectionHeader(stringResource(R.string.provider_available_section)) }
             item {
-                    Text(stringResource(R.string.provider_available_notice), color = PaperTheme.tokens.inkMuted)
+                Text(
+                    stringResource(R.string.provider_available_notice),
+                    color = PaperTheme.tokens.inkMuted,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
             items(providers.available, key = { "available:${it.packageName}" }) { provider ->
                 val installedVersion = provider.installedVersionCode
@@ -506,7 +507,6 @@ private fun ExtensionReleaseRow(
                 stringResource(R.string.extension_version_and_license, release.versionName, release.license),
                 color = PaperTheme.tokens.inkMuted,
             )
-            Text(release.packageName, color = PaperTheme.tokens.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val artifactReady = release.apkSha256 != null && release.apkSizeBytes != null
             if (blocked) {
                 StatusBadge(

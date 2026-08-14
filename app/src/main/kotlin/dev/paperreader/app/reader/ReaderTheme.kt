@@ -7,7 +7,6 @@ import dev.paperreader.app.ui.theme.PaperThemePreset
 
 internal fun readerThemeStyle(preset: PaperThemePreset): Int = when (preset) {
     PaperThemePreset.DOODLE -> R.style.Theme_PaperReader_PdfReader_Doodle
-    PaperThemePreset.RETRO -> R.style.Theme_PaperReader_PdfReader_Retro
     PaperThemePreset.NEOBRUTALISM -> R.style.Theme_PaperReader_PdfReader_Neobrutalism
 }
 

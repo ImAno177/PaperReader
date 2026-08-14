@@ -4,10 +4,12 @@ import androidx.compose.ui.graphics.Color
 
 internal val DoodleBlue = Color(0xFF49B6E5)
 internal val DoodleNavy = Color(0xFF263D5B)
-internal val RetroBlue = Color(0xFF1F5F8B)
-internal val RetroBrick = Color(0xFFB84C2A)
 internal val NeoMustard = Color(0xFFFDC800)
 internal val NeoViolet = Color(0xFF432DD7)
-internal val BuiltinSuccess = Color(0xFF0B6B35)
-internal val BuiltinWarning = Color(0xFF8A4B00)
-internal val BuiltinDanger = Color(0xFFB42318)
+
+// The design skills name brighter 600 tones, but those fail normal-text AA on a
+// light canvas. These darker, same-hue variants keep status text, icons, and
+// borders readable wherever the host reuses the semantic token.
+internal val BuiltinSuccess = Color(0xFF166534)
+internal val BuiltinWarning = Color(0xFF92400E)
+internal val BuiltinDanger = Color(0xFFB91C1C)

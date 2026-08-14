@@ -51,7 +51,8 @@ denominator and connected test device are deterministic in CI.
 
 PaperReader's workflow follows Mihon's separation of dependency review, unit tests, failure-only
 test-report artifacts, lint checks, and APK artifacts. It also publishes JaCoCo unit reports and an
-SPDX SBOM. Mihon runs Spotless and SQLDelight migration verification; PaperReader has no formatter
+SPDX SBOM. GitHub CodeQL Advanced scans the Java/Kotlin build on every pull request and main push,
+with a weekly scheduled security-extended analysis. Mihon runs Spotless and SQLDelight migration verification; PaperReader has no formatter
 plugin and keeps Room schema/migration coverage in `logic` Android tests. Mihon's reference workflow is
 [`build.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/build.yml); its tag-based
 APK publishing is in [`release.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/release.yml).

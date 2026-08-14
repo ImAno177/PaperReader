@@ -39,7 +39,7 @@ import androidx.navigation.NavHostController
 import dev.paperreader.app.R
 import dev.paperreader.app.extensions.CommunityThemeCatalog
 import dev.paperreader.app.extensions.CommunityThemeExtensionManager
-import dev.paperreader.app.extensions.SourceExtensionInstallState
+import dev.paperreader.app.extensions.ExtensionInstallState
 import dev.paperreader.app.importer.IncomingPaperReferencePayload
 import dev.paperreader.app.importer.IncomingPaperReferenceRequest
 import dev.paperreader.app.ui.model.LocalPdfImportUiState
@@ -78,9 +78,8 @@ internal data class ExtensionStoreBindings(
     val onDismissAction: () -> Unit,
     val onRefresh: (String) -> Unit,
     val onRemove: (String) -> Unit,
-    val onOpenInstallUrl: (String) -> Unit,
-    val installStates: Map<String, SourceExtensionInstallState>,
-    val onInstallSource: (VerifiedExtensionRelease) -> Unit,
+    val installStates: Map<String, ExtensionInstallState>,
+    val onInstallExtension: (VerifiedExtensionRelease) -> Unit,
     val onDismissInstallState: (String) -> Unit,
 )
 

@@ -126,9 +126,11 @@ oversized data, non-HTTPS URLs, incompatible API ranges, and indexes beyond the 
 }
 ```
 
-`apkSha256` and `apkSizeBytes` must be present together. They bind the signed registry to exact APK
-bytes. `minimumVersionCode` revokes vulnerable older builds. Theme entries use `"kind": "theme"`
-and `"themeIds"`; source-only fields are forbidden.
+`apkSha256` and `apkSizeBytes` are required together for every newly published installable release. They
+bind the signed registry to exact APK bytes. A legacy schema-v1 entry missing both fields remains visible
+from a last-known-good catalog but is catalog-only: the host must not offer or perform installation.
+`minimumVersionCode` revokes vulnerable older builds. Theme entries use `"kind": "theme"` and
+`"themeIds"`; source-only fields are forbidden.
 
 ## Install and update lifecycle
 
@@ -147,15 +149,21 @@ PaperReader uses these states:
 - untrusted;
 - orphaned (installed package no longer in any trusted store).
 
-On cold start, manual refresh, and constrained periodic work, the host verifies the newest indexes and
-compares package/version/API/signer information. It may notify about compatible updates, but never
-installs one automatically.
+On cold start, manual refresh, and constrained periodic work, the host independently refreshes every
+trusted store, preserves each last verified index when one store fails, and compares
+package/version/API/signer information. It may notify about compatible source or theme updates, but
+never installs one automatically.
 
 After the user chooses Install or Update, the host downloads into a bounded app-private cache,
 enforces the signed size during streaming, verifies SHA-256, and preflights package name, versionCode,
-signer, service action, kind, and API compatibility. Only then does it create an Android
-`PackageInstaller` session. Android presents the final consent surface. Package add/replace/remove
-broadcasts trigger a complete installed-extension rescan and state reconciliation.
+signer, service class, kind, and API compatibility. Source and theme APKs use this same verified queue;
+the host never delegates a theme download to a browser. Only then does it create an Android
+`PackageInstaller` session. Android presents the final consent surface. Pending downloads and open
+sessions can be cancelled, and package add/replace/remove broadcasts trigger a complete source/theme
+rescan and state reconciliation. Installer-result callbacks are accepted only for the exact active
+PackageInstaller session; a package broadcast never substitutes for signed trust reconciliation.
+The host persists the session ID and expected version before commit, validates restored sessions
+against Android after process recreation, and routes update notifications directly to Sources.
 
 This deliberately follows Mihon's useful queue/state/broadcast pattern while excluding its private
 class-loader path. PaperReader also verifies artifact hash and size before installation.

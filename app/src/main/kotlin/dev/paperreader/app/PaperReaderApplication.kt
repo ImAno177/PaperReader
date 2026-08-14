@@ -3,9 +3,11 @@ package dev.paperreader.app
 import android.app.Application
 import dev.paperreader.app.download.DownloadWorkScheduler
 import dev.paperreader.app.extensions.CommunityThemeExtensionManager
-import dev.paperreader.app.extensions.SourceExtensionInstaller
-import dev.paperreader.app.extensions.SourceExtensionNotificationPublisher
+import dev.paperreader.app.extensions.ExtensionInstaller
+import dev.paperreader.app.extensions.ExtensionNotificationPublisher
 import dev.paperreader.app.extensions.SourceExtensionUpdateScheduler
+import dev.paperreader.app.extensions.refreshExtensionCatalogs
+import dev.paperreader.app.extensions.reconcileInstalledExtensions
 import dev.paperreader.app.extensions.TrustedThemeExtension
 import dev.paperreader.app.settings.PaperReaderPreferences
 import dev.paperreader.app.updates.SavedSearchNotificationPublisher
@@ -34,15 +36,15 @@ class PaperReaderApplication : Application() {
     val themeExtensionManager: CommunityThemeExtensionManager by lazy {
         CommunityThemeExtensionManager(this, developerThemeExtensions())
     }
-    val sourceExtensionInstaller: SourceExtensionInstaller by lazy {
-        SourceExtensionInstaller(
+    val extensionInstaller: ExtensionInstaller by lazy {
+        ExtensionInstaller(
             context = this,
             scope = applicationIoScope,
-            onPackagesChanged = { logic.reconcileSourceExtensions() },
+            onPackagesChanged = { reconcileInstalledExtensions() },
         )
     }
-    val sourceExtensionNotificationPublisher: SourceExtensionNotificationPublisher by lazy {
-        SourceExtensionNotificationPublisher(this)
+    val extensionNotificationPublisher: ExtensionNotificationPublisher by lazy {
+        ExtensionNotificationPublisher(this)
     }
     val sourceExtensionUpdateScheduler: SourceExtensionUpdateScheduler by lazy {
         SourceExtensionUpdateScheduler(this)
@@ -71,22 +73,12 @@ class PaperReaderApplication : Application() {
         super.onCreate()
         if (!isMainApplicationProcess(Application.getProcessName(), packageName)) return
         savedSearchNotificationPublisher.createChannel()
-        sourceExtensionNotificationPublisher.createChannel()
+        extensionNotificationPublisher.createChannel()
         sourceExtensionUpdateScheduler.schedule()
         applicationIoScope.launch { themeExtensionManager.refresh() }
         applicationIoScope.launch { savedSearchRefreshScheduler.reconcile() }
         applicationIoScope.launch {
-            runCatching {
-                extensionStoreRegistry.ensurePinned(
-                    indexUrl = BuildConfig.OFFICIAL_SOURCE_STORE_URL,
-                    publicKeyBase64 = BuildConfig.OFFICIAL_SOURCE_STORE_PUBLIC_KEY,
-                    expectedStoreId = BuildConfig.OFFICIAL_SOURCE_STORE_ID,
-                )
-            }
-            logic.reconcileSourceExtensions()
-            sourceExtensionNotificationPublisher.publishUpdates(
-                logic.providers.state.value.available.filter { it.installedVersionCode != null },
-            )
+            refreshExtensionCatalogs()
         }
     }
 }

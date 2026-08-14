@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.ui.screen.MoreScreen
 import dev.paperreader.app.ui.screen.SourcesScreen
+import dev.paperreader.app.extensions.ExtensionInstallState
 import dev.paperreader.app.ui.theme.PaperReaderTheme
 import dev.paperreader.app.ui.theme.PaperThemePreset
 import dev.paperreader.logic.provider.AvailableProviderPlugin
@@ -84,17 +85,87 @@ class SourcesScreenTest {
     }
 
     @Test
+    fun signedThemeUsesVerifiedInAppInstallerInsteadOfExternalDownload() {
+        var requestedPackage: String? = null
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                SourcesScreen(
+                    providers = ProviderManagerState(),
+                    extensionStores = signedThemeStoreState(),
+                    onInstallExtension = { requestedPackage = it.packageName },
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader Doodle"))
+        composeRule.onNodeWithText("Install extension").performClick()
+        assertEquals("dev.paperreader.themes.doodle", requestedPackage)
+    }
+
+    @Test
+    fun installedThemeDoesNotOfferInstallAgain() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                SourcesScreen(
+                    providers = ProviderManagerState(),
+                    extensionStores = signedThemeStoreState(),
+                    installedThemeVersions = mapOf("dev.paperreader.themes.doodle" to 4L),
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader Doodle"))
+        composeRule.onNodeWithText("Install extension").assertDoesNotExist()
+        assertTrue(composeRule.onAllNodesWithText("Installed").fetchSemanticsNodes().isNotEmpty())
+    }
+
+    @Test
+    fun pendingInstallExposesARealCancelAction() {
+        var cancelledPackage: String? = null
+        val packageName = "dev.paperreader.extensions.semanticscholar"
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                SourcesScreen(
+                    providers = ProviderManagerState(),
+                    extensionStores = signedStoreState(),
+                    installStates = mapOf(packageName to ExtensionInstallState.Pending),
+                    onDismissInstallState = { cancelledPackage = it },
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToIndexAction())
+            .performScrollToNode(hasText("Cancel · Waiting to download"))
+        composeRule.onNodeWithText("Cancel · Waiting to download").performClick()
+        assertEquals(packageName, cancelledPackage)
+    }
+
+    @Test
     fun pinnedStoreAndBlockedInstalledReleaseDoNotOfferDestructiveOrRepeatActions() {
         val blockedPackage = "dev.paperreader.extensions.semanticscholar"
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 SourcesScreen(
                     providers = ProviderManagerState(
+                        available = listOf(
+                            AvailableProviderPlugin(
+                                packageName = blockedPackage,
+                                displayName = "Semantic Scholar",
+                                versionCode = 3,
+                                providerIds = setOf("semanticscholar"),
+                                installedVersionCode = 1,
+                            ),
+                        ),
                         untrusted = listOf(
                             UntrustedProviderPlugin(
                                 packageName = blockedPackage,
                                 signerSha256 = "cd".repeat(32),
                                 reason = "Signer mismatch",
+                                installedVersionCode = 1,
+                                updateCanRemediate = false,
                             ),
                         ),
                     ),
@@ -107,6 +178,64 @@ class SourcesScreenTest {
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
         composeRule.onNodeWithText("Official").assertIsDisplayed()
         composeRule.onNodeWithText("Installed but blocked").assertIsDisplayed()
+        composeRule.onNodeWithText("Install extension").assertDoesNotExist()
+    }
+
+    @Test
+    fun blockedBelowMinimumReleaseOffersVerifiedUpdate() {
+        val packageName = "dev.paperreader.extensions.semanticscholar"
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                SourcesScreen(
+                    providers = ProviderManagerState(
+                        available = listOf(
+                            AvailableProviderPlugin(
+                                packageName = packageName,
+                                displayName = "Semantic Scholar",
+                                versionCode = 3,
+                                providerIds = setOf("semanticscholar"),
+                                installedVersionCode = 1,
+                            ),
+                        ),
+                        untrusted = listOf(
+                            UntrustedProviderPlugin(
+                                packageName = packageName,
+                                signerSha256 = "cd".repeat(32),
+                                reason = "Installed version is below the release minimum",
+                                installedVersionCode = 1,
+                                updateCanRemediate = true,
+                            ),
+                        ),
+                    ),
+                    extensionStores = signedStoreState(),
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Semantic Scholar"))
+        composeRule.onNodeWithText("Update extension").assertIsDisplayed()
+        composeRule.onNodeWithText("Installed but blocked").assertDoesNotExist()
+    }
+
+    @Test
+    fun catalogReleaseWithoutArtifactCannotOfferInstall() {
+        val store = signedStoreState().stores.single()
+        val release = store.index.releases.single().copy(apkSha256 = null, apkSizeBytes = null)
+        val legacyStore = signedStoreState().copy(
+            stores = listOf(store.copy(index = store.index.copy(releases = listOf(release)))),
+        )
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                SourcesScreen(
+                    providers = ProviderManagerState(),
+                    extensionStores = legacyStore,
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Semantic Scholar"))
         composeRule.onNodeWithText("Install extension").assertDoesNotExist()
     }
 
@@ -266,6 +395,44 @@ class SourcesScreenTest {
                             privacyUrl = null,
                             providerId = "semanticscholar",
                             minimumRequestIntervalMillis = 1_000,
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    private fun signedThemeStoreState() = ExtensionStoreRegistryState(
+        stores = listOf(
+            ExtensionStoreRecord(
+                indexUrl = "https://example.org/index.json",
+                pinned = false,
+                index = VerifiedExtensionStoreIndex(
+                    storeId = "paperreader.themes",
+                    displayName = "PaperReader themes",
+                    websiteUrl = "https://example.org/themes",
+                    sequence = 4,
+                    generatedAt = Instant.parse("2026-08-13T05:59:00Z"),
+                    publicKeySha256 = "ab".repeat(32),
+                    signedPayloadSha256 = "ef".repeat(32),
+                    releases = listOf(
+                        VerifiedExtensionRelease(
+                            kind = ExtensionReleaseKind.THEME,
+                            packageName = "dev.paperreader.themes.doodle",
+                            serviceClassName = "dev.paperreader.themes.doodle.DoodleThemeService",
+                            displayName = "PaperReader Doodle",
+                            versionCode = 4,
+                            minimumVersionCode = 4,
+                            versionName = "1.0.0",
+                            signerSha256 = "cd".repeat(32),
+                            minimumHostApi = 1,
+                            maximumHostApi = 1,
+                            installUrl = "https://example.org/doodle.apk",
+                            apkSha256 = "02".repeat(32),
+                            apkSizeBytes = 524_288,
+                            license = "Apache-2.0",
+                            privacyUrl = null,
+                            themeIds = setOf("doodle"),
                         ),
                     ),
                 ),

@@ -605,19 +605,19 @@
     <string name="dismiss">Dismiss</string>
     <string name="install_extension">Install extension</string>
     <string name="update_extension">Update extension</string>
-    <string name="extension_install_pending">Waiting to download</string>
-    <string name="extension_download_progress">%1$d%% downloaded</string>
-    <string name="extension_installing">Preparing Android installer</string>
-    <string name="extension_awaiting_confirmation">Confirm in Android installer</string>
+    <string name="extension_install_pending">Cancel · Waiting to download</string>
+    <string name="extension_download_progress">Cancel · %1$d%% downloaded</string>
+    <string name="extension_installing">Cancel · Preparing Android installer</string>
+    <string name="extension_awaiting_confirmation">Cancel · Waiting for Android confirmation</string>
     <string name="extension_installed">Installed — dismiss</string>
     <string name="extension_installed_blocked">Installed but blocked</string>
     <string name="extension_install_cancelled">Installation cancelled — dismiss</string>
     <string name="extension_install_failed">Install failed: %1$s</string>
-    <string name="source_extension_notification_channel">Source extension updates</string>
+    <string name="source_extension_notification_channel">Extension updates</string>
     <string name="source_extension_notification_channel_description">Compatible updates from verified extension stores</string>
-    <string name="source_extension_notification_title">Source updates are available</string>
+    <string name="source_extension_notification_title">Extension updates are available</string>
     <plurals name="source_extension_notification_body">
-        <item quantity="one">%1$d installed source has a verified update.</item>
-        <item quantity="other">%1$d installed sources have verified updates.</item>
+        <item quantity="one">%1$d installed extension has a verified update.</item>
+        <item quantity="other">%1$d installed extensions have verified updates.</item>
     </plurals>
 </resources>

@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.MainActivity
 import dev.paperreader.app.PaperReaderApplication
+import dev.paperreader.app.extensions.ExtensionNotificationPublisher
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -38,6 +39,30 @@ class SavedSearchNotificationNavigationTest {
         }
 
         composeRule.onNodeWithText("Saved searches").assertIsDisplayed()
+        composeRule.runOnIdle {
+            assertEquals(activityIdentity, System.identityHashCode(composeRule.activity))
+            assertEquals(Intent.ACTION_MAIN, composeRule.activity.intent.action)
+        }
+    }
+
+    @Test
+    fun extensionNotificationReusesMainActivityAndOpensSources() {
+        val app = ApplicationProvider.getApplicationContext<PaperReaderApplication>()
+        val activityIdentity = System.identityHashCode(composeRule.activity)
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithText("More").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        app.startActivity(
+            Intent(app, MainActivity::class.java)
+                .setAction(ExtensionNotificationPublisher.ACTION_OPEN_EXTENSIONS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+        )
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.onAllNodesWithText("Sources").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithText("Sources").assertIsDisplayed()
         composeRule.runOnIdle {
             assertEquals(activityIdentity, System.identityHashCode(composeRule.activity))
             assertEquals(Intent.ACTION_MAIN, composeRule.activity.intent.action)

@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.produceState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.paperreader.app.extensions.ExtensionNotificationPublisher
 import dev.paperreader.app.importer.IncomingPdfRequest
 import dev.paperreader.app.importer.IncomingPaperReferenceRequest
 import dev.paperreader.app.importer.incomingPaperReferencePayloadOrNull
@@ -22,15 +23,16 @@ import dev.paperreader.app.ui.theme.resolveSystemBarAppearance
 import dev.paperreader.app.ui.theme.setSystemBarAppearance
 import dev.paperreader.app.updates.SavedSearchNotificationPublisher
 import dev.paperreader.logic.PaperReaderLogic
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.concurrent.atomic.AtomicLong
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private val incomingPdfRequest = MutableStateFlow<IncomingPdfRequest?>(null)
     private val incomingPaperReferenceRequest = MutableStateFlow<IncomingPaperReferenceRequest?>(null)
     private val openUpdatesRequest = MutableStateFlow<Long?>(null)
+    private val openExtensionsRequest = MutableStateFlow<Long?>(null)
     private val incomingRequestIds = AtomicLong()
 
     override fun attachBaseContext(newBase: Context) {
@@ -42,6 +44,7 @@ class MainActivity : ComponentActivity() {
         acceptIncomingPdf(intent)
         acceptIncomingPaperReference(intent)
         acceptOpenUpdates(intent)
+        acceptOpenExtensions(intent)
         enableEdgeToEdge()
         val app = application as PaperReaderApplication
         setContent {
@@ -51,6 +54,7 @@ class MainActivity : ComponentActivity() {
             val pendingPdfImport by incomingPdfRequest.collectAsStateWithLifecycle()
             val pendingPaperReference by incomingPaperReferenceRequest.collectAsStateWithLifecycle()
             val pendingOpenUpdates by openUpdatesRequest.collectAsStateWithLifecycle()
+            val pendingOpenExtensions by openExtensionsRequest.collectAsStateWithLifecycle()
             val logic by produceState<PaperReaderLogic?>(initialValue = null, app) {
                 value = withContext(Dispatchers.IO) { app.logic }
             }
@@ -71,6 +75,8 @@ class MainActivity : ComponentActivity() {
                 onIncomingPaperReferenceConsumed = ::consumeIncomingPaperReference,
                 openUpdatesRequestId = pendingOpenUpdates,
                 onOpenUpdatesConsumed = ::consumeOpenUpdates,
+                openExtensionsRequestId = pendingOpenExtensions,
+                onOpenExtensionsConsumed = ::consumeOpenExtensions,
             )
         }
     }
@@ -80,7 +86,8 @@ class MainActivity : ComponentActivity() {
         if (
             acceptIncomingPdf(intent) ||
             acceptIncomingPaperReference(intent) ||
-            acceptOpenUpdates(intent)
+            acceptOpenUpdates(intent) ||
+            acceptOpenExtensions(intent)
         ) {
             setIntent(intent)
         }
@@ -90,6 +97,7 @@ class MainActivity : ComponentActivity() {
         val uri = source.incomingPdfUriOrNull() ?: return false
         incomingPaperReferenceRequest.value = null
         openUpdatesRequest.value = null
+        openExtensionsRequest.value = null
         incomingPdfRequest.value = IncomingPdfRequest(incomingRequestIds.incrementAndGet(), uri)
         return true
     }
@@ -105,6 +113,7 @@ class MainActivity : ComponentActivity() {
         val payload = source.incomingPaperReferencePayloadOrNull() ?: return false
         incomingPdfRequest.value = null
         openUpdatesRequest.value = null
+        openExtensionsRequest.value = null
         incomingPaperReferenceRequest.value = IncomingPaperReferenceRequest(
             incomingRequestIds.incrementAndGet(),
             payload,
@@ -122,6 +131,7 @@ class MainActivity : ComponentActivity() {
         if (source.action != SavedSearchNotificationPublisher.ACTION_OPEN_UPDATES) return false
         incomingPdfRequest.value = null
         incomingPaperReferenceRequest.value = null
+        openExtensionsRequest.value = null
         openUpdatesRequest.value = incomingRequestIds.incrementAndGet()
         return true
     }
@@ -129,6 +139,21 @@ class MainActivity : ComponentActivity() {
     private fun consumeOpenUpdates(id: Long) {
         if (openUpdatesRequest.value != id) return
         openUpdatesRequest.value = null
+        neutralizeConsumedIntent()
+    }
+
+    private fun acceptOpenExtensions(source: Intent): Boolean {
+        if (source.action != ExtensionNotificationPublisher.ACTION_OPEN_EXTENSIONS) return false
+        incomingPdfRequest.value = null
+        incomingPaperReferenceRequest.value = null
+        openUpdatesRequest.value = null
+        openExtensionsRequest.value = incomingRequestIds.incrementAndGet()
+        return true
+    }
+
+    private fun consumeOpenExtensions(id: Long) {
+        if (openExtensionsRequest.value != id) return
+        openExtensionsRequest.value = null
         neutralizeConsumedIntent()
     }
 

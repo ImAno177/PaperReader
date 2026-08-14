@@ -36,6 +36,8 @@ data class UntrustedProviderPlugin(
     val packageName: String,
     val signerSha256: String,
     val reason: String,
+    val installedVersionCode: Long? = null,
+    val updateCanRemediate: Boolean = false,
 )
 
 data class OrphanedProviderPlugin(

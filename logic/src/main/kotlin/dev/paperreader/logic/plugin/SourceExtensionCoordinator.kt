@@ -54,6 +54,16 @@ internal class SourceExtensionCoordinator(
                 if (installedVersion < trusted.versionCode) {
                     available += trusted.available(installedVersion)
                 }
+            } catch (error: InstalledSourceVersionOutOfRangeException) {
+                val canRemediate = error.updateCanRemediate
+                if (canRemediate) available += trusted.available(error.installedVersionCode)
+                untrusted += UntrustedProviderPlugin(
+                    packageName = trusted.packageName,
+                    signerSha256 = trusted.signerSha256.lowercase(),
+                    reason = error.message ?: "Provider version is outside the trusted release range",
+                    installedVersionCode = error.installedVersionCode,
+                    updateCanRemediate = canRemediate,
+                )
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {

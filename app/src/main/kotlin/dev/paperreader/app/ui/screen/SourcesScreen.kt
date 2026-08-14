@@ -22,7 +22,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
-import dev.paperreader.app.extensions.SourceExtensionInstallState
+import dev.paperreader.app.extensions.ExtensionInstallState
 import dev.paperreader.app.ui.ExtensionStoreActionUiState
 import dev.paperreader.app.ui.ExtensionStoreOperation
 import dev.paperreader.app.ui.components.PaperPrimaryButton
@@ -67,9 +66,10 @@ fun SourcesScreen(
     onDismissStoreAction: () -> Unit = {},
     onRefreshStore: (String) -> Unit = {},
     onRemoveStore: (String) -> Unit = {},
-    onOpenInstallUrl: (String) -> Unit = {},
-    installStates: Map<String, SourceExtensionInstallState> = emptyMap(),
-    onInstallSource: (VerifiedExtensionRelease) -> Unit = {},
+    installStates: Map<String, ExtensionInstallState> = emptyMap(),
+    installedThemeVersions: Map<String, Long> = emptyMap(),
+    blockedThemePackages: Set<String> = emptySet(),
+    onInstallExtension: (VerifiedExtensionRelease) -> Unit = {},
     onDismissInstallState: (String) -> Unit = {},
     onProviderEnabledChange: (String, Boolean) -> Unit = { _, _ -> },
     onBack: () -> Unit,
@@ -82,14 +82,19 @@ fun SourcesScreen(
     val releasesByPackage = extensionStores.stores
         .flatMap { it.index.releases }
         .associateBy(VerifiedExtensionRelease::packageName)
-    val blockedPackages = providers.untrusted.mapTo(hashSetOf()) { it.packageName }
-    val installedVersions = providers.installed
+    val blockedPackages = providers.untrusted.filterNot { it.updateCanRemediate }
+        .mapTo(blockedThemePackages.toHashSet()) { it.packageName }
+    val installedVersions = providers.available
+        .mapNotNull { available ->
+            available.installedVersionCode?.let { available.packageName to it }
+        }
+        .toMap() + providers.installed
         .mapNotNull { installed ->
             installed.packageName?.let { packageName ->
                 installed.versionCode?.let { versionCode -> packageName to versionCode }
             }
         }
-        .toMap()
+        .toMap() + installedThemeVersions
     LaunchedEffect(extensionStoreAction) {
         if (extensionStoreAction is ExtensionStoreActionUiState.PreviewReady) addStoreOpen = false
     }
@@ -136,11 +141,10 @@ fun SourcesScreen(
                 enabled = !storeBusy,
                 onRefresh = { onRefreshStore(store.index.storeId) },
                 onRemove = { pendingRemovalStoreId = store.index.storeId },
-                onOpenInstallUrl = onOpenInstallUrl,
                 installStates = installStates,
                 blockedPackages = blockedPackages,
                 installedVersions = installedVersions,
-                onInstallSource = onInstallSource,
+                onInstallExtension = onInstallExtension,
                 onDismissInstallState = onDismissInstallState,
             )
         }
@@ -276,19 +280,21 @@ fun SourcesScreen(
                     )
                     releasesByPackage[provider.packageName]?.let { release ->
                         Spacer(Modifier.height(8.dp))
-                        SourceInstallAction(
-                            release = release,
-                            state = installStates[provider.packageName],
-                            update = installedVersion != null,
-                            onInstall = onInstallSource,
-                            onDismissState = onDismissInstallState,
-                        )
+                        val artifactReady = release.apkSha256 != null && release.apkSizeBytes != null
+                        if (provider.packageName !in blockedPackages && release.compatible && artifactReady) {
+                            ExtensionInstallAction(
+                                release = release,
+                                state = installStates[provider.packageName],
+                                update = installedVersion != null,
+                                onInstall = onInstallExtension,
+                                onDismissState = onDismissInstallState,
+                            )
+                        }
                     }
                 }
             }
         }
     }
-
     if (addStoreOpen) {
         AlertDialog(
             onDismissRequest = { if (!storeBusy) addStoreOpen = false },
@@ -344,7 +350,6 @@ fun SourcesScreen(
             },
         )
     }
-
     val preview = (extensionStoreAction as? ExtensionStoreActionUiState.PreviewReady)?.preview
     if (preview != null) {
         AlertDialog(
@@ -380,7 +385,6 @@ fun SourcesScreen(
             },
         )
     }
-
     val removalStore = extensionStores.stores.firstOrNull { it.index.storeId == pendingRemovalStoreId }
     if (removalStore != null) {
         AlertDialog(
@@ -400,7 +404,6 @@ fun SourcesScreen(
             },
         )
     }
-
     val failedAction = extensionStoreAction as? ExtensionStoreActionUiState.Failed
     if (failedAction != null && failedAction.operation != ExtensionStoreOperation.PREVIEW) {
         AlertDialog(
@@ -421,11 +424,10 @@ private fun ExtensionStoreCard(
     enabled: Boolean,
     onRefresh: () -> Unit,
     onRemove: () -> Unit,
-    onOpenInstallUrl: (String) -> Unit,
-    installStates: Map<String, SourceExtensionInstallState>,
+    installStates: Map<String, ExtensionInstallState>,
     blockedPackages: Set<String>,
     installedVersions: Map<String, Long>,
-    onInstallSource: (VerifiedExtensionRelease) -> Unit,
+    onInstallExtension: (VerifiedExtensionRelease) -> Unit,
     onDismissInstallState: (String) -> Unit,
 ) {
     PaperSurface(contentPadding = PaddingValues(12.dp)) {
@@ -468,9 +470,8 @@ private fun ExtensionStoreCard(
                     installState = installStates[release.packageName],
                     blocked = release.packageName in blockedPackages,
                     installedVersionCode = installedVersions[release.packageName],
-                    onInstallSource = onInstallSource,
+                    onInstallExtension = onInstallExtension,
                     onDismissInstallState = onDismissInstallState,
-                    onOpenInstallUrl = onOpenInstallUrl,
                 )
             }
         }
@@ -480,12 +481,11 @@ private fun ExtensionStoreCard(
 @Composable
 private fun ExtensionReleaseRow(
     release: VerifiedExtensionRelease,
-    installState: SourceExtensionInstallState?,
+    installState: ExtensionInstallState?,
     blocked: Boolean,
     installedVersionCode: Long?,
-    onInstallSource: (VerifiedExtensionRelease) -> Unit,
+    onInstallExtension: (VerifiedExtensionRelease) -> Unit,
     onDismissInstallState: (String) -> Unit,
-    onOpenInstallUrl: (String) -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
@@ -507,6 +507,7 @@ private fun ExtensionReleaseRow(
                 color = PaperTheme.tokens.inkMuted,
             )
             Text(release.packageName, color = PaperTheme.tokens.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val artifactReady = release.apkSha256 != null && release.apkSizeBytes != null
             if (blocked) {
                 StatusBadge(
                     text = stringResource(R.string.extension_installed_blocked),
@@ -518,47 +519,39 @@ private fun ExtensionReleaseRow(
                     text = stringResource(R.string.provider_installed_section),
                     color = PaperTheme.tokens.success,
                 )
-            } else if (release.compatible) {
-                if (release.kind == ExtensionReleaseKind.SOURCE) {
-                    SourceInstallAction(
-                        release = release,
-                        state = installState,
-                        update = installedVersionCode != null,
-                        onInstall = onInstallSource,
-                        onDismissState = onDismissInstallState,
-                    )
-                } else {
-                    TextButton(onClick = { onOpenInstallUrl(release.installUrl) }) {
-                        PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
-                        Spacer(Modifier.size(8.dp))
-                        Text(stringResource(R.string.open_download_page))
-                    }
-                }
+            } else if (release.compatible && artifactReady) {
+                ExtensionInstallAction(
+                    release = release,
+                    state = installState,
+                    update = installedVersionCode != null,
+                    onInstall = onInstallExtension,
+                    onDismissState = onDismissInstallState,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun SourceInstallAction(
+private fun ExtensionInstallAction(
     release: VerifiedExtensionRelease,
-    state: SourceExtensionInstallState?,
+    state: ExtensionInstallState?,
     update: Boolean,
     onInstall: (VerifiedExtensionRelease) -> Unit,
     onDismissState: (String) -> Unit,
 ) {
-    val busy = state is SourceExtensionInstallState.Pending ||
-        state is SourceExtensionInstallState.Downloading ||
-        state is SourceExtensionInstallState.Installing ||
-        state is SourceExtensionInstallState.AwaitingConfirmation
-    val terminal = state is SourceExtensionInstallState.Installed ||
-        state is SourceExtensionInstallState.Cancelled ||
-        state is SourceExtensionInstallState.Failed
+    val busy = state is ExtensionInstallState.Pending ||
+        state is ExtensionInstallState.Downloading ||
+        state is ExtensionInstallState.Installing ||
+        state is ExtensionInstallState.AwaitingConfirmation
+    val terminal = state is ExtensionInstallState.Installed ||
+        state is ExtensionInstallState.Cancelled ||
+        state is ExtensionInstallState.Failed
     PaperSecondaryButton(
         onClick = {
-            if (terminal) onDismissState(release.packageName) else onInstall(release)
+            if (busy || terminal) onDismissState(release.packageName) else onInstall(release)
         },
-        enabled = !busy,
+        enabled = true,
         modifier = Modifier.fillMaxWidth(),
     ) {
         if (busy) {
@@ -572,21 +565,21 @@ private fun SourceInstallAction(
         Spacer(Modifier.size(8.dp))
         Text(
             when (state) {
-                SourceExtensionInstallState.Pending -> stringResource(R.string.extension_install_pending)
-                is SourceExtensionInstallState.Downloading -> {
+                ExtensionInstallState.Pending -> stringResource(R.string.extension_install_pending)
+                is ExtensionInstallState.Downloading -> {
                     val percentage = ((state.bytesRead * 100L) / state.totalBytes.coerceAtLeast(1L)).coerceIn(0L, 100L)
                     stringResource(R.string.extension_download_progress, percentage)
                 }
-                SourceExtensionInstallState.Installing -> stringResource(R.string.extension_installing)
-                SourceExtensionInstallState.AwaitingConfirmation -> stringResource(R.string.extension_awaiting_confirmation)
-                SourceExtensionInstallState.Installed -> stringResource(R.string.extension_installed)
-                SourceExtensionInstallState.Cancelled -> stringResource(R.string.extension_install_cancelled)
-                is SourceExtensionInstallState.Failed -> stringResource(R.string.dismiss)
+                ExtensionInstallState.Installing -> stringResource(R.string.extension_installing)
+                ExtensionInstallState.AwaitingConfirmation -> stringResource(R.string.extension_awaiting_confirmation)
+                ExtensionInstallState.Installed -> stringResource(R.string.extension_installed)
+                ExtensionInstallState.Cancelled -> stringResource(R.string.extension_install_cancelled)
+                is ExtensionInstallState.Failed -> stringResource(R.string.dismiss)
                 null -> stringResource(if (update) R.string.update_extension else R.string.install_extension)
             },
         )
     }
-    if (state is SourceExtensionInstallState.Failed) {
+    if (state is ExtensionInstallState.Failed) {
         Text(
             stringResource(R.string.extension_install_failed, state.message),
             color = PaperTheme.tokens.danger,

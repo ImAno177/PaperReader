@@ -80,6 +80,20 @@ class ExtensionStoreRegistryTest {
     }
 
     @Test
+    fun `refresh all isolates failures and retains the last verified index`() = runTest {
+        val registry = registry(temporaryFolder.newFolder("refresh-all").toPath())
+        registry.addPreview(registry.preview(INDEX_URL, publicKey).token)
+        envelope = signedEnvelope(payload(sequence = 8))
+        assertTrue(registry.refreshAll())
+        assertEquals(8, registry.state.value.stores.single().index.sequence)
+
+        envelope = signedEnvelope(payload(sequence = 7))
+        assertTrue(!registry.refreshAll())
+        assertEquals(8, registry.state.value.stores.single().index.sequence)
+        assertTrue(registry.state.value.issues.single().message.contains("rollback", ignoreCase = true))
+    }
+
+    @Test
     fun `tampered cache fails closed after process recreation`() = runTest {
         val directory = temporaryFolder.newFolder("tamper").toPath()
         val registry = registry(directory)
@@ -136,6 +150,8 @@ class ExtensionStoreRegistryTest {
             "minimumHostApi":1,
             "maximumHostApi":1,
             "installUrl":"https://example.org/semanticscholar.apk",
+            "apkSha256":"${"01".repeat(32)}",
+            "apkSizeBytes":1048576,
             "license":"Apache-2.0",
             "providerId":"semanticscholar",
             "minimumRequestIntervalMillis":1000,

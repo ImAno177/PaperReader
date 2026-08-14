@@ -265,6 +265,24 @@ class ExtensionStoreRegistry(
         }
     }
 
+    /** Refreshes every current store independently and preserves each last-known-good index on failure. */
+    suspend fun refreshAll(excludedStoreIds: Set<String> = emptySet()): Boolean {
+        val storeIds = mutex.withLock {
+            cachedStores.map { it.index.storeId }.filterNot(excludedStoreIds::contains)
+        }
+        var successful = true
+        storeIds.forEach { storeId ->
+            try {
+                refresh(storeId)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                successful = false
+            }
+        }
+        return successful
+    }
+
     suspend fun remove(storeId: String) = withContext(Dispatchers.IO) {
         mutex.withLock {
             require(storeId !in pinnedStoreIds) { "Pinned extension store cannot be removed" }

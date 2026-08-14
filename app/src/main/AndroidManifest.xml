@@ -68,10 +68,10 @@
             android:exported="false"
             android:theme="@style/Theme.PaperReader.PdfReader" />
         <receiver
-            android:name=".extensions.SourceExtensionInstallReceiver"
+            android:name=".extensions.ExtensionInstallReceiver"
             android:exported="false" />
         <receiver
-            android:name=".extensions.SourceExtensionPackageReceiver"
+            android:name=".extensions.ExtensionPackageReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.PACKAGE_ADDED" />

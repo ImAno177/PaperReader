@@ -68,7 +68,11 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
         with:
-          cache-read-only: ${{ github.event_name == 'pull_request' }}
+          # Keep one trusted writer for the default branch. Pull requests and
+          # manual/non-main runs restore the shared cache without creating a
+          # new cache entry for every commit.
+          cache-read-only: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
+          cache-cleanup: on-success
 
       - name: Run unit tests
         id: unit_tests

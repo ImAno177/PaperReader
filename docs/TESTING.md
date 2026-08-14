@@ -52,10 +52,18 @@ denominator and connected test device are deterministic in CI.
 PaperReader's workflow follows Mihon's separation of dependency review, unit tests, failure-only
 test-report artifacts, lint checks, and APK artifacts. It also publishes JaCoCo unit reports and an
 SPDX SBOM. GitHub CodeQL Advanced scans the Java/Kotlin build on every pull request and main push,
-with a weekly scheduled security-extended analysis. Mihon runs Spotless and SQLDelight migration verification; PaperReader has no formatter
+with a weekly scheduled security-extended analysis. The repository intentionally uses Advanced setup:
+the `codeql.yml` workflow is the source of truth, while GitHub's Default setup remains disabled so it
+cannot replace that pinned build-and-query policy. Mihon runs Spotless and SQLDelight migration verification; PaperReader has no formatter
 plugin and keeps Room schema/migration coverage in `logic` Android tests. Mihon's reference workflow is
 [`build.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/build.yml); its tag-based
 APK publishing is in [`release.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/release.yml).
+
+Gradle's enhanced cache has one writer: a successful `push` to `main` in `android-ci.yml`. Pull
+requests, CodeQL, and manual release runs are read-only consumers. This prevents each security scan,
+release, or review commit from creating a duplicate dependency/transforms cache; successful writes also
+run Gradle's built-in cleanup. The policy follows Gradle's `cache-read-only` guidance and GitHub's
+branch-scoped cache model.
 
 ## Test-case policy
 

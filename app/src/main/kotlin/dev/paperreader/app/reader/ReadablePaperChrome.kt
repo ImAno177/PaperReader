@@ -116,6 +116,12 @@ internal fun resolveReadablePaperSurfaceMuted(
 ): Int = communityTheme?.palette(activity.isReaderDarkMode())?.surfaceMuted
     ?: activity.resolveThemeColor(com.google.android.material.R.attr.colorSurfaceVariant)
 
+internal fun resolveReadablePaperActionColor(
+    activity: Activity,
+    communityTheme: CommunityPaperTheme?,
+): Int = communityTheme?.palette(activity.isReaderDarkMode())?.ink
+    ?: activity.resolveThemeColor(com.google.android.material.R.attr.colorOnSurface)
+
 internal fun applyReadablePaperCommunityChrome(
     root: View,
     toolbar: Toolbar,

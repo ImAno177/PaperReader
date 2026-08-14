@@ -91,6 +91,26 @@ class ReadablePaperCacheTest {
     }
 
     @Test
+    fun `read treats an undecodable section payload as an empty section list`() {
+        val directory = Files.createTempDirectory("paper-cache-sections")
+        val cache = ReadablePaperCache(directory)
+        val key = "7".repeat(64)
+        cache.write(key, record("sections"))
+        val manifest = directory.resolve("$key.manifest")
+
+        write(
+            manifest,
+            String(Files.readAllBytes(manifest))
+                .replace(Regex("sections=.*"), "sections=not-base64%%"),
+        )
+
+        val result = cache.read(key)
+
+        assertEquals(emptyList<ReadablePaperSection>(), result?.sections)
+        assertTrue(Files.exists(directory.resolve("$key.body.html")))
+    }
+
+    @Test
     fun `round trip preserves source license and document mapping`() {
         val directory = Files.createTempDirectory("paper-cache-roundtrip")
         val cache = ReadablePaperCache(directory)

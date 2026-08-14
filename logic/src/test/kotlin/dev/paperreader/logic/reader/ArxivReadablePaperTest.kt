@@ -174,6 +174,39 @@ class ArxivReadablePaperTest {
     }
 
     @Test
+    fun `loader canonicalizes prefixed IDs and keeps an explicitly versioned ID`() = runTest {
+        val requested = mutableListOf<String>()
+        val loader = ArxivReadablePaperLoader(
+            fetcher = ReadableResourceFetcher { request ->
+                requested += request.url
+                if (request.accept.startsWith("text/html")) {
+                    ReadableRemoteResult.Success(
+                        ReadableRemoteResource(fixtureHtml().toByteArray(), "text/html"),
+                    )
+                } else {
+                    ReadableRemoteResult.Success(ReadableRemoteResource(byteArrayOf(1), "image/png"))
+                }
+            },
+            cache = ReadablePaperCache(Files.createTempDirectory("readable-paper-id-normalization")),
+        )
+
+        val prefixed = loader.load(
+            "Paper",
+            manifestation().copy(sourceProvider = "ARXIV", sourceRecordId = "arXiv:2501.04510", version = "v3"),
+        ) as ReadablePaperResult.Ready
+        assertEquals("v3", prefixed.document.sourceVersion)
+        assertEquals("https://arxiv.org/html/2501.04510v3", requested.first())
+
+        requested.clear()
+        val explicit = loader.load(
+            "Paper",
+            manifestation().copy(sourceRecordId = "2501.04510v4", version = null),
+        ) as ReadablePaperResult.Ready
+        assertEquals("v4", explicit.document.sourceVersion)
+        assertEquals("https://arxiv.org/html/2501.04510v4", requested.first())
+    }
+
+    @Test
     fun `loader still returns verified content when the offline cache cannot be written`() = runTest {
         val unavailableCachePath = Files.createTempFile("readable-paper-cache", ".blocked")
         val loader = ArxivReadablePaperLoader(

@@ -6,6 +6,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
@@ -29,6 +30,7 @@ class TaskCoordinatorTest {
 
         assertEquals(first.id, second.id)
         assertEquals(1, repository.values.size)
+        assertEquals(1, coordinator.tasks.first().size)
     }
 
     @Test

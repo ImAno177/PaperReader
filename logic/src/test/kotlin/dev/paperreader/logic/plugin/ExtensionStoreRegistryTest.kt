@@ -36,6 +36,9 @@ class ExtensionStoreRegistryTest {
 
         assertEquals(1, registry.state.value.stores.size)
         assertEquals("semanticscholar", registry.trustedSourceExtensions().single().providerId)
+        assertEquals(INDEX_URL, registry.state.value.stores.single().indexUrl)
+        assertEquals(false, registry.state.value.stores.single().pinned)
+        assertTrue(registry.trustedThemeReleases().isEmpty())
         val reopened = registry(directory)
         assertEquals(7, reopened.state.value.stores.single().index.sequence)
         assertEquals("semanticscholar", reopened.trustedSourceExtensions().single().providerId)

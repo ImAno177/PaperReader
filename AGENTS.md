@@ -9,6 +9,7 @@ existing user work, and never present a stub as a production feature.
 - [`docs/SPEC.md`](docs/SPEC.md) — product scope, domain decisions, provider roles, reader requirements, and release acceptance.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — module ownership, supported boundaries, extension lifecycle, and verification gate.
 - [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md) — source/theme SDK, signed-store schema, trust checks, and runtime limits.
+- [`docs/TESTING.md`](docs/TESTING.md) — local/connected test commands, JaCoCo scope, CI artifacts, and coverage rules.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — branch, pull-request, required-check, and contribution workflow.
 - [`SECURITY.md`](SECURITY.md) — private vulnerability reporting and security-sensitive areas.
 - [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — dependency, icon, and content-license attributions.

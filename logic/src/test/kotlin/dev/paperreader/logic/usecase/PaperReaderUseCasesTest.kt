@@ -1,12 +1,14 @@
 package dev.paperreader.logic.usecase
 
 import dev.paperreader.logic.domain.LibraryPaper
+import dev.paperreader.logic.domain.AnnotationSelection
 import dev.paperreader.logic.domain.CollectionId
 import dev.paperreader.logic.domain.PaperCollection
 import dev.paperreader.logic.domain.PaperWork
 import dev.paperreader.logic.domain.ReadingLocator
 import dev.paperreader.logic.domain.ReadingState
 import dev.paperreader.logic.domain.ReadingStatus
+import dev.paperreader.logic.domain.SavedSearchHitId
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.domain.repository.LibraryRepository
 import dev.paperreader.logic.domain.repository.CreateCollectionResult
@@ -38,12 +40,66 @@ import java.time.Duration
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class PaperReaderUseCasesTest {
+    @Test
+    fun `default optional repositories fail closed with explicit empty outcomes`() = runTest {
+        val useCases = paperReaderUseCases(
+            repository = FakeLibraryRepository(),
+            historyRepository = FakeReadingHistoryRepository(),
+            bookmarkRepository = FakeReadingBookmarkRepository(),
+            search = FederatedPaperSearch(dev.paperreader.logic.provider.MutableProviderManager(emptyList())),
+        )
+        val workId = WorkId("missing")
+        val selection = AnnotationSelection(
+            documentSha256 = "a".repeat(64),
+            blockId = "prx-b00001",
+            startOffset = 0,
+            endOffset = 4,
+            quotePrefix = "",
+            quoteExact = "Text",
+            quoteSuffix = "",
+        )
+
+        assertTrue(useCases.observeAnnotations.subscribe(workId, "a".repeat(64)).first().isEmpty())
+        assertEquals(dev.paperreader.logic.domain.repository.SaveAnnotationResult.DocumentNotCurrent,
+            useCases.saveAnnotation.await(workId, selection, null))
+        assertEquals(dev.paperreader.logic.domain.repository.UpdateAnnotationNoteResult.NotFound,
+            useCases.updateAnnotationNote.await("missing", "note"))
+        assertEquals(dev.paperreader.logic.domain.repository.RemoveAnnotationResult.NotFound,
+            useCases.removeAnnotation.await("missing"))
+
+        assertEquals(dev.paperreader.logic.domain.LocalPdfImportFailure.SOURCE_UNAVAILABLE,
+            (useCases.prepareLocalPdf.await("content://missing") as dev.paperreader.logic.domain.PrepareLocalPdfResult.Rejected).reason)
+        assertEquals(null, useCases.recoverPendingLocalPdf.await())
+        assertEquals(dev.paperreader.logic.domain.LocalPdfImportFailure.SOURCE_UNAVAILABLE,
+            (useCases.importLocalPdf.await("token", "Paper") as dev.paperreader.logic.domain.LocalPdfImportResult.Rejected).reason)
+        useCases.discardPendingLocalPdf.await("token")
+
+        assertTrue(useCases.createMetadataBackup.await() is dev.paperreader.logic.backup.MetadataBackupExportResult.Rejected)
+        assertTrue(useCases.previewMetadataRestore.await(ByteArray(0)) is dev.paperreader.logic.backup.MetadataRestorePreviewResult.Rejected)
+        assertTrue(useCases.restoreMetadataBackup.await(ByteArray(0)) is dev.paperreader.logic.backup.MetadataRestoreResult.Rejected)
+
+        assertTrue(useCases.observeSavedSearches.subscribe().first().isEmpty())
+        assertEquals(dev.paperreader.logic.domain.repository.CreateSavedSearchResult.NoProviders,
+            useCases.createSavedSearch.await("query", emptySet()))
+        assertEquals(dev.paperreader.logic.domain.repository.DeleteSavedSearchResult.NotFound,
+            useCases.deleteSavedSearch.await(dev.paperreader.logic.domain.SavedSearchId("missing")))
+        assertEquals(RefreshSavedSearchResult.NotFound,
+            useCases.refreshSavedSearch.await(dev.paperreader.logic.domain.SavedSearchId("missing")))
+        assertEquals(RefreshAllSavedSearchesResult(0, 0, 0, 0), useCases.refreshAllSavedSearches.await())
+        assertFalse(useCases.markSavedSearchHitRead.await(SavedSearchHitId("missing")))
+        assertEquals(SaveSavedSearchHitResult.NotFound,
+            useCases.saveSavedSearchHit.await(SavedSearchHitId("missing")))
+    }
+
     @Test
     fun `use cases are a thin UI boundary over repositories and search`() = runTest {
         val repository = FakeLibraryRepository()
@@ -162,12 +218,62 @@ class PaperReaderUseCasesTest {
         )
     }
 
+    @Test
+    fun `every public repository facade delegates values and explicit edge outcomes`() = runTest {
+        val repository = FakeLibraryRepository().apply {
+            createResult = CreateCollectionResult.InvalidName
+            renameResult = RenameCollectionResult.NotFound
+            deleteResult = DeleteCollectionResult.NotFound
+            setResult = SetPaperCollectionsResult.PaperNotFound
+            removeResult = RemovePaperResult.NotFound
+        }
+        val bookmarkRepository = FakeReadingBookmarkRepository().apply {
+            toggleResult = ToggleReadingBookmarkResult.DocumentNotCurrent
+            removeResult = RemoveReadingBookmarkResult.NotFound
+        }
+        val historyRepository = FakeReadingHistoryRepository()
+        val useCases = paperReaderUseCases(
+            repository,
+            historyRepository,
+            bookmarkRepository,
+            FederatedPaperSearch(emptyList()),
+        )
+        val collectionId = CollectionId(1)
+        val bookmarkId = ReadingBookmarkId("b".repeat(64))
+
+        assertEquals(repository.collections, useCases.observeCollections.subscribe())
+        assertEquals(RemovePaperResult.NotFound, useCases.removePaper.await(WorkId("missing")))
+        assertEquals(null, useCases.getPaper.await(WorkId("missing")))
+        assertEquals(CreateCollectionResult.InvalidName, useCases.createCollection.await("bad"))
+        assertEquals(RenameCollectionResult.NotFound, useCases.renameCollection.await(collectionId, "bad"))
+        assertEquals(DeleteCollectionResult.NotFound, useCases.deleteCollection.await(collectionId))
+        assertEquals(SetPaperCollectionsResult.PaperNotFound, useCases.setPaperCollections.await(WorkId("missing"), setOf(collectionId)))
+        assertEquals(bookmarkRepository.observeFlow, useCases.observeReadingBookmarks.subscribe(WorkId("w"), ManifestationId("m"), "a".repeat(64)))
+        assertEquals(ToggleReadingBookmarkResult.DocumentNotCurrent, useCases.toggleReadingBookmark.await(WorkId("w"), ManifestationId("m"), "a".repeat(64), 0))
+        assertEquals(RemoveReadingBookmarkResult.NotFound, useCases.removeReadingBookmark.await(bookmarkId))
+        assertEquals(false, useCases.setReadingStatus.await(WorkId("missing"), ReadingStatus.FINISHED))
+        assertEquals(historyRepository.history, useCases.observeReadingHistory.subscribe())
+        useCases.removeReadingHistory.await(WorkId("missing"))
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { useCases.recordReadingSession.await(WorkId("w"), Instant.EPOCH, Duration.ofSeconds(-1)) }
+        }
+        assertEquals(
+            ReadablePaperResult.Unavailable(ReadablePaperFailure.PAPER_NOT_FOUND),
+            useCases.loadReadablePaper.await(WorkId("missing"), ManifestationId("missing")),
+        )
+    }
+
     private class FakeLibraryRepository : LibraryRepository {
         override val library: Flow<List<LibraryPaper>> = MutableStateFlow(emptyList())
         override val collections: Flow<List<PaperCollection>> = MutableStateFlow(emptyList())
         val saved = mutableListOf<RemotePaper>()
         var readingState: ReadingState? = null
         var paper: LibraryPaper? = null
+        var removeResult: RemovePaperResult = RemovePaperResult.Removed
+        var createResult: CreateCollectionResult = CreateCollectionResult.NameTaken
+        var renameResult: RenameCollectionResult = RenameCollectionResult.NotFound
+        var deleteResult: DeleteCollectionResult = DeleteCollectionResult.NotFound
+        var setResult: SetPaperCollectionsResult = SetPaperCollectionsResult.PaperNotFound
 
         override suspend fun save(remote: RemotePaper): WorkId {
             saved += remote
@@ -180,14 +286,14 @@ class PaperReaderUseCasesTest {
             readingState = state
         }
 
-        override suspend fun remove(workId: WorkId): RemovePaperResult = RemovePaperResult.Removed
-        override suspend fun createCollection(name: String): CreateCollectionResult = error("Not used")
-        override suspend fun renameCollection(id: CollectionId, name: String): RenameCollectionResult = error("Not used")
-        override suspend fun deleteCollection(id: CollectionId): DeleteCollectionResult = error("Not used")
+        override suspend fun remove(workId: WorkId): RemovePaperResult = removeResult
+        override suspend fun createCollection(name: String): CreateCollectionResult = createResult
+        override suspend fun renameCollection(id: CollectionId, name: String): RenameCollectionResult = renameResult
+        override suspend fun deleteCollection(id: CollectionId): DeleteCollectionResult = deleteResult
         override suspend fun setPaperCollections(
             workId: WorkId,
             collectionIds: Set<CollectionId>,
-        ): SetPaperCollectionsResult = error("Not used")
+        ): SetPaperCollectionsResult = setResult
     }
 
     private class FakeReadingHistoryRepository : ReadingHistoryRepository {
@@ -202,20 +308,23 @@ class PaperReaderUseCasesTest {
     }
 
     private class FakeReadingBookmarkRepository : ReadingBookmarkRepository {
+        val observeFlow = MutableStateFlow<List<ReadingBookmark>>(emptyList())
+        var toggleResult: ToggleReadingBookmarkResult = ToggleReadingBookmarkResult.DocumentNotCurrent
+        var removeResult: RemoveReadingBookmarkResult = RemoveReadingBookmarkResult.NotFound
         override fun observe(
             workId: WorkId,
             manifestationId: ManifestationId,
             documentSha256: String,
-        ): Flow<List<ReadingBookmark>> = MutableStateFlow(emptyList())
+        ): Flow<List<ReadingBookmark>> = observeFlow
 
         override suspend fun toggle(
             workId: WorkId,
             manifestationId: ManifestationId,
             documentSha256: String,
             pageIndex: Int,
-        ): ToggleReadingBookmarkResult = ToggleReadingBookmarkResult.DocumentNotCurrent
+        ): ToggleReadingBookmarkResult = toggleResult
 
         override suspend fun remove(id: ReadingBookmarkId): RemoveReadingBookmarkResult =
-            RemoveReadingBookmarkResult.NotFound
+            removeResult
     }
 }

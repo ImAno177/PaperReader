@@ -70,18 +70,57 @@ jobs:
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
-      - name: Verify SDK, logic, UI, lint, and debug APK
+      - name: Run unit tests
+        id: unit_tests
         run: >-
           ./gradlew
           :extension-api:testDebugUnitTest
+          :logic:testDebugUnitTest
+          :app:testDebugUnitTest
+          --stacktrace
+
+      - name: Verify lint and debug APK
+        run: >-
+          ./gradlew
           :extension-api:lintDebug
           :extension-api:assembleRelease
-          :logic:testDebugUnitTest
           :logic:lintDebug
-          :app:testDebugUnitTest
           :app:lintDebug
           :app:assembleDebug
           --stacktrace
+
+      - name: Upload unit-test report when tests fail
+        if: steps.unit_tests.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: unit-test-reports-${{ github.sha }}
+          path: |
+            extension-api/build/reports/tests/testDebugUnitTest
+            logic/build/reports/tests/testDebugUnitTest
+            app/build/reports/tests/testDebugUnitTest
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Generate JaCoCo unit-test reports
+        if: always()
+        run: >-
+          ./gradlew
+          :extension-api:jacocoDebugUnitTestReport
+          :logic:jacocoDebugUnitTestReport
+          :app:jacocoDebugUnitTestReport
+          --stacktrace
+
+      - name: Upload JaCoCo reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: jacoco-unit-${{ github.sha }}
+          path: |
+            extension-api/build/reports/jacoco/debug
+            logic/build/reports/jacoco/debug
+            app/build/reports/jacoco/debug
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Build minified unsigned release APK
         run: ./gradlew :app:assembleRelease --stacktrace

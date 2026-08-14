@@ -1,6 +1,7 @@
 package dev.paperreader.logic.plugin
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class PluginTrustPolicyTest {
@@ -31,5 +32,26 @@ class PluginTrustPolicyTest {
             PluginTrustDecision.IncompatibleApi,
             PluginTrustPolicy.evaluate(release.packageName, fingerprint, 3, release),
         )
+    }
+
+    @Test
+    fun `descriptor and fingerprint invariants fail closed`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            CommunityPluginDescriptor("invalid", "service", "Display", 1, emptySet())
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            CommunityPluginDescriptor("org.example", "service", "Display", 0, emptySet())
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            CommunityPluginDescriptor("org.example", "", "Display", 1, emptySet())
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            PluginTrustPolicy.evaluate(
+                installedPackageName = "org.example.paperprovider",
+                installedSignerSha256 = "invalid",
+                hostApiVersion = 1,
+                release = release,
+            )
+        }
     }
 }

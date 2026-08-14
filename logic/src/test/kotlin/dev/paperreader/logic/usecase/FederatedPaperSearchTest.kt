@@ -10,8 +10,10 @@ import dev.paperreader.logic.provider.ProviderException
 import dev.paperreader.logic.provider.ProviderPage
 import dev.paperreader.logic.provider.ProviderRole
 import dev.paperreader.logic.provider.RemotePaper
+import dev.paperreader.logic.provider.SearchSort
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -89,10 +91,36 @@ class FederatedPaperSearchTest {
         assertEquals(listOf(2, 1), clusters.map { it.records.size })
     }
 
+    @Test
+    fun `generic provider failures become unavailable events and unsupported sorts are skipped`() = runTest {
+        val genericFailure = provider("generic") { error("offline") }
+        val newestOnly = provider("newest", supportedSorts = setOf(SearchSort.NEWEST)) {
+            ProviderPage(emptyList())
+        }
+
+        val events = FederatedPaperSearch(listOf(genericFailure, newestOnly))
+            .search(PaperSearchQuery("query", sort = SearchSort.RELEVANCE))
+            .toList()
+
+        assertEquals(FederatedSearchEvent.Started(setOf("generic")), events.first())
+        val failure = events.filterIsInstance<FederatedSearchEvent.ProviderFailed>().single()
+        assertTrue(failure.error is ProviderException.Unavailable)
+        assertEquals(FederatedSearchEvent.Finished(0, 1), events.last())
+    }
+
+    @Test
+    fun `empty federated search still emits a complete lifecycle`() = runTest {
+        val events = FederatedPaperSearch(emptyList()).search(PaperSearchQuery("query")).toList()
+
+        assertEquals(FederatedSearchEvent.Started(emptySet()), events[0])
+        assertEquals(FederatedSearchEvent.Finished(0, 0), events[1])
+    }
+
     private fun provider(
         id: String,
         capabilities: Set<ProviderCapability> = setOf(ProviderCapability.DISCOVERY),
         identifierTypes: Set<IdentifierType> = IdentifierType.entries.toSet(),
+        supportedSorts: Set<SearchSort> = SearchSort.entries.toSet(),
         search: suspend () -> ProviderPage,
     ): PaperProvider =
         object : PaperProvider {
@@ -103,6 +131,7 @@ class FederatedPaperSearchTest {
                 roles = setOf(ProviderRole.SEARCH_ENGINE),
                 capabilities = capabilities,
                 identifierLookupTypes = identifierTypes,
+                supportedSorts = supportedSorts,
             )
 
             override suspend fun search(query: PaperSearchQuery): ProviderPage = search()

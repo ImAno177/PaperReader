@@ -7,6 +7,7 @@ import dev.paperreader.logic.provider.RemotePaper
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import java.time.Instant
 import kotlinx.serialization.protobuf.ProtoBuf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -14,6 +15,93 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MetadataBackupCodecTest {
+    @Test
+    fun `backup result models expose their complete public contract`() {
+        val summary = MetadataBackupSummary(1, 2, 3, 4, 5, 6, 7, 8, 9)
+        val issue = MetadataRestoreIssue("code", "detail")
+        val preview = MetadataRestorePreview(
+            summary = summary,
+            createdAt = Instant.EPOCH,
+            newWorks = 1,
+            mergedWorks = 2,
+            skippedWorks = 3,
+            conflicts = listOf(issue),
+            missingProviders = setOf("arxiv"),
+            dormantReadingStates = 4,
+            dormantBookmarks = 5,
+            dormantAnnotations = 6,
+            skippedRecords = 7,
+        )
+        val export = MetadataBackupExport(byteArrayOf(1), summary, Instant.EPOCH)
+        val applied = MetadataRestoreResult.Applied(preview, 1, 2, 3, 4, 5, 6, 7)
+
+        assertEquals(9, summary.savedSearchHits)
+        assertEquals("detail", issue.detail)
+        assertEquals(7, preview.skippedRecords)
+        assertEquals("paper-reader-metadata.paperreader.backup", export.suggestedFileName)
+        assertEquals(7, applied.appliedSavedSearchHits)
+        assertEquals(export, (MetadataBackupExportResult.Success(export)).export)
+        assertEquals(preview, (MetadataRestorePreviewResult.Ready(preview)).preview)
+    }
+
+    @Test
+    fun `wire models preserve optional fields used by every backup section`() {
+        val author = BackupAuthorProto(0, "Ada", "Ada", "Lovelace", "0000-0000")
+        val identifier = BackupIdentifierProto("PROVIDER", "record", "source")
+        val manifestation = BackupManifestationProto(
+            sourceId = "m",
+            type = "PREPRINT",
+            sourceProvider = "arxiv",
+            sourceRecordId = "1",
+            version = "v1",
+            landingPageUrl = "https://example.org/paper",
+            pdfUrl = "https://example.org/paper.pdf",
+            license = "CC-BY",
+            publishedDateEpochDay = 1,
+            updatedAtEpochMillis = 2,
+        )
+        val work = BackupWorkProto(
+            sourceId = "w",
+            title = "Paper",
+            abstractText = "Abstract",
+            subjects = listOf("cs"),
+            publishedDateEpochDay = 1,
+            createdAtEpochMillis = 1,
+            updatedAtEpochMillis = 2,
+            authors = listOf(author),
+            identifiers = listOf(identifier),
+            manifestations = listOf(manifestation),
+        )
+        val collection = BackupCollectionProto("Reading", 1, 1, 2)
+        val membership = BackupMembershipProto("w", "Reading")
+        val state = BackupReadingStateProto("w", "m", "a".repeat(64), "block", 3, 4, 0.5, "READING", 2)
+        val history = BackupHistoryProto("w", 2, 3, 4)
+        val bookmark = BackupBookmarkProto("w", "m", "a".repeat(64), 4, 2)
+        val annotation = BackupAnnotationProto("a", "w", "a".repeat(64), "block", 0, 1, "p", "q", "s", 2, "n", "blue", 1, 2)
+        val source = BackupSavedSearchSourceProto("arxiv", 2, 2, "RATE_LIMITED", 3)
+        val hit = BackupSavedSearchHitProto("arxiv", "1", "a".repeat(64), "payload", "w", 2, 1, 2, true)
+        val search = BackupSavedSearchProto("query", 1, listOf(source), listOf(hit))
+        val value = MetadataBackupProto(
+            FORMAT_MARKER,
+            2,
+            4,
+            1,
+            listOf(work),
+            listOf(collection),
+            listOf(membership),
+            listOf(state),
+            listOf(history),
+            listOf(bookmark),
+            listOf(annotation),
+            listOf(search),
+        )
+
+        assertEquals(0, value.works.single().authors.single().position)
+        assertEquals("CC-BY", value.works.single().manifestations.single().license)
+        assertEquals(3, value.readingStates.single().characterOffset)
+        assertTrue(value.savedSearches.single().hits.single().unread)
+    }
+
     @Test
     fun `protobuf payload round trips in one entry zip`() {
         val value = fixture()
@@ -94,6 +182,35 @@ class MetadataBackupCodecTest {
         assertEquals(
             "archive_too_large",
             (MetadataBackupCodec.decode(ByteArray(MAX_METADATA_BACKUP_ARCHIVE_BYTES + 1)) as DecodedBackup.Invalid)
+                .error.code,
+        )
+    }
+
+    @Test
+    fun `archive envelope requires one non-directory metadata entry`() {
+        assertEquals("missing_entry", (MetadataBackupCodec.decode(ByteArray(0)) as DecodedBackup.Invalid).error.code)
+        assertEquals(
+            "invalid_entry",
+            (MetadataBackupCodec.decode(zipEntries("wrong", byteArrayOf(1))) as DecodedBackup.Invalid).error.code,
+        )
+        assertEquals(
+            "empty_payload",
+            (MetadataBackupCodec.decode(zipEntries(METADATA_BACKUP_ENTRY_NAME, byteArrayOf())) as DecodedBackup.Invalid).error.code,
+        )
+        assertEquals(
+            "extra_entry",
+            (MetadataBackupCodec.decode(
+                zipEntries(
+                    METADATA_BACKUP_ENTRY_NAME,
+                    byteArrayOf(1),
+                    "extra",
+                    byteArrayOf(2),
+                ),
+            ) as DecodedBackup.Invalid).error.code,
+        )
+        assertEquals(
+            "malformed_payload",
+            (MetadataBackupCodec.decode(zipEntries(METADATA_BACKUP_ENTRY_NAME, byteArrayOf(1, 2, 3))) as DecodedBackup.Invalid)
                 .error.code,
         )
     }
@@ -333,6 +450,17 @@ class MetadataBackupCodecTest {
             }
             output.toByteArray()
         }
+    }
+
+    private fun zipEntries(vararg entries: Any): ByteArray = ByteArrayOutputStream().use { output ->
+        ZipOutputStream(output).use { zip ->
+            entries.toList().chunked(2).forEach { (name, bytes) ->
+                zip.putNextEntry(ZipEntry(name as String))
+                zip.write(bytes as ByteArray)
+                zip.closeEntry()
+            }
+        }
+        output.toByteArray()
     }
 
     private fun fixture() = MetadataBackupProto(

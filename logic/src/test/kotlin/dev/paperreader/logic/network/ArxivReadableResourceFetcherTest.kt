@@ -8,6 +8,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class ArxivReadableResourceFetcherTest {
@@ -63,8 +64,70 @@ class ArxivReadableResourceFetcherTest {
         }
     }
 
+    @Test
+    fun `maps not-found, transient, permanent, empty, and missing-media responses`() = runTest {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setResponseCode(404))
+        server.enqueue(MockResponse().setResponseCode(410))
+        server.enqueue(MockResponse().setResponseCode(408))
+        server.enqueue(MockResponse().setResponseCode(500))
+        server.enqueue(MockResponse().setResponseCode(403))
+        server.enqueue(MockResponse().setResponseCode(200))
+        server.enqueue(MockResponse().setResponseCode(200).setHeader("Content-Type", "text/html").setBody(""))
+        server.start()
+        try {
+            val fetcher = testFetcher(server)
+            assertEquals(ReadableRemoteResult.NotFound, fetcher.fetch(request(server, 1_024)))
+            assertEquals(ReadableRemoteResult.NotFound, fetcher.fetch(request(server, 1_024)))
+            assertEquals(ReadableRemoteResult.Unavailable, fetcher.fetch(request(server, 1_024)))
+            assertEquals(ReadableRemoteResult.Unavailable, fetcher.fetch(request(server, 1_024)))
+            assertEquals(ReadableRemoteResult.Invalid, fetcher.fetch(request(server, 1_024)))
+            assertEquals(ReadableRemoteResult.Invalid, fetcher.fetch(request(server, 1_024)))
+            assertEquals(ReadableRemoteResult.Invalid, fetcher.fetch(request(server, 1_024)))
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun `rejects unsafe request URIs and follows only allowed final origins`() = runTest {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setResponseCode(200).setHeader("Content-Type", "text/html").setBody("ok"))
+        server.start()
+        try {
+            val fetcher = testFetcher(server)
+            assertEquals(
+                ReadableRemoteResult.Invalid,
+                fetcher.fetch(ReadableResourceRequest("not a uri", "text/html", 1_024)),
+            )
+            assertEquals(
+                ReadableRemoteResult.Invalid,
+                fetcher.fetch(ReadableResourceRequest("https://example.org/paper", "text/html", 1_024)),
+            )
+            assertEquals(
+                ReadableRemoteResult.Invalid,
+                fetcher.fetch(ReadableResourceRequest(server.url("/paper#fragment").toString(), "text/html", 1_024)),
+            )
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun `validates constructor limits`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            ArxivReadableResourceFetcher(OkHttpClient(), " ", null, 0, "arxiv.org", "https")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            ArxivReadableResourceFetcher(OkHttpClient(), "PaperReader/Test", null, 0, "", "https")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            ArxivReadableResourceFetcher(OkHttpClient(), "PaperReader/Test", null, 0, "arxiv.org", "ftp")
+        }
+    }
+
     private fun testFetcher(server: MockWebServer) = ArxivReadableResourceFetcher(
-        client = OkHttpClient(),
+        client = OkHttpClient.Builder().retryOnConnectionFailure(false).build(),
         userAgent = "PaperReader/Test",
         contactEmail = null,
         minimumRequestIntervalMillis = 0,

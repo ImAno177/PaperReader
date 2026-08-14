@@ -31,10 +31,12 @@ import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -301,6 +303,243 @@ class PaperDownloadCoordinatorTest {
             .requestDownload(WORK_ID, MANIFESTATION_ID)
     }
 
+    @Test
+    fun requestDownload_reusesActiveAndReplacesFailedTasks() = runTest {
+        val fixture = fixture("https://example.org/paper.pdf")
+        val first = fixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID)
+            as DownloadRequestResult.Enqueued
+        assertEquals(first.task, (fixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID)
+            as DownloadRequestResult.Enqueued).task)
+
+        fixture.tasks.transition(first.task.id, TaskState.RUNNING)
+        fixture.tasks.transition(first.task.id, TaskState.FAILED, "HTTP_500")
+        val replaced = fixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID)
+            as DownloadRequestResult.Enqueued
+        assertEquals(first.task.id, replaced.task.id)
+        assertEquals(TaskState.QUEUED, replaced.task.state)
+    }
+
+    @Test
+    fun requestDownload_reportsExistingVerifiedArtifact() = runTest {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setBody("%PDF-1.7\nexisting"))
+        server.start()
+        try {
+            val fixture = fixture(server.url("/paper.pdf").toString())
+            val task = (fixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID)
+                as DownloadRequestResult.Enqueued).task
+            val downloaded = fixture.coordinator.execute(task.id) as DownloadExecutionResult.Succeeded
+
+            assertEquals(
+                DownloadRequestResult.AlreadyDownloaded(downloaded.paper),
+                fixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID),
+            )
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun cancelRetryAndRemoveValidateTaskIdentityAndLifecycle() = runTest {
+        val fixture = fixture("https://example.org/paper.pdf")
+
+        assertEquals(CancelTaskResult.NotFound, fixture.coordinator.cancelDownload(TaskId("missing")))
+        assertEquals(RetryDownloadResult.NotFound, fixture.coordinator.retryDownload(TaskId("missing")))
+        assertEquals(RemoveTaskResult.NotFound, fixture.coordinator.removeDownloadTask(TaskId("missing")))
+
+        val extraction = fixture.tasks.enqueue(TaskKind.EXTRACTION, WORK_ID, "other")
+        assertEquals(CancelTaskResult.NotFound, fixture.coordinator.cancelDownload(extraction.id))
+        assertEquals(RetryDownloadResult.NotFound, fixture.coordinator.retryDownload(extraction.id))
+        assertEquals(RemoveTaskResult.NotFound, fixture.coordinator.removeDownloadTask(extraction.id))
+
+        val download = (fixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID)
+            as DownloadRequestResult.Enqueued).task
+        assertEquals(RetryDownloadResult.NotRetryable(download), fixture.coordinator.retryDownload(download.id))
+        assertEquals(RemoveTaskResult.Active, fixture.coordinator.removeDownloadTask(download.id))
+        assertTrue(fixture.coordinator.cancelDownload(download.id) is CancelTaskResult.Cancelled)
+        assertTrue(fixture.coordinator.cancelDownload(download.id) is CancelTaskResult.AlreadyTerminal)
+        assertTrue(fixture.coordinator.retryDownload(download.id) is RetryDownloadResult.Enqueued)
+    }
+
+    @Test
+    fun executeFailsClosedForMissingAndMalformedTasks() = runTest {
+        val fixture = fixture("https://example.org/paper.pdf")
+
+        assertEquals(DownloadExecutionResult.Failed("TASK_NOT_FOUND"), fixture.coordinator.execute(TaskId("missing")))
+        val extraction = fixture.tasks.enqueue(TaskKind.EXTRACTION, WORK_ID, "other")
+        assertEquals(DownloadExecutionResult.Failed("INVALID_TASK"), fixture.coordinator.execute(extraction.id))
+        val orphan = fixture.tasks.enqueue(TaskKind.DOWNLOAD, null, "orphan")
+        assertEquals(DownloadExecutionResult.Failed("INVALID_TASK"), fixture.coordinator.execute(orphan.id))
+
+        val failed = (fixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID)
+            as DownloadRequestResult.Enqueued).task
+        fixture.tasks.transition(failed.id, TaskState.RUNNING)
+        fixture.tasks.transition(failed.id, TaskState.FAILED, "PERSISTED_FAILURE")
+        assertEquals(DownloadExecutionResult.Failed("PERSISTED_FAILURE"), fixture.coordinator.execute(failed.id))
+    }
+
+    @Test
+    fun executeMapsPermanentHttpErrorsAndInterruptedTasks() = runTest {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setResponseCode(404))
+        server.start()
+        try {
+            val fixture = fixture(server.url("/paper.pdf").toString())
+            val task = (fixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID)
+                as DownloadRequestResult.Enqueued).task
+            fixture.tasks.transition(task.id, TaskState.RUNNING)
+
+            assertEquals(DownloadExecutionResult.Failed("HTTP_404"), fixture.coordinator.execute(task.id))
+            assertEquals(TaskState.FAILED, fixture.tasks.get(task.id)?.state)
+            assertEquals("HTTP_404", fixture.tasks.get(task.id)?.failureCode)
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun executeMapsRateLimitsOversizedResponsesAndUnexpectedStorageFailures() = runTest {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setResponseCode(429).setHeader("Retry-After", "2"))
+        server.enqueue(MockResponse().setBody("%PDF-1.7\n${"x".repeat(1_100_000)}"))
+        server.enqueue(MockResponse().setBody("%PDF-1.7\nstorage failure"))
+        server.start()
+        try {
+            val rateFixture = fixture(server.url("/paper.pdf").toString())
+            val rateTask = (rateFixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID)
+                as DownloadRequestResult.Enqueued).task
+            assertEquals(DownloadExecutionResult.Retry("HTTP_429", 2_000), rateFixture.coordinator.execute(rateTask.id))
+
+            val largeFixture = fixture(server.url("/paper.pdf").toString())
+            val largeTask = (largeFixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID)
+                as DownloadRequestResult.Enqueued).task
+            assertEquals(DownloadExecutionResult.Failed("PDF_TOO_LARGE"), largeFixture.coordinator.execute(largeTask.id))
+
+            val storageFixture = fixture(server.url("/paper.pdf").toString())
+            storageFixture.files.failUpsert = true
+            val storageTask = (storageFixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID)
+                as DownloadRequestResult.Enqueued).task
+            assertEquals(DownloadExecutionResult.Retry("UNEXPECTED", null), storageFixture.coordinator.execute(storageTask.id))
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun downloadedPaperAndDeletionRejectStaleOrUnsafeArtifacts() = runTest {
+        val fixture = fixture("https://example.org/paper.pdf")
+        assertEquals(null, fixture.coordinator.downloadedPaper(MANIFESTATION_ID))
+        fixture.files.put(
+            LocalPaperArtifact(
+                id = "file-bad",
+                manifestationId = MANIFESTATION_ID,
+                storagePath = "../outside.pdf",
+                sha256 = "a".repeat(64),
+                byteLength = 1,
+                mimeType = "application/pdf",
+                updatedAt = NOW,
+            ),
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.test.runTest { fixture.coordinator.downloadedPaper(MANIFESTATION_ID) }
+        }
+        fixture.files.remove(MANIFESTATION_ID)
+        assertEquals(DeleteDownloadResult.NotFound, fixture.coordinator.deleteDownload(WORK_ID, MANIFESTATION_ID))
+        assertThrows(DownloadRequestException.PaperNotFound::class.java) {
+            kotlinx.coroutines.test.runTest {
+                fixture.coordinator.deleteDownload(WorkId("missing"), MANIFESTATION_ID)
+            }
+        }
+    }
+
+    @Test
+    fun requestDownloadRepairsTerminalSuccessThatLostItsArtifact() = runTest {
+        val fixture = fixture("https://example.org/paper.pdf")
+        val task = fixture.tasks.enqueue(TaskKind.DOWNLOAD, WORK_ID, MANIFESTATION_ID.value)
+        fixture.tasks.transition(task.id, TaskState.RUNNING)
+        fixture.tasks.transition(task.id, TaskState.SUCCEEDED)
+
+        val repaired = fixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID)
+
+        assertTrue(repaired is DownloadRequestResult.Enqueued)
+        assertEquals(TaskState.QUEUED, (repaired as DownloadRequestResult.Enqueued).task.state)
+    }
+
+    @Test
+    fun retryReturnsAnExistingVerifiedArtifactAndRemovesTheStaleTask() = runTest {
+        val fixture = fixture("https://example.org/paper.pdf")
+        val bytes = "%PDF-1.7\nexisting".toByteArray()
+        val path = temporaryFolder.root.toPath().resolve("papers/existing.pdf")
+        Files.createDirectories(path.parent)
+        Files.write(path, bytes)
+        fixture.files.put(
+            LocalPaperArtifact(
+                id = "existing",
+                manifestationId = MANIFESTATION_ID,
+                storagePath = "papers/existing.pdf",
+                sha256 = sha256(bytes),
+                byteLength = bytes.size.toLong(),
+                mimeType = "application/pdf",
+                updatedAt = NOW,
+            ),
+        )
+        val task = fixture.tasks.enqueue(TaskKind.DOWNLOAD, WORK_ID, MANIFESTATION_ID.value)
+        fixture.tasks.transition(task.id, TaskState.RUNNING)
+        fixture.tasks.transition(task.id, TaskState.FAILED, "HTTP_500")
+
+        val result = fixture.coordinator.retryDownload(task.id)
+
+        assertTrue(result is RetryDownloadResult.AlreadyDownloaded)
+        assertNull(fixture.tasks.get(task.id))
+    }
+
+    @Test
+    fun transportIoFailuresAreRetryable() = runTest {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        server.start()
+        try {
+            val fixture = fixture(server.url("/paper.pdf").toString())
+            val task = (fixture.coordinator.requestDownload(WORK_ID, MANIFESTATION_ID)
+                as DownloadRequestResult.Enqueued).task
+
+            assertEquals(DownloadExecutionResult.Retry("IO", null), fixture.coordinator.execute(task.id))
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun successfulReplacementRemovesThePreviousArtifactFile() = runTest {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setBody("%PDF-1.7\nnew paper"))
+        server.start()
+        try {
+            val fixture = fixture(server.url("/paper.pdf").toString())
+            val oldBytes = "%PDF-1.7\nold paper".toByteArray()
+            val oldPath = temporaryFolder.root.toPath().resolve("papers/old.pdf")
+            Files.createDirectories(oldPath.parent)
+            Files.write(oldPath, oldBytes)
+            fixture.files.put(
+                LocalPaperArtifact(
+                    id = "old",
+                    manifestationId = MANIFESTATION_ID,
+                    storagePath = "papers/old.pdf",
+                    sha256 = sha256(oldBytes),
+                    byteLength = oldBytes.size.toLong(),
+                    mimeType = "application/pdf",
+                    updatedAt = NOW,
+                ),
+            )
+            val task = fixture.tasks.enqueue(TaskKind.DOWNLOAD, WORK_ID, MANIFESTATION_ID.value)
+
+            assertTrue(fixture.coordinator.execute(task.id) is DownloadExecutionResult.Succeeded)
+            assertFalse(Files.exists(oldPath))
+        } finally {
+            server.shutdown()
+        }
+    }
+
     private fun fixture(pdfUrl: String): Fixture {
         val taskRepository = FakeTaskRepository()
         val tasks = TaskCoordinator(taskRepository, FIXED_CLOCK)
@@ -347,6 +586,10 @@ class PaperDownloadCoordinatorTest {
         val MANIFESTATION_ID = ManifestationId("manifestation-1")
         val NOW: Instant = Instant.parse("2026-08-11T00:00:00Z")
         val FIXED_CLOCK: Clock = Clock.fixed(NOW, ZoneOffset.UTC)
+
+        fun sha256(bytes: ByteArray): String = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(bytes)
+            .joinToString("") { "%02x".format(it) }
     }
 }
 
@@ -369,13 +612,19 @@ private class FakeLibraryRepository(private val paper: LibraryPaper) : LibraryRe
 private class FakeLocalFileRepository : LocalFileRepository {
     private val artifacts = mutableMapOf<ManifestationId, LocalPaperArtifact>()
     var afterUpsert: suspend () -> Unit = {}
+    var failUpsert: Boolean = false
     override suspend fun get(manifestationId: ManifestationId): LocalPaperArtifact? = artifacts[manifestationId]
     override suspend fun upsert(artifact: LocalPaperArtifact) {
+        if (failUpsert) error("storage failure")
         artifacts[artifact.manifestationId] = artifact
         afterUpsert()
     }
     override suspend fun remove(manifestationId: ManifestationId) {
         artifacts.remove(manifestationId)
+    }
+
+    fun put(artifact: LocalPaperArtifact) {
+        artifacts[artifact.manifestationId] = artifact
     }
 }
 

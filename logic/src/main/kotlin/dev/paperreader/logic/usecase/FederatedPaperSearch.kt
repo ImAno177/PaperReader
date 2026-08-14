@@ -92,24 +92,39 @@ data class SearchResultCluster(val records: List<RemotePaper>) {
 /** Clusters exact aliases only. Similar titles remain separate for user review. */
 object SearchResultClusterer {
     fun cluster(records: Iterable<RemotePaper>): List<SearchResultCluster> {
-        val clusters = mutableListOf<MutableList<RemotePaper>>()
+        data class MutableCluster(
+            val order: Int,
+            val records: MutableList<RemotePaper> = mutableListOf(),
+            val keys: MutableSet<String> = linkedSetOf(),
+            var active: Boolean = true,
+        )
+
+        val clusters = mutableListOf<MutableCluster>()
+        val clustersByKey = mutableMapOf<String, MutableCluster>()
         records.forEach { record ->
             val recordKeys = identityKeys(record)
-            val matching = clusters.filter { cluster ->
-                cluster.any { existing -> identityKeys(existing).intersect(recordKeys).isNotEmpty() }
-            }
+            val matching = recordKeys.mapNotNull(clustersByKey::get).distinct().sortedBy(MutableCluster::order)
             if (matching.isEmpty()) {
-                clusters += mutableListOf(record)
+                val cluster = MutableCluster(order = clusters.size).also {
+                    it.records += record
+                    it.keys += recordKeys
+                }
+                clusters += cluster
+                recordKeys.forEach { key -> clustersByKey[key] = cluster }
             } else {
                 val target = matching.first()
-                target += record
+                target.records += record
+                target.keys += recordKeys
+                recordKeys.forEach { key -> clustersByKey[key] = target }
                 matching.drop(1).forEach { extra ->
-                    target += extra
-                    clusters.remove(extra)
+                    target.records += extra.records
+                    target.keys += extra.keys
+                    extra.active = false
+                    extra.keys.forEach { key -> clustersByKey[key] = target }
                 }
             }
         }
-        return clusters.map(::SearchResultCluster)
+        return clusters.filter(MutableCluster::active).map { SearchResultCluster(it.records) }
     }
 
     private fun identityKeys(record: RemotePaper): Set<String> =

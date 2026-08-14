@@ -38,6 +38,8 @@ class ProviderManagerTest {
         assertNotNull(stub)
         val error = runCatching { stub.get("record") }.exceptionOrNull()
         assertTrue(error is ProviderException.Unavailable)
+        val searchError = runCatching { stub.search(PaperSearchQuery("query")) }.exceptionOrNull()
+        assertTrue(searchError is ProviderException.Unavailable)
     }
 
     @Test

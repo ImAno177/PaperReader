@@ -92,6 +92,20 @@ class FederatedPaperSearchTest {
     }
 
     @Test
+    fun `a bridging record merges multiple exact-alias clusters transitively`() {
+        val doi = PaperIdentifier(IdentifierType.DOI, "10.1000/bridge")
+        val arxiv = PaperIdentifier(IdentifierType.ARXIV, "2401.12345")
+        val first = remote("arxiv", "2401.12345", setOf(doi))
+        val second = remote("crossref", "10.1000/bridge", setOf(arxiv))
+        val bridge = remote("semanticscholar", "s2-bridge", setOf(doi, arxiv))
+
+        val clusters = SearchResultClusterer.cluster(listOf(first, second, bridge))
+
+        assertEquals(1, clusters.size)
+        assertEquals(setOf("arxiv", "crossref", "semanticscholar"), clusters.single().records.map { it.providerId }.toSet())
+    }
+
+    @Test
     fun `generic provider failures become unavailable events and unsupported sorts are skipped`() = runTest {
         val genericFailure = provider("generic") { error("offline") }
         val newestOnly = provider("newest", supportedSorts = setOf(SearchSort.NEWEST)) {

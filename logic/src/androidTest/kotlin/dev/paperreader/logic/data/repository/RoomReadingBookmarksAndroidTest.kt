@@ -11,6 +11,7 @@ import dev.paperreader.logic.domain.LocalPaperArtifact
 import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.ManifestationType
 import dev.paperreader.logic.domain.PaperIdentifier
+import dev.paperreader.logic.domain.ReadingBookmarkId
 import dev.paperreader.logic.domain.repository.RemovePaperResult
 import dev.paperreader.logic.domain.repository.ToggleReadingBookmarkResult
 import dev.paperreader.logic.provider.RemoteManifestation
@@ -84,6 +85,12 @@ class RoomReadingBookmarksAndroidTest {
             listOf(8),
             bookmarks.observe(workId, manifestationId, "a".repeat(64)).first().map { it.pageIndex },
         )
+
+        val removed = bookmarks.remove(ReadingBookmarkId("f".repeat(64)))
+        assertEquals(dev.paperreader.logic.domain.repository.RemoveReadingBookmarkResult.NotFound, removed)
+        val bookmark = bookmarks.observe(workId, manifestationId, "a".repeat(64)).first().single()
+        assertEquals(dev.paperreader.logic.domain.repository.RemoveReadingBookmarkResult.Removed, bookmarks.remove(bookmark.id))
+        assertTrue(bookmarks.observe(workId, manifestationId, "a".repeat(64)).first().isEmpty())
     }
 
     @Test

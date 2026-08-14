@@ -21,6 +21,7 @@ import dev.paperreader.logic.usecase.SearchResultClusterer
 import dev.paperreader.logic.usecase.SearchResultRanker
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class ProviderFailureKind {
     RATE_LIMITED,
@@ -103,6 +105,9 @@ internal class PaperReaderSearchController(
         val generation = ++searchGeneration
         searchJob?.cancel()
         mutableSearch.value = SearchUiState(submittedQuery = submitted, running = true)
+        val providerNames = providers.value.installed.associate {
+            it.descriptor.id to it.descriptor.displayName
+        }
         searchJob = scope.launch {
             val records = mutableListOf<RemotePaper>()
             val failures = linkedMapOf<String, ProviderSearchFailure>()
@@ -117,15 +122,18 @@ internal class PaperReaderSearchController(
 
                         is FederatedSearchEvent.PageReceived -> {
                             records += event.page.items
-                            val names = providers.value.installed.associate {
-                                it.descriptor.id to it.descriptor.displayName
-                            }
-                            mutableSearch.value = mutableSearch.value.copy(
-                                results = SearchResultRanker.rank(
+                            // Ranking and exact-alias clustering are CPU-heavy when a provider
+                            // returns a large page. Keep that work off the main dispatcher so
+                            // the LazyColumn remains responsive while results stream in.
+                            val rankedResults = withContext(Dispatchers.Default) {
+                                SearchResultRanker.rank(
                                     submitted,
-                                    SearchResultClusterer.cluster(records),
-                                ).map { it.toSearchPaperUi(names) },
-                            )
+                                    SearchResultClusterer.cluster(records.toList()),
+                                ).map { it.toSearchPaperUi(providerNames) }
+                            }
+                            if (generation == searchGeneration) {
+                                mutableSearch.value = mutableSearch.value.copy(results = rankedResults)
+                            }
                         }
 
                         is FederatedSearchEvent.ProviderFailed -> {

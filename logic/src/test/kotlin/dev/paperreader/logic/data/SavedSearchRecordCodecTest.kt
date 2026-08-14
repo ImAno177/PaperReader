@@ -11,6 +11,7 @@ import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -59,6 +60,13 @@ class SavedSearchRecordCodecTest {
         val legacy = """{"schemaVersion":1,"providerId":"arxiv","providerRecordId":"1","title":"Legacy"}"""
 
         assertEquals(null, SavedSearchRecordCodec.decode(legacy).citationMetrics)
+    }
+
+    @Test
+    fun `unsupported and malformed snapshot payloads fail closed`() {
+        val unsupported = SavedSearchRecordCodec.encode(fixture()).replace("\"schemaVersion\":1", "\"schemaVersion\":99")
+        assertThrows(IllegalArgumentException::class.java) { SavedSearchRecordCodec.decode(unsupported) }
+        assertThrows(IllegalArgumentException::class.java) { SavedSearchRecordCodec.decode("not-json") }
     }
 
     @Test

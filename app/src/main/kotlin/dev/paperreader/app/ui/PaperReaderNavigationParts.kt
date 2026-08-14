@@ -3,6 +3,10 @@ package dev.paperreader.app.ui
 import android.net.Uri
 import android.widget.Toast
 import androidx.annotation.StringRes
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -26,6 +30,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -234,6 +239,16 @@ private fun PaperDestinationItem(
     visualPadding: PaddingValues = PaddingValues(4.dp),
 ) {
     val tokens = PaperTheme.tokens
+    val borderWidth by animateDpAsState(
+        targetValue = if (selected) tokens.borderWidth.coerceAtLeast(1.dp) else 0.dp,
+        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+        label = "primary navigation border width",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) tokens.border else Color.Transparent,
+        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+        label = "primary navigation border color",
+    )
     Box(
         modifier = modifier.height(72.dp)
             .testTag("$PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX$testKey")
@@ -244,9 +259,11 @@ private fun PaperDestinationItem(
             modifier = Modifier.fillMaxSize().padding(visualPadding)
                 .testTag("$PRIMARY_NAVIGATION_ITEM_VISUAL_TEST_TAG_PREFIX$testKey"),
             shape = RoundedCornerShape(tokens.cornerRadius),
-            color = if (selected) tokens.primaryContainer else Color.Transparent,
-            contentColor = if (selected) tokens.onPrimaryContainer else tokens.inkMuted,
-            border = BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border),
+            // Keep the tile transparent in every state. Selection is communicated by the
+            // animated outline only, so switching tabs does not flash a new fill color.
+            color = Color.Transparent,
+            contentColor = tokens.ink,
+            border = BorderStroke(borderWidth, borderColor).takeIf { borderWidth > 0.dp },
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,
         ) {

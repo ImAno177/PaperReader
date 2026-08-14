@@ -1,5 +1,6 @@
 package dev.paperreader.logic.plugin
 
+import dev.paperreader.extensions.api.SourceRole
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -53,5 +54,43 @@ class PluginTrustPolicyTest {
                 release = release,
             )
         }
+    }
+
+    @Test
+    fun `community descriptor exposes every capability and trusted source metadata`() {
+        val descriptor = CommunityPluginDescriptor(
+            packageName = "org.example.paperprovider",
+            serviceClassName = "org.example.paperprovider.SourceService",
+            displayName = "Paper provider",
+            apiVersion = 1,
+            capabilities = PluginCapability.entries.toSet(),
+        )
+        val trusted = TrustedSourceExtension(
+            packageName = "org.example.paperprovider",
+            serviceClassName = "org.example.paperprovider.SourceService",
+            versionCode = 3,
+            signerSha256 = fingerprint,
+            providerId = "sample",
+            displayName = "Sample",
+            minimumRequestIntervalMillis = 500,
+            versionName = "1.2.0",
+            installUrl = "https://example.org/sample.apk",
+            apkSha256 = "cd".repeat(32),
+            apkSizeBytes = 512,
+            minimumVersionCode = 2,
+        )
+
+        assertEquals(PluginCapability.entries.toSet(), descriptor.capabilities)
+        assertEquals("org.example.paperprovider.SourceService", trusted.serviceClassName)
+        assertEquals(3L, trusted.versionCode)
+        assertEquals(fingerprint, trusted.signerSha256)
+        assertEquals("Sample", trusted.displayName)
+        assertEquals(500L, trusted.minimumRequestIntervalMillis)
+        assertEquals(setOf(SourceRole.CONTENT_SOURCE), trusted.roles)
+        assertEquals("sample", trusted.descriptor().providerId)
+        assertEquals("1.2.0", trusted.versionName)
+        assertEquals("https://example.org/sample.apk", trusted.installUrl)
+        assertEquals(512L, trusted.apkSizeBytes)
+        assertEquals(2L, trusted.minimumVersionCode)
     }
 }

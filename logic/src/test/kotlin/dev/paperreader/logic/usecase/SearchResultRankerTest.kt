@@ -73,6 +73,18 @@ class SearchResultRankerTest {
     }
 
     @Test
+    fun `empty and unicode queries stay deterministic without a token bonus`() {
+        val accented = paper("arxiv", "accented", "Café systems")
+        val plain = paper("semanticscholar", "plain", "Cafe systems")
+
+        val ranked = SearchResultRanker.rank("   ", clusters(accented, plain))
+        assertEquals(listOf("accented", "plain"), ranked.map { it.records.single().providerRecordId })
+
+        val normalized = SearchResultRanker.rank("cafe", clusters(accented, plain))
+        assertEquals(listOf("accented", "plain"), normalized.map { it.records.single().providerRecordId })
+    }
+
+    @Test
     fun `equal results use publication date then stable provider record key`() {
         val old = paper("zeta", "2", "Shared title", publishedDate = LocalDate.of(2020, 1, 1))
         val newB = paper("beta", "1", "Shared title", publishedDate = LocalDate.of(2024, 1, 1))

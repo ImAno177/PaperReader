@@ -1,5 +1,9 @@
 package dev.paperreader.logic.plugin
 
+import dev.paperreader.extensions.api.SourceCapability
+import dev.paperreader.extensions.api.SourceIdentifierType
+import dev.paperreader.extensions.api.SourceRole
+import dev.paperreader.extensions.api.SourceSearchSort
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.Signature
@@ -33,6 +37,21 @@ class ExtensionStoreIndexVerifierTest {
         assertTrue(source.compatible)
         assertEquals(2L, source.minimumVersionCode)
         assertEquals("semanticscholar-sample", source.providerId)
+        assertEquals("dev.paperreader.extensions.semanticscholar.SemanticScholarService", source.serviceClassName)
+        assertEquals(3L, source.versionCode)
+        assertEquals("1.2.0", source.versionName)
+        assertEquals("ab".repeat(32), source.signerSha256)
+        assertEquals(1, source.minimumHostApi)
+        assertEquals(1, source.maximumHostApi)
+        assertEquals("https://example.org/extensions/semanticscholar.apk", source.installUrl)
+        assertEquals("01".repeat(32), source.apkSha256)
+        assertEquals(1_048_576L, source.apkSizeBytes)
+        assertEquals("Apache-2.0", source.license)
+        assertEquals("https://example.org/privacy/semanticscholar", source.privacyUrl)
+        assertEquals(setOf(SourceCapability.SEARCH, SourceCapability.DETAILS, SourceCapability.PDF_LINK), source.sourceCapabilities)
+        assertEquals(setOf(SourceRole.CONTENT_SOURCE), source.sourceRoles)
+        assertEquals(setOf(SourceIdentifierType.DOI), source.sourceIdentifierTypes)
+        assertEquals(setOf(SourceSearchSort.RELEVANCE), source.sourceSupportedSorts)
         assertEquals(source.packageName, source.toTrustedSourceExtension()?.packageName)
         val theme = verified.releases.single { it.kind == ExtensionReleaseKind.THEME }
         assertEquals(setOf("blueprint"), theme.themeIds)

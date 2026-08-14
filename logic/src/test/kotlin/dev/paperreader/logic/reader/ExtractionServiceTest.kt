@@ -52,6 +52,25 @@ class ExtractionServiceTest {
     }
 
     @Test
+    fun `extraction manifest records OCR and layout warning categories`() = runTest {
+        val warned = extracted.copy(warnings = setOf("OCR fallback used", "reading order uncertain"))
+        val store = MemoryStore()
+        val service = ExtractionService(
+            extractor = object : PdfTextExtractor {
+                override suspend fun extract(source: PdfSource, options: ParseOptions) = warned
+            },
+            store = store,
+            clock = Clock.fixed(Instant.parse("2026-08-11T00:00:00Z"), ZoneOffset.UTC),
+        )
+
+        val prepared = service.prepare(source, configuration)
+
+        assertTrue(prepared.manifest.hasOcr)
+        assertTrue(prepared.manifest.hasLayoutWarnings)
+        assertEquals(warned, prepared.document)
+    }
+
+    @Test
     fun `blank extraction fails instead of inventing readable content`() = runTest {
         val service = ExtractionService(
             extractor = object : PdfTextExtractor {

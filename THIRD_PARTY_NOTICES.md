@@ -1,6 +1,6 @@
 # Third-party notices
 
-PaperReader's source is Apache-2.0. The Android application is built from open-source dependencies,
+PaperReader's source code is licensed under Apache-2.0. The Android application is built from open-source dependencies,
 including:
 
 | Component | Version/source | License |

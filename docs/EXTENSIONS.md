@@ -165,8 +165,8 @@ PackageInstaller session; a package broadcast never substitutes for signed trust
 The host persists the session ID and expected version before commit, validates restored sessions
 against Android after process recreation, and routes update notifications directly to Sources.
 
-This deliberately follows Mihon's useful queue/state/broadcast pattern while excluding its private
-class-loader path. PaperReader also verifies artifact hash and size before installation.
+This uses Mihon's queue, state, and package-broadcast pattern. Third-party code still never enters the
+host process, and PaperReader verifies artifact hash and size before installation.
 
 ## Signing an index
 

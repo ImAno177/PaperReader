@@ -115,6 +115,7 @@ class PaperReaderViewModel internal constructor(
     private val localPdfImportController = PaperReaderLocalPdfImportController(logic, viewModelScope)
     val localPdfImport: StateFlow<LocalPdfImportUiState> = localPdfImportController.state
     private val extensionStoreMutex = Mutex()
+    private val repairingSavedPaperIds = mutableSetOf<String>()
     private val mutableExtensionStoreAction = MutableStateFlow<ExtensionStoreActionUiState>(ExtensionStoreActionUiState.Idle)
     val extensionStoreAction: StateFlow<ExtensionStoreActionUiState> = mutableExtensionStoreAction
 
@@ -247,6 +248,21 @@ class PaperReaderViewModel internal constructor(
     fun setReadingStatus(workId: String, status: ReadingStatus) {
         viewModelScope.launch {
             logic.useCases.setReadingStatus.await(WorkId(workId), status)
+        }
+    }
+
+    fun repairSavedPaper(workId: String) {
+        if (!repairingSavedPaperIds.add(workId)) return
+        viewModelScope.launch {
+            try {
+                logic.useCases.repairSavedPaper.await(WorkId(workId))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // A missing or unavailable optional source must not block the detail screen.
+            } finally {
+                repairingSavedPaperIds.remove(workId)
+            }
         }
     }
 

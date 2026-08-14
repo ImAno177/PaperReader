@@ -1,17 +1,6 @@
 package dev.paperreader.app.reader
 
-import android.content.Context
-import android.graphics.Rect
-import android.util.AttributeSet
-import android.view.ActionMode
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
-import android.webkit.WebView
-import dev.paperreader.app.R
 import dev.paperreader.logic.domain.Annotation
-import kotlin.math.roundToInt
-import org.json.JSONObject
 
 internal data class ReadablePaperPalette(
     val background: String,
@@ -223,6 +212,8 @@ internal fun renderReadablePaperHtml(
     palette: ReadablePaperPalette,
     dark: Boolean,
     layout: ReadablePaperLayout = ReadablePaperLayout(),
+    rewriteCitationLinks: Boolean = true,
+    exportMetadata: ReadablePaperExportMetadata? = null,
 ): String {
     listOf(
         palette.background,
@@ -233,7 +224,13 @@ internal fun renderReadablePaperHtml(
         palette.link,
         palette.selection,
     ).forEach { require(it.matches(Regex("#[0-9A-Fa-f]{6}"))) }
-    val rendererBodyHtml = rewriteBibliographyLinks(sanitizedBodyHtml)
+    val rendererBodyHtml = if (rewriteCitationLinks) {
+        rewriteBibliographyLinks(sanitizedBodyHtml)
+    } else {
+        sanitizedBodyHtml
+    }
+    val exportHeadMetadata = exportMetadata?.toHeadMetadata().orEmpty()
+    val exportProvenance = exportMetadata?.toProvenanceMarkup().orEmpty()
     return """
         <!doctype html>
         <html lang="en" style="color-scheme: ${if (dark) "dark" else "light"}">
@@ -241,6 +238,7 @@ internal fun renderReadablePaperHtml(
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
           <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
+          $exportHeadMetadata
           <style>
             :root {
               --background: ${palette.background};
@@ -279,6 +277,15 @@ internal fun renderReadablePaperHtml(
               margin: 0 auto;
               padding: 24px var(--reader-side-margin) 112px;
             }
+            .paperreader-export-provenance {
+              width: min(100%, 48rem);
+              margin: 0 auto;
+              padding: 14px var(--reader-side-margin) 0;
+              color: var(--muted);
+              font-size: 0.78em;
+              line-height: 1.5;
+            }
+            .paperreader-export-provenance strong { color: var(--text); }
             article, section, nav, figure { display: block; min-width: 0; }
             h1, h2, h3, h4, h5, h6 {
               color: var(--text);
@@ -296,9 +303,15 @@ internal fun renderReadablePaperHtml(
             p { margin: var(--reader-paragraph-margin) 0; }
             a { color: var(--link); text-decoration-thickness: 0.08em; text-underline-offset: 0.15em; }
             a:focus { outline: 3px solid var(--link); outline-offset: 3px; }
-            .ltx_authors { display: block; margin: 14px 0 20px; color: var(--muted); }
+            .ltx_authors {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 14px 18px;
+              margin: 14px 0 20px;
+              color: var(--muted);
+            }
             .ltx_author_before { display: none; }
-            .ltx_creator, .paperreader-author { display: block; min-width: 0; margin: 0 0 14px; }
+            .ltx_creator, .paperreader-author { display: block; min-width: 0; margin: 0; }
             .ltx_personname, .paperreader-author-name { display: inline; color: var(--text); font-weight: 650; }
             .ltx_author_notes, .paperreader-author-details { display: block; margin: 4px 0 0; color: var(--muted); font-size: 0.88em; overflow-wrap: anywhere; }
             .ltx_contact { display: block; margin: 2px 0; }
@@ -350,14 +363,20 @@ internal fun renderReadablePaperHtml(
               color: var(--muted);
               background: var(--surface);
             }
-            table {
-              display: block;
-              width: max-content;
+            .paperreader-table-scroll {
+              width: 100%;
               max-width: 100%;
               margin: 22px 0;
               overflow-x: auto;
-              border-collapse: collapse;
               -webkit-overflow-scrolling: touch;
+              overscroll-behavior-x: contain;
+            }
+            .paperreader-table-scroll > table {
+              width: max-content;
+              min-width: 100%;
+              max-width: none;
+              margin: 0;
+              border-collapse: collapse;
             }
             th, td {
               padding: 9px 11px;
@@ -414,7 +433,7 @@ internal fun renderReadablePaperHtml(
             }
           </style>
         </head>
-        <body>$rendererBodyHtml</body>
+        <body>$exportProvenance$rendererBodyHtml</body>
         </html>
     """.trimIndent()
 }
@@ -424,169 +443,5 @@ internal fun rewriteBibliographyLinks(sanitizedBodyHtml: String): String =
         val quote = match.groupValues[1]
         "href=$quote$CITATION_SCHEME://anchor/${match.groupValues[2]}$quote"
     }
-
-class ReadablePaperWebView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-) : WebView(context, attrs) {
-    var onProgressionChanged: ((Double) -> Unit)? = null
-    var onHighlightSelectionRequested: (() -> Unit)? = null
-    private var appCommandSerial = 0
-    private var appCommandTimeout: Runnable? = null
-
-    override fun onScrollChanged(left: Int, top: Int, oldLeft: Int, oldTop: Int) {
-        super.onScrollChanged(left, top, oldLeft, oldTop)
-        onProgressionChanged?.invoke(currentProgression())
-    }
-
-    override fun startActionMode(callback: ActionMode.Callback): ActionMode? =
-        super.startActionMode(HighlightSelectionActionModeCallback(callback))
-
-    override fun startActionMode(callback: ActionMode.Callback, type: Int): ActionMode? =
-        super.startActionMode(HighlightSelectionActionModeCallback(callback), type)
-
-    fun currentProgression(): Double {
-        val maximumScroll = (computeVerticalScrollRange() - height).coerceAtLeast(0)
-        if (maximumScroll <= 0) return 0.0
-        return (scrollY / maximumScroll.toDouble()).coerceIn(0.0, 1.0)
-    }
-
-    fun restoreProgression(progression: Double) {
-        val bounded = progression.coerceIn(0.0, 1.0)
-        post {
-            val maximumScroll = (computeVerticalScrollRange() - height).coerceAtLeast(0)
-            scrollTo(0, (maximumScroll * bounded).roundToInt())
-        }
-    }
-
-    fun scrollToDocumentAnchor(anchor: String, onResult: (Boolean) -> Unit) {
-        runAppOwnedCommand(readableSectionNavigationScript(anchor)) { result ->
-            onResult(result == "true")
-        }
-    }
-
-    internal fun captureTextSelection(onResult: (ReadableSelectionResult) -> Unit) {
-        runAppOwnedCommand(readableSelectionCaptureScript()) { raw ->
-            onResult(parseReadableSelection(raw))
-        }
-    }
-
-    fun applyAnnotations(annotations: List<Annotation>, onResult: (Int) -> Unit = {}) {
-        runAppOwnedCommand(readableAnnotationRenderScript(annotations)) { raw ->
-            onResult(raw?.toIntOrNull() ?: 0)
-        }
-    }
-
-    fun scrollToAnnotation(id: String, onResult: (Boolean) -> Unit) {
-        runAppOwnedCommand(readableAnnotationNavigationScript(id)) { raw -> onResult(raw == "true") }
-    }
-
-    fun clearTextSelection() {
-        runAppOwnedCommand(
-            "(() => { const selection = window.getSelection(); " +
-                "if (selection) selection.removeAllRanges(); return true; })()",
-        ) {}
-    }
-
-    fun cancelAppOwnedCommand() {
-        appCommandSerial += 1
-        appCommandTimeout?.let(::removeCallbacks)
-        appCommandTimeout = null
-        settings.javaScriptEnabled = false
-    }
-
-    private fun runAppOwnedCommand(script: String, onResult: (String?) -> Unit) {
-        cancelAppOwnedCommand()
-        val serial = ++appCommandSerial
-        // App-owned scripts run only against the sanitized, network-blocked local document.
-        // codeql[java/android/websettings-javascript-enabled]
-        settings.javaScriptEnabled = true
-        val timeout = Runnable { finishAppOwnedCommand(serial, null, onResult) }
-        appCommandTimeout = timeout
-        postDelayed(timeout, APP_COMMAND_TIMEOUT_MILLIS)
-        evaluateJavascript(script) { result -> finishAppOwnedCommand(serial, result, onResult) }
-    }
-
-    private fun finishAppOwnedCommand(serial: Int, result: String?, onResult: (String?) -> Unit) {
-        if (serial != appCommandSerial) return
-        appCommandTimeout?.let(::removeCallbacks)
-        appCommandTimeout = null
-        appCommandSerial += 1
-        settings.javaScriptEnabled = false
-        onResult(result)
-    }
-
-    private inner class HighlightSelectionActionModeCallback(
-        private val delegate: ActionMode.Callback,
-    ) : ActionMode.Callback2() {
-        override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-            val created = delegate.onCreateActionMode(mode, menu)
-            if (
-                created &&
-                onHighlightSelectionRequested != null &&
-                menu.findItem(HIGHLIGHT_SELECTION_ACTION_ID) == null
-            ) {
-                menu.add(
-                    Menu.NONE,
-                    HIGHLIGHT_SELECTION_ACTION_ID,
-                    HIGHLIGHT_SELECTION_ACTION_ORDER,
-                    context.getString(R.string.readable_reader_context_highlight),
-                ).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
-            }
-            return created
-        }
-
-        override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean =
-            delegate.onPrepareActionMode(mode, menu)
-
-        override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
-            if (item.itemId == HIGHLIGHT_SELECTION_ACTION_ID) {
-                onHighlightSelectionRequested?.invoke()
-                return true
-            }
-            return delegate.onActionItemClicked(mode, item)
-        }
-
-        override fun onDestroyActionMode(mode: ActionMode) = delegate.onDestroyActionMode(mode)
-
-        override fun onGetContentRect(mode: ActionMode, view: View, outRect: Rect) {
-            val positioned = delegate as? ActionMode.Callback2
-            if (positioned != null) {
-                positioned.onGetContentRect(mode, view, outRect)
-            } else {
-                super.onGetContentRect(mode, view, outRect)
-            }
-        }
-    }
-
-    companion object {
-        private const val APP_COMMAND_TIMEOUT_MILLIS = 1_500L
-        private const val HIGHLIGHT_SELECTION_ACTION_ID = 0x50525801
-        private const val HIGHLIGHT_SELECTION_ACTION_ORDER = 80
-    }
-}
-
-private fun parseReadableSelection(raw: String?): ReadableSelectionResult {
-    val json = runCatching { raw?.let(::JSONObject) }.getOrNull()
-        ?: return ReadableSelectionResult.Unavailable(ReadableSelectionFailure.INVALID)
-    return when (json.optString("status")) {
-        "ready" -> runCatching {
-            ReadableSelectionResult.Ready(
-                ReadableTextSelection(
-                    blockId = json.getString("blockId"),
-                    startOffset = json.getInt("startOffset"),
-                    endOffset = json.getInt("endOffset"),
-                    quotePrefix = json.getString("quotePrefix"),
-                    quoteExact = json.getString("quoteExact"),
-                    quoteSuffix = json.getString("quoteSuffix"),
-                ),
-            )
-        }.getOrElse { ReadableSelectionResult.Unavailable(ReadableSelectionFailure.INVALID) }
-        "empty" -> ReadableSelectionResult.Unavailable(ReadableSelectionFailure.EMPTY)
-        "cross_block" -> ReadableSelectionResult.Unavailable(ReadableSelectionFailure.CROSS_BLOCK)
-        "too_long" -> ReadableSelectionResult.Unavailable(ReadableSelectionFailure.TOO_LONG)
-        else -> ReadableSelectionResult.Unavailable(ReadableSelectionFailure.INVALID)
-    }
-}
 
 private val SAFE_READER_ID = Regex("[A-Za-z0-9._:-]{1,160}")

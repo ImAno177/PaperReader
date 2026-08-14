@@ -1,5 +1,6 @@
 package dev.paperreader.app.ui.screen
 
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -218,6 +219,11 @@ fun DiscoverScreen(
                         body = stringResource(R.string.search_failed_body),
                         icon = PaperIconKey.ERROR,
                     )
+                    state.submittedQuery?.let { submittedQuery ->
+                        GoogleArxivSearchAction(
+                            onOpen = { uriHandler.openUri(googleArxivSearchUrl(submittedQuery)) },
+                        )
+                    }
                 }
 
                 !state.running && state.results.isEmpty() -> item {
@@ -226,6 +232,11 @@ fun DiscoverScreen(
                         body = stringResource(R.string.search_no_results_body),
                         icon = PaperIconKey.SEARCH,
                     )
+                    state.submittedQuery?.let { submittedQuery ->
+                        GoogleArxivSearchAction(
+                            onOpen = { uriHandler.openUri(googleArxivSearchUrl(submittedQuery)) },
+                        )
+                    }
                 }
 
                 else -> {
@@ -263,6 +274,38 @@ fun DiscoverScreen(
         }
     }
 }
+
+@Composable
+private fun GoogleArxivSearchAction(
+    onOpen: () -> Unit,
+) {
+    Spacer(Modifier.height(12.dp))
+    PaperSurface {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PaperIcon(PaperIconKey.SEARCH, contentDescription = null, tint = PaperTheme.tokens.secondary)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.search_google_title), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(R.string.search_google_body),
+                    color = PaperTheme.tokens.inkMuted,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        PaperSecondaryButton(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
+            PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
+            Spacer(Modifier.size(8.dp))
+            Text(stringResource(R.string.search_google_action))
+        }
+    }
+}
+
+internal fun googleArxivSearchUrl(query: String): String =
+    "https://www.google.com/search?q=${Uri.encode("site:arxiv.org $query")}"
 
 @Composable
 private fun SavedSearchDiscoverAction(

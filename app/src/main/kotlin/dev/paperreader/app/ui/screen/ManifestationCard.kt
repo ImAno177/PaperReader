@@ -56,6 +56,36 @@ import java.util.concurrent.CancellationException
 import kotlinx.coroutines.launch
 
 @Composable
+internal fun MobileReadAction(
+    workId: String,
+    paperTitle: String,
+    themePreset: PaperThemePreset,
+    themeKey: String,
+    themeMode: PaperThemeMode,
+    manifestationId: String,
+) {
+    val context = LocalContext.current
+    PaperPrimaryButton(
+        onClick = {
+            openReadablePaper(
+                context = context,
+                workId = workId,
+                manifestationId = manifestationId,
+                paperTitle = paperTitle,
+                themePreset = themePreset,
+                themeKey = themeKey,
+                themeMode = themeMode,
+            )
+        },
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+    ) {
+        PaperIcon(PaperIconKey.INFO, contentDescription = null)
+        Spacer(Modifier.size(8.dp))
+        Text(stringResource(R.string.read_mobile_version))
+    }
+}
+
+@Composable
 internal fun ManifestationCard(
     workId: String,
     paperTitle: String,
@@ -66,6 +96,7 @@ internal fun ManifestationCard(
     task: PaperTask?,
     requesting: Boolean,
     requestFailed: Boolean,
+    showMobileReadAction: Boolean = true,
     onRequestDownload: () -> Unit,
     onGetDownloadedPaper: suspend () -> DownloadedPaper?,
     onDeleteDownload: suspend () -> DeleteDownloadResult,
@@ -132,17 +163,51 @@ internal fun ManifestationCard(
             verticalAlignment = Alignment.Top,
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(
-                    if (isImportedLocalPdf) stringResource(R.string.manifestation_imported_pdf)
-                    else manifestationTypeLabel(manifestation.type),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(manifestation.source.displayProviderName(), color = PaperTheme.tokens.inkMuted)
-                manifestation.version?.let {
-                    Text(stringResource(R.string.version_label, it), color = PaperTheme.tokens.inkMuted)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = if (isImportedLocalPdf) {
+                            stringResource(R.string.manifestation_imported_pdf)
+                        } else {
+                            manifestationTypeLabel(manifestation.type)
+                        },
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = manifestation.source.displayProviderName(),
+                        modifier = Modifier.weight(1f),
+                        color = PaperTheme.tokens.inkMuted,
+                        maxLines = 1,
+                    )
                 }
-                manifestation.publishedDate?.let { date ->
-                    Text(date.toEnglishDisplayDate(), color = PaperTheme.tokens.inkMuted)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (manifestation.version != null) {
+                        Text(
+                            text = stringResource(R.string.version_label, manifestation.version),
+                            modifier = Modifier.weight(1f),
+                            color = PaperTheme.tokens.inkMuted,
+                            maxLines = 1,
+                        )
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                    }
+                    if (manifestation.publishedDate != null) {
+                        Text(
+                            text = manifestation.publishedDate.toEnglishDisplayDate(),
+                            modifier = Modifier.weight(1f),
+                            color = PaperTheme.tokens.inkMuted,
+                            maxLines = 1,
+                        )
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                    }
                 }
                 StatusBadge(
                     text = manifestation.license ?: stringResource(
@@ -212,27 +277,15 @@ internal fun ManifestationCard(
         if (supportsMobileReading || landingPageUrl != null || pdfUrl != null || manifestation.localCopy != null) {
             Spacer(Modifier.height(12.dp))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (supportsMobileReading) {
-                    PaperPrimaryButton(
-                        onClick = {
-                            context.startActivity(
-                                ReadablePaperActivity.createIntent(
-                                    context = context,
-                                    workId = WorkId(workId),
-                                    manifestationId = ManifestationId(manifestation.id),
-                                    title = paperTitle,
-                                    themePreset = themePreset,
-                                    themeKey = themeKey,
-                                    themeMode = themeMode,
-                                ),
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    ) {
-                        PaperIcon(PaperIconKey.INFO, contentDescription = null)
-                        Spacer(Modifier.size(8.dp))
-                        Text(stringResource(R.string.read_mobile_version))
-                    }
+                if (supportsMobileReading && showMobileReadAction) {
+                    MobileReadAction(
+                        workId = workId,
+                        paperTitle = paperTitle,
+                        themePreset = themePreset,
+                        themeKey = themeKey,
+                        themeMode = themeMode,
+                        manifestationId = manifestation.id,
+                    )
                 }
                 if (manifestation.localCopy != null) {
                     if (supportsMobileReading) {
@@ -395,6 +448,28 @@ private fun openDownloadedPdf(
     )
 }
 
+private fun openReadablePaper(
+    context: android.content.Context,
+    workId: String,
+    manifestationId: String,
+    paperTitle: String,
+    themePreset: PaperThemePreset,
+    themeKey: String,
+    themeMode: PaperThemeMode,
+) {
+    context.startActivity(
+        ReadablePaperActivity.createIntent(
+            context = context,
+            workId = WorkId(workId),
+            manifestationId = ManifestationId(manifestationId),
+            title = paperTitle,
+            themePreset = themePreset,
+            themeKey = themeKey,
+            themeMode = themeMode,
+        ),
+    )
+}
+
 private fun formatFileSize(byteLength: Long): String = when {
     byteLength >= 1024L * 1024L -> String.format(Locale.ENGLISH, "%.1f MB", byteLength / (1024.0 * 1024.0))
     byteLength >= 1024L -> String.format(Locale.ENGLISH, "%.1f KB", byteLength / 1024.0)
@@ -426,4 +501,3 @@ private fun manifestationTypeLabel(type: ManifestationType): String = stringReso
         ManifestationType.OTHER -> R.string.manifestation_other
     },
 )
-

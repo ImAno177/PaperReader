@@ -108,7 +108,7 @@ class ReadablePaperRenderingTest {
         assertTrue(html.contains("default-src 'none'"))
         assertTrue(html.contains("img-src data:"))
         assertTrue(html.contains("width: min(100%, 48rem)"))
-        assertTrue(html.contains("table {"))
+        assertTrue(html.contains(".paperreader-table-scroll"))
         assertTrue(html.contains("overflow-x: auto"))
         assertTrue(html.contains("font-size: 18px"))
         assertTrue(html.contains("--reader-line-height: 1.68"))
@@ -132,6 +132,7 @@ class ReadablePaperRenderingTest {
         )
 
         assertTrue(html.contains(".ltx_creator, .paperreader-author"))
+        assertTrue(html.contains("grid-template-columns: repeat(2, minmax(0, 1fr))"))
         assertTrue(html.contains(".ltx_author_notes, .paperreader-author-details"))
         assertTrue(html.contains(".ltx_role_footnotemark .ltx_note_outer"))
         assertTrue(html.contains("display: block"))

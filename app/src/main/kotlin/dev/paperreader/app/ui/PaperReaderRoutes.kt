@@ -44,6 +44,7 @@ internal fun AppNavHost(
     onSaveSavedSearchHit: (String) -> Unit,
     onRemoveHistory: (String) -> Unit,
     onReadingStatusChange: (String, ReadingStatus) -> Unit,
+    onRepairSavedPaper: (String) -> Unit,
     onRemovePaper: suspend (String) -> RemovePaperResult,
     onCreateCollection: suspend (String) -> CreateCollectionResult,
     onRenameCollection: suspend (Long, String) -> RenameCollectionResult,
@@ -124,7 +125,7 @@ internal fun AppNavHost(
                 LoadState.Failed -> LoadState.Failed
                 is LoadState.Ready -> LoadState.Ready(library.value.firstOrNull { it.id == workId })
             }
-            DetailScreen(detail, collections, preset, themeKey, themeMode, (tasks as? LoadState.Ready)?.value?.filter { it.workId?.value == workId }.orEmpty(), downloadActions.requestingManifestations, downloadActions.failedManifestations, navController::popBackStack, { onReadingStatusChange(workId, it) }, { onRequestDownload(workId, it) }, onGetDownloadedPaper, { onDeleteDownload(workId, it) }, { onRemovePaper(workId) }, { onSetPaperCollections(workId, it) }, navController::popBackStack)
+            DetailScreen(detail, collections, preset, themeKey, themeMode, (tasks as? LoadState.Ready)?.value?.filter { it.workId?.value == workId }.orEmpty(), downloadActions.requestingManifestations, downloadActions.failedManifestations, navController::popBackStack, { onReadingStatusChange(workId, it) }, onRepairSavedPaper, { onRequestDownload(workId, it) }, onGetDownloadedPaper, { onDeleteDownload(workId, it) }, { onRemovePaper(workId) }, { onSetPaperCollections(workId, it) }, navController::popBackStack)
         }
     }
 }

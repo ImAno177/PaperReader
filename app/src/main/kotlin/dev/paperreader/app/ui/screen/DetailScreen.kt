@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,7 +62,6 @@ import dev.paperreader.app.ui.model.displayProviderName
 import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
-import dev.paperreader.logic.domain.LOCAL_PDF_SOURCE_ID
 import dev.paperreader.logic.domain.ReadingStatus
 import dev.paperreader.logic.domain.repository.RemovePaperResult
 import dev.paperreader.logic.domain.repository.SetPaperCollectionsResult
@@ -84,6 +85,7 @@ fun DetailScreen(
     failedManifestations: Set<String> = emptySet(),
     onBack: () -> Unit,
     onStatusChange: (ReadingStatus) -> Unit,
+    onRepairSavedPaper: (String) -> Unit = {},
     onRequestDownload: (String) -> Unit = {},
     onGetDownloadedPaper: suspend (String) -> DownloadedPaper? = { null },
     onDeleteDownload: suspend (String) -> DeleteDownloadResult = { DeleteDownloadResult.NotFound },
@@ -99,6 +101,31 @@ fun DetailScreen(
     var showCollectionDialog by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     Scaffold(
+        bottomBar = {
+            val paper = (state as? LoadState.Ready)?.value
+            val manifestation = paper?.manifestations?.firstOrNull {
+                it.source.equals("arxiv", ignoreCase = true)
+            }
+            if (paper != null && manifestation != null) {
+                Surface(color = PaperTheme.tokens.canvas, tonalElevation = 2.dp) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    ) {
+                        MobileReadAction(
+                            workId = paper.id,
+                            paperTitle = paper.title,
+                            themePreset = themePreset,
+                            themeKey = themeKey,
+                            themeMode = themeMode,
+                            manifestationId = manifestation.id,
+                        )
+                    }
+                }
+            }
+        },
         topBar = {
             CenterAlignedTopAppBar(
                 navigationIcon = {
@@ -168,6 +195,7 @@ fun DetailScreen(
                     requestingManifestations = requestingManifestations,
                     failedManifestations = failedManifestations,
                     onStatusChange = onStatusChange,
+                    onRepairSavedPaper = onRepairSavedPaper,
                     onRequestDownload = onRequestDownload,
                     onGetDownloadedPaper = onGetDownloadedPaper,
                     onDeleteDownload = onDeleteDownload,
@@ -262,11 +290,15 @@ private fun PaperDetailContent(
     requestingManifestations: Set<String>,
     failedManifestations: Set<String>,
     onStatusChange: (ReadingStatus) -> Unit,
+    onRepairSavedPaper: (String) -> Unit,
     onRequestDownload: (String) -> Unit,
     onGetDownloadedPaper: suspend (String) -> DownloadedPaper?,
     onDeleteDownload: suspend (String) -> DeleteDownloadResult,
 ) {
     var abstractExpanded by rememberSaveable(paper.id) { mutableStateOf(false) }
+    LaunchedEffect(paper.id, paper.manifestations.isEmpty()) {
+        if (paper.manifestations.isEmpty()) onRepairSavedPaper(paper.id)
+    }
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding),
         contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 32.dp),
@@ -299,57 +331,8 @@ private fun PaperDetailContent(
                 }
             }
         }
-        item { ReadingStatusCard(paper.status, onStatusChange) }
-        item {
-            PaperSurface {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-                    PaperIcon(PaperIconKey.INFO, contentDescription = null, tint = PaperTheme.tokens.warning)
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        val hasLocalCopy = paper.manifestations.any { it.localCopy != null }
-                        val isImportedLocalPdf = paper.manifestations.any {
-                            it.localCopy != null && it.source == LOCAL_PDF_SOURCE_ID
-                        }
-                        Text(
-                            stringResource(
-                                if (hasLocalCopy) R.string.reader_local_ready_title
-                                else R.string.reader_unavailable_title,
-                            ),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            stringResource(
-                                if (isImportedLocalPdf) R.string.reader_imported_local_ready_body
-                                else if (hasLocalCopy) R.string.reader_local_ready_body
-                                else R.string.reader_unavailable_body,
-                            ),
-                            color = PaperTheme.tokens.inkMuted,
-                        )
-                    }
-                }
-            }
-        }
-        item { PaperSectionHeader(stringResource(R.string.manifestations_title)) }
-        if (paper.manifestations.isEmpty()) {
-            item {
-                Text(stringResource(R.string.manifestations_missing), color = PaperTheme.tokens.inkMuted)
-            }
-        } else {
-            items(paper.manifestations, key = ManifestationUi::id) { manifestation ->
-                ManifestationCard(
-                    workId = paper.id,
-                    paperTitle = paper.title,
-                    themePreset = themePreset,
-                    themeKey = themeKey,
-                    themeMode = themeMode,
-                    manifestation = manifestation,
-                    task = downloadTasks.firstOrNull { it.targetKey == manifestation.id },
-                    requesting = manifestation.id in requestingManifestations,
-                    requestFailed = manifestation.id in failedManifestations,
-                    onRequestDownload = { onRequestDownload(manifestation.id) },
-                    onGetDownloadedPaper = { onGetDownloadedPaper(manifestation.id) },
-                    onDeleteDownload = { onDeleteDownload(manifestation.id) },
-                )
-            }
+        val primaryReadableManifestation = paper.manifestations.firstOrNull {
+            it.source.equals("arxiv", ignoreCase = true)
         }
         item {
             PaperSurface {
@@ -379,6 +362,31 @@ private fun PaperDetailContent(
                 )
             }
         }
+        item { ReadingStatusCard(paper.status, onStatusChange) }
+        item { PaperSectionHeader(stringResource(R.string.manifestations_title)) }
+        if (paper.manifestations.isEmpty()) {
+            item {
+                Text(stringResource(R.string.manifestations_missing), color = PaperTheme.tokens.inkMuted)
+            }
+        } else {
+            items(paper.manifestations, key = ManifestationUi::id) { manifestation ->
+                ManifestationCard(
+                    workId = paper.id,
+                    paperTitle = paper.title,
+                    themePreset = themePreset,
+                    themeKey = themeKey,
+                    themeMode = themeMode,
+                    manifestation = manifestation,
+                    task = downloadTasks.firstOrNull { it.targetKey == manifestation.id },
+                    requesting = manifestation.id in requestingManifestations,
+                    requestFailed = manifestation.id in failedManifestations,
+                    showMobileReadAction = manifestation.id != primaryReadableManifestation?.id,
+                    onRequestDownload = { onRequestDownload(manifestation.id) },
+                    onGetDownloadedPaper = { onGetDownloadedPaper(manifestation.id) },
+                    onDeleteDownload = { onDeleteDownload(manifestation.id) },
+                )
+            }
+        }
         item { PaperSectionHeader(stringResource(R.string.identifiers_title)) }
         items(paper.identifiers) { identifier ->
             PaperSurface(contentPadding = PaddingValues(12.dp)) {
@@ -393,19 +401,23 @@ private fun ReadingStatusCard(
     status: ReadingStatus,
     onStatusChange: (ReadingStatus) -> Unit,
 ) {
-    PaperSurface {
-        PaperSectionHeader(stringResource(R.string.reading_status_title))
-        Spacer(Modifier.height(10.dp))
+    PaperSurface(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
+        Text(
+            text = stringResource(R.string.reading_status_title),
+            style = MaterialTheme.typography.labelLarge,
+            color = PaperTheme.tokens.inkMuted,
+        )
+        Spacer(Modifier.height(8.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             ReadingStatus.entries.forEach { option ->
                 val selected = option == status
                 Surface(
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = 48.dp)
+                        .heightIn(min = 40.dp)
                         .selectable(
                             selected = selected,
                             onClick = { if (!selected) onStatusChange(option) },
@@ -420,10 +432,15 @@ private fun ReadingStatusCard(
                     ),
                 ) {
                     Box(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 3.dp, vertical = 8.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(readingStatusLabel(option), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                        Text(
+                            text = readingStatusLabel(option),
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
             }
@@ -439,4 +456,3 @@ private fun readingStatusLabel(status: ReadingStatus): String = stringResource(
         ReadingStatus.FINISHED -> R.string.status_finished
     },
 )
-

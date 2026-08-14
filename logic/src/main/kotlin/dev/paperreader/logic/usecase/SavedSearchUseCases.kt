@@ -196,10 +196,13 @@ sealed interface SaveSavedSearchHitResult {
 class SaveSavedSearchHit(
     private val savedSearchRepository: SavedSearchRepository,
     private val libraryRepository: LibraryRepository,
+    private val enricher: SavedPaperEnricher = SavedPaperEnricher { listOf(it) },
 ) {
     suspend fun await(id: SavedSearchHitId): SaveSavedSearchHitResult {
         val hit = savedSearchRepository.getHit(id) ?: return SaveSavedSearchHitResult.NotFound
-        val workId = libraryRepository.save(hit.paper)
+        val workIds = enricher.enrich(hit.paper).map { libraryRepository.save(it) }
+        val workId = workIds.first()
+        check(workIds.all { it == workId }) { "Exact saved-search hit enrichment saved multiple works" }
         try {
             savedSearchRepository.linkHit(id, workId)
         } catch (cancelled: CancellationException) {

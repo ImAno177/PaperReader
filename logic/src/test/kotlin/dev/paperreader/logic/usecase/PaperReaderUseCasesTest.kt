@@ -23,14 +23,18 @@ import dev.paperreader.logic.domain.ReadingBookmark
 import dev.paperreader.logic.domain.ReadingBookmarkId
 import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.ManifestationType
+import dev.paperreader.logic.domain.IdentifierType
+import dev.paperreader.logic.domain.PaperIdentifier
 import dev.paperreader.logic.domain.PaperManifestation
 import dev.paperreader.logic.domain.history.ReadingHistoryEntry
 import dev.paperreader.logic.domain.history.ReadingHistoryRepository
 import dev.paperreader.logic.provider.PaperProvider
 import dev.paperreader.logic.provider.PaperSearchQuery
+import dev.paperreader.logic.provider.ProviderCapability
 import dev.paperreader.logic.provider.ProviderDescriptor
 import dev.paperreader.logic.provider.ProviderPage
 import dev.paperreader.logic.provider.ProviderRole
+import dev.paperreader.logic.provider.RemoteManifestation
 import dev.paperreader.logic.provider.RemotePaper
 import dev.paperreader.logic.reader.ReadablePaperFailure
 import dev.paperreader.logic.reader.ReadablePaperLoader
@@ -142,6 +146,54 @@ class PaperReaderUseCasesTest {
         assertEquals(RemovePaperResult.Removed, useCases.removePaper.await(WorkId("w-saved")))
         useCases.recordReadingSession.await(WorkId("w-saved"), Instant.EPOCH, Duration.ofMinutes(4))
         assertEquals(Duration.ofMinutes(4), history.duration)
+    }
+
+    @Test
+    fun `saving identifier-only result persists an exact readable content manifestation`() = runTest {
+        val repository = FakeLibraryRepository()
+        val resolved = RemotePaper(
+            providerId = "arxiv",
+            providerRecordId = "1706.03762v2",
+            title = "Attention Is All You Need",
+            identifiers = setOf(PaperIdentifier(IdentifierType.ARXIV, "1706.03762")),
+            manifestations = listOf(
+                RemoteManifestation(
+                    type = ManifestationType.PREPRINT,
+                    version = "v2",
+                    landingPageUrl = "https://arxiv.org/abs/1706.03762",
+                    pdfUrl = "https://arxiv.org/pdf/1706.03762",
+                ),
+            ),
+        )
+        val contentSource = object : PaperProvider {
+            override val descriptor = ProviderDescriptor(
+                id = "arxiv",
+                displayName = "arXiv",
+                minimumRequestIntervalMillis = 0,
+                roles = setOf(ProviderRole.CONTENT_SOURCE),
+                capabilities = setOf(ProviderCapability.DISCOVERY),
+                identifierLookupTypes = setOf(IdentifierType.ARXIV),
+            )
+
+            override suspend fun search(query: PaperSearchQuery): ProviderPage = ProviderPage(listOf(resolved))
+            override suspend fun get(recordId: String): RemotePaper? = null
+        }
+        val original = RemotePaper(
+            providerId = "semanticscholar",
+            providerRecordId = "s2-1",
+            title = "Attention Is All You Need",
+            identifiers = setOf(PaperIdentifier(IdentifierType.ARXIV, "1706.03762")),
+        )
+        val useCases = paperReaderUseCases(
+            repository = repository,
+            historyRepository = FakeReadingHistoryRepository(),
+            bookmarkRepository = FakeReadingBookmarkRepository(),
+            search = FederatedPaperSearch(emptyList()),
+            providerManager = dev.paperreader.logic.provider.MutableProviderManager(listOf(contentSource)),
+        )
+
+        assertEquals(WorkId("w-saved"), useCases.saveSearchResult.await(SearchResultCluster(listOf(original))))
+        assertEquals(listOf(original, resolved), repository.saved)
     }
 
     @Test

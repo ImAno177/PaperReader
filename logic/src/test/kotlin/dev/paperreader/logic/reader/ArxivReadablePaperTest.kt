@@ -36,6 +36,7 @@ class ArxivReadablePaperTest {
         assertTrue(document.select("article.ltx_document section#S1").isNotEmpty())
         assertTrue(document.select("math annotation[encoding=application/x-tex]").isNotEmpty())
         assertTrue(document.select("table th[scope=col]").isNotEmpty())
+        assertEquals(1, document.select("div.paperreader-table-scroll > table").size)
         assertTrue(document.select("img[src^=data:image/png;base64,]").isNotEmpty())
         assertEquals("Architecture overview", document.selectFirst("img")?.attr("alt"))
         assertEquals(5, document.select("span.paperreader-figure-unavailable[role=img]").size)

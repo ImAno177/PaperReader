@@ -30,4 +30,8 @@
         android:id="@+id/action_open_readable_source"
         android:title="@string/readable_reader_open_source"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_download_readable_html"
+        android:title="@string/readable_reader_download_html"
+        app:showAsAction="never" />
 </menu>

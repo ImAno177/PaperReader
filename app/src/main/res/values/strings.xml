@@ -52,6 +52,9 @@
     </plurals>
     <string name="search_no_results_title">No papers found</string>
     <string name="search_no_results_body">Try a shorter title or exact identifier.</string>
+    <string name="search_google_title">Search the web for an arXiv copy</string>
+    <string name="search_google_body">Google can find an arXiv page when installed sources have no match. Share the paper link back to PaperReader to import it.</string>
+    <string name="search_google_action">Search arXiv on Google</string>
     <string name="search_failed_title">Sources unavailable</string>
     <string name="search_failed_body">Check your connection and try again.</string>
     <plurals name="search_results_count">
@@ -334,11 +337,6 @@
     <string name="identifiers_title">Identifiers</string>
     <string name="open_landing_page">Open source page</string>
     <string name="open_pdf_source">Open PDF source</string>
-    <string name="reader_unavailable_title">No local copy yet</string>
-    <string name="reader_unavailable_body">Use mobile layout for arXiv papers. Download the PDF for fallback.</string>
-    <string name="reader_local_ready_title">Local PDF ready</string>
-    <string name="reader_local_ready_body">Mobile layout is ready; PDF remains available offline.</string>
-    <string name="reader_imported_local_ready_body">Read offline with search, zoom, bookmarks, and reading progress.</string>
     <string name="read_mobile_version">Read mobile version</string>
     <string name="mobile_reading_available">Mobile reading available</string>
     <string name="readable_reader_loading">Preparing mobile paper</string>
@@ -362,6 +360,9 @@
     <string name="readable_reader_invalid">The HTML failed document and security checks.</string>
     <string name="readable_reader_open_original">Open original PDF</string>
     <string name="readable_reader_open_source">Open official arXiv HTML</string>
+    <string name="readable_reader_download_html">Download readable HTML</string>
+    <string name="readable_reader_html_saved">Readable HTML saved</string>
+    <string name="readable_reader_html_save_failed">The readable HTML could not be saved. Try another destination.</string>
     <string name="readable_reader_search">Search mobile paper</string>
     <string name="readable_reader_contents">Paper contents</string>
     <string name="readable_reader_contents_short">TOC</string>

@@ -254,6 +254,7 @@ internal class ArxivHtmlSanitizer(
         if (article.text().length < MINIMUM_ARTICLE_TEXT_LENGTH) return null
         collapseAuthorNotes(article)
         normalizeAuthorLayout(article)
+        normalizeTableLayout(article)
         val sourceLicense = parsed.selectFirst("#license-tr")
             ?.text()
             ?.trim()
@@ -382,6 +383,20 @@ internal class ArxivHtmlSanitizer(
             creator.select(".ltx_role_footnotemark").forEach { marker ->
                 marker.select(".ltx_note_outer, .ltx_note_content, .ltx_note_type, .ltx_tag").remove()
             }
+        }
+    }
+
+    /**
+     * Keep wide tables intact and put the horizontal scroll affordance on a dedicated wrapper.
+     * Applying overflow to the table itself lets WebView shrink or clip the table on narrow
+     * screens; the wrapper preserves the source column geometry instead.
+     */
+    private fun normalizeTableLayout(article: Element) {
+        article.select("table").toList().forEach { table ->
+            if (table.parent()?.hasClass("paperreader-table-scroll") == true) return@forEach
+            val wrapper = Element("div").addClass("paperreader-table-scroll")
+            table.replaceWith(wrapper)
+            wrapper.appendChild(table)
         }
     }
 

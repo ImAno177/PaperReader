@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.paperreader.app.R
@@ -278,7 +279,10 @@ private fun PaperDestinationItem(
                     style = MaterialTheme.typography.labelSmall,
                     maxLines = 1,
                     softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
+                    // Five destinations share a compact navigation bar. A smaller fixed label
+                    // keeps every English label readable instead of truncating it to “Upda…”.
+                    fontSize = 10.sp,
+                    overflow = TextOverflow.Clip,
                     textAlign = TextAlign.Center,
                 )
             }

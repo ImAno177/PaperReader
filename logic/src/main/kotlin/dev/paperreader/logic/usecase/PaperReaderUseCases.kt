@@ -53,13 +53,24 @@ class ObserveCollections(private val repository: LibraryRepository) {
     fun subscribe(): Flow<List<PaperCollection>> = repository.collections
 }
 
-class SavePaper(private val repository: LibraryRepository) {
-    suspend fun await(paper: RemotePaper): WorkId = repository.save(paper)
+class SavePaper(
+    private val repository: LibraryRepository,
+    private val enricher: SavedPaperEnricher = SavedPaperEnricher { listOf(it) },
+) {
+    suspend fun await(paper: RemotePaper): WorkId {
+        val workIds = enricher.enrich(paper).map { repository.save(it) }
+        val workId = workIds.first()
+        check(workIds.all { it == workId }) { "Exact paper enrichment saved multiple works" }
+        return workId
+    }
 }
 
-class SaveSearchResult(private val repository: LibraryRepository) {
+class SaveSearchResult(
+    private val repository: LibraryRepository,
+    private val enricher: SavedPaperEnricher = SavedPaperEnricher { listOf(it) },
+) {
     suspend fun await(result: SearchResultCluster): WorkId {
-        val workIds = result.records.map { repository.save(it) }
+        val workIds = result.records.flatMap { enricher.enrich(it) }.map { repository.save(it) }
         val workId = workIds.first()
         check(workIds.all { it == workId }) { "Exact search cluster saved as multiple works" }
         return workId
@@ -231,6 +242,7 @@ data class PaperReaderUseCases(
     val savePaper: SavePaper,
     val saveSearchResult: SaveSearchResult,
     val getPaper: GetPaper,
+    val repairSavedPaper: RepairSavedPaper,
     val removePaper: RemovePaper,
     val createCollection: CreateCollection,
     val renameCollection: RenameCollection,
@@ -282,12 +294,14 @@ internal fun paperReaderUseCases(
     annotationRepository: AnnotationRepository = UnavailableAnnotationRepository,
 ) : PaperReaderUseCases {
     val refreshSavedSearch = RefreshSavedSearch(savedSearchRepository, providerManager)
+    val savedPaperEnricher = ReadableManifestationResolver(providerManager)
     return PaperReaderUseCases(
     observeLibrary = ObserveLibrary(repository),
     observeCollections = ObserveCollections(repository),
-    savePaper = SavePaper(repository),
-    saveSearchResult = SaveSearchResult(repository),
+    savePaper = SavePaper(repository, savedPaperEnricher),
+    saveSearchResult = SaveSearchResult(repository, savedPaperEnricher),
     getPaper = GetPaper(repository),
+    repairSavedPaper = RepairSavedPaper(repository, savedPaperEnricher),
     removePaper = RemovePaper(repository),
     createCollection = CreateCollection(repository),
     renameCollection = RenameCollection(repository),
@@ -320,7 +334,7 @@ internal fun paperReaderUseCases(
     refreshSavedSearch = refreshSavedSearch,
     refreshAllSavedSearches = RefreshAllSavedSearches(savedSearchRepository, refreshSavedSearch),
     markSavedSearchHitRead = MarkSavedSearchHitRead(savedSearchRepository),
-    saveSavedSearchHit = SaveSavedSearchHit(savedSearchRepository, repository),
+    saveSavedSearchHit = SaveSavedSearchHit(savedSearchRepository, repository, savedPaperEnricher),
 )
 }
 

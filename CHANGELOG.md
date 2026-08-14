@@ -5,6 +5,8 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-08-14
+
 ### Added
 
 - Google-to-arXiv browser handoff. Search can open a constrained Google query when installed
@@ -71,7 +73,8 @@ current branch. Released sections correspond to Git tags.
 
 - The separate-extension model and the first signed source-update contract.
 
-[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.5
 [0.1.4]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.4
 [0.1.3]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.3
 [0.1.2]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.2

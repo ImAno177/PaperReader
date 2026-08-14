@@ -210,10 +210,10 @@ internal class ArxivReadablePaperLoader(
     companion object {
         private const val ARXIV_PROVIDER_ID = "arxiv"
         // Bump whenever sanitized output changes so a previously cached document cannot
-        // bypass a security or fidelity fix. Version 8 replaces unsupported arXiv SVG
-        // <object> figures with an explicit, accessible placeholder.
-        private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-8"
-        private const val RENDERER_CONTRACT_VERSION = "mobile-html-5"
+        // bypass a security or fidelity fix. Version 9 also normalizes author metadata and
+        // removes raw footnote-mark internals from the mobile reading flow.
+        private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-9"
+        private const val RENDERER_CONTRACT_VERSION = "mobile-html-6"
         private const val MAXIMUM_HTML_BYTES = 4L * 1024L * 1024L
         private val UNVERSIONED_ARXIV_ID = Regex(
             "(?:[0-9]{4}\\.[0-9]{4,5}|[A-Za-z][A-Za-z0-9.-]*/[0-9]{7})",
@@ -253,6 +253,7 @@ internal class ArxivHtmlSanitizer(
         val article = parsed.selectFirst("article.ltx_document")?.clone() ?: return null
         if (article.text().length < MINIMUM_ARTICLE_TEXT_LENGTH) return null
         collapseAuthorNotes(article)
+        normalizeAuthorLayout(article)
         val sourceLicense = parsed.selectFirst("#license-tr")
             ?.text()
             ?.trim()
@@ -344,15 +345,44 @@ internal class ArxivHtmlSanitizer(
         .toList()
 
     private fun collapseAuthorNotes(article: Element) {
-        val authorNotes = article.selectFirst(".ltx_author_notes") ?: return
-        authorNotes.select(".ltx_contact_name").remove()
+        val authors = article.selectFirst(".ltx_authors") ?: return
+        val deferredNotes = mutableListOf<Element>()
+        authors.select(".ltx_creator").forEach { creator ->
+            val authorNotes = creator.selectFirst(".ltx_author_notes") ?: return@forEach
+            authorNotes.select(".ltx_contact_name").remove()
+            // Thanks/acknowledgement prose is not author identity metadata. Keep affiliations
+            // and email addresses next to the author on narrow screens.
+            authorNotes.select(".ltx_role_thanks").remove()
+            if (authorNotes.select(".ltx_contact").isEmpty()) {
+                authorNotes.remove()
+                deferredNotes.add(authorNotes)
+            } else {
+                authorNotes.addClass("paperreader-author-details")
+            }
+        }
+        if (deferredNotes.isEmpty()) return
         val disclosure = Element("details").addClass("paperreader-author-notes")
         disclosure.appendElement("summary").text("Author notes and affiliations")
-        disclosure.appendElement("div")
-            .addClass("paperreader-author-notes-content")
-            .html(authorNotes.html())
-        authorNotes.remove()
-        article.selectFirst(".ltx_authors")?.after(disclosure)
+        val content = disclosure.appendElement("div").addClass("paperreader-author-notes-content")
+        deferredNotes.forEach(content::appendChild)
+        authors.after(disclosure)
+    }
+
+    private fun normalizeAuthorLayout(article: Element) {
+        val authors = article.selectFirst(".ltx_authors") ?: return
+        authors.select(".ltx_author_before").remove()
+        authors.select(".ltx_creator").forEach { creator ->
+            creator.addClass("paperreader-author")
+            creator.selectFirst(".ltx_personname")?.addClass("paperreader-author-name")
+            creator.select(".ltx_author_notes").forEach { notes ->
+                notes.addClass("paperreader-author-details")
+            }
+            // LaTeXML puts the explanatory `footnotemark:` payload inside the author name.
+            // Keep the superscript marker, but never expose those implementation internals.
+            creator.select(".ltx_role_footnotemark").forEach { marker ->
+                marker.select(".ltx_note_outer, .ltx_note_content, .ltx_note_type, .ltx_tag").remove()
+            }
+        }
     }
 
     private suspend fun embedFigures(

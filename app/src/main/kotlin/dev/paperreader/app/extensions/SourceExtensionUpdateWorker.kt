@@ -143,7 +143,7 @@ class ExtensionNotificationPublisher(context: Context) {
             Intent(context, MainActivity::class.java)
                 .setAction(ACTION_OPEN_EXTENSIONS)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = Notification.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_paper)

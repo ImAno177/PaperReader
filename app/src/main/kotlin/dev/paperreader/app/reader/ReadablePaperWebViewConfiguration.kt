@@ -27,7 +27,7 @@ internal fun configureReadablePaperWebView(
         javaScriptEnabled = false
         javaScriptCanOpenWindowsAutomatically = false
         allowFileAccess = false
-        allowContentAccess = false
+        setAllowContentAccess(false)
         allowFileAccessFromFileURLs = false
         allowUniversalAccessFromFileURLs = false
         blockNetworkLoads = true

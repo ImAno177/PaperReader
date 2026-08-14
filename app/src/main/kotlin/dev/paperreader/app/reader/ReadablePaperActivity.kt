@@ -2,6 +2,7 @@ package dev.paperreader.app.reader
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
 import android.os.SystemClock
@@ -55,7 +56,7 @@ class ReadablePaperActivity : AppCompatActivity() {
     private lateinit var errorBody: TextView
     private lateinit var findController: ReadablePaperFindController
     private lateinit var annotationController: ReadablePaperAnnotationController
-    private lateinit var citationReturnButton: Button
+    private lateinit var citationReturnButton: ImageButton
     private val sessionState: ReaderSessionViewModel by viewModels()
     private var currentDocument: ReadablePaperDocument? = null
     private var loadJob: Job? = null
@@ -187,14 +188,12 @@ class ReadablePaperActivity : AppCompatActivity() {
             nextButton = next,
             closeButton = close,
         )
-        citationReturnButton = findViewById<Button>(R.id.readable_reader_citation_return).apply {
-            setCompoundDrawablesRelativeWithIntrinsicBounds(
-                readerIcons.drawable(this@ReadablePaperActivity, PaperIconKey.BACK),
-                null,
-                null,
-                null,
+        citationReturnButton = findViewById<ImageButton>(R.id.readable_reader_citation_return).apply {
+            setImageDrawable(readerIcons.drawable(this@ReadablePaperActivity, PaperIconKey.BACK))
+            imageTintList = ColorStateList.valueOf(
+                resolveReadablePaperActionColor(this@ReadablePaperActivity, communityTheme),
             )
-            compoundDrawablePadding = (8 * resources.displayMetrics.density).roundToInt()
+            contentDescription = getString(R.string.readable_reader_citation_return)
             setOnClickListener { returnFromCitation() }
         }
         annotationController = ReadablePaperAnnotationController(

@@ -165,7 +165,7 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.11.2")
     implementation("androidx.pdf:pdf-viewer-fragment:1.0.0-alpha19")
     implementation("com.google.android.material:material:1.14.0")
-    implementation("com.squareup.okhttp3:okhttp:5.1.0")
+    implementation("com.squareup.okhttp3:okhttp:5.4.0")
 
     testImplementation("junit:junit:4.13.2")
 

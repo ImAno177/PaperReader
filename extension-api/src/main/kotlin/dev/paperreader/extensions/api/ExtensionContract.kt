@@ -94,7 +94,7 @@ object ExtensionPayloadValidator {
         if (value == null) return
         require(value.length <= 2_048)
         val uri = runCatching { URI(value) }.getOrNull()
-        require(uri?.scheme?.lowercase() in setOf("http", "https") && !uri?.host.isNullOrBlank()) {
+        require(uri != null && uri.scheme?.lowercase() in setOf("http", "https") && uri.host != null) {
             "URL must use HTTP(S) with a host"
         }
     }

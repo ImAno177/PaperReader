@@ -5,6 +5,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+apply(from = rootProject.file("gradle/jacoco-android.gradle.kts"))
+
 private fun String.asBuildConfigString(): String =
     "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
@@ -62,6 +64,8 @@ android {
     buildTypes {
         debug {
             connectedTestApplicationIdSuffix?.let { applicationIdSuffix = it }
+            enableUnitTestCoverage = true
+            enableAndroidTestCoverage = true
         }
         release {
             isMinifyEnabled = true
@@ -72,6 +76,10 @@ android {
             )
             if (appKeystorePath != null) signingConfig = signingConfigs.getByName("paperReaderRelease")
         }
+    }
+
+    testCoverage {
+        jacocoVersion = "0.8.15"
     }
 
     compileOptions {

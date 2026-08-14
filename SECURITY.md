@@ -7,7 +7,7 @@ release line is supported yet.
 
 ## Reporting a vulnerability
 
-Please use **Security → Report a vulnerability** in this GitHub repository to open a private security
+Please use **Security > Report a vulnerability** in this GitHub repository to open a private security
 advisory. Do not disclose a suspected vulnerability in a public issue, discussion, or pull request.
 
 Include affected version/commit, Android version, reproduction steps, expected impact, and a minimal

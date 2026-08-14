@@ -1,6 +1,7 @@
 # Architecture
 
-Status: enforced by Gradle dependencies and `LogicBoundaryTest`.
+Status: enforced by Gradle dependencies and `LogicBoundaryTest`. This file describes the current
+host boundary; deferred work is listed at the end.
 
 ```text
 PaperReader app repository                 PaperReader-sources repository
@@ -29,6 +30,15 @@ The official provider repository is
 Dependency direction never reverses. `:logic` has no Compose, Activity, Fragment, ViewModel, View, or
 Widget imports. `:app` talks to one application-scoped `PaperReaderLogic` facade and may not import
 Room, network, parser, or Binder implementations.
+
+## Current host capabilities
+
+| Capability | Host owns | External package owns |
+| --- | --- | --- |
+| Search and metadata | Exact identity, provider routing, clustering, ranking, failure state, and persistence | Upstream API requests, parsers, rate policy, and provider records |
+| Mobile reading | Sanitization, cache integrity, WebView isolation, layout controls, annotations, and export | Full-text or manifestation data supplied through the extension contract |
+| Extensions | Signed-store verification, package preflight, installation consent, lifecycle state, and reconciliation | One source or theme APK, its descriptor, tests, and release artifacts |
+| UI and storage | Compose screens, navigation, Room repositories, local files, tasks, backups, and preferences | No host database, filesystem, or executable code access |
 
 ## Code organization
 
@@ -169,7 +179,7 @@ repository. Android-runtime and UI changes also run connected tests on a declare
 `LogicBoundaryTest` rejects provider modules in the host repository, reverse dependencies, UI imports
 inside logic, and app code that bypasses the public facade.
 
-## Deferred work
+## Deferred work, not shipped
 
 - Production-grade isolated TeX and PDF reflow extraction beyond the verified arXiv HTML path.
 - OCR, annotation export, and cross-revision annotation re-anchoring.

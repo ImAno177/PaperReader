@@ -1,7 +1,8 @@
 # PaperReader product specification
 
-Status: pre-1.0 product contract. Update this file when product scope, provider roles, identity,
-reader behavior, persistence, or release requirements change.
+Status: pre-1.0 product contract. This file describes the host behavior implemented on the current
+branch. Update it when product scope, provider roles, identity, reader behavior, persistence, or
+release requirements change.
 
 ## Product statement
 
@@ -13,18 +14,26 @@ Mihon inspired the library, source-extension, update, and reader-navigation mode
 those ideas for scholarly documents rather than copying Mihon's code organization or in-process
 extension loading.
 
-## Product goals
+## Current feature set
 
-- Search real scholarly APIs and preview title, authors, abstract, identifiers, subjects, access,
-  license, provider provenance, and citation observations before saving.
-- Keep a durable local library, collections, history, reading state, bookmarks, annotations, saved
-  searches, downloads, and backups without mock production data.
-- Prefer a mobile reflow layout for supported papers while always preserving an honest original-PDF
-  fallback.
-- Support separately released source, search, metadata, and theme extensions with safe defaults.
-- Make provider updates maintainable outside the app release cycle without silent APK installation.
-- Ship English UI, accessible touch targets, adaptive navigation, and complete light/dark theme
-  palettes.
+The following behavior is implemented in the host. Provider implementations are installed separately
+and may be unavailable until the corresponding signed extension is installed.
+
+| Area | Implemented behavior |
+| --- | --- |
+| Discovery | Semantic Scholar free-text search; arXiv and Europe PMC content search; Crossref exact DOI enrichment; deterministic exact-identifier routing and citation-aware ranking. |
+| Google handoff | A `site:arxiv.org` browser fallback; explicit `/abs/`, `/html/`, or `/pdf/` URL handoff through Android VIEW or Share; exact arXiv ID and version parsing. |
+| Library | Room-backed papers, manifestations, collections, reading status, history, bookmarks, annotations, saved searches, update snapshots, downloads, local PDF import, and metadata backup. |
+| Mobile reader | Verified arXiv HTML cache, sanitization, offline WebView rendering, table-of-contents navigation, in-document search, citation return, text/layout controls, figures, MathML, horizontal table scrolling, and readable HTML export. |
+| Original documents | Bounded PDF download and an in-app PDF reader with search, page navigation, progress, and bookmarks. |
+| Extensions | Separate source and theme APKs over versioned AIDL, signed stores, package verification, user-confirmed PackageInstaller flows, update/orphan/untrusted states, and community extension discovery. |
+| Appearance and access | English UI, Doodle and Neobrutalism presets, theme-specific icon sets, System/Light/Dark mode, adaptive navigation, and 48 dp semantic touch targets. |
+| Privacy and safety | Local-first metadata and reading state, no analytics or advertising SDK, bounded network access, sanitized remote HTML, provenance and license retention, and exact-document annotation anchors. |
+
+## Release scope and status
+
+The host is pre-1.0. The feature table above is the current contract. Work listed in the deferred
+sections is not shipped and must not be presented as available in the UI or README.
 
 ## Non-goals for 1.0
 
@@ -165,7 +174,7 @@ then disabled again.
 
 The layout must provide:
 
-- Responsive single-column typography and reversible 85–200% text size.
+- Responsive single-column typography and reversible 85-200% text size.
 - Native table of contents and a find bar reachable without scrolling to the top.
 - Scrollable wide tables/math and responsive figures.
 - Citation jumps with a visible Back to reading position action.

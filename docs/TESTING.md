@@ -1,7 +1,17 @@
 # Testing
 
 PaperReader maps tests to production boundaries. Coverage counters support review; they do not define
-product readiness.
+product readiness. This file describes the current verification contract and the evidence expected in
+a pull request.
+
+## Current verification baseline
+
+- The local host gate passes on the current branch: unit tests, lint, and debug APK assembly for all
+  three modules.
+- The Google-to-arXiv handoff parser passes four connected Android tests on the declared API 36
+  emulator, including `/html/` URL version parsing and rejection of unrelated VIEW links.
+- Release readiness still requires the full connected suite, live-provider audit, extension install
+  flows, and Play Protect review listed below.
 
 ## Local gate
 

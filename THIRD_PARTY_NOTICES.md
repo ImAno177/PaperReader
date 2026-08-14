@@ -1,7 +1,8 @@
 # Third-party notices
 
-PaperReader's source code is licensed under Apache-2.0. The Android application is built from open-source dependencies,
-including:
+PaperReader's source code is licensed under Apache-2.0. The Android application is built from
+open-source dependencies, including the components listed below. The repository root [`NOTICE`](NOTICE)
+contains the project notice text; CI publishes an SPDX SBOM for each build artifact.
 
 | Component | Version/source | License |
 | --- | --- | --- |

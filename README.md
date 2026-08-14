@@ -7,20 +7,20 @@
 
 PaperReader is an open-source, local-first Android app for discovering, collecting, reading, and
 tracking scientific papers. It turns supported papers into a responsive, mobile-readable document
-while preserving the original PDF as a fidelity fallback.
+and keeps the original PDF as a fidelity fallback.
 
-PaperReader is in active pre-1.0 development and supports Android 9 or newer.
+PaperReader is pre-1.0 and supports Android 9 or newer.
 
 ## Highlights
 
-- Search real Semantic Scholar, arXiv, and Europe PMC records, enrich exact DOI metadata with
+- Search Semantic Scholar, arXiv, and Europe PMC records, enrich exact DOI metadata with
   Crossref, then save papers to an on-device Room library.
 - Read exact-version arXiv HTML offline with selectable text, figures, tables, MathML, search, a table
   of contents, adjustable typography, reading progress, and exact-document highlights with notes.
 - Download verified PDFs and open them in the in-app original-document reader.
 - Organize collections, history, bookmarks, saved searches, updates, and metadata backups locally.
 - Choose Doodle, Retro, or Neobrutalism themes with theme-aware Tabler Icons or Material Symbols.
-- Add Ed25519-signed community stores, or build isolated source and full visual-theme extensions with
+- Add Ed25519-signed community stores, or build isolated source and complete visual-theme extensions with
   the documented SDK.
 - Keep private reading data on the device with no analytics, advertising SDK, account, or cloud parser.
 
@@ -48,7 +48,8 @@ Extension authors can start with the [`extension-api` guide](docs/EXTENSIONS.md)
 
 ## Inspiration
 
-PaperReader is inspired by [Mihon](https://mihon.app/) and its thoughtful local-first library flows.
+PaperReader takes inspiration from [Mihon](https://mihon.app/)'s local-first library and extension
+flows.
 
 ## License
 

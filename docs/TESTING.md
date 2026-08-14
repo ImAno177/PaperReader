@@ -1,7 +1,7 @@
 # Testing
 
-PaperReader keeps test scope aligned with the production boundary instead of treating a generated
-counter as a product guarantee.
+PaperReader maps tests to production boundaries. Coverage counters support review; they do not define
+product readiness.
 
 ## Local gate
 
@@ -49,12 +49,10 @@ denominator and connected test device are deterministic in CI.
 
 ## CI model
 
-The workflow follows the parts of Mihon's build shape that fit this repository: dependency review on
-pull requests, a dedicated `testDebugUnitTest` step, failure-only test-report artifacts, lint checks,
-and APK artifacts. PaperReader additionally publishes JaCoCo unit reports and an SPDX SBOM. Mihon
-also runs Spotless and SQLDelight migration verification; PaperReader has no formatter plugin and
-keeps Room schema/migration coverage in `logic` Android tests, so those are reported separately
-instead of pretending an equivalent task exists. Mihon's reference workflow is
+PaperReader's workflow follows Mihon's separation of dependency review, unit tests, failure-only
+test-report artifacts, lint checks, and APK artifacts. It also publishes JaCoCo unit reports and an
+SPDX SBOM. Mihon runs Spotless and SQLDelight migration verification; PaperReader has no formatter
+plugin and keeps Room schema/migration coverage in `logic` Android tests. Mihon's reference workflow is
 [`build.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/build.yml); its tag-based
 APK publishing is in [`release.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/release.yml).
 

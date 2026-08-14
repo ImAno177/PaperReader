@@ -80,7 +80,8 @@ from new federated discovery and identifier-resolution calls. This selection is 
 
 ## Extension trust and updates
 
-PaperReader follows Mihon's useful lifecycle model while keeping a stricter trust boundary:
+PaperReader uses the same observable lifecycle states as Mihon and keeps APK verification at the host
+trust boundary:
 
 ```text
 refresh signed store
@@ -158,7 +159,7 @@ When a production-signed host is already installed on the shared emulator, conne
 without replacing the release app or deleting its data; it is not set for normal debug/release builds.
 
 Provider parser, fixture, lint, signed-APK, registry, and SBOM checks run in the external provider
-repository. Android-runtime or UI changes additionally run connected tests on a declared emulator.
+repository. Android-runtime and UI changes also run connected tests on a declared emulator.
 
 `LogicBoundaryTest` rejects provider modules in the host repository, reverse dependencies, UI imports
 inside logic, and app code that bypasses the public facade.

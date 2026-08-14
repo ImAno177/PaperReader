@@ -17,7 +17,8 @@ large UI, schema, provider, reader, or dependency changes.
 
 ## Development workflow
 
-1. Create a small branch and add the smallest deterministic test that proves the behavior.
+1. Create a typed branch named `<type>/<kebab-case-summary>` and add the smallest deterministic test
+   that proves the behavior.
 2. Update exported Room schemas and migrations for persistence changes.
 3. Update `docs/SPEC.md`, `docs/ARCHITECTURE.md`, or `docs/EXTENSIONS.md` when a documented decision changes.
 4. Run the required gate:
@@ -36,8 +37,8 @@ use destructive Room migration as a shortcut.
 
 Dependabot opens grouped Gradle and GitHub Actions updates weekly on Monday at 09:00 ICT because its
 configuration does not accept arbitrary cron expressions. Maintainers review and merge that queue
-every other Monday; security-update groups remain separate so urgent fixes are not held for the
-biweekly review.
+every other Monday. Security-update groups stay separate from minor and patch updates; handle urgent
+fixes outside the biweekly review cadence.
 
 Pull requests should explain the user-visible change, public facade/schema impact, tests run, and any
 deliberately deferred behavior.

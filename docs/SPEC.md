@@ -37,8 +37,8 @@ extension loading.
 
 ## Information architecture
 
-Root destinations are Library, Search, Updates, History, and More. More is a branch hub, not a single
-long settings page:
+Root destinations are Library, Search, Updates, History, and More. More groups settings into branches
+rather than one long page:
 
 - Appearance
 - Collections
@@ -48,9 +48,9 @@ long settings page:
 - Sources & extensions
 - About
 
-Root titles are large, left aligned, and close enough to the top safe area to preserve content space.
-They have no decorative divider. Bottom-navigation visual outlines align with the content grid while
-touch targets remain independent, at least 48 dp, and extend safely around the visible geometry.
+Root titles are large, left aligned, and near the top safe area. They have no decorative divider.
+Bottom-navigation outlines align with the content grid, while independent touch targets remain at least
+48 dp and extend safely around the visible geometry.
 
 Appearance has independent controls for visual preset and System/Light/Dark mode. Doodle and Retro
 use Tabler icons; other built-in presets use Material Symbols. A theme extension supplies a complete
@@ -130,7 +130,7 @@ responses as typed outcomes. Respect `Retry-After`; never retry a cancellation o
 
 ## Mobile reader
 
-The reader is the primary product surface, not an accessory PDF viewer.
+The reader is the primary product surface. The PDF viewer remains the fidelity fallback.
 
 ### Acquisition order
 
@@ -193,9 +193,9 @@ failure must not discard the currently verified in-memory document.
 
 ### Update lifecycle
 
-PaperReader adopts Mihon's state model—installed, available, update, untrusted, and orphaned—and its
-package-broadcast reconciliation pattern. It deliberately adds cryptographic artifact verification
-before installation:
+PaperReader uses Mihon's installed, available, update, untrusted, and orphaned states together with its
+package-broadcast reconciliation pattern. It adds cryptographic artifact verification before
+installation:
 
 1. Refresh stores on cold start, manual refresh, and constrained periodic work.
 2. Compare package name, versionCode, contract compatibility, and signer.

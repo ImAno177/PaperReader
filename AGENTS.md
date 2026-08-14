@@ -62,8 +62,8 @@ Update the relevant document when a decision changes.
   issue number such as `fix/425-rss-deleting-bug`.
 - Use `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `build`, `ci`, `release`, or `dependency`;
   avoid vague `dev`, `patch`, or bare-name branches.
-- Codex-owned branches retain the desktop prefix, for example
-  `codex/feat/semantic-scholar-engine`.
+- Do not add a tool, agent, or owner prefix; the branch name describes the change directly, for example
+  `feat/semantic-scholar-engine`.
 - Keep one independently reviewable concern per branch and align Conventional Commit and PR types.
 
 ## Domain and persistence rules

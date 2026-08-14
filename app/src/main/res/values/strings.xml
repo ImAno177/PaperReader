@@ -53,7 +53,7 @@
     <string name="search_no_results_title">No papers found</string>
     <string name="search_no_results_body">Try a shorter title or exact identifier.</string>
     <string name="search_google_title">Search the web for an arXiv copy</string>
-    <string name="search_google_body">Google can find an arXiv page when installed sources have no match. Share the paper link back to PaperReader to import it.</string>
+    <string name="search_google_body">Open an arXiv result, choose PaperReader, or use Share. PaperReader sends the exact ID to your installed arXiv source for API metadata.</string>
     <string name="search_google_action">Search arXiv on Google</string>
     <string name="search_failed_title">Sources unavailable</string>
     <string name="search_failed_body">Check your connection and try again.</string>

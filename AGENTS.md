@@ -5,18 +5,41 @@ existing user work, and never present a stub as a production feature.
 
 ## Documentation index
 
-- [`README.md`](README.md) — product overview, feature highlights, screenshots, and build entry point.
-- [`docs/SPEC.md`](docs/SPEC.md) — product scope, domain decisions, provider roles, reader requirements, and release acceptance.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — module ownership, supported boundaries, extension lifecycle, and verification gate.
-- [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md) — source/theme SDK, signed-store schema, trust checks, and runtime limits.
-- [`docs/TESTING.md`](docs/TESTING.md) — local/connected test commands, JaCoCo scope, CI artifacts, and coverage rules.
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — branch, pull-request, required-check, and contribution workflow.
-- [`SECURITY.md`](SECURITY.md) — private vulnerability reporting and security-sensitive areas.
-- [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — dependency, icon, and content-license attributions.
+- [`README.md`](README.md) - product summary, current feature list, screenshots, and build entry point.
+- [`CHANGELOG.md`](CHANGELOG.md) - released changes and the current unreleased delta.
+- [`docs/SPEC.md`](docs/SPEC.md) - current product behavior, domain rules, provider roles, and deferred scope.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - module ownership, boundaries, extension lifecycle, and verification gate.
+- [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md) - source/theme SDK, signed-store schema, trust checks, and runtime limits.
+- [`docs/TESTING.md`](docs/TESTING.md) - local and connected test commands, coverage scope, CI artifacts, and release checks.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) - branch, pull-request, required-check, and contribution workflow.
+- [`SECURITY.md`](SECURITY.md) - private vulnerability reporting and security-sensitive areas.
+- [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) - dependency, icon, and content-license attributions.
 
 Read `docs/SPEC.md` and `docs/ARCHITECTURE.md` before changing domain models, boundaries,
 providers, readers, or persistence. Read `docs/EXTENSIONS.md` before changing extension contracts.
 Update the relevant document when a decision changes.
+
+## Markdown documentation rules
+
+- Write repository documentation in clear English. Keep UI copy in the resource files, not in prose
+  documents.
+- Use one H1 per file, sentence case for section headings, and a blank line around headings, lists,
+  tables, and code fences. Keep paragraphs short enough to scan on GitHub.
+- Start each document with its purpose and status. Describe implemented behavior as present tense;
+  put planned, deferred, experimental, and removed behavior in clearly named sections.
+- Do not describe mocks, screenshots, prototypes, or roadmap items as shipped features. Use explicit
+  labels such as `Implemented`, `Planned`, `Deferred`, and `Deprecated` when status could be unclear.
+- Use relative links for files in this repository and give every linked document one short description.
+  Keep external links stable, remove tracking parameters, and never paste tool citation tokens.
+- Prefer concrete names, versions, commands, file paths, and test evidence over broad claims. Avoid
+  promotional filler, unexplained acronyms, em dashes, and placeholder text.
+- Keep tables for compact comparisons. Use paragraphs for reasoning and lists for genuinely parallel
+  items. Do not duplicate the same contract across multiple documents; link to its source of truth.
+- Update `CHANGELOG.md` for user-visible behavior, public API, schema, security, build, or CI changes.
+  Keep `Unreleased` first, group entries under Added, Changed, Fixed, Removed, Security, or Build, and
+  use dated semantic-version headings only for released tags.
+- Before opening a pull request, run Markdown lint, check links and code examples, remove stale claims,
+  and confirm that the documentation index and affected cross-references still point to real files.
 
 ## Project boundary
 

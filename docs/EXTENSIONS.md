@@ -1,14 +1,24 @@
 # Extension SDK
 
-PaperReader extensions are separate Android applications. They communicate with the host through the
-versioned `dev.paperreader:extension-api` AIDL contract and run under a different Linux UID. The host
-never loads third-party code into its process.
+Status: implemented host contract. PaperReader extensions are separate Android applications. They
+communicate with the host through the versioned `dev.paperreader:extension-api` AIDL contract and run
+under a different Linux UID. The host never loads third-party code into its process.
+
+## Current extension types
+
+| Type | Current role | Install boundary |
+| --- | --- | --- |
+| Source | Search, exact lookup, metadata, and paper manifestations | Signed APK, bounded Binder calls, Android PackageInstaller confirmation |
+| Theme | Declarative palettes, typography, shapes, decorations, and semantic icons | Signed APK, validated descriptor and icon paths, host-owned rendering |
+
+The official source repository currently publishes Semantic Scholar, Crossref, arXiv, and Europe PMC
+packages. The host keeps provider implementations outside this repository.
 
 Reference repositories:
 
-- [Official source extensions](https://github.com/ImAno177/PaperReader-sources) — independently
+- [Official source extensions](https://github.com/ImAno177/PaperReader-sources) - independently
   released Semantic Scholar, Crossref, arXiv, and Europe PMC APKs plus the signed official registry.
-- [Theme extension sample](https://github.com/ImAno177/PaperReader-theme-sample) — a complete
+- [Theme extension sample](https://github.com/ImAno177/PaperReader-theme-sample) - a complete
   declarative light/dark theme and semantic icon set.
 
 ## Build against the SDK

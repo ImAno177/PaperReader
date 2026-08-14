@@ -43,6 +43,10 @@ class IdentifierNormalizerTest {
             NormalizedArxivId("hep-th/9901001", 2),
             IdentifierNormalizer.arxiv("arXiv:hep-th/9901001v2"),
         )
+        assertEquals(
+            NormalizedArxivId("1706.03762", 7),
+            IdentifierNormalizer.arxiv("https://arxiv.org/html/1706.03762v7"),
+        )
     }
 
     @Test

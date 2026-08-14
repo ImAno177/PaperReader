@@ -11,10 +11,15 @@ and keeps the original PDF as a fidelity fallback.
 
 PaperReader is pre-1.0 and supports Android 9 or newer.
 
+The current host behavior is recorded in [`docs/SPEC.md`](docs/SPEC.md). Release history is tracked in
+[`CHANGELOG.md`](CHANGELOG.md).
+
 ## Highlights
 
 - Search Semantic Scholar, arXiv, and Europe PMC records, enrich exact DOI metadata with
   Crossref, then save papers to an on-device Room library.
+- Use a browser-mediated Google fallback to find an arXiv URL, then hand the exact identifier to the
+  installed arXiv source for API metadata. The app never scrapes Google result pages.
 - Read exact-version arXiv HTML offline with selectable text, figures, tables, MathML, search, a table
   of contents, adjustable typography, reading progress, and exact-document highlights with notes.
 - Download verified PDFs and open them in the in-app original-document reader.

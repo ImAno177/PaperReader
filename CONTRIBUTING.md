@@ -21,7 +21,15 @@ large UI, schema, provider, reader, or dependency changes.
    that proves the behavior.
 2. Update exported Room schemas and migrations for persistence changes.
 3. Update `docs/SPEC.md`, `docs/ARCHITECTURE.md`, or `docs/EXTENSIONS.md` when a documented decision changes.
-4. Run the required gate:
+4. Update `CHANGELOG.md` for user-visible, public API, schema, security, build, or CI changes. Keep
+   unreleased work under `Unreleased` until a tag exists.
+5. Run Markdown lint when changing documentation:
+
+   ```powershell
+   npx --yes markdownlint-cli2 "**/*.md" "!**/build/**" "!**/.gradle/**" "!design-skills/**" "!.agents/**"
+   ```
+
+6. Run the required gate:
 
    ```powershell
      .\gradlew.bat :extension-api:testDebugUnitTest :extension-api:lintDebug `
@@ -29,7 +37,7 @@ large UI, schema, provider, reader, or dependency changes.
        :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
    ```
 
-5. Run connected tests for Android runtime/UI changes and report the device/API used.
+7. Run connected tests for Android runtime/UI changes and report the device/API used.
 
 Provider unit tests must use recorded local fixtures. Live API calls belong in an explicit manual
 verification, not the deterministic suite. Never weaken `LogicBoundaryTest`, add a lint baseline, or

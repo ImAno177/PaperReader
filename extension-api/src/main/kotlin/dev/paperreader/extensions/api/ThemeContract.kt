@@ -48,6 +48,7 @@ enum class ThemeFontFamily(val wireValue: String) {
 enum class ThemeDecoration(val wireValue: String) {
     NONE("none"),
     DOODLE("doodle"),
+    /** Kept for already-published community themes; never exposed as a built-in preset. */
     RETRO_GRID("retro_grid"),
 }
 

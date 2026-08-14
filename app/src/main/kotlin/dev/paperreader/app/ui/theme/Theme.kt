@@ -21,7 +21,6 @@ enum class PaperThemePreset(
     val storageKey: String,
 ) {
     DOODLE("doodle"),
-    RETRO("retro"),
     NEOBRUTALISM("neobrutalism"),
     ;
 
@@ -54,6 +53,7 @@ enum class PaperThemeMode(
 enum class PaperDecoration {
     NONE,
     DOODLE,
+    /** Legacy community-extension decoration; it is not a selectable built-in preset. */
     RETRO_GRID,
 }
 
@@ -90,7 +90,6 @@ data class PaperThemeTokens(
 
 internal fun paperThemeTokens(preset: PaperThemePreset, dark: Boolean): PaperThemeTokens = when (preset) {
     PaperThemePreset.DOODLE -> doodleThemeTokens(dark)
-    PaperThemePreset.RETRO -> retroThemeTokens(dark)
     PaperThemePreset.NEOBRUTALISM -> neobrutalismThemeTokens(dark)
 }
 
@@ -104,15 +103,32 @@ private fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (da
         onSecondary = onSecondary,
         secondaryContainer = secondaryContainer,
         onSecondaryContainer = onSecondaryContainer,
+        tertiary = secondary,
+        onTertiary = onSecondary,
+        tertiaryContainer = secondaryContainer,
+        onTertiaryContainer = onSecondaryContainer,
         background = canvas,
         onBackground = ink,
         surface = surface,
         onSurface = ink,
         surfaceVariant = surfaceMuted,
         onSurfaceVariant = inkMuted,
+        surfaceContainerLowest = surface,
+        surfaceContainerLow = surface,
+        surfaceContainer = surfaceMuted,
+        surfaceContainerHigh = surfaceMuted,
+        surfaceContainerHighest = surfaceMuted,
+        surfaceDim = canvas,
+        surfaceBright = surface,
         outline = border,
+        outlineVariant = border.copy(alpha = 0.65f),
         error = danger,
         onError = Color.White,
+        errorContainer = surfaceMuted,
+        onErrorContainer = ink,
+        inverseSurface = ink,
+        inverseOnSurface = surface,
+        inversePrimary = primary,
     )
 } else {
     lightColorScheme(
@@ -124,15 +140,32 @@ private fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (da
         onSecondary = onSecondary,
         secondaryContainer = secondaryContainer,
         onSecondaryContainer = onSecondaryContainer,
+        tertiary = secondary,
+        onTertiary = onSecondary,
+        tertiaryContainer = secondaryContainer,
+        onTertiaryContainer = onSecondaryContainer,
         background = canvas,
         onBackground = ink,
         surface = surface,
         onSurface = ink,
         surfaceVariant = surfaceMuted,
         onSurfaceVariant = inkMuted,
+        surfaceContainerLowest = surface,
+        surfaceContainerLow = surface,
+        surfaceContainer = surfaceMuted,
+        surfaceContainerHigh = surfaceMuted,
+        surfaceContainerHighest = surfaceMuted,
+        surfaceDim = canvas,
+        surfaceBright = surface,
         outline = border,
+        outlineVariant = border.copy(alpha = 0.65f),
         error = danger,
         onError = Color.White,
+        errorContainer = surfaceMuted,
+        onErrorContainer = ink,
+        inverseSurface = ink,
+        inverseOnSurface = surface,
+        inversePrimary = primary,
     )
 }
 

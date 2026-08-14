@@ -52,10 +52,11 @@ Root titles are large, left aligned, and near the top safe area. They have no de
 Bottom-navigation outlines align with the content grid, while independent touch targets remain at least
 48 dp and extend safely around the visible geometry.
 
-Appearance has independent controls for visual preset and System/Light/Dark mode. Doodle and Retro
-use Tabler icons; other built-in presets use Material Symbols. A theme extension supplies a complete
+Appearance has independent controls for visual preset and System/Light/Dark mode. Doodle uses Tabler
+icons; Neobrutalism uses Material Symbols. A theme extension supplies a complete
 semantic icon set with its declarative tokens. Empty-state color is a semantic theme token, never a
-hard-coded purple.
+hard-coded purple. Status colors keep each preset's accent hue and use AA-safe tones when reused as
+text or icons on light surfaces.
 
 ## Domain model
 

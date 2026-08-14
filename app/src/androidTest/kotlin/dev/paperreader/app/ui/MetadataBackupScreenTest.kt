@@ -52,7 +52,7 @@ class MetadataBackupScreenTest {
         composeRule.onNodeWithText("Create metadata backup").assertIsDisplayed().performClick()
         composeRule.onNodeWithText("Restore from backup").performScrollTo().assertIsDisplayed().performClick()
         composeRule.onNodeWithText(
-            "PDFs, active downloads, caches, plugins, and credentials are never included.",
+            "PDFs, downloads, caches, extensions, and credentials stay on this device.",
             substring = true,
         ).assertExists()
 
@@ -92,7 +92,7 @@ class MetadataBackupScreenTest {
         }
 
         composeRule.onNodeWithText("Restore this metadata backup?").assertIsDisplayed()
-        composeRule.onNodeWithText("Existing local PDFs and active downloads are never replaced.", substring = true)
+        composeRule.onNodeWithText("local PDFs and downloads stay unchanged.", substring = true)
             .assertIsDisplayed()
         composeRule.onNodeWithText("Restore").performClick()
 

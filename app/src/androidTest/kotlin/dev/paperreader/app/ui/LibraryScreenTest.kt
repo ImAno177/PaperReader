@@ -31,7 +31,7 @@ class LibraryScreenTest {
     fun savedPaperSearchFiltersRealPresentationFields() {
         composeRule.enableAccessibilityChecks()
         composeRule.setContent {
-            PaperReaderTheme(PaperThemePreset.RETRO) {
+            PaperReaderTheme(PaperThemePreset.DOODLE) {
                 LibraryScreen(
                     state = LoadState.Ready(
                         listOf(

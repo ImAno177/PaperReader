@@ -7,9 +7,8 @@ import org.junit.Test
 
 class PaperIconSetTest {
     @Test
-    fun `doodle and retro use Tabler icons`() {
+    fun `doodle uses Tabler icons`() {
         assertEquals(PaperIconFamily.TABLER, paperIconSet(PaperThemePreset.DOODLE).family)
-        assertEquals(PaperIconFamily.TABLER, paperIconSet(PaperThemePreset.RETRO).family)
     }
 
     @Test

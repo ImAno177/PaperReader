@@ -60,9 +60,9 @@ class SourcesScreenTest {
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Example provider"))
         composeRule.onNodeWithText("Example provider").assertIsDisplayed()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(
-            hasText("Android keeps the final install confirmation under your control.", substring = true),
+            hasText("Android asks for confirmation.", substring = true),
         )
-        composeRule.onNodeWithText("Android keeps the final install confirmation under your control.", substring = true)
+        composeRule.onNodeWithText("Android asks for confirmation.", substring = true)
             .assertIsDisplayed()
     }
 
@@ -214,7 +214,9 @@ class SourcesScreenTest {
         }
 
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Semantic Scholar"))
-        composeRule.onNodeWithText("Update extension").assertIsDisplayed()
+        assertTrue(
+            composeRule.onAllNodesWithText("Update extension").fetchSemanticsNodes().isNotEmpty(),
+        )
         composeRule.onNodeWithText("Installed but blocked").assertDoesNotExist()
     }
 

@@ -57,12 +57,11 @@ class ThemeChoiceTest {
         }
 
         composeRule.onNodeWithText("Doodle").assertExists()
-        composeRule.onNodeWithText("Retro").assertExists()
         composeRule.onNodeWithText("Neobrutalism").assertExists()
-        composeRule.onNodeWithText("Retro").performClick()
+        composeRule.onNodeWithText("Doodle").performClick()
 
         composeRule.runOnIdle {
-            assertEquals(PaperThemePreset.RETRO, selectedPreset)
+            assertEquals(PaperThemePreset.DOODLE, selectedPreset)
         }
     }
 
@@ -138,12 +137,12 @@ class ThemeChoiceTest {
             }
         }
 
-        composeRule.onNodeWithText("Off. Refresh manually from Updates whenever you want.")
+        composeRule.onNodeWithText("Off · refresh from Updates when needed.")
             .performScrollTo()
             .assertExists()
         composeRule.onNodeWithContentDescription("Automatic saved-search refresh").performClick()
         composeRule.waitUntil { requested == true }
-        composeRule.onNodeWithText("Background checks continue, but Android is blocking notifications.")
+        composeRule.onNodeWithText("Background checks continue; notifications are blocked.")
             .performScrollTo()
             .assertExists()
         composeRule.onNodeWithText("Open notification settings").assertExists()

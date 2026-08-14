@@ -169,7 +169,7 @@ class SavedSearchUpdatesScreenTest {
         var readHit: String? = null
         var deletedSearch: String? = null
         composeRule.setContent {
-            PaperReaderTheme(PaperThemePreset.RETRO) {
+            PaperReaderTheme(PaperThemePreset.DOODLE) {
                 UpdatesScreen(
                     tasks = LoadState.Ready(emptyList()),
                     providers = providerState(),

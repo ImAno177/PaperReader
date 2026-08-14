@@ -54,13 +54,6 @@ fun AppearanceScreen(
     val dark = selectedThemeMode.resolveDarkTheme(isSystemInDarkTheme())
     MoreBranchScaffold(title = stringResource(R.string.appearance_title), onBack = onBack) {
         item {
-            Text(
-                stringResource(R.string.appearance_body),
-                style = MaterialTheme.typography.bodyLarge,
-                color = PaperTheme.tokens.inkMuted,
-            )
-        }
-        item {
             PaperSectionHeader(stringResource(R.string.color_mode_title))
         }
         items(PaperThemeMode.entries, key = PaperThemeMode::storageKey) { mode ->
@@ -168,17 +161,11 @@ private fun ThemeModeChoiceCard(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             RadioButton(selected = selected, onClick = null)
-            Column(
+            Text(
+                themeModeName(mode),
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(themeModeName(mode), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    themeModeDescription(mode),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PaperTheme.tokens.inkMuted,
-                )
-            }
+                style = MaterialTheme.typography.titleMedium,
+            )
         }
     }
 }
@@ -191,16 +178,6 @@ private fun themeModeName(mode: PaperThemeMode): String = stringResource(
         PaperThemeMode.DARK -> R.string.theme_mode_dark
     },
 )
-
-@Composable
-private fun themeModeDescription(mode: PaperThemeMode): String = stringResource(
-    when (mode) {
-        PaperThemeMode.SYSTEM -> R.string.theme_mode_system_description
-        PaperThemeMode.LIGHT -> R.string.theme_mode_light_description
-        PaperThemeMode.DARK -> R.string.theme_mode_dark_description
-    },
-)
-
 
 @Composable
 private fun ThemeChoiceCard(
@@ -271,7 +248,6 @@ private fun CommunityThemeChoiceCard(
 internal fun themeName(preset: PaperThemePreset): String = stringResource(
     when (preset) {
         PaperThemePreset.DOODLE -> R.string.theme_doodle
-        PaperThemePreset.RETRO -> R.string.theme_retro
         PaperThemePreset.NEOBRUTALISM -> R.string.theme_neobrutalism
     },
 )
@@ -280,7 +256,6 @@ internal fun themeName(preset: PaperThemePreset): String = stringResource(
 private fun themeDescription(preset: PaperThemePreset): String = stringResource(
     when (preset) {
         PaperThemePreset.DOODLE -> R.string.theme_doodle_description
-        PaperThemePreset.RETRO -> R.string.theme_retro_description
         PaperThemePreset.NEOBRUTALISM -> R.string.theme_neobrutalism_description
     },
 )
@@ -297,9 +272,12 @@ private fun ThemeSwatch(colors: List<androidx.compose.ui.graphics.Color>) {
         colors.forEach { color ->
             Surface(
                 modifier = Modifier.size(20.dp),
-                shape = RoundedCornerShape(4.dp),
+                shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius / 2),
                 color = color,
-                border = BorderStroke(1.dp, PaperTheme.tokens.border),
+                border = BorderStroke(
+                    PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp),
+                    PaperTheme.tokens.border,
+                ),
             ) {}
         }
     }

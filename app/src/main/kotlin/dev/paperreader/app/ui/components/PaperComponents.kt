@@ -266,7 +266,10 @@ fun StatusBadge(
         shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius / 2),
         color = color.copy(alpha = 0.18f),
         contentColor = PaperTheme.tokens.ink,
-        border = BorderStroke(1.dp, color.copy(alpha = 0.7f)),
+        border = BorderStroke(
+            PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp),
+            color.copy(alpha = 0.7f),
+        ),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -302,7 +305,7 @@ fun PaperProgress(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
-                .clip(RoundedCornerShape(8.dp)),
+                .clip(RoundedCornerShape(PaperTheme.tokens.cornerRadius / 2)),
             color = PaperTheme.tokens.primary,
             trackColor = PaperTheme.tokens.surfaceMuted,
         )

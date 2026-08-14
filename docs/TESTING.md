@@ -69,3 +69,25 @@ framework seams can be measured deterministically.
 
 Tests use local fixtures and MockWebServer for provider/network behavior. Live provider APIs and
 Play Protect are release smoke checks, never deterministic unit-test dependencies.
+
+## Release smoke record (2026-08-14)
+
+The signed [v0.1.3 release](https://github.com/ImAno177/PaperReader/releases/tag/v0.1.3) was exercised
+on `emulator-5554` (`covaigay_api36(AVD) - 16`, API 36) with the official source extensions installed.
+The host is commit `7d7d176`; the APK is versionCode 4. Results were:
+
+- `arXiv:1706.03762v7` searched, opened in detail, saved, and loaded as verified/cached HTML. The
+  mobile reader now renders each author as a vertical block with readable affiliation/email lines;
+  no raw `footnotemark` payload appeared. Reader search and Paper contents opened successfully.
+- `arXiv:2501.04510v2` searched, opened in detail, saved, and loaded as verified/cached HTML. The
+  known conversion-artifact warning was surfaced without blocking reading.
+- A Crossref/Europe PMC DOI lookup (`10.1038/s41586-020-2649-2`) returned live metadata for
+  *Array programming with NumPy*. An unauthenticated Semantic Scholar rate limit was surfaced as
+  an unavailable source instead of fabricated results.
+- The connected Android suite completed `78` tests with `0` failures, `0` errors, and `0` skipped.
+  The local JVM suites completed `11` extension-api, `245` logic, and `77` app test cases with no
+  failures or errors.
+
+The README reader image is the same v0.1.3 smoke capture, so documentation reflects the shipped
+mobile layout rather than a mock or stale render. Play Protect evidence remains a device-installed-
+set verdict; it is not an upload API attestation.

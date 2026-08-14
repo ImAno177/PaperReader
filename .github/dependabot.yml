@@ -4,8 +4,12 @@ updates:
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
-      interval: "cron"
-      cronjob: "0 9 1,15 * *"
+      # Dependabot supports named intervals, not cron expressions. Keep the
+      # update window predictable; maintainers review and merge these grouped
+      # PRs every other Monday.
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
       timezone: "Asia/Ho_Chi_Minh"
     open-pull-requests-limit: 5
     reviewers:
@@ -30,8 +34,9 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "cron"
-      cronjob: "0 9 1,15 * *"
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
       timezone: "Asia/Ho_Chi_Minh"
     open-pull-requests-limit: 5
     reviewers:

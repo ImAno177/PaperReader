@@ -5,6 +5,8 @@ plugins {
     id("androidx.room")
 }
 
+apply(from = rootProject.file("gradle/jacoco-android.gradle.kts"))
+
 android {
     namespace = "dev.paperreader.logic"
     compileSdk = 36
@@ -13,6 +15,17 @@ android {
         minSdk = 28
         consumerProguardFiles("consumer-rules.pro")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+            enableAndroidTestCoverage = true
+        }
+    }
+
+    testCoverage {
+        jacocoVersion = "0.8.15"
     }
 
     compileOptions {

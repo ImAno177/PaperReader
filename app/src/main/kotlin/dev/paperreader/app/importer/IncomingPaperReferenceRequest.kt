@@ -16,15 +16,26 @@ sealed interface IncomingPaperReferencePayload {
 
 internal fun Intent.incomingPaperReferencePayloadOrNull(): IncomingPaperReferencePayload? = runCatching {
     val mediaType = type?.substringBefore(';')?.trim()
-    if (action != Intent.ACTION_SEND || !mediaType.equals(TEXT_MIME_TYPE, ignoreCase = true)) {
-        return@runCatching null
+    val sharedText = when (action) {
+        Intent.ACTION_VIEW -> data?.toString()
+            ?.takeIf { it.startsWith("https://", ignoreCase = true) }
+            ?: return@runCatching null
+
+        Intent.ACTION_SEND -> {
+            if (!mediaType.equals(TEXT_MIME_TYPE, ignoreCase = true)) return@runCatching null
+            getCharSequenceExtra(Intent.EXTRA_TEXT)
+                ?: clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.text
+                ?: return@runCatching IncomingPaperReferencePayload.Invalid
+        }
+
+        else -> return@runCatching null
     }
-    val sharedText = getCharSequenceExtra(Intent.EXTRA_TEXT)
-        ?: clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.text
-        ?: return@runCatching IncomingPaperReferencePayload.Invalid
-    PaperReferenceParser.parseSharedText(sharedText.toString())
-        ?.let(IncomingPaperReferencePayload::Valid)
-        ?: IncomingPaperReferencePayload.Invalid
+    val reference = PaperReferenceParser.parseSharedText(sharedText.toString())
+    when {
+        reference != null -> IncomingPaperReferencePayload.Valid(reference)
+        action == Intent.ACTION_SEND -> IncomingPaperReferencePayload.Invalid
+        else -> null
+    }
 }.getOrNull()
 
 private const val TEXT_MIME_TYPE = "text/plain"

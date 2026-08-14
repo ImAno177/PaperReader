@@ -19,7 +19,7 @@ data class PaperReferenceQuery(
 object PaperReferenceParser {
     private const val MAX_SHARED_TEXT_LENGTH = 16_384
     private val supportedUrlPattern = Regex(
-        """https?://(?:(?:www\.)?arxiv\.org/(?:abs|pdf)/|(?:dx\.)?doi\.org/)\S+""",
+        """https?://(?:(?:www\.)?arxiv\.org/(?:abs|html|pdf)/|(?:dx\.)?doi\.org/)\S+""",
         RegexOption.IGNORE_CASE,
     )
 

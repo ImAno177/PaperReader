@@ -123,6 +123,14 @@ Semantic Scholar owns natural-language search; Crossref owns exact DOI enrichmen
 - Search result cards open the same full metadata preview used by Library before Save/Open.
 - Production tests use fixtures and a local server; a separate audit may exercise live APIs.
 
+### Google-to-arXiv handoff
+
+When installed providers return no match, Search may open a Google query constrained to arXiv. The
+app does not scrape Google result HTML, embed a Google API key, or treat a search snippet as paper
+metadata. The user selects or shares an arXiv `/abs/`, `/html/`, or `/pdf/` URL; Android hands that
+URL back to PaperReader, which normalizes the exact arXiv identifier and routes it to the installed
+arXiv content source for API metadata and manifestations. Unsupported browser URLs are ignored.
+
 ### Network policy
 
 Use official HTTPS APIs with an honest User-Agent/contact where required. Bound request time, body

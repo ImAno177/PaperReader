@@ -38,11 +38,29 @@ class IncomingPaperReferenceRequestAndroidTest {
     }
 
     @Test
+    fun arxivViewLinkReturnsAnExactReferenceQuery() {
+        val reference = Intent(
+            Intent.ACTION_VIEW,
+            android.net.Uri.parse("https://arxiv.org/html/1706.03762v7"),
+        ).incomingPaperReferencePayloadOrNull()
+            .let { it as IncomingPaperReferencePayload.Valid }
+            .reference
+
+        assertEquals(IdentifierType.ARXIV, reference?.identifier?.type)
+        assertEquals("1706.03762", reference?.identifier?.value)
+        assertEquals("1706.03762v7", reference?.query)
+    }
+
+    @Test
     fun unrelatedOrAmbiguousIntentsAreIgnored() {
         assertNull(
             Intent(Intent.ACTION_VIEW)
                 .setType("text/plain")
                 .putExtra(Intent.EXTRA_TEXT, "https://arxiv.org/abs/2501.04510")
+                .incomingPaperReferencePayloadOrNull(),
+        )
+        assertNull(
+            Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://example.com/paper"))
                 .incomingPaperReferencePayloadOrNull(),
         )
         assertNull(

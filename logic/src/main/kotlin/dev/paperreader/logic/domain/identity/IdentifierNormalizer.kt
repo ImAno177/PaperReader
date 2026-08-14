@@ -34,7 +34,7 @@ object IdentifierNormalizer {
         var candidate = raw.trim()
         candidate = candidate.replace(Regex("^arxiv:\\s*", RegexOption.IGNORE_CASE), "")
         candidate = candidate.replace(
-            Regex("^https?://(?:www\\.)?arxiv\\.org/(?:abs|pdf)/", RegexOption.IGNORE_CASE),
+            Regex("^https?://(?:www\\.)?arxiv\\.org/(?:abs|html|pdf)/", RegexOption.IGNORE_CASE),
             "",
         )
         candidate = candidate.substringBefore('?').substringBefore('#')

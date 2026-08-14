@@ -74,6 +74,11 @@ extension that declares that identifier type. A provider failure remains isolate
 successful providers. Ranking is deterministic: exact identifier, title/text match, then a Semantic
 Scholar citation tie-break, publication date, and stable record key.
 
+The Google fallback is browser-mediated, not a provider implementation: the host opens a constrained
+`site:arxiv.org` query, accepts only an explicit arXiv `/abs/`, `/html/`, or `/pdf/` VIEW/share
+handoff, normalizes the identifier, and lets the installed arXiv extension call its API. The host
+never scrapes Google result pages or stores Google credentials.
+
 Installed providers are enabled by default. A user may disable an engine without uninstalling it;
 the disabled provider remains available for saved-record provenance and direct access but is excluded
 from new federated discovery and identifier-resolution calls. This selection is persisted by the app.

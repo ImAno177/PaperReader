@@ -29,6 +29,35 @@ enum class LibrarySortOrder {
     NEWEST_PUBLICATION,
 }
 
+enum class PaperDiscipline(val label: String) {
+    COMPUTER_SCIENCE("CS"),
+    MATHEMATICS("MATH"),
+    PHYSICS("PHYS"),
+    LIFE_SCIENCES("BIO"),
+    MEDICINE("MED"),
+    SOCIAL_SCIENCES("SOC"),
+    ECONOMICS("ECON"),
+    ENGINEERING("ENG"),
+    GENERAL("PAPER"),
+}
+
+/** A deterministic visual identity derived only from metadata the provider actually supplied. */
+fun PaperUi.discipline(): PaperDiscipline {
+    val haystack = (subjects + title).joinToString(" ").lowercase()
+    return when {
+        listOf("computer", "machine learning", "artificial intelligence", "neural", "software").any(haystack::contains) ->
+            PaperDiscipline.COMPUTER_SCIENCE
+        listOf("mathemat", "statistics", "algebra", "geometry").any(haystack::contains) -> PaperDiscipline.MATHEMATICS
+        listOf("physics", "quantum", "astronomy", "astrophysics").any(haystack::contains) -> PaperDiscipline.PHYSICS
+        listOf("medicine", "medical", "clinical", "health", "disease").any(haystack::contains) -> PaperDiscipline.MEDICINE
+        listOf("biology", "biological", "genomic", "protein", "ecology").any(haystack::contains) -> PaperDiscipline.LIFE_SCIENCES
+        listOf("economics", "econometric", "finance").any(haystack::contains) -> PaperDiscipline.ECONOMICS
+        listOf("sociology", "psychology", "political", "social science").any(haystack::contains) -> PaperDiscipline.SOCIAL_SCIENCES
+        listOf("engineering", "robotics", "electrical", "mechanical").any(haystack::contains) -> PaperDiscipline.ENGINEERING
+        else -> PaperDiscipline.GENERAL
+    }
+}
+
 fun List<PaperUi>.filterAndSortLibrary(
     query: String,
     statusFilter: LibraryStatusFilter,

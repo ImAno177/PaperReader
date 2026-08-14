@@ -35,7 +35,6 @@ import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.download.DownloadWorkScheduler
 import dev.paperreader.app.extensions.CommunityThemeCatalog
 import dev.paperreader.app.extensions.CommunityThemeExtensionManager
-import dev.paperreader.app.extensions.toTrustedThemeExtension
 import dev.paperreader.app.importer.IncomingPdfRequest
 import dev.paperreader.app.importer.IncomingPaperReferenceRequest
 import dev.paperreader.app.backup.MetadataBackupFileGateway
@@ -71,6 +70,8 @@ fun PaperReaderApp(
     onIncomingPaperReferenceConsumed: (Long) -> Unit,
     openUpdatesRequestId: Long?,
     onOpenUpdatesConsumed: (Long) -> Unit,
+    openExtensionsRequestId: Long?,
+    onOpenExtensionsConsumed: (Long) -> Unit,
 ) {
     val themeKey by preferences.themeKey.collectAsStateWithLifecycle(PaperThemePreset.NEOBRUTALISM.storageKey)
     val themeMode by preferences.themeMode.collectAsStateWithLifecycle(PaperThemeMode.SYSTEM)
@@ -102,6 +103,8 @@ fun PaperReaderApp(
                 onIncomingPaperReferenceConsumed = onIncomingPaperReferenceConsumed,
                 openUpdatesRequestId = openUpdatesRequestId,
                 onOpenUpdatesConsumed = onOpenUpdatesConsumed,
+                openExtensionsRequestId = openExtensionsRequestId,
+                onOpenExtensionsConsumed = onOpenExtensionsConsumed,
             )
         }
     }
@@ -124,12 +127,14 @@ private fun PaperReaderContent(
     onIncomingPaperReferenceConsumed: (Long) -> Unit,
     openUpdatesRequestId: Long?,
     onOpenUpdatesConsumed: (Long) -> Unit,
+    openExtensionsRequestId: Long?,
+    onOpenExtensionsConsumed: (Long) -> Unit,
 ) {
     val context = LocalContext.current
-    val sourceExtensionInstaller = remember(context) {
-        (context.applicationContext as PaperReaderApplication).sourceExtensionInstaller
+    val extensionInstaller = remember(context) {
+        (context.applicationContext as PaperReaderApplication).extensionInstaller
     }
-    val sourceInstallStates by sourceExtensionInstaller.states.collectAsStateWithLifecycle()
+    val extensionInstallStates by extensionInstaller.states.collectAsStateWithLifecycle()
     val restoreSessionStore = remember(context) {
         FileMetadataRestoreSessionStore(
             directory = java.io.File(context.noBackupFilesDir, "metadata-restore-session"),
@@ -156,6 +161,7 @@ private fun PaperReaderContent(
     val extensionStoreAction by viewModel.extensionStoreAction.collectAsStateWithLifecycle()
     val automaticRefreshEnabled by preferences.automaticSavedSearchRefreshEnabled
         .collectAsStateWithLifecycle(false)
+    val disabledProviderIds by preferences.disabledProviderIds.collectAsStateWithLifecycle(emptySet())
     val libraryLayout by preferences.libraryLayout.collectAsStateWithLifecycle(LibraryLayout.LIST)
     val notificationPublisher = remember(context) { SavedSearchNotificationPublisher(context) }
     val scope = rememberCoroutineScope()
@@ -176,13 +182,6 @@ private fun PaperReaderContent(
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-    LaunchedEffect(extensionStoreState.stores) {
-        themeExtensionManager.replaceStoreExtensions(
-            extensionStoreState.stores
-                .flatMap { it.index.releases }
-                .mapNotNull { it.toTrustedThemeExtension() },
-        )
     }
     // Activity-local IDs restart after recreation; sourceKey handles durable correlation instead.
     var activeIncomingPdfRequestId by remember { mutableStateOf<Long?>(null) }
@@ -209,6 +208,10 @@ private fun PaperReaderContent(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
         uri?.let { source -> viewModel.prepareLocalPdf(source.toString()) }
+    }
+
+    LaunchedEffect(disabledProviderIds) {
+        viewModel.setDisabledProviderIds(disabledProviderIds)
     }
 
     LaunchedEffect(incomingPdfRequest, localPdfImport, activeIncomingPdfRequestId) {
@@ -253,15 +256,9 @@ private fun PaperReaderContent(
             onDismissAction = viewModel::dismissExtensionStoreAction,
             onRefresh = viewModel::refreshExtensionStore,
             onRemove = viewModel::removeExtensionStore,
-            onOpenInstallUrl = { rawUrl ->
-                val uri = Uri.parse(rawUrl)
-                if (uri.scheme == "https") {
-                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
-                }
-            },
-            installStates = sourceInstallStates,
-            onInstallSource = sourceExtensionInstaller::enqueue,
-            onDismissInstallState = sourceExtensionInstaller::dismiss,
+            installStates = extensionInstallStates,
+            onInstallExtension = extensionInstaller::enqueue,
+            onDismissInstallState = extensionInstaller::cancelOrDismiss,
         ),
         search = search,
         downloadActions = downloadActions,
@@ -324,6 +321,9 @@ private fun PaperReaderContent(
             notificationsAvailable = notificationPublisher.canPost()
             changed
         },
+        onProviderEnabledChange = { providerId, enabled ->
+            scope.launch { preferences.setProviderEnabled(providerId, enabled) }
+        },
         notificationsAvailable = notificationsAvailable,
         onOpenNotificationSettings = {
             context.startActivity(
@@ -333,6 +333,8 @@ private fun PaperReaderContent(
         },
         openUpdatesRequestId = openUpdatesRequestId,
         onOpenUpdatesConsumed = onOpenUpdatesConsumed,
+        openExtensionsRequestId = openExtensionsRequestId,
+        onOpenExtensionsConsumed = onOpenExtensionsConsumed,
         incomingPaperReferenceRequest = incomingPaperReferenceRequest,
         onIncomingPaperReferenceConsumed = onIncomingPaperReferenceConsumed,
     )
@@ -390,10 +392,13 @@ private fun PaperReaderNavigation(
     onLibraryLayoutChange: (LibraryLayout) -> Unit,
     automaticRefreshEnabled: Boolean,
     onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
+    onProviderEnabledChange: (String, Boolean) -> Unit,
     notificationsAvailable: Boolean,
     onOpenNotificationSettings: () -> Unit,
     openUpdatesRequestId: Long?,
     onOpenUpdatesConsumed: (Long) -> Unit,
+    openExtensionsRequestId: Long?,
+    onOpenExtensionsConsumed: (Long) -> Unit,
     incomingPaperReferenceRequest: IncomingPaperReferenceRequest?,
     onIncomingPaperReferenceConsumed: (Long) -> Unit,
 ) {
@@ -427,8 +432,16 @@ private fun PaperReaderNavigation(
         onOpenUpdatesConsumed(requestId)
     }
 
+    LaunchedEffect(openExtensionsRequestId) {
+        val requestId = openExtensionsRequestId ?: return@LaunchedEffect
+        if (navController.currentDestination?.route != AppRoutes.MORE_SOURCES) {
+            navController.navigateToMoreBranch(AppRoutes.MORE_SOURCES)
+        }
+        onOpenExtensionsConsumed(requestId)
+    }
+
     LaunchedEffect(metadataBackup, localPdfImport) {
-        if (incomingPaperReferenceRequest != null || openUpdatesRequestId != null) {
+        if (incomingPaperReferenceRequest != null || openUpdatesRequestId != null || openExtensionsRequestId != null) {
             return@LaunchedEffect
         }
         val route = when (moreAttentionDestination(metadataBackup, localPdfImport)) {
@@ -494,6 +507,7 @@ private fun PaperReaderNavigation(
             onLibraryLayoutChange = onLibraryLayoutChange,
             automaticRefreshEnabled = automaticRefreshEnabled,
             onAutomaticRefreshChange = onAutomaticRefreshChange,
+            onProviderEnabledChange = onProviderEnabledChange,
             notificationsAvailable = notificationsAvailable,
             onOpenNotificationSettings = onOpenNotificationSettings,
             modifier = Modifier.fillMaxSize(),
@@ -563,6 +577,7 @@ private fun PaperReaderNavigation(
                 onLibraryLayoutChange = onLibraryLayoutChange,
                 automaticRefreshEnabled = automaticRefreshEnabled,
                 onAutomaticRefreshChange = onAutomaticRefreshChange,
+                onProviderEnabledChange = onProviderEnabledChange,
                 notificationsAvailable = notificationsAvailable,
                 onOpenNotificationSettings = onOpenNotificationSettings,
                 modifier = modifier,

@@ -246,9 +246,6 @@ internal class AndroidSourceExtensionTransport(
             trustedRelease.packageName,
             PackageManager.GET_SIGNING_CERTIFICATES,
         )
-        require(packageInfo.longVersionCode in trustedRelease.minimumVersionCode..trustedRelease.versionCode) {
-            "Installed source version is outside the trusted release range"
-        }
         val fingerprint = normalizeFingerprint(trustedRelease.signerSha256)
         require(
             packageManager.hasSigningCertificate(
@@ -270,6 +267,11 @@ internal class AndroidSourceExtensionTransport(
             serviceInfo.metaData?.getString(PaperExtensionContract.META_EXTENSION_KIND) ==
                 PaperExtensionContract.EXTENSION_KIND_SOURCE,
         ) { "Source service kind is invalid" }
+        requireTrustedSourceVersion(
+            installedVersionCode = packageInfo.longVersionCode,
+            minimumVersionCode = trustedRelease.minimumVersionCode,
+            maximumVersionCode = trustedRelease.versionCode,
+        )
         return packageInfo.longVersionCode
     }
 
@@ -278,6 +280,24 @@ internal class AndroidSourceExtensionTransport(
         private val closeAction: () -> Unit,
     ) : AutoCloseable {
         override fun close() = closeAction()
+    }
+}
+
+internal class InstalledSourceVersionOutOfRangeException(
+    val installedVersionCode: Long,
+    val minimumVersionCode: Long,
+    val maximumVersionCode: Long,
+) : IllegalArgumentException("Installed source version is outside the trusted release range") {
+    val updateCanRemediate: Boolean = installedVersionCode < minimumVersionCode
+}
+
+internal fun requireTrustedSourceVersion(
+    installedVersionCode: Long,
+    minimumVersionCode: Long,
+    maximumVersionCode: Long,
+) {
+    if (installedVersionCode !in minimumVersionCode..maximumVersionCode) {
+        throw InstalledSourceVersionOutOfRangeException(installedVersionCode, minimumVersionCode, maximumVersionCode)
     }
 }
 

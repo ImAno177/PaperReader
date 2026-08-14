@@ -21,10 +21,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.activity.viewModels
-import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -44,7 +41,6 @@ import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.domain.repository.ToggleReadingBookmarkResult
 import dev.paperreader.logic.task.DownloadedPaper
 import java.time.Instant
-import java.util.Locale
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -55,7 +51,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class PdfReaderActivity : AppCompatActivity() {
-    private lateinit var readerArgs: ReaderArgs
+    private lateinit var readerArgs: PdfReaderArgs
     private var pdfFragment: PaperPdfViewerFragment? = null
     private var pdfView: PdfView? = null
     private var pageCount: Int = 0
@@ -123,7 +119,7 @@ class PdfReaderActivity : AppCompatActivity() {
         ).toAppCompatNightMode()
         setTheme(readerThemeStyle(requestedTheme))
         super.onCreate(savedInstanceState)
-        val parsedArgs = parseArgs()
+        val parsedArgs = parsePdfReaderArgs(intent, packageName, getString(R.string.app_name))
         if (parsedArgs == null) {
             Toast.makeText(this, R.string.reader_invalid_request, Toast.LENGTH_LONG).show()
             finish()
@@ -136,12 +132,12 @@ class PdfReaderActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_pdf_reader)
         val readerRoot = findViewById<View>(R.id.reader_root)
-        applySystemBarInsets(readerRoot)
+        applyReaderSystemBarInsets(readerRoot)
         loadingIndicator = findViewById(R.id.reader_loading)
         pageIndicator = findViewById(R.id.reader_page_indicator)
         pageIndicator.setOnClickListener { showJumpToPageDialog() }
         configureToolbar(findViewById(R.id.reader_toolbar))
-        applyCommunityChrome(readerRoot)
+        applyPdfCommunityChrome(readerRoot, toolbar, pageIndicator, communityTheme)
         verifyArtifactAndConfigureReader()
     }
 
@@ -219,44 +215,17 @@ class PdfReaderActivity : AppCompatActivity() {
 
     private fun configureToolbar(toolbar: Toolbar) {
         this.toolbar = toolbar
-        toolbar.title = readerArgs.title
-        toolbar.subtitle = getString(R.string.reader_subtitle)
-        toolbar.navigationIcon = readerIcons.drawable(this, PaperIconKey.BACK)
-        toolbar.navigationContentDescription = getString(R.string.back)
-        toolbar.setNavigationOnClickListener { finish() }
-        toolbar.inflateMenu(R.menu.pdf_reader_actions)
-        toolbar.menu.findItem(R.id.action_search_pdf).icon = readerIcons.drawable(this, PaperIconKey.SEARCH)
-        toolbar.menu.findItem(R.id.action_toggle_bookmark).icon =
-            readerIcons.drawable(this, PaperIconKey.BOOKMARK_ADD)
-        toolbar.menu.findItem(R.id.action_view_bookmarks).icon = readerIcons.drawable(this, PaperIconKey.BOOKMARKS)
-        toolbar.menu.findItem(R.id.action_open_external).icon =
-            readerIcons.drawable(this, PaperIconKey.OPEN_EXTERNAL)
+        configurePdfReaderToolbar(
+            toolbar = toolbar,
+            title = readerArgs.title,
+            icons = readerIcons,
+            onBack = ::finish,
+            onSearch = { pdfFragment?.let { it.isTextSearchActive = !it.isTextSearchActive } },
+            onOpenExternal = ::openInAnotherApp,
+            onToggleBookmark = ::toggleCurrentPageBookmark,
+            onViewBookmarks = ::showBookmarks,
+        )
         setReaderActionsEnabled(searchEnabled = false, externalEnabled = false)
-        toolbar.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                R.id.action_search_pdf -> {
-                    pdfFragment?.let { it.isTextSearchActive = !it.isTextSearchActive }
-                    true
-                }
-
-                R.id.action_open_external -> {
-                    openInAnotherApp()
-                    true
-                }
-
-                R.id.action_toggle_bookmark -> {
-                    toggleCurrentPageBookmark()
-                    true
-                }
-
-                R.id.action_view_bookmarks -> {
-                    showBookmarks()
-                    true
-                }
-
-                else -> false
-            }
-        }
     }
 
     private fun setReaderActionsEnabled(searchEnabled: Boolean, externalEnabled: Boolean) {
@@ -538,7 +507,7 @@ class PdfReaderActivity : AppCompatActivity() {
 
     private suspend fun persistPositionLocked(
         app: PaperReaderApplication,
-        args: ReaderArgs,
+        args: PdfReaderArgs,
         position: ReaderPosition,
     ) {
         val paper = app.logic.useCases.getPaper.await(args.workId) ?: return
@@ -606,61 +575,10 @@ class PdfReaderActivity : AppCompatActivity() {
         }
     }
 
-    private fun applySystemBarInsets(root: View) {
-        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-        ViewCompat.requestApplyInsets(root)
-    }
-
-    private fun parseArgs(): ReaderArgs? = runCatching {
-        val uri = intent?.data ?: return null
-        val expectedAuthority = "$packageName.files"
-        if (!isTrustedLocalPdfLocation(uri.scheme, uri.authority, expectedAuthority)) return null
-        val workId = WorkId(intent.getStringExtra(EXTRA_WORK_ID) ?: return null)
-        val manifestationId = ManifestationId(intent.getStringExtra(EXTRA_MANIFESTATION_ID) ?: return null)
-        val sha256 = intent.getStringExtra(EXTRA_SHA256)?.lowercase(Locale.ROOT) ?: return null
-        require(sha256.matches(Regex("[0-9a-f]{64}")))
-        val title = intent.getStringExtra(EXTRA_TITLE)
-            ?.trim()
-            ?.take(MAX_TITLE_LENGTH)
-            ?.takeIf(String::isNotBlank)
-            ?: getString(R.string.app_name)
-        ReaderArgs(
-            contentUri = uri,
-            workId = workId,
-            manifestationId = manifestationId,
-            documentSha256 = sha256,
-            title = title,
-            themePreset = PaperThemePreset.fromStorageKey(intent.getStringExtra(EXTRA_THEME_PRESET)),
-            themeKey = intent.getStringExtra(EXTRA_THEME_PRESET) ?: PaperThemePreset.NEOBRUTALISM.storageKey,
-            themeMode = PaperThemeMode.fromStorageKey(intent.getStringExtra(EXTRA_THEME_MODE)),
-        )
-    }.getOrNull()
-
-    private data class ReaderArgs(
-        val contentUri: Uri,
-        val workId: WorkId,
-        val manifestationId: ManifestationId,
-        val documentSha256: String,
-        val title: String,
-        val themePreset: PaperThemePreset,
-        val themeKey: String,
-        val themeMode: PaperThemeMode,
-    )
-
     companion object {
         private const val PDF_FRAGMENT_TAG = "paper_pdf_viewer"
-        private const val PDF_MIME_TYPE = "application/pdf"
-        private const val EXTRA_WORK_ID = "dev.paperreader.app.reader.WORK_ID"
-        private const val EXTRA_MANIFESTATION_ID = "dev.paperreader.app.reader.MANIFESTATION_ID"
-        private const val EXTRA_SHA256 = "dev.paperreader.app.reader.SHA256"
-        private const val EXTRA_TITLE = "dev.paperreader.app.reader.TITLE"
-        internal const val EXTRA_THEME_PRESET = "dev.paperreader.app.reader.THEME_PRESET"
-        internal const val EXTRA_THEME_MODE = "dev.paperreader.app.reader.THEME_MODE"
-        private const val MAX_TITLE_LENGTH = 240
+        internal const val EXTRA_THEME_PRESET = PDF_READER_EXTRA_THEME_PRESET
+        internal const val EXTRA_THEME_MODE = PDF_READER_EXTRA_THEME_MODE
         private const val PROGRESS_SAVE_DEBOUNCE_MILLIS = 750L
         private const val MINIMUM_READING_SESSION_MILLIS = 1_000L
 
@@ -673,30 +591,7 @@ class PdfReaderActivity : AppCompatActivity() {
             themeKey: String = themePreset.storageKey,
             themeMode: PaperThemeMode = PaperThemeMode.SYSTEM,
         ): Intent {
-            val uri = downloadedPaper.contentUri.toUri()
-            return Intent(context, PdfReaderActivity::class.java).apply {
-                setDataAndType(uri, PDF_MIME_TYPE)
-                clipData = ClipData.newRawUri("Local PDF", uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                putExtra(EXTRA_WORK_ID, workId.value)
-                putExtra(EXTRA_MANIFESTATION_ID, downloadedPaper.manifestationId.value)
-                putExtra(EXTRA_SHA256, downloadedPaper.sha256)
-                putExtra(EXTRA_TITLE, title.take(MAX_TITLE_LENGTH))
-                putExtra(EXTRA_THEME_PRESET, themeKey)
-                putExtra(EXTRA_THEME_MODE, themeMode.storageKey)
-            }
+            return createPdfReaderIntent(context, downloadedPaper, workId, title, themePreset, themeKey, themeMode)
         }
-    }
-
-    private fun applyCommunityChrome(root: View) {
-        val theme = communityTheme ?: return
-        val dark = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
-            android.content.res.Configuration.UI_MODE_NIGHT_YES
-        val palette = theme.palette(dark)
-        root.setBackgroundColor(palette.canvas)
-        toolbar.setBackgroundColor(palette.surface)
-        toolbar.setTitleTextColor(palette.ink)
-        toolbar.setSubtitleTextColor(palette.inkMuted)
-        pageIndicator.setTextColor(palette.ink)
     }
 }

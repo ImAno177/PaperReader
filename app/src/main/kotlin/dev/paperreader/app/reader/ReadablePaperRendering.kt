@@ -10,12 +10,6 @@ import android.view.View
 import android.webkit.WebView
 import dev.paperreader.app.R
 import dev.paperreader.logic.domain.Annotation
-import dev.paperreader.logic.domain.ManifestationId
-import dev.paperreader.logic.domain.ReadingLocator
-import dev.paperreader.logic.domain.ReadingState
-import dev.paperreader.logic.domain.ReadingStatus
-import dev.paperreader.logic.domain.WorkId
-import java.time.Instant
 import kotlin.math.roundToInt
 import org.json.JSONObject
 
@@ -593,54 +587,3 @@ private fun parseReadableSelection(raw: String?): ReadableSelectionResult {
 }
 
 private val SAFE_READER_ID = Regex("[A-Za-z0-9._:-]{1,160}")
-
-internal fun readableStateForOpen(
-    existing: ReadingState?,
-    workId: WorkId,
-    manifestationId: ManifestationId,
-    documentSha256: String,
-    now: Instant,
-): ReadingState = ReadingState(
-    workId = workId,
-    manifestationId = manifestationId,
-    locator = if (existing.matchesReadable(manifestationId, documentSha256)) {
-        existing!!.locator.copy(pageIndex = null)
-    } else {
-        ReadingLocator(documentSha256 = documentSha256)
-    },
-    status = if (existing?.status == ReadingStatus.FINISHED) ReadingStatus.FINISHED else ReadingStatus.READING,
-    updatedAt = now,
-)
-
-internal fun readableStateForProgress(
-    existing: ReadingState?,
-    workId: WorkId,
-    manifestationId: ManifestationId,
-    documentSha256: String,
-    progression: Double,
-    now: Instant,
-): ReadingState = ReadingState(
-    workId = workId,
-    manifestationId = manifestationId,
-    locator = ReadingLocator(
-        documentSha256 = documentSha256,
-        progression = progression.coerceIn(0.0, 1.0),
-    ),
-    status = if (existing?.status == ReadingStatus.FINISHED) ReadingStatus.FINISHED else ReadingStatus.READING,
-    updatedAt = now,
-)
-
-internal fun restorableReadableProgress(
-    state: ReadingState?,
-    manifestationId: ManifestationId,
-    documentSha256: String,
-): Double? = state
-    ?.takeIf { it.matchesReadable(manifestationId, documentSha256) }
-    ?.locator
-    ?.progression
-
-private fun ReadingState?.matchesReadable(
-    manifestationId: ManifestationId,
-    documentSha256: String,
-): Boolean = this?.manifestationId == manifestationId &&
-    locator.documentSha256?.equals(documentSha256, ignoreCase = true) == true

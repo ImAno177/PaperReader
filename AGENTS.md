@@ -57,7 +57,7 @@ Update the relevant document when a decision changes.
 
 ## Git workflow
 
-- Follow Paperlib's typed branch convention: `<type>/<kebab-case-summary>`, optionally including an
+- Follow PaperReader's typed branch convention: `<type>/<kebab-case-summary>`, optionally including an
   issue number such as `fix/425-rss-deleting-bug`.
 - Use `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `build`, `ci`, `release`, or `dependency`;
   avoid vague `dev`, `patch`, or bare-name branches.

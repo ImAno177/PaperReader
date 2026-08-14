@@ -3,6 +3,7 @@ package dev.paperreader.app.reader
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
@@ -21,6 +22,7 @@ import dev.paperreader.app.ui.theme.PaperThemeMode
 import dev.paperreader.app.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -70,6 +72,24 @@ class PdfReaderContractAndroidTest {
 
         assertEquals(ComponentName(context, ReadablePaperActivity::class.java), intent.component)
         assertEquals("light", intent.getStringExtra(ReadablePaperActivity.EXTRA_THEME_MODE))
+    }
+
+    @Test
+    fun readableReaderRestoresOnlyTheExactManifestationAndClampsProgress() {
+        val state = Bundle().apply {
+            saveReadableInstanceState(
+                manifestationId = ManifestationId("manifestation"),
+                documentSha256 = "a".repeat(64),
+                progression = 2.0,
+                citationReturnProgression = -1.0,
+            )
+        }
+
+        val restored = restoreReadableInstanceState(state, ManifestationId("manifestation"))
+        assertEquals(1.0, restored.progression ?: error("missing progress"), 0.0)
+        assertEquals(0.0, restored.citationReturnProgression ?: error("missing citation return"), 0.0)
+        assertEquals("a".repeat(64), restored.documentSha256)
+        assertNull(restoreReadableInstanceState(state, ManifestationId("other")).progression)
     }
 
     @Suppress("DEPRECATION")

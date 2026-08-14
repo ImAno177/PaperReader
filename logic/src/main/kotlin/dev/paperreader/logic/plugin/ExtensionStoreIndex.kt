@@ -162,11 +162,14 @@ class ExtensionStoreIndexVerifier(
             "Invalid extension API range"
         }
         requireHttpsUrl(release.installUrl, "extension install URL")
-        release.apkSha256?.let { require(it.matches(Regex("[0-9a-fA-F]{64}"))) { "Invalid APK SHA-256" } }
-        release.apkSizeBytes?.let { require(it in 1..MAX_APK_BYTES) { "Invalid APK size" } }
-        require((release.apkSha256 == null) == (release.apkSizeBytes == null)) {
-            "APK hash and size must be declared together"
+        require(URI(release.installUrl).port in setOf(-1, 443)) {
+            "Extension install URL must use the standard HTTPS port"
         }
+        val apkSha256 = release.apkSha256
+        val apkSizeBytes = release.apkSizeBytes
+        require((apkSha256 == null) == (apkSizeBytes == null)) { "APK SHA-256 and byte size must be provided together" }
+        apkSha256?.let { require(it.matches(Regex("[0-9a-fA-F]{64}"))) { "Invalid APK SHA-256" } }
+        apkSizeBytes?.let { require(it in 1..MAX_APK_BYTES) { "Invalid APK size" } }
         require(release.license.isNotBlank() && release.license.length <= 80) { "Invalid extension license" }
         release.privacyUrl?.let { requireHttpsUrl(it, "extension privacy URL") }
 
@@ -231,8 +234,8 @@ class ExtensionStoreIndexVerifier(
             minimumHostApi = release.minimumHostApi,
             maximumHostApi = release.maximumHostApi,
             installUrl = release.installUrl,
-            apkSha256 = release.apkSha256?.lowercase(),
-            apkSizeBytes = release.apkSizeBytes,
+            apkSha256 = apkSha256?.lowercase(),
+            apkSizeBytes = apkSizeBytes,
             license = release.license.trim(),
             privacyUrl = release.privacyUrl,
             providerId = release.providerId,

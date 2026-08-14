@@ -188,6 +188,10 @@ class PaperReaderViewModel internal constructor(
         }
     }
 
+    fun setDisabledProviderIds(providerIds: Set<String>) {
+        logic.setDisabledProviderIds(providerIds)
+    }
+
     fun dismissExtensionStoreAction() {
         if (mutableExtensionStoreAction.value !is ExtensionStoreActionUiState.Working) {
             mutableExtensionStoreAction.value = ExtensionStoreActionUiState.Idle

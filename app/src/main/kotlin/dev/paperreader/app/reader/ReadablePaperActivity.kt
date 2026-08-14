@@ -1,35 +1,23 @@
 package dev.paperreader.app.reader
 
-import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.os.SystemClock
-import android.util.TypedValue
 import android.view.View
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebSettings
-import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
-import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.activity.addCallback
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
-import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.R
@@ -47,9 +35,7 @@ import dev.paperreader.logic.reader.ReadablePaperFailure
 import dev.paperreader.logic.reader.ReadablePaperResult
 import dev.paperreader.logic.reader.ReadablePaperSection
 import dev.paperreader.logic.reader.ReadablePaperWarning
-import java.io.ByteArrayInputStream
 import java.time.Instant
-import java.util.Locale
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -60,7 +46,7 @@ import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 class ReadablePaperActivity : AppCompatActivity() {
-    private lateinit var readerArgs: ReaderArgs
+    private lateinit var readerArgs: ReadableReaderArgs
     private lateinit var toolbar: Toolbar
     private lateinit var provenance: TextView
     private lateinit var webView: ReadablePaperWebView
@@ -80,9 +66,7 @@ class ReadablePaperActivity : AppCompatActivity() {
     private var documentLoaded = false
     private var restorationReady = false
     private var readerResumed = false
-    private var textZoom = DEFAULT_TEXT_ZOOM
-    private var textSpacing = ReadableTextSpacing.COMFORTABLE
-    private var sideMargin = ReadableSideMargin.COMFORTABLE
+    private var readerLayout = DEFAULT_READER_LAYOUT
     private var displayedProgressPercent = -1
     private var communityTheme: CommunityPaperTheme? = null
     private lateinit var readerIcons: PaperIconSet
@@ -95,13 +79,13 @@ class ReadablePaperActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val requestedTheme = PaperThemePreset.fromStorageKey(intent?.getStringExtra(EXTRA_THEME_PRESET))
+        val requestedTheme = PaperThemePreset.fromStorageKey(intent?.getStringExtra(READABLE_EXTRA_THEME_PRESET))
         delegate.localNightMode = PaperThemeMode.fromStorageKey(
             intent?.getStringExtra(EXTRA_THEME_MODE),
         ).toAppCompatNightMode()
         setTheme(readerThemeStyle(requestedTheme))
         super.onCreate(savedInstanceState)
-        val parsedArgs = parseArgs()
+        val parsedArgs = parseReadableReaderArgs(intent, getString(R.string.app_name))
         if (parsedArgs == null) {
             Toast.makeText(this, R.string.reader_invalid_request, Toast.LENGTH_LONG).show()
             finish()
@@ -111,23 +95,20 @@ class ReadablePaperActivity : AppCompatActivity() {
         communityTheme = (application as PaperReaderApplication).themeExtensionManager.theme(readerArgs.themeKey)
         readerIcons = communityTheme?.let { PaperIconSet.community(it.iconPaths) }
             ?: paperIconSet(readerArgs.themePreset)
-        restoredInstanceProgression = savedInstanceState
-            ?.takeIf { it.getString(STATE_MANIFESTATION_ID) == readerArgs.manifestationId.value }
-            ?.getDouble(STATE_PROGRESSION)
-            ?.coerceIn(0.0, 1.0)
-        restoredDocumentSha256 = savedInstanceState?.getString(STATE_DOCUMENT_SHA256)
-        restoredCitationReturnProgression = savedInstanceState
-            ?.takeIf {
-                it.getString(STATE_MANIFESTATION_ID) == readerArgs.manifestationId.value &&
-                    it.containsKey(STATE_CITATION_RETURN_PROGRESSION)
-            }
-            ?.getDouble(STATE_CITATION_RETURN_PROGRESSION)
-            ?.coerceIn(0.0, 1.0)
+        val restored = restoreReadableInstanceState(savedInstanceState, readerArgs.manifestationId)
+        restoredInstanceProgression = restored.progression
+        restoredDocumentSha256 = restored.documentSha256
+        restoredCitationReturnProgression = restored.citationReturnProgression
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_readable_paper)
-        applySystemBarInsets(findViewById(R.id.readable_reader_root))
+        applyReaderSystemBarInsets(findViewById(R.id.readable_reader_root))
         bindViews()
-        applyCommunityChrome()
+        applyReadablePaperCommunityChrome(
+            root = findViewById(R.id.readable_reader_root),
+            toolbar = toolbar,
+            provenance = provenance,
+            theme = communityTheme,
+        )
         configureToolbar()
         configureWebView()
         onBackPressedDispatcher.addCallback(this) {
@@ -157,12 +138,12 @@ class ReadablePaperActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         currentDocument?.let {
-            outState.putString(STATE_MANIFESTATION_ID, readerArgs.manifestationId.value)
-            outState.putString(STATE_DOCUMENT_SHA256, it.documentSha256)
-            outState.putDouble(STATE_PROGRESSION, webView.currentProgression())
-            citationReturnProgression?.let { progression ->
-                outState.putDouble(STATE_CITATION_RETURN_PROGRESSION, progression)
-            }
+            outState.saveReadableInstanceState(
+                readerArgs.manifestationId,
+                it.documentSha256,
+                webView.currentProgression(),
+                citationReturnProgression,
+            )
         }
         super.onSaveInstanceState(outState)
     }
@@ -227,127 +208,45 @@ class ReadablePaperActivity : AppCompatActivity() {
     }
 
     private fun configureToolbar() {
-        toolbar.title = readerArgs.title
-        toolbar.subtitle = getString(R.string.readable_reader_subtitle)
-        toolbar.navigationIcon = readerIcons.drawable(this, PaperIconKey.BACK)
-        toolbar.navigationContentDescription = getString(R.string.back)
-        toolbar.setNavigationOnClickListener {
-            if (findController.isVisible) findController.hide(clearQuery = true) else finish()
-        }
-        toolbar.inflateMenu(R.menu.readable_reader_actions)
-        toolbar.menu.findItem(R.id.action_search_readable).icon = readerIcons.drawable(this, PaperIconKey.SEARCH)
-        toolbar.menu.findItem(R.id.action_readable_contents).icon = readerIcons.drawable(this, PaperIconKey.LIST)
-        toolbar.menu.findItem(R.id.action_annotate_selection).icon = readerIcons.drawable(this, PaperIconKey.EDIT)
-        toolbar.menu.findItem(R.id.action_readable_annotations).icon =
-            readerIcons.drawable(this, PaperIconKey.BOOKMARKS)
-        toolbar.menu.findItem(R.id.action_reading_layout).icon = readerIcons.drawable(this, PaperIconKey.PALETTE)
-        toolbar.menu.findItem(R.id.action_open_original_pdf).icon =
-            readerIcons.drawable(this, PaperIconKey.OPEN_EXTERNAL)
-        toolbar.menu.findItem(R.id.action_open_readable_source).icon =
-            readerIcons.drawable(this, PaperIconKey.OPEN_EXTERNAL)
-        toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = false
-        toolbar.menu.findItem(R.id.action_search_readable).isEnabled = false
-        toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = false
-        toolbar.menu.findItem(R.id.action_annotate_selection).isEnabled = false
-        toolbar.menu.findItem(R.id.action_readable_annotations).isEnabled = false
-        toolbar.menu.findItem(R.id.action_reading_layout).isEnabled = false
-        toolbar.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                R.id.action_search_readable -> {
-                    findController.show()
-                    true
-                }
-                R.id.action_readable_contents -> {
-                    showTableOfContents()
-                    true
-                }
-                R.id.action_annotate_selection -> {
-                    annotationController.captureSelection()
-                    true
-                }
-                R.id.action_readable_annotations -> {
-                    annotationController.showAnnotations()
-                    true
-                }
-                R.id.action_reading_layout -> {
-                    showReadingLayoutDialog()
-                    true
-                }
-                R.id.action_open_original_pdf -> {
-                    openOriginalPdf()
-                    true
-                }
-                R.id.action_open_readable_source -> {
-                    currentDocument?.sourceUrl?.let(::openExternalUri)
-                    true
-                }
-                else -> false
-            }
-        }
+        configureReadablePaperToolbar(
+            toolbar = toolbar,
+            title = readerArgs.title,
+            icons = readerIcons,
+            actions = ReadablePaperToolbarActions(
+                navigateBack = {
+                    if (findController.isVisible) findController.hide(clearQuery = true) else finish()
+                },
+                search = findController::show,
+                showContents = {
+                    showReadablePaperContents(currentDocument?.sections.orEmpty(), ::navigateToSection)
+                },
+                annotateSelection = annotationController::captureSelection,
+                showAnnotations = annotationController::showAnnotations,
+                changeLayout = ::showReadingLayoutDialog,
+                openOriginalPdf = ::openOriginalPdf,
+                openReadableSource = { currentDocument?.sourceUrl?.let(::openSafeReaderExternalUri) },
+            ),
+        )
     }
 
-    @Suppress("DEPRECATION", "SetJavaScriptEnabled")
     private fun configureWebView() {
-        val preferences = getSharedPreferences(READER_PREFERENCES, MODE_PRIVATE)
-        textZoom = preferences.getInt(PREFERENCE_TEXT_ZOOM, DEFAULT_TEXT_ZOOM)
-            .coerceIn(MINIMUM_TEXT_ZOOM, MAXIMUM_TEXT_ZOOM)
-        textSpacing = ReadableTextSpacing.fromStorageKey(preferences.getString(PREFERENCE_TEXT_SPACING, null))
-        sideMargin = ReadableSideMargin.fromStorageKey(preferences.getString(PREFERENCE_SIDE_MARGIN, null))
-        webView.setBackgroundColor(
-            communityTheme?.palette(isDarkMode())?.surfaceMuted
-                ?: resolveThemeColor(com.google.android.material.R.attr.colorSurfaceVariant),
+        readerLayout = ReadablePaperLayoutPreferences(this).load()
+        val webBackground = resolveReadablePaperSurfaceMuted(this, communityTheme)
+        configureReadablePaperWebView(
+            webView = webView,
+            backgroundColor = webBackground,
+            textZoom = readerLayout.textZoom,
+            hasCurrentDocument = { currentDocument != null },
+            isPageLoaded = { documentLoaded },
+            annotations = annotationController::annotations,
+            onNavigation = ::handleNavigation,
+            onPageReady = ::finishReadablePageLoad,
+            onProgressionChanged = { progression ->
+                updateProgress(progression)
+                if (restorationReady) scheduleProgressSave(progression)
+            },
+            onHighlightSelectionRequested = annotationController::captureSelection,
         )
-        webView.settings.apply {
-            javaScriptEnabled = false
-            javaScriptCanOpenWindowsAutomatically = false
-            allowFileAccess = false
-            allowContentAccess = false
-            allowFileAccessFromFileURLs = false
-            allowUniversalAccessFromFileURLs = false
-            blockNetworkLoads = true
-            domStorageEnabled = false
-            databaseEnabled = false
-            setGeolocationEnabled(false)
-            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-            cacheMode = WebSettings.LOAD_NO_CACHE
-            setSupportMultipleWindows(false)
-            builtInZoomControls = false
-            displayZoomControls = false
-            setSupportZoom(false)
-            loadsImagesAutomatically = true
-            mediaPlaybackRequiresUserGesture = true
-            saveFormData = false
-            safeBrowsingEnabled = true
-            textZoom = this@ReadablePaperActivity.textZoom
-        }
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
-                handleNavigation(request.url)
-
-            @Suppress("DEPRECATION")
-            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean =
-                handleNavigation(Uri.parse(url))
-
-            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
-                val uri = request.url
-                return if (uri.scheme in setOf("http", "https") && uri.host != LOCAL_RENDERER_HOST) {
-                    WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
-                } else {
-                    null
-                }
-            }
-
-            override fun onPageFinished(view: WebView, url: String) {
-                if (url != LOCAL_RENDERER_URL || currentDocument == null) return
-                if (documentLoaded) return
-                webView.applyAnnotations(annotationController.annotations()) { finishReadablePageLoad() }
-            }
-        }
-        webView.onProgressionChanged = { progression ->
-            updateProgress(progression)
-            if (restorationReady) scheduleProgressSave(progression)
-        }
-        webView.onHighlightSelectionRequested = annotationController::captureSelection
     }
 
     private fun handleNavigation(uri: Uri): Boolean {
@@ -370,7 +269,7 @@ class ReadablePaperActivity : AppCompatActivity() {
             return false
         }
         if (uri.scheme in setOf("https", "mailto") && uri.userInfo == null) {
-            openExternalUri(uri.toString())
+            openSafeReaderExternalUri(uri.toString())
         }
         return true
     }
@@ -389,12 +288,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         provenance.visibility = View.GONE
         errorContainer.visibility = View.GONE
         loading.visibility = View.VISIBLE
-        toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = false
-        toolbar.menu.findItem(R.id.action_search_readable).isEnabled = false
-        toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = false
-        toolbar.menu.findItem(R.id.action_annotate_selection).isEnabled = false
-        toolbar.menu.findItem(R.id.action_readable_annotations).isEnabled = false
-        toolbar.menu.findItem(R.id.action_reading_layout).isEnabled = false
+        setReadablePaperActionsEnabled(toolbar, source = false, document = false, contents = false)
         loadJob = lifecycleScope.launch {
             val result = try {
                 withContext(Dispatchers.IO) {
@@ -425,12 +319,13 @@ class ReadablePaperActivity : AppCompatActivity() {
         restoredInstanceProgression = null
         restoredDocumentSha256 = null
         currentDocument = document
-        toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = true
-        toolbar.menu.findItem(R.id.action_search_readable).isEnabled = true
-        toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = document.sections.isNotEmpty()
-        toolbar.menu.findItem(R.id.action_annotate_selection).isEnabled = true
+        setReadablePaperActionsEnabled(
+            toolbar,
+            source = true,
+            document = true,
+            contents = document.sections.isNotEmpty(),
+        )
         annotationController.updateMenu()
-        toolbar.menu.findItem(R.id.action_reading_layout).isEnabled = true
         val provenanceText = getString(
             if (document.servedFromCache) {
                 R.string.readable_reader_provenance
@@ -482,9 +377,9 @@ class ReadablePaperActivity : AppCompatActivity() {
     }
 
     private suspend fun loadRenderedDocument(document: ReadablePaperDocument) {
-        val palette = resolvedPalette()
-        val dark = isDarkMode()
-        val layout = ReadablePaperLayout(textSpacing, sideMargin)
+        val palette = resolveReadablePaperPalette(this, communityTheme)
+        val dark = isReaderDarkMode()
+        val layout = ReadablePaperLayout(readerLayout.textSpacing, readerLayout.sideMargin)
         val renderedHtml = withContext(Dispatchers.Default) {
             renderReadablePaperHtml(
                 sanitizedBodyHtml = document.bodyHtml,
@@ -494,7 +389,7 @@ class ReadablePaperActivity : AppCompatActivity() {
             )
         }
         webView.loadDataWithBaseURL(
-            LOCAL_RENDERER_URL,
+            READABLE_LOCAL_RENDERER_URL,
             renderedHtml,
             "text/html",
             "UTF-8",
@@ -639,30 +534,6 @@ class ReadablePaperActivity : AppCompatActivity() {
         citationReturnButton.visibility = View.GONE
     }
 
-    private fun showTableOfContents() {
-        val sections = currentDocument?.sections.orEmpty()
-        if (sections.isEmpty()) {
-            Toast.makeText(this, R.string.readable_reader_contents_empty, Toast.LENGTH_SHORT).show()
-            return
-        }
-        val labels = sections.map { section ->
-            val prefix = when (section.level) {
-                2 -> "  "
-                3 -> "    "
-                else -> ""
-            }
-            "$prefix${section.title}"
-        }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle(R.string.readable_reader_contents)
-            .setItems(labels) { dialog, index ->
-                navigateToSection(sections[index])
-                dialog.dismiss()
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
-    }
-
     private fun navigateToSection(section: ReadablePaperSection) {
         findController.hide(clearQuery = true)
         clearCitationReturn()
@@ -675,91 +546,14 @@ class ReadablePaperActivity : AppCompatActivity() {
 
     private fun showReadingLayoutDialog() {
         if (!documentLoaded) return
-        val content = layoutInflater.inflate(R.layout.dialog_readable_paper_layout, null)
-        val decrease = content.findViewById<Button>(R.id.readable_layout_text_decrease)
-        val increase = content.findViewById<Button>(R.id.readable_layout_text_increase)
-        val textValue = content.findViewById<TextView>(R.id.readable_layout_text_value)
-        val spacingGroup = content.findViewById<RadioGroup>(R.id.readable_layout_spacing_group)
-        val marginGroup = content.findViewById<RadioGroup>(R.id.readable_layout_margin_group)
-        var selectedZoom = textZoom
-        var selectedSpacing = textSpacing
-        var selectedMargin = sideMargin
-
-        fun updateControls() {
-            textValue.text = getString(R.string.readable_reader_text_size_value, selectedZoom)
-            decrease.isEnabled = selectedZoom > MINIMUM_TEXT_ZOOM
-            increase.isEnabled = selectedZoom < MAXIMUM_TEXT_ZOOM
-            spacingGroup.check(
-                when (selectedSpacing) {
-                    ReadableTextSpacing.COMPACT -> R.id.readable_layout_spacing_compact
-                    ReadableTextSpacing.COMFORTABLE -> R.id.readable_layout_spacing_comfortable
-                    ReadableTextSpacing.RELAXED -> R.id.readable_layout_spacing_relaxed
-                },
-            )
-            marginGroup.check(
-                when (selectedMargin) {
-                    ReadableSideMargin.NARROW -> R.id.readable_layout_margin_narrow
-                    ReadableSideMargin.COMFORTABLE -> R.id.readable_layout_margin_comfortable
-                    ReadableSideMargin.WIDE -> R.id.readable_layout_margin_wide
-                },
-            )
+        showReadablePaperLayoutDialog(readerLayout) { selected ->
+            val layoutChanged = selected.textSpacing != readerLayout.textSpacing ||
+                selected.sideMargin != readerLayout.sideMargin
+            readerLayout = selected
+            webView.settings.textZoom = readerLayout.textZoom
+            ReadablePaperLayoutPreferences(this).save(selected)
+            if (layoutChanged) reloadReadableLayout()
         }
-
-        decrease.setOnClickListener {
-            selectedZoom = nextReadableTextZoom(selectedZoom, increase = false)
-            updateControls()
-        }
-        increase.setOnClickListener {
-            selectedZoom = nextReadableTextZoom(selectedZoom, increase = true)
-            updateControls()
-        }
-        spacingGroup.setOnCheckedChangeListener { _, checkedId ->
-            selectedSpacing = when (checkedId) {
-                R.id.readable_layout_spacing_compact -> ReadableTextSpacing.COMPACT
-                R.id.readable_layout_spacing_relaxed -> ReadableTextSpacing.RELAXED
-                else -> ReadableTextSpacing.COMFORTABLE
-            }
-        }
-        marginGroup.setOnCheckedChangeListener { _, checkedId ->
-            selectedMargin = when (checkedId) {
-                R.id.readable_layout_margin_narrow -> ReadableSideMargin.NARROW
-                R.id.readable_layout_margin_wide -> ReadableSideMargin.WIDE
-                else -> ReadableSideMargin.COMFORTABLE
-            }
-        }
-        updateControls()
-
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(R.string.readable_reader_layout)
-            .setView(content)
-            .setNegativeButton(R.string.cancel, null)
-            .setNeutralButton(R.string.readable_reader_reset_layout, null)
-            .setPositiveButton(R.string.readable_reader_apply_layout, null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                selectedZoom = DEFAULT_TEXT_ZOOM
-                selectedSpacing = ReadableTextSpacing.COMFORTABLE
-                selectedMargin = ReadableSideMargin.COMFORTABLE
-                updateControls()
-            }
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val layoutChanged = selectedSpacing != textSpacing || selectedMargin != sideMargin
-                textZoom = selectedZoom
-                textSpacing = selectedSpacing
-                sideMargin = selectedMargin
-                webView.settings.textZoom = textZoom
-                getSharedPreferences(READER_PREFERENCES, MODE_PRIVATE)
-                    .edit()
-                    .putInt(PREFERENCE_TEXT_ZOOM, textZoom)
-                    .putString(PREFERENCE_TEXT_SPACING, textSpacing.storageKey)
-                    .putString(PREFERENCE_SIDE_MARGIN, sideMargin.storageKey)
-                    .apply()
-                dialog.dismiss()
-                if (layoutChanged) reloadReadableLayout()
-            }
-        }
-        dialog.show()
     }
 
     private fun reloadReadableLayout() {
@@ -777,161 +571,11 @@ class ReadablePaperActivity : AppCompatActivity() {
     }
 
     private fun openOriginalPdf() {
-        lifecycleScope.launch {
-            val app = application as PaperReaderApplication
-            val localAndRemote = try {
-                withContext(Dispatchers.IO) {
-                    val downloaded = app.logic.downloads.downloadedPaper(readerArgs.manifestationId)
-                    val paper = app.logic.useCases.getPaper.await(readerArgs.workId)
-                    downloaded to paper?.manifestations
-                        ?.firstOrNull { it.id == readerArgs.manifestationId }
-                        ?.pdfUrl
-                }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                null
-            }
-            if (localAndRemote == null) {
-                Toast.makeText(
-                    this@ReadablePaperActivity,
-                    R.string.readable_reader_original_unavailable,
-                    Toast.LENGTH_LONG,
-                ).show()
-                return@launch
-            }
-            val downloaded = localAndRemote.first
-            if (downloaded != null) {
-                startActivity(
-                    PdfReaderActivity.createIntent(
-                        this@ReadablePaperActivity,
-                        downloaded,
-                        readerArgs.workId,
-                        readerArgs.title,
-                        readerArgs.themePreset,
-                        readerArgs.themeKey,
-                        readerArgs.themeMode,
-                    ),
-                )
-                return@launch
-            }
-            val remoteUrl = localAndRemote.second
-            if (remoteUrl != null && Uri.parse(remoteUrl).scheme == "https") {
-                openExternalUri(remoteUrl)
-            } else {
-                Toast.makeText(
-                    this@ReadablePaperActivity,
-                    R.string.readable_reader_original_unavailable,
-                    Toast.LENGTH_LONG,
-                ).show()
-            }
-        }
+        openOriginalPaperPdf(application as PaperReaderApplication, readerArgs)
     }
-
-    private fun openExternalUri(raw: String) {
-        val uri = runCatching { Uri.parse(raw) }.getOrNull() ?: return
-        if (uri.scheme !in setOf("https", "mailto") || uri.userInfo != null) return
-        try {
-            startActivity(Intent(Intent.ACTION_VIEW, uri))
-        } catch (_: ActivityNotFoundException) {
-            Toast.makeText(this, R.string.readable_reader_external_unavailable, Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun resolvedPalette(): ReadablePaperPalette {
-        val community = communityTheme?.palette(isDarkMode())
-        return ReadablePaperPalette(
-            background = (community?.surface
-                ?: resolveThemeColor(com.google.android.material.R.attr.colorSurface)).toCssColor(),
-            surface = (community?.surfaceMuted
-                ?: resolveThemeColor(com.google.android.material.R.attr.colorSurfaceVariant)).toCssColor(),
-            text = (community?.ink
-                ?: resolveThemeColor(com.google.android.material.R.attr.colorOnSurface)).toCssColor(),
-            mutedText = (community?.inkMuted
-                ?: resolveThemeColor(com.google.android.material.R.attr.colorOnSurfaceVariant)).toCssColor(),
-            border = (community?.border
-                ?: resolveThemeColor(com.google.android.material.R.attr.colorOutline)).toCssColor(),
-            link = (community?.primary
-                ?: resolveThemeColor(com.google.android.material.R.attr.colorPrimary)).toCssColor(),
-            selection = (community?.secondaryContainer
-                ?: resolveThemeColor(com.google.android.material.R.attr.colorSecondaryContainer)).toCssColor(),
-        )
-    }
-
-    private fun applyCommunityChrome() {
-        val palette = communityTheme?.palette(isDarkMode()) ?: return
-        findViewById<View>(R.id.readable_reader_root).setBackgroundColor(palette.canvas)
-        toolbar.setBackgroundColor(palette.surface)
-        toolbar.setTitleTextColor(palette.ink)
-        toolbar.setSubtitleTextColor(palette.inkMuted)
-        provenance.setBackgroundColor(palette.primaryContainer)
-        provenance.setTextColor(palette.onPrimaryContainer)
-    }
-
-    private fun resolveThemeColor(attribute: Int): Int {
-        val value = TypedValue()
-        check(theme.resolveAttribute(attribute, value, true)) { "Missing theme color $attribute" }
-        return if (value.resourceId != 0) ContextCompat.getColor(this, value.resourceId) else value.data
-    }
-
-    private fun isDarkMode(): Boolean =
-        resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-
-    private fun applySystemBarInsets(root: View) {
-        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-        ViewCompat.requestApplyInsets(root)
-    }
-
-    private fun parseArgs(): ReaderArgs? = runCatching {
-        val workId = WorkId(intent.getStringExtra(EXTRA_WORK_ID) ?: return null)
-        val manifestationId = ManifestationId(intent.getStringExtra(EXTRA_MANIFESTATION_ID) ?: return null)
-        val title = intent.getStringExtra(EXTRA_TITLE)
-            ?.trim()
-            ?.take(MAX_TITLE_LENGTH)
-            ?.takeIf(String::isNotBlank)
-            ?: getString(R.string.app_name)
-        ReaderArgs(
-            workId,
-            manifestationId,
-            title,
-            PaperThemePreset.fromStorageKey(intent.getStringExtra(EXTRA_THEME_PRESET)),
-            intent.getStringExtra(EXTRA_THEME_PRESET) ?: PaperThemePreset.NEOBRUTALISM.storageKey,
-            PaperThemeMode.fromStorageKey(intent.getStringExtra(EXTRA_THEME_MODE)),
-        )
-    }.getOrNull()
-
-    private data class ReaderArgs(
-        val workId: WorkId,
-        val manifestationId: ManifestationId,
-        val title: String,
-        val themePreset: PaperThemePreset,
-        val themeKey: String,
-        val themeMode: PaperThemeMode,
-    )
 
     companion object {
-        private const val EXTRA_WORK_ID = "dev.paperreader.app.reader.READABLE_WORK_ID"
-        private const val EXTRA_MANIFESTATION_ID = "dev.paperreader.app.reader.READABLE_MANIFESTATION_ID"
-        private const val EXTRA_TITLE = "dev.paperreader.app.reader.READABLE_TITLE"
-        private const val EXTRA_THEME_PRESET = "dev.paperreader.app.reader.READABLE_THEME_PRESET"
-        internal const val EXTRA_THEME_MODE = "dev.paperreader.app.reader.READABLE_THEME_MODE"
-        private const val STATE_MANIFESTATION_ID = "readable_manifestation_id"
-        private const val STATE_DOCUMENT_SHA256 = "readable_document_sha256"
-        private const val STATE_PROGRESSION = "readable_progression"
-        private const val STATE_CITATION_RETURN_PROGRESSION = "readable_citation_return_progression"
-        private const val READER_PREFERENCES = "readable-reader"
-        private const val PREFERENCE_TEXT_ZOOM = "text-zoom"
-        private const val PREFERENCE_TEXT_SPACING = "text-spacing"
-        private const val PREFERENCE_SIDE_MARGIN = "side-margin"
-        private const val LOCAL_RENDERER_URL = "https://$LOCAL_RENDERER_HOST$LOCAL_RENDERER_PATH"
-        private const val DEFAULT_TEXT_ZOOM = 100
-        private const val MINIMUM_TEXT_ZOOM = 85
-        private const val MAXIMUM_TEXT_ZOOM = 200
-        private const val MAX_TITLE_LENGTH = 240
+        internal const val EXTRA_THEME_MODE = READABLE_EXTRA_THEME_MODE
         private const val PROGRESS_SAVE_DEBOUNCE_MILLIS = 750L
         private const val RESTORE_SETTLE_MILLIS = 120L
         private const val MINIMUM_READING_SESSION_MILLIS = 1_000L
@@ -944,14 +588,6 @@ class ReadablePaperActivity : AppCompatActivity() {
             themePreset: PaperThemePreset,
             themeKey: String = themePreset.storageKey,
             themeMode: PaperThemeMode = PaperThemeMode.SYSTEM,
-        ): Intent = Intent(context, ReadablePaperActivity::class.java).apply {
-            putExtra(EXTRA_WORK_ID, workId.value)
-            putExtra(EXTRA_MANIFESTATION_ID, manifestationId.value)
-            putExtra(EXTRA_TITLE, title.take(MAX_TITLE_LENGTH))
-            putExtra(EXTRA_THEME_PRESET, themeKey)
-            putExtra(EXTRA_THEME_MODE, themeMode.storageKey)
-        }
+        ): Intent = createReadablePaperIntent(context, workId, manifestationId, title, themePreset, themeKey, themeMode)
     }
 }
-
-private fun Int.toCssColor(): String = String.format(Locale.ROOT, "#%06X", this and 0xFFFFFF)

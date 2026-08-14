@@ -103,6 +103,36 @@ class ExtensionStoreIndexVerifierTest {
     }
 
     @Test
+    fun `legacy v1 release without artifact identity remains catalog only`() {
+        val withoutHash = validPayload()
+            .replaceFirst("\"apkSha256\":\"${"01".repeat(32)}\",", "")
+            .replaceFirst("\"apkSizeBytes\":1048576,", "")
+
+        val release = verifier.verify(signedEnvelope(withoutHash), publicKey.base64()).releases
+            .single { it.kind == ExtensionReleaseKind.SOURCE }
+
+        assertEquals(null, release.apkSha256)
+        assertEquals(null, release.apkSizeBytes)
+    }
+
+    @Test
+    fun `partial artifact identity is rejected`() {
+        val withoutSize = validPayload().replaceFirst("\"apkSizeBytes\":1048576,", "")
+
+        assertFails { verifier.verify(signedEnvelope(withoutSize), publicKey.base64()) }
+    }
+
+    @Test
+    fun `non-standard APK download port is rejected before catalog display`() {
+        val nonStandardPort = validPayload().replaceFirst(
+            "https://example.org/extensions/semanticscholar.apk",
+            "https://example.org:8443/extensions/semanticscholar.apk",
+        )
+
+        assertFails { verifier.verify(signedEnvelope(nonStandardPort), publicKey.base64()) }
+    }
+
+    @Test
     fun `incompatible release remains visible but cannot become trusted transport`() {
         val payload = validPayload().replaceFirst("\"maximumHostApi\":1", "\"maximumHostApi\":0")
             .replaceFirst("\"minimumHostApi\":1", "\"minimumHostApi\":2")
@@ -135,6 +165,8 @@ class ExtensionStoreIndexVerifierTest {
               "minimumHostApi":1,
               "maximumHostApi":1,
               "installUrl":"https://example.org/extensions/semanticscholar.apk",
+              "apkSha256":"${"01".repeat(32)}",
+              "apkSizeBytes":1048576,
               "license":"Apache-2.0",
               "privacyUrl":"https://example.org/privacy/semanticscholar",
               "providerId":"semanticscholar-sample",
@@ -153,6 +185,8 @@ class ExtensionStoreIndexVerifierTest {
               "minimumHostApi":1,
               "maximumHostApi":1,
               "installUrl":"https://example.org/extensions/blueprint.apk",
+              "apkSha256":"${"02".repeat(32)}",
+              "apkSizeBytes":524288,
               "license":"Apache-2.0",
               "themeIds":["blueprint"]
             }

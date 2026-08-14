@@ -39,7 +39,7 @@ import androidx.navigation.NavHostController
 import dev.paperreader.app.R
 import dev.paperreader.app.extensions.CommunityThemeCatalog
 import dev.paperreader.app.extensions.CommunityThemeExtensionManager
-import dev.paperreader.app.extensions.SourceExtensionInstallState
+import dev.paperreader.app.extensions.ExtensionInstallState
 import dev.paperreader.app.importer.IncomingPaperReferencePayload
 import dev.paperreader.app.importer.IncomingPaperReferenceRequest
 import dev.paperreader.app.ui.model.LocalPdfImportUiState
@@ -65,6 +65,7 @@ internal object AppRoutes {
     const val MORE_UPDATES = "more/updates"
     const val MORE_DATA_BACKUP = "more/data-backup"
     const val MORE_SOURCES = "more/sources"
+    const val MORE_ABOUT = "more/about"
     const val DETAIL = "detail/{workId}"
     fun detail(workId: String): String = "detail/${Uri.encode(workId)}"
 }
@@ -77,9 +78,8 @@ internal data class ExtensionStoreBindings(
     val onDismissAction: () -> Unit,
     val onRefresh: (String) -> Unit,
     val onRemove: (String) -> Unit,
-    val onOpenInstallUrl: (String) -> Unit,
-    val installStates: Map<String, SourceExtensionInstallState>,
-    val onInstallSource: (VerifiedExtensionRelease) -> Unit,
+    val installStates: Map<String, ExtensionInstallState>,
+    val onInstallExtension: (VerifiedExtensionRelease) -> Unit,
     val onDismissInstallState: (String) -> Unit,
 )
 
@@ -246,7 +246,7 @@ private fun PaperDestinationItem(
             shape = RoundedCornerShape(tokens.cornerRadius),
             color = if (selected) tokens.primaryContainer else Color.Transparent,
             contentColor = if (selected) tokens.onPrimaryContainer else tokens.inkMuted,
-            border = if (selected) BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border) else null,
+            border = BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border),
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,
         ) {

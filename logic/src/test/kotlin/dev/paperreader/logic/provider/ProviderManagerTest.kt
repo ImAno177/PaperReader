@@ -19,10 +19,12 @@ class ProviderManagerTest {
         manager.updateUntrusted(
             listOf(UntrustedProviderPlugin("org.example.bad", "ab".repeat(32), "Signer mismatch")),
         )
+        manager.updateOrphaned(listOf(OrphanedProviderPlugin("org.example.old", "Old source", 1)))
 
         assertEquals(setOf("arxiv", "community"), manager.state.value.installed.map { it.descriptor.id }.toSet())
         assertEquals("org.example.new", manager.state.value.available.single().packageName)
         assertEquals("Signer mismatch", manager.state.value.untrusted.single().reason)
+        assertEquals("org.example.old", manager.state.value.orphaned.single().packageName)
 
         manager.unregister("community", "org.example.provider")
         assertNull(manager.get("community"))
@@ -58,6 +60,18 @@ class ProviderManagerTest {
 
         manager.unregisterByOrigin(ProviderOrigin.COMMUNITY_PLUGIN)
         assertEquals(setOf("arxiv"), manager.state.value.installed.map { it.descriptor.id }.toSet())
+    }
+
+    @Test
+    fun `disabled providers remain installed but are excluded from federated participation`() {
+        val manager = MutableProviderManager(listOf(provider("semanticscholar"), provider("arxiv")))
+
+        manager.setDisabledProviderIds(setOf("arxiv"))
+
+        assertEquals(setOf("semanticscholar", "arxiv"), manager.state.value.installed.map { it.descriptor.id }.toSet())
+        assertEquals(setOf("arxiv"), manager.state.value.disabledProviderIds)
+        assertEquals(listOf("semanticscholar"), manager.getAll().map { it.descriptor.id })
+        assertNotNull(manager.get("arxiv"))
     }
 
     private fun provider(id: String): PaperProvider = object : PaperProvider {

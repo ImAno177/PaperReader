@@ -21,9 +21,10 @@ import dev.paperreader.app.BuildConfig
 import dev.paperreader.app.MainActivity
 import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.R
-import dev.paperreader.logic.provider.AvailableProviderPlugin
+import dev.paperreader.logic.plugin.VerifiedExtensionRelease
 import java.time.Duration
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
 
 class SourceExtensionUpdateScheduler(context: Context) {
     private val workManager = WorkManager.getInstance(context.applicationContext)
@@ -54,23 +55,63 @@ class SourceExtensionUpdateWorker(
     override suspend fun doWork(): Result {
         val application = applicationContext as? PaperReaderApplication ?: return Result.failure()
         return try {
-            application.extensionStoreRegistry.ensurePinned(
-                indexUrl = BuildConfig.OFFICIAL_SOURCE_STORE_URL,
-                publicKeyBase64 = BuildConfig.OFFICIAL_SOURCE_STORE_PUBLIC_KEY,
-                expectedStoreId = BuildConfig.OFFICIAL_SOURCE_STORE_ID,
-            )
-            application.logic.reconcileSourceExtensions()
-            application.sourceExtensionNotificationPublisher.publishUpdates(
-                application.logic.providers.state.value.available.filter { it.installedVersionCode != null },
-            )
-            Result.success()
+            if (application.refreshExtensionCatalogs()) Result.success() else Result.retry()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (_: Exception) {
             Result.retry()
         }
     }
 }
 
-class SourceExtensionNotificationPublisher(context: Context) {
+internal suspend fun PaperReaderApplication.refreshExtensionCatalogs(): Boolean {
+    var successful = try {
+        extensionStoreRegistry.ensurePinned(
+            indexUrl = BuildConfig.OFFICIAL_SOURCE_STORE_URL,
+            publicKeyBase64 = BuildConfig.OFFICIAL_SOURCE_STORE_PUBLIC_KEY,
+            expectedStoreId = BuildConfig.OFFICIAL_SOURCE_STORE_ID,
+        )
+        true
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        false
+    }
+    successful = extensionStoreRegistry.refreshAll(setOf(BuildConfig.OFFICIAL_SOURCE_STORE_ID)) && successful
+    reconcileInstalledExtensions()
+    val sourceUpdates = logic.providers.state.value.available
+        .filter { it.installedVersionCode != null && it.apkSha256 != null && it.apkSizeBytes != null }
+        .map { ExtensionUpdateCandidate(it.packageName, it.versionCode) }
+    val themeCatalog = themeExtensionManager.catalog.value
+    val blockedThemePackages = themeCatalog.issues.mapTo(hashSetOf(), ThemeExtensionIssue::packageName)
+    val installedThemeVersions = themeCatalog.installedVersions
+    val themeUpdates = extensionStoreRegistry.trustedThemeReleases().mapNotNull { release ->
+        if (release.packageName in blockedThemePackages) return@mapNotNull null
+        if (release.apkSha256 == null || release.apkSizeBytes == null) return@mapNotNull null
+        val installedVersion = installedThemeVersions[release.packageName] ?: return@mapNotNull null
+        if (release.versionCode > installedVersion) {
+            ExtensionUpdateCandidate(release.packageName, release.versionCode)
+        } else {
+            null
+        }
+    }
+    extensionNotificationPublisher.publishUpdates(sourceUpdates + themeUpdates)
+    return successful
+}
+
+internal suspend fun PaperReaderApplication.reconcileInstalledExtensions() {
+    logic.reconcileSourceExtensions()
+    themeExtensionManager.replaceStoreExtensions(
+        extensionStoreRegistry.trustedThemeReleases().mapNotNull(VerifiedExtensionRelease::toTrustedThemeExtension),
+    )
+}
+
+internal data class ExtensionUpdateCandidate(
+    val packageName: String,
+    val versionCode: Long,
+)
+
+class ExtensionNotificationPublisher(context: Context) {
     private val context = context.applicationContext
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
     private val preferences = context.getSharedPreferences("source-extension-notifications", Context.MODE_PRIVATE)
@@ -87,8 +128,8 @@ class SourceExtensionNotificationPublisher(context: Context) {
         )
     }
 
-    fun publishUpdates(updates: List<AvailableProviderPlugin>): Boolean {
-        val fingerprint = updates.sortedBy(AvailableProviderPlugin::packageName)
+    internal fun publishUpdates(updates: List<ExtensionUpdateCandidate>): Boolean {
+        val fingerprint = updates.sortedBy(ExtensionUpdateCandidate::packageName)
             .joinToString("|") { "${it.packageName}:${it.versionCode}" }
         if (fingerprint.isBlank()) {
             preferences.edit().remove(KEY_LAST_NOTIFIED).apply()
@@ -98,8 +139,9 @@ class SourceExtensionNotificationPublisher(context: Context) {
         createChannel()
         val openApp = PendingIntent.getActivity(
             context,
-            NOTIFICATION_ID,
+            OPEN_EXTENSIONS_REQUEST_CODE,
             Intent(context, MainActivity::class.java)
+                .setAction(ACTION_OPEN_EXTENSIONS)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -130,7 +172,9 @@ class SourceExtensionNotificationPublisher(context: Context) {
         return permissionGranted && notificationManager.areNotificationsEnabled() && channelEnabled
     }
 
-    private companion object {
+    companion object {
+        const val ACTION_OPEN_EXTENSIONS = "dev.paperreader.app.action.OPEN_EXTENSIONS"
+        private const val OPEN_EXTENSIONS_REQUEST_CODE = 2_002
         const val CHANNEL_ID = "source-extension-updates"
         const val NOTIFICATION_ID = 2_002
         const val KEY_LAST_NOTIFIED = "last_notified_releases"

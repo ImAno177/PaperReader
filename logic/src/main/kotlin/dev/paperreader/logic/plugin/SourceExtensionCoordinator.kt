@@ -1,11 +1,14 @@
 package dev.paperreader.logic.plugin
 
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import dev.paperreader.logic.provider.AvailableProviderPlugin
 import dev.paperreader.logic.provider.MutableProviderManager
+import dev.paperreader.logic.provider.OrphanedProviderPlugin
 import dev.paperreader.logic.provider.ProviderOrigin
 import dev.paperreader.logic.provider.UntrustedProviderPlugin
+import dev.paperreader.extensions.api.PaperExtensionContract
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -29,7 +32,8 @@ internal class SourceExtensionCoordinator(
         providers.unregisterByOrigin(ProviderOrigin.COMMUNITY_PLUGIN)
         val available = mutableListOf<AvailableProviderPlugin>()
         val untrusted = mutableListOf<UntrustedProviderPlugin>()
-        trustedExtensions().forEach { trusted ->
+        val trustedExtensions = trustedExtensions()
+        trustedExtensions.forEach { trusted ->
             if (!isInstalled(trusted.packageName)) {
                 available += trusted.available(installedVersionCode = null)
                 return@forEach
@@ -50,6 +54,16 @@ internal class SourceExtensionCoordinator(
                 if (installedVersion < trusted.versionCode) {
                     available += trusted.available(installedVersion)
                 }
+            } catch (error: InstalledSourceVersionOutOfRangeException) {
+                val canRemediate = error.updateCanRemediate
+                if (canRemediate) available += trusted.available(error.installedVersionCode)
+                untrusted += UntrustedProviderPlugin(
+                    packageName = trusted.packageName,
+                    signerSha256 = trusted.signerSha256.lowercase(),
+                    reason = error.message ?: "Provider version is outside the trusted release range",
+                    installedVersionCode = error.installedVersionCode,
+                    updateCanRemediate = canRemediate,
+                )
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
@@ -63,6 +77,31 @@ internal class SourceExtensionCoordinator(
         }
         providers.updateAvailable(available)
         providers.updateUntrusted(untrusted)
+        providers.updateOrphaned(findOrphanedPackages(trustedExtensions.mapTo(hashSetOf(), TrustedSourceExtension::packageName)))
+    }
+
+    @Suppress("DEPRECATION")
+    private fun findOrphanedPackages(trustedPackages: Set<String>): List<OrphanedProviderPlugin> {
+        val packageManager = applicationContext.packageManager
+        return packageManager.queryIntentServices(
+            Intent(PaperExtensionContract.SOURCE_SERVICE_ACTION),
+            PackageManager.GET_META_DATA,
+        ).mapNotNull { resolved ->
+            val service = resolved.serviceInfo ?: return@mapNotNull null
+            val packageName = service.packageName
+            if (
+                packageName in trustedPackages || !service.enabled || !service.exported ||
+                service.metaData?.getInt(PaperExtensionContract.META_API_VERSION, -1) != PaperExtensionContract.API_VERSION ||
+                service.metaData?.getString(PaperExtensionContract.META_EXTENSION_KIND) != PaperExtensionContract.EXTENSION_KIND_SOURCE
+            ) return@mapNotNull null
+            val packageInfo = runCatching { packageManager.getPackageInfo(packageName, 0) }.getOrNull()
+                ?: return@mapNotNull null
+            OrphanedProviderPlugin(
+                packageName = packageName,
+                displayName = resolved.loadLabel(packageManager).toString().ifBlank { packageName },
+                versionCode = packageInfo.longVersionCode,
+            )
+        }.distinctBy(OrphanedProviderPlugin::packageName)
     }
 
     private fun trustedExtensions(): List<TrustedSourceExtension> {

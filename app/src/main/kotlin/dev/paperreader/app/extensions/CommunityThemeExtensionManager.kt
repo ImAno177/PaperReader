@@ -82,6 +82,7 @@ data class ThemeExtensionIssue(
 data class CommunityThemeCatalog(
     val loading: Boolean = true,
     val themes: List<CommunityPaperTheme> = emptyList(),
+    val installedVersions: Map<String, Long> = emptyMap(),
     val issues: List<ThemeExtensionIssue> = emptyList(),
 )
 
@@ -108,16 +109,21 @@ class CommunityThemeExtensionManager(
         refreshLocked()
     }
 
-    private suspend fun refreshLocked() {
+    private suspend fun refreshLocked() = withContext(Dispatchers.IO) {
         mutableCatalog.value = mutableCatalog.value.copy(loading = true)
         val themes = mutableListOf<CommunityPaperTheme>()
         val issues = mutableListOf<ThemeExtensionIssue>()
-        (baselineExtensions + storeExtensions).forEach { trusted ->
-            if (!isInstalled(trusted.packageName)) return@forEach
+        val trustedExtensions = baselineExtensions + storeExtensions
+        val installedVersions = linkedMapOf<String, Long>()
+        trustedExtensions.forEach { trusted ->
+            val installedVersion = installedVersion(trusted.packageName) ?: return@forEach
+            installedVersions[trusted.packageName] = installedVersion
             try {
                 themes += AndroidThemeExtensionTransport(applicationContext, trusted).loadThemes()
             } catch (cancelled: CancellationException) {
                 throw cancelled
+            } catch (_: ThemeExtensionMinimumVersionException) {
+                // The signed store update remains available while the revoked theme stays unloaded.
             } catch (error: Exception) {
                 issues += ThemeExtensionIssue(
                     packageName = trusted.packageName,
@@ -125,18 +131,42 @@ class CommunityThemeExtensionManager(
                 )
             }
         }
+        val trustedPackages = trustedExtensions.mapTo(hashSetOf(), TrustedThemeExtension::packageName)
+        discoverThemePackages()
+            .filterNot { it in trustedPackages }
+            .sorted()
+            .forEach { packageName ->
+                issues += ThemeExtensionIssue(
+                    packageName = packageName,
+                    message = "Installed theme extension is not present in a trusted store",
+                )
+            }
         mutableCatalog.value = CommunityThemeCatalog(
             loading = false,
             themes = themes.sortedBy(CommunityPaperTheme::displayName),
+            installedVersions = installedVersions,
             issues = issues,
         )
     }
 
-    private fun isInstalled(packageName: String): Boolean = try {
-        applicationContext.packageManager.getPackageInfo(packageName, 0)
-        true
+    private fun installedVersion(packageName: String): Long? = try {
+        applicationContext.packageManager.getPackageInfo(packageName, 0).longVersionCode
     } catch (_: PackageManager.NameNotFoundException) {
-        false
+        null
+    }
+
+    @Suppress("DEPRECATION")
+    private fun discoverThemePackages(): Set<String> {
+        val intent = Intent(PaperExtensionContract.THEME_SERVICE_ACTION)
+        val services = if (Build.VERSION.SDK_INT >= 33) {
+            applicationContext.packageManager.queryIntentServices(
+                intent,
+                PackageManager.ResolveInfoFlags.of(PackageManager.GET_META_DATA.toLong()),
+            )
+        } else {
+            applicationContext.packageManager.queryIntentServices(intent, PackageManager.GET_META_DATA)
+        }
+        return services.mapNotNullTo(linkedSetOf()) { it.serviceInfo?.packageName }
     }
 
     fun theme(storageKey: String): CommunityPaperTheme? =
@@ -325,9 +355,6 @@ private class AndroidThemeExtensionTransport(
             trustedRelease.packageName,
             PackageManager.GET_SIGNING_CERTIFICATES,
         )
-        require(packageInfo.longVersionCode in trustedRelease.minimumVersionCode..trustedRelease.versionCode) {
-            "Installed theme version is outside the trusted release range"
-        }
         require(
             packageManager.hasSigningCertificate(
                 trustedRelease.packageName,
@@ -348,6 +375,12 @@ private class AndroidThemeExtensionTransport(
             serviceInfo.metaData?.getString(PaperExtensionContract.META_EXTENSION_KIND) ==
                 PaperExtensionContract.EXTENSION_KIND_THEME,
         ) { "Theme service kind is invalid" }
+        if (packageInfo.longVersionCode < trustedRelease.minimumVersionCode) {
+            throw ThemeExtensionMinimumVersionException()
+        }
+        require(packageInfo.longVersionCode <= trustedRelease.versionCode) {
+            "Installed theme version is outside the trusted release range"
+        }
         return packageInfo.longVersionCode
     }
 
@@ -377,6 +410,8 @@ private class AndroidThemeExtensionTransport(
 private class ThemeExtensionRequestException(failure: ExtensionFailure) : Exception(failure.message)
 
 private class ThemeExtensionProtocolException(message: String) : Exception(message)
+
+private class ThemeExtensionMinimumVersionException : Exception()
 
 internal fun VerifiedExtensionRelease.toTrustedThemeExtension(): TrustedThemeExtension? {
     if (kind != ExtensionReleaseKind.THEME || !compatible) return null

@@ -448,11 +448,14 @@ private fun libraryStatusFilterLabel(filter: LibraryStatusFilter): String = stri
 @Composable
 private fun PaperListCard(paper: PaperUi, onClick: () -> Unit) {
     PaperSurface(onClick = onClick) {
-        PaperMetaRow(
-            source = paper.sources.joinToString { it.displayProviderName() }.ifBlank { null },
-            year = paper.publishedDate?.year?.toString(),
-            identifier = paper.primaryIdentifier?.displayValue(),
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            PaperDisciplineBadge(paper)
+            PaperMetaRow(
+                source = paper.sources.joinToString { it.displayProviderName() }.ifBlank { null },
+                year = paper.publishedDate?.year?.toString(),
+                identifier = paper.primaryIdentifier?.displayValue(),
+            )
+        }
         Spacer(Modifier.height(8.dp))
         Text(
             text = paper.title,
@@ -500,11 +503,14 @@ private fun PaperListCard(paper: PaperUi, onClick: () -> Unit) {
 @Composable
 private fun PaperGridCard(paper: PaperUi, onClick: () -> Unit) {
     PaperSurface(onClick = onClick, contentPadding = PaddingValues(14.dp)) {
-        PaperMetaRow(
-            source = paper.sources.firstOrNull()?.displayProviderName(),
-            year = paper.publishedDate?.year?.toString(),
-            identifier = paper.primaryIdentifier?.displayValue(),
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            PaperDisciplineBadge(paper)
+            PaperMetaRow(
+                source = paper.sources.firstOrNull()?.displayProviderName(),
+                year = paper.publishedDate?.year?.toString(),
+                identifier = paper.primaryIdentifier?.displayValue(),
+            )
+        }
         Spacer(Modifier.height(8.dp))
         Text(
             text = paper.title,

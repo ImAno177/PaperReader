@@ -8,6 +8,7 @@ import dev.paperreader.logic.provider.ProviderDescriptor
 import dev.paperreader.logic.provider.ProviderCapability
 import dev.paperreader.logic.provider.ProviderException
 import dev.paperreader.logic.provider.ProviderPage
+import dev.paperreader.logic.provider.ProviderRole
 import dev.paperreader.logic.provider.RemotePaper
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -99,6 +100,7 @@ class FederatedPaperSearchTest {
                 id = id,
                 displayName = id,
                 minimumRequestIntervalMillis = 0,
+                roles = setOf(ProviderRole.SEARCH_ENGINE),
                 capabilities = capabilities,
                 identifierLookupTypes = identifierTypes,
             )

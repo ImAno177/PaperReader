@@ -1,8 +1,7 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.android.build.api.variant.BuildConfigField
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
@@ -47,29 +46,6 @@ android {
         versionCode = appVersionCode
         versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "DEV_SOURCE_PACKAGE", devSourcePackage.asBuildConfigString())
-        buildConfigField("String", "DEV_SOURCE_SERVICE", devSourceService.asBuildConfigString())
-        buildConfigField("String", "DEV_SOURCE_PROVIDER_ID", devSourceProviderId.asBuildConfigString())
-        buildConfigField("String", "DEV_SOURCE_DISPLAY_NAME", devSourceDisplayName.asBuildConfigString())
-        buildConfigField("String", "DEV_SOURCE_SIGNER_SHA256", devSourceSigner.asBuildConfigString())
-        buildConfigField("long", "DEV_SOURCE_VERSION_CODE", "${devSourceVersion}L")
-        buildConfigField("String", "DEV_THEME_PACKAGE", devThemePackage.asBuildConfigString())
-        buildConfigField("String", "DEV_THEME_SERVICE", devThemeService.asBuildConfigString())
-        buildConfigField("String", "DEV_THEME_DISPLAY_NAME", devThemeDisplayName.asBuildConfigString())
-        buildConfigField("String", "DEV_THEME_ID", devThemeId.asBuildConfigString())
-        buildConfigField("String", "DEV_THEME_SIGNER_SHA256", devThemeSigner.asBuildConfigString())
-        buildConfigField("long", "DEV_THEME_VERSION_CODE", "${devThemeVersion}L")
-        buildConfigField(
-            "String",
-            "OFFICIAL_SOURCE_STORE_URL",
-            "https://raw.githubusercontent.com/ImAno177/PaperReader-sources/main/registry/index.signed.json".asBuildConfigString(),
-        )
-        buildConfigField("String", "OFFICIAL_SOURCE_STORE_ID", "paperreader.official.sources".asBuildConfigString())
-        buildConfigField(
-            "String",
-            "OFFICIAL_SOURCE_STORE_PUBLIC_KEY",
-            "7pUD6Tvcjk1Kf/eS+JdKnXPBktUaYisYdfcbsvB30VA=".asBuildConfigString(),
-        )
     }
 
     signingConfigs {
@@ -121,9 +97,43 @@ android {
     }
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+androidComponents {
+    onVariants { variant ->
+        variant.buildConfigFields?.apply {
+            put("DEV_SOURCE_PACKAGE", BuildConfigField("String", devSourcePackage.asBuildConfigString(), null))
+            put("DEV_SOURCE_SERVICE", BuildConfigField("String", devSourceService.asBuildConfigString(), null))
+            put("DEV_SOURCE_PROVIDER_ID", BuildConfigField("String", devSourceProviderId.asBuildConfigString(), null))
+            put("DEV_SOURCE_DISPLAY_NAME", BuildConfigField("String", devSourceDisplayName.asBuildConfigString(), null))
+            put("DEV_SOURCE_SIGNER_SHA256", BuildConfigField("String", devSourceSigner.asBuildConfigString(), null))
+            put("DEV_SOURCE_VERSION_CODE", BuildConfigField("long", "${devSourceVersion}L", null))
+            put("DEV_THEME_PACKAGE", BuildConfigField("String", devThemePackage.asBuildConfigString(), null))
+            put("DEV_THEME_SERVICE", BuildConfigField("String", devThemeService.asBuildConfigString(), null))
+            put("DEV_THEME_DISPLAY_NAME", BuildConfigField("String", devThemeDisplayName.asBuildConfigString(), null))
+            put("DEV_THEME_ID", BuildConfigField("String", devThemeId.asBuildConfigString(), null))
+            put("DEV_THEME_SIGNER_SHA256", BuildConfigField("String", devThemeSigner.asBuildConfigString(), null))
+            put("DEV_THEME_VERSION_CODE", BuildConfigField("long", "${devThemeVersion}L", null))
+            put(
+                "OFFICIAL_SOURCE_STORE_URL",
+                BuildConfigField(
+                    "String",
+                    "https://raw.githubusercontent.com/ImAno177/PaperReader-sources/main/registry/index.signed.json"
+                        .asBuildConfigString(),
+                    null,
+                ),
+            )
+            put(
+                "OFFICIAL_SOURCE_STORE_ID",
+                BuildConfigField("String", "paperreader.official.sources".asBuildConfigString(), null),
+            )
+            put(
+                "OFFICIAL_SOURCE_STORE_PUBLIC_KEY",
+                BuildConfigField(
+                    "String",
+                    "7pUD6Tvcjk1Kf/eS+JdKnXPBktUaYisYdfcbsvB30VA=".asBuildConfigString(),
+                    null,
+                ),
+            )
+        }
     }
 }
 
@@ -146,6 +156,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.2.1")
     implementation("androidx.work:work-runtime-ktx:2.11.2")
     implementation("androidx.pdf:pdf-viewer-fragment:1.0.0-alpha19")
+    implementation("com.google.android.material:material:1.14.0")
     implementation("com.squareup.okhttp3:okhttp:5.1.0")
 
     testImplementation("junit:junit:4.13.2")

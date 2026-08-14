@@ -104,7 +104,7 @@ internal fun resolveReadablePaperPalette(
         border = (community?.border
             ?: activity.resolveThemeColor(com.google.android.material.R.attr.colorOutline)).toCssColor(),
         link = (community?.primary
-            ?: activity.resolveThemeColor(com.google.android.material.R.attr.colorPrimary)).toCssColor(),
+            ?: activity.resolveThemeColor(androidx.appcompat.R.attr.colorPrimary)).toCssColor(),
         selection = (community?.secondaryContainer
             ?: activity.resolveThemeColor(com.google.android.material.R.attr.colorSecondaryContainer)).toCssColor(),
     )

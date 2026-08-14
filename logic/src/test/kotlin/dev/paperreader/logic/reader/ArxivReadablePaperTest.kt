@@ -60,6 +60,27 @@ class ArxivReadablePaperTest {
     }
 
     @Test
+    fun `sanitizer makes real arxiv author metadata readable on a narrow screen`() = runTest {
+        val result = ArxivHtmlSanitizer().sanitize(
+            rawHtml = authorLayoutFixtureHtml(),
+            sourceUrl = SOURCE_URL,
+            fetchAsset = { _, _ -> error("No assets expected") },
+        ) ?: error("Expected readable HTML")
+        val document = Jsoup.parseBodyFragment(result.bodyHtml, SOURCE_URL)
+
+        assertEquals(1, document.select(".paperreader-author").size)
+        assertTrue(document.select(".paperreader-author-details .ltx_contact").size >= 2)
+        assertTrue(document.text().contains("Noam Shazeer"))
+        assertTrue(document.text().contains("Google Brain"))
+        assertTrue(document.text().contains("noam@example.org"))
+        assertTrue(document.text().contains("Body footnote remains"))
+        assertEquals("1", document.selectFirst(".ltx_role_footnotemark .ltx_note_mark")?.text())
+        assertTrue(document.select(".ltx_role_footnotemark .ltx_note_outer").isEmpty())
+        assertFalse(document.text().contains("footnotemark:"))
+        assertFalse(result.bodyHtml.contains("footnotemark:"))
+    }
+
+    @Test
     fun `loader publishes a verified cache that reopens without network`() = runTest {
         val directory = Files.createTempDirectory("readable-paper-cache")
         var calls = 0
@@ -124,7 +145,7 @@ class ArxivReadablePaperTest {
     }
 
     @Test
-    fun `sanitizer policy v8 bypasses a document cached under v7`() = runTest {
+    fun `sanitizer policy v9 bypasses a document cached under v7`() = runTest {
         val directory = Files.createTempDirectory("readable-paper-policy")
         val cache = ReadablePaperCache(directory)
         val v7Key = ReadablePaperCache.keyFor(
@@ -418,6 +439,33 @@ class ArxivReadablePaperTest {
 
     private fun longArticleHtml(body: String = "<p>${"content ".repeat(80)}</p>"): String =
         "<html><body><article class='ltx_document'><h1>Title</h1>$body</article></body></html>"
+
+    private fun authorLayoutFixtureHtml(): String {
+        val body = "The mobile reader must preserve author identity, affiliations, links, references, and footnotes without exposing conversion internals. ".repeat(8)
+        return """
+            <html><body><article class="ltx_document">
+              <h1>Attention Is All You Need</h1>
+              <div class="ltx_authors">
+                <span class="ltx_creator ltx_role_author">
+                  <span class="ltx_personname">Noam Shazeer
+                    <span class="ltx_note ltx_role_footnotemark"><sup class="ltx_note_mark">1</sup>
+                      <span class="ltx_note_outer"><span class="ltx_note_content">
+                        <span class="ltx_note_type">footnotemark: </span><span class="ltx_tag">1</span>
+                      </span></span>
+                    </span>
+                  </span>
+                  <span class="ltx_author_notes"><span class="ltx_author_notes_content">
+                    <span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span>Google Brain</span>
+                    <span class="ltx_contact ltx_role_email">Email: <a href="mailto:noam@example.org">noam@example.org</a></span>
+                  </span></span>
+                </span>
+              </div>
+              <p>$body<span class="ltx_note ltx_role_footnote"><sup class="ltx_note_mark">1</sup>
+                <span class="ltx_note_outer"><span class="ltx_note_content">Body footnote remains.</span></span>
+              </span></p>
+            </article></body></html>
+        """.trimIndent()
+    }
 
     private fun manifestation() = PaperManifestation(
         id = ManifestationId("manifestation-1"),

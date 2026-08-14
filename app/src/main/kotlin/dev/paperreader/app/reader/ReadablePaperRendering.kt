@@ -296,15 +296,16 @@ internal fun renderReadablePaperHtml(
             p { margin: var(--reader-paragraph-margin) 0; }
             a { color: var(--link); text-decoration-thickness: 0.08em; text-underline-offset: 0.15em; }
             a:focus { outline: 3px solid var(--link); outline-offset: 3px; }
-            .ltx_authors {
-              display: flex;
-              flex-wrap: wrap;
-              gap: 4px 18px;
-              margin: 14px 0 20px;
-              color: var(--muted);
-            }
+            .ltx_authors { display: block; margin: 14px 0 20px; color: var(--muted); }
             .ltx_author_before { display: none; }
-            .ltx_creator { display: inline-flex; }
+            .ltx_creator, .paperreader-author { display: block; min-width: 0; margin: 0 0 14px; }
+            .ltx_personname, .paperreader-author-name { display: inline; color: var(--text); font-weight: 650; }
+            .ltx_author_notes, .paperreader-author-details { display: block; margin: 4px 0 0; color: var(--muted); font-size: 0.88em; overflow-wrap: anywhere; }
+            .ltx_contact { display: block; margin: 2px 0; }
+            .ltx_contact_name { font-weight: 600; }
+            .ltx_role_footnotemark .ltx_note_outer,
+            .ltx_role_footnotemark .ltx_note_content { display: none; }
+            .ltx_role_footnotemark .ltx_note_mark { font-size: 0.7em; vertical-align: super; }
             .ltx_date, .ltx_role_affiliationtext { color: var(--muted); }
             .paperreader-author-notes {
               margin: 0 0 24px;

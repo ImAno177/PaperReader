@@ -118,6 +118,26 @@ class ReadablePaperRenderingTest {
     }
 
     @Test
+    fun `renderer stacks author metadata and hides footnote implementation payloads`() {
+        val html = renderReadablePaperHtml(
+            sanitizedBodyHtml = """
+                <article><div class="ltx_authors"><span class="ltx_creator paperreader-author">
+                  <span class="ltx_personname paperreader-author-name">Noam Shazeer</span>
+                  <span class="ltx_author_notes paperreader-author-details">Google Brain</span>
+                  <span class="ltx_role_footnotemark"><sup class="ltx_note_mark">1</sup><span class="ltx_note_outer">footnotemark: 1</span></span>
+                </span></div></article>
+            """.trimIndent(),
+            palette = palette(),
+            dark = false,
+        )
+
+        assertTrue(html.contains(".ltx_creator, .paperreader-author"))
+        assertTrue(html.contains(".ltx_author_notes, .paperreader-author-details"))
+        assertTrue(html.contains(".ltx_role_footnotemark .ltx_note_outer"))
+        assertTrue(html.contains("display: block"))
+    }
+
+    @Test
     fun `renderer rewrites only bounded bibliography links to the app-owned citation route`() {
         val source = """<p><a href = '#bib.bib12'>[12]</a> <a href="#bib.bib13">[13]</a> <a href="#S3.SS2">section</a> <a href="https://example.org">web</a></p>"""
 

@@ -76,13 +76,15 @@ Provider capabilities are explicit and independently selectable:
 | --- | --- | --- |
 | Semantic Scholar | Free-text search and citation observations | Search engine |
 | Crossref | Exact DOI metadata enrichment | Metadata engine |
-| arXiv | arXiv search and content manifestations | Content source |
-| Europe PMC | Biomedical search and licensed content manifestations | Content source |
+| arXiv | Phrase-aware arXiv search and content manifestations | Content source with discovery capability |
+| Europe PMC | Biomedical search and licensed content manifestations | Content source with discovery capability |
 
 Crossref is never used for fuzzy discovery. Exact DOI/arXiv/PMID/PMCID requests route only to an
-extension that declares that identifier type. A provider failure remains isolated and cannot cancel
-successful providers. Ranking is deterministic: exact identifier, title/text match, then a Semantic
-Scholar citation tie-break, publication date, and stable record key.
+extension that declares that identifier type. Free-text discovery uses the `DISCOVERY` capability;
+`SEARCH_ENGINE` identifies the preferred ranking owner, while content sources can contribute
+authoritative records as a fallback. A provider failure remains isolated and cannot cancel successful
+providers. Ranking is deterministic: exact identifier, title/text match, then a Semantic Scholar
+citation tie-break, publication date, and stable record key.
 
 The Google fallback is browser-mediated, not a provider implementation: the host opens a constrained
 `site:arxiv.org` query, accepts only an explicit arXiv `/abs/`, `/html/`, or `/pdf/` VIEW/share

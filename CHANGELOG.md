@@ -5,6 +5,21 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [0.1.6] - 2026-08-15
+
+### Fixed
+
+- Search now keeps recent queries, exposes per-provider status and filters, and lets users retry an
+  unavailable provider without losing successful results from other sources.
+- Natural-language searches now include discovery-capable arXiv and Europe PMC content sources when
+  Semantic Scholar is rate-limited, instead of returning only a provider failure.
+- arXiv free-text requests preserve the submitted phrase as a title query, avoiding the API's broad
+  space-separated `all:` OR expansion.
+- Provider User-Agent strings identify the public project URL, and source extensions apply bounded
+  exponential cooldowns when a 429 response omits `Retry-After`.
+
 ## [0.1.5] - 2026-08-14
 
 ### Added
@@ -73,7 +88,8 @@ current branch. Released sections correspond to Git tags.
 
 - The separate-extension model and the first signed source-update contract.
 
-[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.6
 [0.1.5]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.5
 [0.1.4]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.4
 [0.1.3]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.3

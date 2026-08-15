@@ -142,8 +142,8 @@ private fun PaperReaderContent(
         )
     }
     val viewModel: PaperReaderViewModel = viewModel(
-        factory = remember(logic, downloadWorkScheduler, restoreSessionStore) {
-            PaperReaderViewModel.factory(logic, downloadWorkScheduler, restoreSessionStore)
+        factory = remember(logic, downloadWorkScheduler, restoreSessionStore, preferences) {
+            PaperReaderViewModel.factory(logic, downloadWorkScheduler, restoreSessionStore, preferences)
         },
     )
     val library by viewModel.library.collectAsStateWithLifecycle()

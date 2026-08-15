@@ -59,7 +59,7 @@ data class ExtensionStorePreview(
 class ExtensionStoreRegistry(
     directory: Path,
     private val client: OkHttpClient = OkHttpClient(),
-    private val userAgent: String = "PaperReader/0.1 (Android)",
+    private val userAgent: String = "PaperReader/0.1 (Android; +https://github.com/ImAno177/PaperReader)",
     private val clock: Clock = Clock.systemUTC(),
     private val envelopeFetcher: (suspend (String) -> ByteArray)? = null,
 ) {

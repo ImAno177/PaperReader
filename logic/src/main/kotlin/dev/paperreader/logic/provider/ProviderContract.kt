@@ -29,13 +29,13 @@ data class ProviderDescriptor(
 }
 
 enum class ProviderRole {
-    /** Returns and ranks candidates for discovery queries. */
+    /** Preferred owner of ranked candidates for discovery queries. */
     SEARCH_ENGINE,
 
-    /** Owns a paper manifestation or a structured/full-text artifact. */
+    /** Owns a paper manifestation or a structured/full-text artifact; it may also expose discovery. */
     CONTENT_SOURCE,
 
-    /** Enriches an already identified work; free-text discovery must not call it. */
+    /** Enriches an already identified work; a metadata-only provider is not used for free text. */
     METADATA_ENGINE,
 }
 

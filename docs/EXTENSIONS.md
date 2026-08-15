@@ -53,7 +53,8 @@ validates URLs, limits responses to 50 records per page, and reports rate limiti
 
 Each official provider owns one upstream API only. Crossref is exact-DOI metadata enrichment, not
 free-text discovery. Semantic Scholar is the default free-text engine. arXiv and Europe PMC expose
-content manifestations only when supported by the upstream response and license/access evidence.
+search and content capabilities; the host admits them as discovery fallbacks when they advertise
+`DISCOVERY`, while content manifestations still require upstream response and license/access evidence.
 
 ## Theme extensions
 

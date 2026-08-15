@@ -18,6 +18,8 @@ The current host behavior is recorded in [`docs/SPEC.md`](docs/SPEC.md). Release
 
 - Search Semantic Scholar, arXiv, and Europe PMC records, enrich exact DOI metadata with
   Crossref, then save papers to an on-device Room library.
+- Keep recent searches, inspect provider-specific progress and failures, filter by source, and retry
+  an unavailable provider without discarding successful results.
 - Use a browser-mediated Google fallback to find an arXiv URL, then hand the exact identifier to the
   installed arXiv source for API metadata. The app never scrapes Google result pages.
 - Read exact-version arXiv HTML offline with selectable text, figures, tables, MathML, search, a table

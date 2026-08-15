@@ -56,6 +56,21 @@ class FederatedPaperSearchTest {
     }
 
     @Test
+    fun `content sources that advertise discovery contribute to free text`() = runTest {
+        val arxiv = provider(
+            id = "arxiv",
+            roles = setOf(ProviderRole.CONTENT_SOURCE),
+        ) { ProviderPage(listOf(remote("arxiv", "1706.03762v7"))) }
+
+        val events = FederatedPaperSearch(listOf(arxiv))
+            .search(PaperSearchQuery("attention is all you need"))
+            .toList()
+
+        assertEquals(FederatedSearchEvent.Started(setOf("arxiv")), events.first())
+        assertTrue(events.any { it is FederatedSearchEvent.PageReceived })
+    }
+
+    @Test
     fun `exact identifiers route only to providers that declare that identifier type`() = runTest {
         val arxiv = provider("arxiv", identifierTypes = setOf(IdentifierType.ARXIV)) { ProviderPage(emptyList()) }
         val semanticScholar = provider(
@@ -135,6 +150,7 @@ class FederatedPaperSearchTest {
         capabilities: Set<ProviderCapability> = setOf(ProviderCapability.DISCOVERY),
         identifierTypes: Set<IdentifierType> = IdentifierType.entries.toSet(),
         supportedSorts: Set<SearchSort> = SearchSort.entries.toSet(),
+        roles: Set<ProviderRole> = setOf(ProviderRole.SEARCH_ENGINE),
         search: suspend () -> ProviderPage,
     ): PaperProvider =
         object : PaperProvider {
@@ -142,7 +158,7 @@ class FederatedPaperSearchTest {
                 id = id,
                 displayName = id,
                 minimumRequestIntervalMillis = 0,
-                roles = setOf(ProviderRole.SEARCH_ENGINE),
+                roles = roles,
                 capabilities = capabilities,
                 identifierLookupTypes = identifierTypes,
                 supportedSorts = supportedSorts,

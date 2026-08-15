@@ -43,7 +43,7 @@ internal class VerifiedExtensionApkDownloader(
             requireSafeDownloadUri(current)
             val request = Request.Builder()
                 .url(current.toString())
-                .header("User-Agent", "PaperReader/0.1 (Android)")
+                .header("User-Agent", "PaperReader/0.1 (Android; +https://github.com/ImAno177/PaperReader)")
                 .header("Accept", "application/vnd.android.package-archive")
                 .build()
             val call = client.newCall(request)

@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import dev.paperreader.app.download.DownloadWorkScheduler
 import dev.paperreader.app.backup.MetadataRestoreSessionStore
+import dev.paperreader.app.settings.PaperReaderPreferences
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.model.ReadingHistoryUi
@@ -80,6 +81,7 @@ class PaperReaderViewModel internal constructor(
     private val logic: PaperReaderLogic,
     private val downloadWorkScheduler: DownloadWorkScheduler,
     private val metadataRestoreSessionStore: MetadataRestoreSessionStore,
+    private val preferences: PaperReaderPreferences,
 ) : ViewModel() {
     val library: StateFlow<LoadState<List<PaperUi>>> = logic.useCases.observeLibrary
         .subscribe()
@@ -101,7 +103,7 @@ class PaperReaderViewModel internal constructor(
     private val mutableDownloadActions = MutableStateFlow(DownloadActionUiState())
     val downloadActions: StateFlow<DownloadActionUiState> = mutableDownloadActions
 
-    private val searchController = PaperReaderSearchController(logic, viewModelScope, providers)
+    private val searchController = PaperReaderSearchController(logic, viewModelScope, providers, preferences)
     val search: StateFlow<SearchUiState> = searchController.search
     val savedSearches: StateFlow<LoadState<List<dev.paperreader.logic.domain.SavedSearchFeed>>> =
         searchController.savedSearches
@@ -416,9 +418,10 @@ class PaperReaderViewModel internal constructor(
             logic: PaperReaderLogic,
             downloadWorkScheduler: DownloadWorkScheduler,
             metadataRestoreSessionStore: MetadataRestoreSessionStore,
+            preferences: PaperReaderPreferences,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                PaperReaderViewModel(logic, downloadWorkScheduler, metadataRestoreSessionStore)
+                PaperReaderViewModel(logic, downloadWorkScheduler, metadataRestoreSessionStore, preferences)
             }
         }
     }

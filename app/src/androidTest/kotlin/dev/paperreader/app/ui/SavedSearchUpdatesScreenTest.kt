@@ -162,6 +162,60 @@ class SavedSearchUpdatesScreenTest {
     }
 
     @Test
+    fun discoverShowsProviderAwareSearchFilters() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DiscoverScreen(
+                    state = SearchUiState(
+                        submittedQuery = "attention is all you need",
+                        providerStates = listOf(
+                            ProviderSearchUiState(
+                                providerId = "arxiv",
+                                providerName = "arXiv",
+                                status = ProviderSearchStatus.SEARCHING,
+                            ),
+                            ProviderSearchUiState(
+                                providerId = "semanticscholar",
+                                providerName = "Semantic Scholar",
+                                status = ProviderSearchStatus.READY,
+                                resultCount = 2,
+                            ),
+                        ),
+                    ),
+                    onSearch = {},
+                    onClear = {},
+                    onSave = {},
+                    onOpenPaper = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("All sources").assertExists()
+        composeRule.onNodeWithText("Has results").assertExists()
+        composeRule.onNodeWithText("arXiv · searching").assertExists()
+        composeRule.onNodeWithText("Semantic Scholar · 2").assertExists()
+    }
+
+    @Test
+    fun discoverCanRerunARecentNaturalLanguageQuery() {
+        var submitted: String? = null
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DiscoverScreen(
+                    state = SearchUiState(recentQueries = listOf("attention is all you need")),
+                    onSearch = { submitted = it },
+                    onClear = {},
+                    onSave = {},
+                    onOpenPaper = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("attention is all you need").performClick()
+        composeRule.runOnIdle { assertEquals("attention is all you need", submitted) }
+    }
+
+    @Test
     fun updatesRendersDurableHitsAndDispatchesInboxActions() {
         composeRule.enableAccessibilityChecks()
         val feed = feed()

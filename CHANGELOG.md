@@ -5,6 +5,10 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [0.1.6] - 2026-08-15
+
 ### Fixed
 
 - Search now keeps recent queries, exposes per-provider status and filters, and lets users retry an
@@ -84,7 +88,8 @@ current branch. Released sections correspond to Git tags.
 
 - The separate-extension model and the first signed source-update contract.
 
-[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.6
 [0.1.5]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.5
 [0.1.4]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.4
 [0.1.3]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.3

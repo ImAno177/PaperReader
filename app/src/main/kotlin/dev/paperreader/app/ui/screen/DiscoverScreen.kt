@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -19,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +49,8 @@ import dev.paperreader.app.R
 import dev.paperreader.app.ui.LoadState
 import dev.paperreader.app.ui.ProviderFailureKind
 import dev.paperreader.app.ui.ProviderSearchFailure
+import dev.paperreader.app.ui.ProviderSearchStatus
+import dev.paperreader.app.ui.ProviderSearchUiState
 import dev.paperreader.app.ui.SearchUiState
 import dev.paperreader.app.ui.SavedSearchActionUiState
 import dev.paperreader.app.ui.SavedSearchActionKey
@@ -84,9 +89,20 @@ fun DiscoverScreen(
     }
     var previewKey by rememberSaveable(state.submittedQuery) { mutableStateOf<String?>(null) }
     var previewLinkFailed by rememberSaveable(state.submittedQuery, previewKey) { mutableStateOf(false) }
+    var selectedProviderId by rememberSaveable(state.submittedQuery) { mutableStateOf<String?>(null) }
+    var onlySourcesWithResults by rememberSaveable(state.submittedQuery) { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     val uriHandler = LocalUriHandler.current
     val previewResult = state.results.firstOrNull { it.key == previewKey }
+    val eligibleProviderIds = state.providerStates
+        .filter { !onlySourcesWithResults || it.resultCount > 0 }
+        .map(ProviderSearchUiState::providerId)
+        .toSet()
+    val visibleResults = state.results.filter { result ->
+        val matchesProvider = selectedProviderId == null || selectedProviderId in result.sources
+        val matchesAvailability = !onlySourcesWithResults || result.sources.any(eligibleProviderIds::contains)
+        matchesProvider && matchesAvailability
+    }
     val submitSearch = {
         if (query.isNotBlank() && !state.running) {
             focusManager.clearFocus(force = true)
@@ -173,12 +189,45 @@ fun DiscoverScreen(
             if (state.running && state.results.isNotEmpty()) {
                 item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth()) }
             }
+            if (state.providerStates.size > 1) {
+                item {
+                    SearchProviderFilters(
+                        providers = state.providerStates,
+                        selectedProviderId = selectedProviderId,
+                        onlySourcesWithResults = onlySourcesWithResults,
+                        onProviderSelected = { providerId ->
+                            selectedProviderId = providerId
+                            onlySourcesWithResults = false
+                        },
+                        onAvailabilityFilterSelected = {
+                            onlySourcesWithResults = it
+                            selectedProviderId = null
+                        },
+                    )
+                }
+            }
             items(
                 state.failures,
                 key = ProviderSearchFailure::providerId,
                 contentType = { "provider-failure" },
             ) { failure ->
-                ProviderFailureRow(failure)
+                ProviderFailureRow(
+                    failure = failure,
+                    onRetry = state.submittedQuery?.let { submittedQuery -> { onSearch(submittedQuery) } },
+                )
+            }
+            if (state.submittedQuery == null && state.recentQueries.isNotEmpty()) {
+                item {
+                    RecentSearches(
+                        queries = state.recentQueries.filter { recentQuery ->
+                            query.isBlank() || recentQuery.contains(query.trim(), ignoreCase = true)
+                        },
+                        onSelect = { recentQuery ->
+                            query = recentQuery
+                            submitSearch()
+                        },
+                    )
+                }
             }
             state.submittedQuery?.let { submittedQuery ->
                 item {
@@ -239,6 +288,14 @@ fun DiscoverScreen(
                     }
                 }
 
+                visibleResults.isEmpty() && state.results.isNotEmpty() -> item {
+                    PaperStatePanel(
+                        title = stringResource(R.string.search_filter_no_results_title),
+                        body = stringResource(R.string.search_filter_no_results_body),
+                        icon = PaperIconKey.SEARCH,
+                    )
+                }
+
                 else -> {
                     item {
                         PaperSectionHeader(
@@ -247,15 +304,15 @@ fun DiscoverScreen(
                                 PaperLabel(
                                     pluralStringResource(
                                         R.plurals.search_results_count,
-                                        state.results.size,
-                                        state.results.size,
+                                        visibleResults.size,
+                                        visibleResults.size,
                                     ),
                                 )
                             },
                         )
                     }
                     items(
-                        state.results,
+                        visibleResults,
                         key = SearchPaperUi::key,
                         contentType = { "search-result" },
                     ) { result ->
@@ -306,6 +363,88 @@ private fun GoogleArxivSearchAction(
 
 internal fun googleArxivSearchUrl(query: String): String =
     "https://www.google.com/search?q=${Uri.encode("site:arxiv.org $query")}"
+
+@Composable
+private fun SearchProviderFilters(
+    providers: List<ProviderSearchUiState>,
+    selectedProviderId: String?,
+    onlySourcesWithResults: Boolean,
+    onProviderSelected: (String?) -> Unit,
+    onAvailabilityFilterSelected: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(
+            selected = selectedProviderId == null && !onlySourcesWithResults,
+            onClick = { onProviderSelected(null) },
+            label = { Text(stringResource(R.string.search_filter_all)) },
+        )
+        FilterChip(
+            selected = onlySourcesWithResults,
+            onClick = { onAvailabilityFilterSelected(!onlySourcesWithResults) },
+            label = { Text(stringResource(R.string.search_filter_has_results)) },
+        )
+        providers.forEach { provider ->
+            FilterChip(
+                selected = selectedProviderId == provider.providerId,
+                onClick = { onProviderSelected(provider.providerId) },
+                label = {
+                    Text(
+                        text = when (provider.status) {
+                            ProviderSearchStatus.SEARCHING ->
+                                stringResource(R.string.search_provider_searching, provider.providerName)
+                            ProviderSearchStatus.READY ->
+                                stringResource(
+                                    R.string.search_provider_ready,
+                                    provider.providerName,
+                                    provider.resultCount,
+                                )
+                            ProviderSearchStatus.FAILED ->
+                                stringResource(R.string.search_provider_failed, provider.providerName)
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecentSearches(
+    queries: List<String>,
+    onSelect: (String) -> Unit,
+) {
+    if (queries.isEmpty()) return
+    PaperSurface {
+        Text(stringResource(R.string.search_recent_title), style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(4.dp))
+        queries.forEach { recentQuery ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelect(recentQuery) }
+                    .padding(vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PaperIcon(PaperIconKey.HISTORY, contentDescription = null, tint = PaperTheme.tokens.inkMuted)
+                Text(
+                    text = recentQuery,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                PaperIcon(PaperIconKey.FORWARD, contentDescription = null, tint = PaperTheme.tokens.inkMuted)
+            }
+        }
+    }
+}
 
 @Composable
 private fun SavedSearchDiscoverAction(
@@ -386,7 +525,10 @@ private fun SavedSearchDiscoverAction(
 }
 
 @Composable
-private fun ProviderFailureRow(failure: ProviderSearchFailure) {
+private fun ProviderFailureRow(
+    failure: ProviderSearchFailure,
+    onRetry: (() -> Unit)?,
+) {
     PaperSurface(contentPadding = PaddingValues(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.warning)
@@ -402,8 +544,14 @@ private fun ProviderFailureRow(failure: ProviderSearchFailure) {
                     ProviderFailureKind.UNAVAILABLE -> stringResource(R.string.provider_unavailable, failure.providerName)
                     ProviderFailureKind.INVALID_RESPONSE -> stringResource(R.string.provider_invalid_response, failure.providerName)
                 },
+                modifier = Modifier.weight(1f),
                 color = PaperTheme.tokens.ink,
             )
+            onRetry?.let { retry ->
+                PaperSecondaryButton(onClick = retry) {
+                    Text(stringResource(R.string.search_retry))
+                }
+            }
         }
     }
 }

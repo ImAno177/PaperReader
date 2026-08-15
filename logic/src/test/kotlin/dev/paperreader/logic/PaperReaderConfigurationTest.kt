@@ -12,7 +12,7 @@ class PaperReaderConfigurationTest {
         val configured = defaults.copy(contactEmail = "reader@example.org")
 
         assertEquals("paper-reader.db", defaults.databaseName)
-        assertEquals("PaperReader/0.1 (Android)", defaults.userAgent)
+        assertEquals("PaperReader/0.1 (Android; +https://github.com/ImAno177/PaperReader)", defaults.userAgent)
         assertEquals(null, defaults.contactEmail)
         assertEquals("reader@example.org", configured.contactEmail)
         assertEquals(emptyList<TrustedSourceExtension>(), defaults.trustedSourceExtensions)

@@ -45,6 +45,17 @@ class PaperReaderPreferences(context: Context) {
         values[DISABLED_PROVIDER_IDS_KEY].orEmpty()
     }
 
+    /** The last few submitted discovery queries, newest first. */
+    val recentSearchQueries: Flow<List<String>> = preferences.map { values ->
+        values[RECENT_SEARCH_QUERIES_KEY]
+            .orEmpty()
+            .split(RECENT_SEARCH_SEPARATOR)
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .distinctBy(String::lowercase)
+            .take(MAX_RECENT_SEARCHES)
+    }
+
     suspend fun setTheme(preset: PaperThemePreset) {
         setThemeKey(preset.storageKey)
     }
@@ -78,11 +89,29 @@ class PaperReaderPreferences(context: Context) {
         }
     }
 
+    suspend fun setRecentSearchQueries(queries: List<String>) {
+        val normalized = queries
+            .map { it.trim().replace(Regex("\\s+"), " ") }
+            .filter(String::isNotEmpty)
+            .distinctBy(String::lowercase)
+            .take(MAX_RECENT_SEARCHES)
+        dataStore.edit { values ->
+            if (normalized.isEmpty()) {
+                values.remove(RECENT_SEARCH_QUERIES_KEY)
+            } else {
+                values[RECENT_SEARCH_QUERIES_KEY] = normalized.joinToString(RECENT_SEARCH_SEPARATOR)
+            }
+        }
+    }
+
     private companion object {
         val THEME_KEY = stringPreferencesKey("theme_preset")
         val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
         val LIBRARY_LAYOUT_KEY = stringPreferencesKey("library_layout")
         val AUTOMATIC_SAVED_SEARCH_REFRESH_KEY = booleanPreferencesKey("automatic_saved_search_refresh")
         val DISABLED_PROVIDER_IDS_KEY = stringSetPreferencesKey("disabled_provider_ids")
+        val RECENT_SEARCH_QUERIES_KEY = stringPreferencesKey("recent_search_queries")
+        const val RECENT_SEARCH_SEPARATOR = "\u0000"
+        const val MAX_RECENT_SEARCHES = 8
     }
 }

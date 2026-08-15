@@ -5,6 +5,17 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+### Fixed
+
+- Search now keeps recent queries, exposes per-provider status and filters, and lets users retry an
+  unavailable provider without losing successful results from other sources.
+- Natural-language searches now include discovery-capable arXiv and Europe PMC content sources when
+  Semantic Scholar is rate-limited, instead of returning only a provider failure.
+- arXiv free-text requests preserve the submitted phrase as a title query, avoiding the API's broad
+  space-separated `all:` OR expansion.
+- Provider User-Agent strings identify the public project URL, and source extensions apply bounded
+  exponential cooldowns when a 429 response omits `Retry-After`.
+
 ## [0.1.5] - 2026-08-14
 
 ### Added

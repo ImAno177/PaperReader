@@ -57,6 +57,15 @@
     <string name="search_google_action">Search arXiv on Google</string>
     <string name="search_failed_title">Sources unavailable</string>
     <string name="search_failed_body">Check your connection and try again.</string>
+    <string name="search_filter_all">All sources</string>
+    <string name="search_filter_has_results">Has results</string>
+    <string name="search_provider_searching">%1$s · searching</string>
+    <string name="search_provider_ready">%1$s · %2$d</string>
+    <string name="search_provider_failed">%1$s · unavailable</string>
+    <string name="search_retry">Retry</string>
+    <string name="search_recent_title">Recent searches</string>
+    <string name="search_filter_no_results_title">No results from this source</string>
+    <string name="search_filter_no_results_body">Choose All sources or another source to broaden the search.</string>
     <plurals name="search_results_count">
         <item quantity="one">%1$d result</item>
         <item quantity="other">%1$d results</item>

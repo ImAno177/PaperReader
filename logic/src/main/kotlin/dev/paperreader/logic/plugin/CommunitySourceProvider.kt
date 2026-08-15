@@ -137,7 +137,9 @@ internal class CommunitySourceProvider(
         throw cancelled
     } catch (failure: SourceExtensionRequestException) {
         throw when (failure.failure.code) {
-            ExtensionFailureCode.RATE_LIMITED -> ProviderException.RateLimited(failure.failure.retryAfterMillis)
+            ExtensionFailureCode.RATE_LIMITED -> ProviderException.RateLimited(
+                failure.failure.retryAfterMillis ?: DEFAULT_RATE_LIMIT_BACKOFF_MILLIS,
+            )
             ExtensionFailureCode.CANCELLED -> CancellationException(failure.failure.message)
             ExtensionFailureCode.UNAVAILABLE,
             ExtensionFailureCode.INTERNAL_ERROR,
@@ -154,6 +156,8 @@ internal class CommunitySourceProvider(
 
     private fun newRequestId(): String = UUID.randomUUID().toString()
 }
+
+private const val DEFAULT_RATE_LIMIT_BACKOFF_MILLIS = 60_000L
 
 internal class SourceExtensionRequestException(
     val failure: ExtensionFailure,

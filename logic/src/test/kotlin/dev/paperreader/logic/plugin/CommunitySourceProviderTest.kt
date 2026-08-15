@@ -95,6 +95,23 @@ class CommunitySourceProviderTest {
     }
 
     @Test
+    fun `assigns a bounded cooldown when an older extension omits retry after`() = runTest {
+        val provider = CommunitySourceProvider(
+            FakeTransport(
+                searchFailure = ExtensionFailure(
+                    requestId = "request",
+                    code = ExtensionFailureCode.RATE_LIMITED,
+                    message = "Try later",
+                ),
+            ),
+        )
+
+        val failure = runCatching { provider.search(PaperSearchQuery("query")) }.exceptionOrNull()
+        assertTrue(failure is ProviderException.RateLimited)
+        assertEquals(60_000L, (failure as ProviderException.RateLimited).retryAfterMillis)
+    }
+
+    @Test
     fun `rejects malformed escaped identifiers without escaping provider failure boundary`() = runTest {
         val provider = CommunitySourceProvider(
             FakeTransport(

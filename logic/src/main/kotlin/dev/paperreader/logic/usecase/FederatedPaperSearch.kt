@@ -9,6 +9,7 @@ import dev.paperreader.logic.provider.ProviderException
 import dev.paperreader.logic.provider.ProviderPage
 import dev.paperreader.logic.provider.ProviderManager
 import dev.paperreader.logic.provider.ProviderCapability
+import dev.paperreader.logic.provider.ProviderDescriptor
 import dev.paperreader.logic.provider.ProviderRole
 import dev.paperreader.logic.provider.MutableProviderManager
 import dev.paperreader.logic.provider.RemotePaper
@@ -38,8 +39,7 @@ class FederatedPaperSearch(private val providerManager: ProviderManager) {
             if (query.sort !in provider.descriptor.supportedSorts) {
                 false
             } else if (exactIdentifierType == null) {
-                ProviderCapability.DISCOVERY in provider.descriptor.capabilities &&
-                    ProviderRole.SEARCH_ENGINE in provider.descriptor.roles
+                provider.descriptor.supportsFreeTextDiscovery()
             } else {
                 exactIdentifierType in provider.descriptor.identifierLookupTypes
             }
@@ -74,6 +74,15 @@ class FederatedPaperSearch(private val providerManager: ProviderManager) {
         send(FederatedSearchEvent.Finished(succeeded.get(), failed.get()))
     }
 }
+
+/**
+ * A provider may own content and still expose a useful discovery endpoint.  The capability is the
+ * contract for free-text discovery; SEARCH_ENGINE identifies the preferred/ranking owner, while a
+ * CONTENT_SOURCE such as arXiv or Europe PMC can contribute authoritative records as a fallback.
+ */
+private fun ProviderDescriptor.supportsFreeTextDiscovery(): Boolean =
+    ProviderCapability.DISCOVERY in capabilities &&
+        (ProviderRole.SEARCH_ENGINE in roles || ProviderRole.CONTENT_SOURCE in roles)
 
 private fun String.exactIdentifierTypeOrNull(): IdentifierType? {
     if (runCatching { IdentifierNormalizer.doi(this) }.isSuccess) return IdentifierType.DOI

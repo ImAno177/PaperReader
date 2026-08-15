@@ -85,8 +85,8 @@ internal class ArxivReadableResourceFetcher(
             (port == -1 || allowedScheme == "http") && fragment == null
 
     companion object {
-        /** One connection at a time with a modest start interval for arXiv's browsing surface. */
-        private const val DEFAULT_REQUEST_INTERVAL_MILLIS = 350L
+        /** One connection at a time with arXiv's documented three-second request interval. */
+        private const val DEFAULT_REQUEST_INTERVAL_MILLIS = 3_000L
     }
 }
 

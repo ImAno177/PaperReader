@@ -2,6 +2,7 @@ package dev.paperreader.app.ui
 
 import dev.paperreader.app.ui.model.SearchPaperUi
 import dev.paperreader.app.ui.model.toSearchPaperUi
+import dev.paperreader.app.settings.PaperReaderPreferences
 import dev.paperreader.logic.PaperReaderLogic
 import dev.paperreader.logic.domain.SavedSearchFeed
 import dev.paperreader.logic.domain.SavedSearchHitId
@@ -46,11 +47,27 @@ data class ProviderSearchFailure(
     val retryAfterMillis: Long? = null,
 )
 
+enum class ProviderSearchStatus {
+    SEARCHING,
+    READY,
+    FAILED,
+}
+
+data class ProviderSearchUiState(
+    val providerId: String,
+    val providerName: String,
+    val status: ProviderSearchStatus = ProviderSearchStatus.SEARCHING,
+    val resultCount: Int = 0,
+    val failure: ProviderSearchFailure? = null,
+)
+
 data class SearchUiState(
     val submittedQuery: String? = null,
     val running: Boolean = false,
     val providerCount: Int = 0,
     val providerIds: Set<String> = emptySet(),
+    val providerStates: List<ProviderSearchUiState> = emptyList(),
+    val recentQueries: List<String> = emptyList(),
     val results: List<SearchPaperUi> = emptyList(),
     val failures: List<ProviderSearchFailure> = emptyList(),
     val savingKeys: Set<String> = emptySet(),
@@ -86,6 +103,7 @@ internal class PaperReaderSearchController(
     private val logic: PaperReaderLogic,
     private val scope: CoroutineScope,
     private val providers: StateFlow<ProviderManagerState>,
+    private val preferences: PaperReaderPreferences,
 ) {
     val savedSearches: StateFlow<LoadState<List<SavedSearchFeed>>> = logic.useCases.observeSavedSearches
         .subscribe()
@@ -99,12 +117,28 @@ internal class PaperReaderSearchController(
     private val mutableSavedSearchActions = MutableStateFlow(SavedSearchActionUiState())
     val savedSearchActions: StateFlow<SavedSearchActionUiState> = mutableSavedSearchActions
 
+    init {
+        scope.launch {
+            preferences.recentSearchQueries.collect { queries ->
+                mutableSearch.value = mutableSearch.value.copy(recentQueries = queries)
+            }
+        }
+    }
+
     fun search(query: String) {
         val submitted = query.trim()
         if (submitted.isEmpty()) return
         val generation = ++searchGeneration
         searchJob?.cancel()
-        mutableSearch.value = SearchUiState(submittedQuery = submitted, running = true)
+        val recentQueries = listOf(submitted) + mutableSearch.value.recentQueries.filterNot {
+            it.equals(submitted, ignoreCase = true)
+        }
+        mutableSearch.value = SearchUiState(
+            submittedQuery = submitted,
+            running = true,
+            recentQueries = recentQueries.take(8),
+        )
+        scope.launch { preferences.setRecentSearchQueries(recentQueries) }
         val providerNames = providers.value.installed.associate {
             it.descriptor.id to it.descriptor.displayName
         }
@@ -118,6 +152,14 @@ internal class PaperReaderSearchController(
                         is FederatedSearchEvent.Started -> mutableSearch.value = mutableSearch.value.copy(
                             providerCount = event.providerCount,
                             providerIds = event.providerIds,
+                            providerStates = event.providerIds
+                                .sorted()
+                                .map { providerId ->
+                                    ProviderSearchUiState(
+                                        providerId = providerId,
+                                        providerName = providerNames[providerId] ?: providerId,
+                                    )
+                                },
                         )
 
                         is FederatedSearchEvent.PageReceived -> {
@@ -132,7 +174,19 @@ internal class PaperReaderSearchController(
                                 ).map { it.toSearchPaperUi(providerNames) }
                             }
                             if (generation == searchGeneration) {
-                                mutableSearch.value = mutableSearch.value.copy(results = rankedResults)
+                                mutableSearch.value = mutableSearch.value.copy(
+                                    providerStates = mutableSearch.value.providerStates.map { provider ->
+                                        if (provider.providerId == event.providerId) {
+                                            provider.copy(
+                                                status = ProviderSearchStatus.READY,
+                                                resultCount = records.count { it.providerId == event.providerId },
+                                            )
+                                        } else {
+                                            provider
+                                        }
+                                    },
+                                    results = rankedResults,
+                                )
                             }
                         }
 
@@ -143,7 +197,19 @@ internal class PaperReaderSearchController(
                                 ?.displayName
                                 ?: event.providerId
                             failures[event.providerId] = event.error.toUiFailure(event.providerId, providerName)
-                            mutableSearch.value = mutableSearch.value.copy(failures = failures.values.toList())
+                            mutableSearch.value = mutableSearch.value.copy(
+                                providerStates = mutableSearch.value.providerStates.map { provider ->
+                                    if (provider.providerId == event.providerId) {
+                                        provider.copy(
+                                            status = ProviderSearchStatus.FAILED,
+                                            failure = failures[event.providerId],
+                                        )
+                                    } else {
+                                        provider
+                                    }
+                                },
+                                failures = failures.values.toList(),
+                            )
                         }
 
                         is FederatedSearchEvent.Finished -> Unit
@@ -160,7 +226,7 @@ internal class PaperReaderSearchController(
     fun clearSearch() {
         searchGeneration += 1
         searchJob?.cancel()
-        mutableSearch.value = SearchUiState()
+        mutableSearch.value = SearchUiState(recentQueries = mutableSearch.value.recentQueries)
     }
 
     fun save(result: SearchPaperUi) {

@@ -83,7 +83,7 @@ class PaperReaderApplication : Application() {
     }
 }
 
-private const val USER_AGENT = "PaperReader/0.1 (Android)"
+private const val USER_AGENT = "PaperReader/0.1 (Android; +https://github.com/ImAno177/PaperReader)"
 
 private fun developerThemeExtensions(): List<TrustedThemeExtension> {
     if (!BuildConfig.DEBUG || BuildConfig.DEV_THEME_SIGNER_SHA256.isBlank()) return emptyList()

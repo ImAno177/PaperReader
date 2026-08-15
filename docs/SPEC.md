@@ -21,7 +21,7 @@ and may be unavailable until the corresponding signed extension is installed.
 
 | Area | Implemented behavior |
 | --- | --- |
-| Discovery | Semantic Scholar free-text search; arXiv and Europe PMC content search; Crossref exact DOI enrichment; deterministic exact-identifier routing and citation-aware ranking. |
+| Discovery | Semantic Scholar, arXiv, and Europe PMC free-text search; Crossref exact DOI enrichment; deterministic exact-identifier routing and citation-aware ranking. |
 | Google handoff | A `site:arxiv.org` browser fallback; explicit `/abs/`, `/html/`, or `/pdf/` URL handoff through Android VIEW or Share; exact arXiv ID and version parsing. |
 | Library | Room-backed papers, manifestations, collections, reading status, history, bookmarks, annotations, saved searches, update snapshots, downloads, local PDF import, and metadata backup. |
 | Mobile reader | Verified arXiv HTML cache, sanitization, offline WebView rendering, table-of-contents navigation, in-document search, citation return, text/layout controls, figures, MathML, horizontal table scrolling, and readable HTML export. |
@@ -110,25 +110,32 @@ Official defaults:
 | --- | --- | --- |
 | Semantic Scholar | Search engine | Default free-text discovery and citation observations |
 | Crossref | Metadata engine | Exact normalized DOI only; never fuzzy discovery |
-| arXiv | Content source | arXiv search and exact identifier/version lookup |
-| Europe PMC | Content source | Biomedical search and DOI/PMID/PMCID lookup |
+| arXiv | Content source | Phrase-aware title search plus exact identifier/version lookup and manifestations |
+| Europe PMC | Content source | Biomedical discovery, DOI/PMID/PMCID lookup, and manifestations |
 
 The official source repository is
 [`ImAno177/PaperReader-sources`](https://github.com/ImAno177/PaperReader-sources). Each extension has
 its own package, tests, version, APK, signer, release notes, and registry record. Updating that
 repository can publish provider upgrades without rebuilding the host app.
 
-Semantic Scholar owns natural-language search; Crossref owns exact DOI enrichment.
+Semantic Scholar is the preferred natural-language search engine. arXiv and Europe PMC may also
+contribute discovery results when they advertise the discovery capability; this keeps authoritative
+content sources useful when a ranking engine is rate-limited or unavailable. Crossref owns exact DOI
+enrichment only.
 
 ### Federated search
 
 - Exact DOI/arXiv/PMID/PMCID input routes only to extensions that declare the matching identifier.
-- Unstructured queries call enabled `SEARCH_ENGINE` providers only; the official default is Semantic
-  Scholar. Content and metadata engines remain available for exact supported identifiers.
+- Unstructured queries call enabled providers that advertise `DISCOVERY` and are either `SEARCH_ENGINE`
+  or `CONTENT_SOURCE`; Semantic Scholar remains the preferred ranking engine. Metadata-only engines
+  remain available for exact supported identifiers.
 - Provider requests are cancellable, rate-limited, bounded, and independently fail.
 - Results cluster only on exact canonical aliases and preserve provider alternatives.
 - Ranking is deterministic: exact identifier match, title/text match, Semantic Scholar citation
   tie-break, publication date, then stable provider-record key.
+- The search surface keeps the eight most recent submitted queries locally, exposes source-aware
+  `All sources` and `Has results` filters, and reports loading, success, and failure per provider
+  with a retry action. A source failure never hides successful results from another provider.
 - Search result cards open the same full metadata preview used by Library before Save/Open.
 - Production tests use fixtures and a local server; a separate audit may exercise live APIs.
 
@@ -293,6 +300,9 @@ APK, placeholder reader, or passing screenshot alone does not satisfy this contr
 - [Mihon extension API update flow](https://github.com/mihonapp/mihon/blob/main/app/src/main/java/eu/kanade/tachiyomi/extension/api/ExtensionApi.kt)
 - [Mihon extension manager](https://github.com/mihonapp/mihon/blob/main/app/src/main/java/eu/kanade/tachiyomi/extension/ExtensionManager.kt)
 - [Mihon extension installer](https://github.com/mihonapp/mihon/blob/main/app/src/main/java/eu/kanade/tachiyomi/extension/ExtensionInstaller.kt)
+- [Mihon global-search toolbar and source filters](https://raw.githubusercontent.com/mihonapp/mihon/master/app/src/main/java/eu/kanade/presentation/browse/components/GlobalSearchToolbar.kt)
+- [Mihon per-source search states](https://raw.githubusercontent.com/mihonapp/mihon/master/app/src/main/java/eu/kanade/presentation/browse/GlobalSearchScreen.kt)
+- [Android Compose SearchBar guidance](https://developer.android.com/develop/ui/compose/components/search-bar)
 - [arXiv API user manual](https://info.arxiv.org/help/api/user-manual.html)
 - [arXiv HTML availability](https://info.arxiv.org/about/reports/2023_arxiv_annual_report.html)
 - [Semantic Scholar Academic Graph API](https://api.semanticscholar.org/api-docs/graph)

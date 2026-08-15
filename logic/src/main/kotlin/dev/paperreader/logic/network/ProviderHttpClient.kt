@@ -15,7 +15,7 @@ import okhttp3.ResponseBody
 /** Small shared HTTP boundary used by built-in providers. */
 class ProviderHttpClient(
     private val client: OkHttpClient = OkHttpClient(),
-    private val userAgent: String = "PaperReader/0.1 (Android; contact=maintainers@example.invalid)",
+    private val userAgent: String = "PaperReader/0.1 (Android; +https://github.com/ImAno177/PaperReader)",
     private val mailto: String? = null,
     private val maximumResponseBytes: Long = DEFAULT_MAXIMUM_RESPONSE_BYTES,
 ) {

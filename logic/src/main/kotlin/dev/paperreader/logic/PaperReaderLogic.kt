@@ -36,7 +36,7 @@ import java.io.Closeable
 
 data class PaperReaderConfiguration(
     val databaseName: String = "paper-reader.db",
-    val userAgent: String = "PaperReader/0.1 (Android)",
+    val userAgent: String = "PaperReader/0.1 (Android; +https://github.com/ImAno177/PaperReader)",
     val contactEmail: String? = null,
     val maximumPdfBytes: Long = 200L * 1024L * 1024L,
     val trustedSourceExtensions: List<TrustedSourceExtension> = emptyList(),

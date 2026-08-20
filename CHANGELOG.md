@@ -5,7 +5,10 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Removed
+
+- The built-in Doodle preset, its Tabler icon pack, and the associated bundled assets and notices.
+  Existing community-theme contracts remain compatible.
 
 ## [0.1.6] - 2026-08-15
 

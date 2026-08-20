@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 enum class PaperThemePreset(
     val storageKey: String,
 ) {
-    DOODLE("doodle"),
     NEOBRUTALISM("neobrutalism"),
     ;
 
@@ -52,6 +51,7 @@ enum class PaperThemeMode(
 
 enum class PaperDecoration {
     NONE,
+    /** Legacy community-extension decoration; no built-in preset uses it. */
     DOODLE,
     /** Legacy community-extension decoration; it is not a selectable built-in preset. */
     RETRO_GRID,
@@ -89,7 +89,6 @@ data class PaperThemeTokens(
 )
 
 internal fun paperThemeTokens(preset: PaperThemePreset, dark: Boolean): PaperThemeTokens = when (preset) {
-    PaperThemePreset.DOODLE -> doodleThemeTokens(dark)
     PaperThemePreset.NEOBRUTALISM -> neobrutalismThemeTokens(dark)
 }
 

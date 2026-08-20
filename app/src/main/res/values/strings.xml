@@ -273,8 +273,6 @@
         <item quantity="other">%1$d new or changed results are waiting in Updates.</item>
     </plurals>
     <string name="visual_style">Visual style</string>
-    <string name="theme_doodle">Doodle</string>
-    <string name="theme_doodle_description">Sky blue · sketch lines</string>
     <string name="theme_neobrutalism">Neobrutalism</string>
     <string name="theme_neobrutalism_description">Mustard · hard shadows</string>
     <string name="provider_status">Provider status</string>

@@ -2,8 +2,6 @@ package dev.paperreader.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-internal val DoodleBlue = Color(0xFF49B6E5)
-internal val DoodleNavy = Color(0xFF263D5B)
 internal val NeoMustard = Color(0xFFFDC800)
 internal val NeoViolet = Color(0xFF432DD7)
 

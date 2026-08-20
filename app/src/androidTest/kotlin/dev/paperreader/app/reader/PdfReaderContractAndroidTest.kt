@@ -45,7 +45,7 @@ class PdfReaderContractAndroidTest {
             downloaded,
             WorkId("work"),
             "Paper title",
-            PaperThemePreset.DOODLE,
+            PaperThemePreset.NEOBRUTALISM,
             themeMode = PaperThemeMode.DARK,
         )
 
@@ -54,7 +54,7 @@ class PdfReaderContractAndroidTest {
         assertEquals("application/pdf", intent.type)
         assertTrue(intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
         assertEquals(contentUri, intent.clipData?.getItemAt(0)?.uri?.toString())
-        assertEquals("doodle", intent.getStringExtra(PdfReaderActivity.EXTRA_THEME_PRESET))
+        assertEquals("neobrutalism", intent.getStringExtra(PdfReaderActivity.EXTRA_THEME_PRESET))
         assertEquals("dark", intent.getStringExtra(PdfReaderActivity.EXTRA_THEME_MODE))
     }
 
@@ -65,7 +65,7 @@ class PdfReaderContractAndroidTest {
             workId = WorkId("work"),
             manifestationId = ManifestationId("manifestation"),
             title = "Paper title",
-            themePreset = PaperThemePreset.DOODLE,
+            themePreset = PaperThemePreset.NEOBRUTALISM,
             themeMode = PaperThemeMode.LIGHT,
         )
 

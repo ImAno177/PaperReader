@@ -98,9 +98,9 @@ class SourcesScreenTest {
             }
         }
 
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader Doodle"))
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader Community Theme"))
         composeRule.onNodeWithText("Install extension").performClick()
-        assertEquals("dev.paperreader.themes.doodle", requestedPackage)
+        assertEquals("dev.paperreader.themes.community", requestedPackage)
     }
 
     @Test
@@ -110,13 +110,13 @@ class SourcesScreenTest {
                 SourcesScreen(
                     providers = ProviderManagerState(),
                     extensionStores = signedThemeStoreState(),
-                    installedThemeVersions = mapOf("dev.paperreader.themes.doodle" to 4L),
+                    installedThemeVersions = mapOf("dev.paperreader.themes.community" to 4L),
                     onBack = {},
                 )
             }
         }
 
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader Doodle"))
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader Community Theme"))
         composeRule.onNodeWithText("Install extension").assertDoesNotExist()
         assertTrue(composeRule.onAllNodesWithText("Installed").fetchSemanticsNodes().isNotEmpty())
     }
@@ -420,21 +420,21 @@ class SourcesScreenTest {
                     releases = listOf(
                         VerifiedExtensionRelease(
                             kind = ExtensionReleaseKind.THEME,
-                            packageName = "dev.paperreader.themes.doodle",
-                            serviceClassName = "dev.paperreader.themes.doodle.DoodleThemeService",
-                            displayName = "PaperReader Doodle",
+                            packageName = "dev.paperreader.themes.community",
+                            serviceClassName = "dev.paperreader.themes.community.CommunityThemeService",
+                            displayName = "PaperReader Community Theme",
                             versionCode = 4,
                             minimumVersionCode = 4,
                             versionName = "1.0.0",
                             signerSha256 = "cd".repeat(32),
                             minimumHostApi = 1,
                             maximumHostApi = 1,
-                            installUrl = "https://example.org/doodle.apk",
+                            installUrl = "https://example.org/community-theme.apk",
                             apkSha256 = "02".repeat(32),
                             apkSizeBytes = 524_288,
                             license = "Apache-2.0",
                             privacyUrl = null,
-                            themeIds = setOf("doodle"),
+                            themeIds = setOf("community"),
                         ),
                     ),
                 ),

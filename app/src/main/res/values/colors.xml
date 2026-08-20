@@ -6,16 +6,6 @@
     <color name="reader_accent">#FFD166</color>
     <color name="reader_on_accent">#1C293C</color>
 
-    <color name="reader_doodle_canvas">#F4FBFE</color>
-    <color name="reader_doodle_surface">#FFFFFF</color>
-    <color name="reader_doodle_surface_muted">#E6F4FA</color>
-    <color name="reader_doodle_ink">#172A3A</color>
-    <color name="reader_doodle_ink_muted">#486277</color>
-    <color name="reader_doodle_border">#263D5B</color>
-    <color name="reader_doodle_primary">#49B6E5</color>
-    <color name="reader_doodle_on_primary">#082233</color>
-    <color name="reader_doodle_on_secondary">#FFFFFF</color>
-
     <color name="reader_neo_canvas">#F1EFE8</color>
     <color name="reader_neo_surface">#FBFBF9</color>
     <color name="reader_neo_surface_muted">#FFF1A8</color>

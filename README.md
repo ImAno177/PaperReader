@@ -26,7 +26,7 @@ The current host behavior is recorded in [`docs/SPEC.md`](docs/SPEC.md). Release
   of contents, adjustable typography, reading progress, and exact-document highlights with notes.
 - Download verified PDFs and open them in the in-app original-document reader.
 - Organize collections, history, bookmarks, saved searches, updates, and metadata backups locally.
-- Choose Doodle or Neobrutalism themes with theme-aware Tabler Icons or Material Symbols.
+- Choose the Neobrutalism visual preset with Material Symbols, or install a complete community theme.
 - Add Ed25519-signed community stores, or build isolated source and complete visual-theme extensions with
   the documented SDK.
 - Keep private reading data on the device with no analytics, advertising SDK, account, or cloud parser.

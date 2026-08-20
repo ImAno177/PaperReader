@@ -223,7 +223,7 @@ class SavedSearchUpdatesScreenTest {
         var readHit: String? = null
         var deletedSearch: String? = null
         composeRule.setContent {
-            PaperReaderTheme(PaperThemePreset.DOODLE) {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 UpdatesScreen(
                     tasks = LoadState.Ready(emptyList()),
                     providers = providerState(),
@@ -253,7 +253,7 @@ class SavedSearchUpdatesScreenTest {
     @Test
     fun staleResultsRemainVisibleWithTypedProviderFailure() {
         composeRule.setContent {
-            PaperReaderTheme(PaperThemePreset.DOODLE) {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 UpdatesScreen(
                     tasks = LoadState.Ready(emptyList()),
                     providers = providerState(),

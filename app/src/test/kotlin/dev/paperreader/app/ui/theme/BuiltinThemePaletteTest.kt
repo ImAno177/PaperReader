@@ -6,17 +6,6 @@ import org.junit.Test
 
 class BuiltinThemePaletteTest {
     @Test
-    fun `doodle keeps the skill's primary blue and navy contract`() {
-        val tokens = doodleThemeTokens(dark = false)
-
-        assertEquals(Color(0xFF49B6E5), tokens.primary)
-        assertEquals(Color(0xFF263D5B), tokens.secondary)
-        assertEquals(Color.White, tokens.surface)
-        assertEquals(Color(0xFF111827), tokens.ink)
-        assertEquals(PaperDecoration.DOODLE, tokens.decoration)
-    }
-
-    @Test
     fun `neobrutalism keeps the skill's mustard and violet contract`() {
         val tokens = neobrutalismThemeTokens(dark = false)
 
@@ -30,7 +19,7 @@ class BuiltinThemePaletteTest {
     @Test
     fun `only supported built-in presets are selectable`() {
         assertEquals(
-            setOf(PaperThemePreset.DOODLE, PaperThemePreset.NEOBRUTALISM),
+            setOf(PaperThemePreset.NEOBRUTALISM),
             PaperThemePreset.entries.toSet(),
         )
     }

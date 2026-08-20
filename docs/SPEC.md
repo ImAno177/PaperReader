@@ -27,7 +27,7 @@ and may be unavailable until the corresponding signed extension is installed.
 | Mobile reader | Verified arXiv HTML cache, sanitization, offline WebView rendering, table-of-contents navigation, in-document search, citation return, text/layout controls, figures, MathML, horizontal table scrolling, and readable HTML export. |
 | Original documents | Bounded PDF download and an in-app PDF reader with search, page navigation, progress, and bookmarks. |
 | Extensions | Separate source and theme APKs over versioned AIDL, signed stores, package verification, user-confirmed PackageInstaller flows, update/orphan/untrusted states, and community extension discovery. |
-| Appearance and access | English UI, Doodle and Neobrutalism presets, theme-specific icon sets, System/Light/Dark mode, adaptive navigation, and 48 dp semantic touch targets. |
+| Appearance and access | English UI, a Neobrutalism preset, complete community themes, System/Light/Dark mode, adaptive navigation, and 48 dp semantic touch targets. |
 | Privacy and safety | Local-first metadata and reading state, no analytics or advertising SDK, bounded network access, sanitized remote HTML, provenance and license retention, and exact-document annotation anchors. |
 
 ## Release scope and status
@@ -61,11 +61,12 @@ Root titles are large, left aligned, and near the top safe area. They have no de
 Bottom-navigation outlines align with the content grid, while independent touch targets remain at least
 48 dp and extend safely around the visible geometry.
 
-Appearance has independent controls for visual preset and System/Light/Dark mode. Doodle uses Tabler
-icons; Neobrutalism uses Material Symbols. A theme extension supplies a complete
-semantic icon set with its declarative tokens. Empty-state color is a semantic theme token, never a
-hard-coded purple. Status colors keep each preset's accent hue and use AA-safe tones when reused as
-text or icons on light surfaces.
+Appearance has independent controls for visual preset and System/Light/Dark mode. Neobrutalism uses
+Material Symbols. A theme extension supplies a complete semantic icon set with its declarative
+tokens. The legacy `DOODLE` extension decoration remains readable for binary compatibility but is
+not a built-in preset. Empty-state color is a semantic theme token, never a hard-coded purple.
+Status colors keep each preset's accent hue and use AA-safe tones when reused as text or icons on
+light surfaces.
 
 ## Domain model
 

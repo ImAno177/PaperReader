@@ -27,6 +27,7 @@ import dev.paperreader.logic.domain.repository.CreateCollectionResult
 import dev.paperreader.logic.domain.repository.DeleteCollectionResult
 import dev.paperreader.logic.domain.repository.RenameCollectionResult
 import dev.paperreader.logic.domain.repository.SetPaperCollectionsResult
+import dev.paperreader.logic.reader.ReadablePaperResult
 import dev.paperreader.logic.backup.MetadataBackupExport
 import dev.paperreader.logic.plugin.ExtensionStorePreview
 import dev.paperreader.logic.task.PaperTask
@@ -357,6 +358,12 @@ class PaperReaderViewModel internal constructor(
 
     suspend fun downloadedPaper(manifestationId: String): DownloadedPaper? =
         logic.downloads.downloadedPaper(ManifestationId(manifestationId))
+
+    suspend fun loadReadablePaper(workId: String, manifestationId: String): ReadablePaperResult =
+        logic.useCases.loadReadablePaper.await(
+            WorkId(workId),
+            ManifestationId(manifestationId),
+        )
 
     suspend fun deleteDownload(workId: String, manifestationId: String): DeleteDownloadResult =
         logic.downloads.deleteDownload(WorkId(workId), ManifestationId(manifestationId))

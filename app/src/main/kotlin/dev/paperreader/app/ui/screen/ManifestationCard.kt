@@ -47,6 +47,7 @@ import dev.paperreader.logic.domain.ManifestationType
 import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.LOCAL_PDF_SOURCE_ID
 import dev.paperreader.logic.domain.WorkId
+import dev.paperreader.logic.reader.ReadablePaperResult
 import dev.paperreader.logic.task.DeleteDownloadResult
 import dev.paperreader.logic.task.DownloadedPaper
 import dev.paperreader.logic.task.PaperTask
@@ -99,6 +100,7 @@ internal fun ManifestationCard(
     showMobileReadAction: Boolean = true,
     onRequestDownload: () -> Unit,
     onGetDownloadedPaper: suspend () -> DownloadedPaper?,
+    onLoadReadablePaper: suspend () -> ReadablePaperResult,
     onDeleteDownload: suspend () -> DeleteDownloadResult,
 ) {
     val uriHandler = LocalUriHandler.current
@@ -109,6 +111,7 @@ internal fun ManifestationCard(
     var opening by remember(manifestation.id) { mutableStateOf(false) }
     var deleting by remember(manifestation.id) { mutableStateOf(false) }
     var showDeleteDialog by rememberSaveable(manifestation.id) { mutableStateOf(false) }
+    var showMoreOptions by rememberSaveable(manifestation.id) { mutableStateOf(false) }
     var actionErrorRes by rememberSaveable(manifestation.id) { mutableStateOf<Int?>(null) }
     val active = requesting || task?.state in setOf(TaskState.QUEUED, TaskState.RUNNING)
     val downloadFailed = requestFailed || task?.state == TaskState.FAILED
@@ -303,15 +306,6 @@ internal fun ManifestationCard(
                             content = localCopyButtonContent,
                         )
                     }
-                    PaperSecondaryButton(
-                        enabled = !opening && !deleting,
-                        onClick = { showDeleteDialog = true },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    ) {
-                        PaperIcon(PaperIconKey.DELETE, contentDescription = null)
-                        Spacer(Modifier.size(8.dp))
-                        Text(stringResource(R.string.delete_local_copy))
-                    }
                 } else if (pdfUrl != null) {
                     val downloadAction = {
                         actionErrorRes = null
@@ -346,24 +340,57 @@ internal fun ManifestationCard(
                         )
                     }
                 }
-                pdfUrl?.let { url ->
-                    PaperSecondaryButton(
-                        onClick = { uriHandler.openUri(url) },
+                if (supportsMobileReading) {
+                    ReadableHtmlDownloadAction(
+                        manifestationId = manifestation.id,
+                        onLoadReadablePaper = onLoadReadablePaper,
+                        onError = { actionErrorRes = it },
+                    )
+                }
+                val hasMoreOptions = manifestation.localCopy != null || pdfUrl != null || landingPageUrl != null
+                if (hasMoreOptions) {
+                    TextButton(
+                        onClick = { showMoreOptions = !showMoreOptions },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
-                        PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
-                        Spacer(Modifier.size(8.dp))
-                        Text(stringResource(R.string.open_pdf_source))
+                        Text(
+                            stringResource(
+                                if (showMoreOptions) R.string.fewer_file_options else R.string.more_file_options,
+                            ),
+                        )
                     }
                 }
-                landingPageUrl?.let { url ->
-                    PaperSecondaryButton(
-                        onClick = { uriHandler.openUri(url) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    ) {
-                        PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
-                        Spacer(Modifier.size(8.dp))
-                        Text(stringResource(R.string.open_landing_page))
+                if (showMoreOptions) {
+                    if (manifestation.localCopy != null) {
+                        PaperSecondaryButton(
+                            enabled = !opening && !deleting,
+                            onClick = { showDeleteDialog = true },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) {
+                            PaperIcon(PaperIconKey.DELETE, contentDescription = null)
+                            Spacer(Modifier.size(8.dp))
+                            Text(stringResource(R.string.delete_local_copy))
+                        }
+                    }
+                    pdfUrl?.let { url ->
+                        PaperSecondaryButton(
+                            onClick = { uriHandler.openUri(url) },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) {
+                            PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
+                            Spacer(Modifier.size(8.dp))
+                            Text(stringResource(R.string.open_pdf_source))
+                        }
+                    }
+                    landingPageUrl?.let { url ->
+                        PaperSecondaryButton(
+                            onClick = { uriHandler.openUri(url) },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) {
+                            PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
+                            Spacer(Modifier.size(8.dp))
+                            Text(stringResource(R.string.open_landing_page))
+                        }
                     }
                 }
             }

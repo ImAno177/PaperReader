@@ -71,7 +71,6 @@ class ReadablePaperActivity : AppCompatActivity() {
     private var displayedProgressPercent = -1
     private var communityTheme: CommunityPaperTheme? = null
     private lateinit var readerIcons: PaperIconSet
-    private lateinit var htmlExportController: ReadablePaperHtmlExportController
     private var citationReturnScrollY: Int? = null
     private var citationReturnProgression: Double? = null
     private var restoredCitationReturnProgression: Double? = null
@@ -94,7 +93,6 @@ class ReadablePaperActivity : AppCompatActivity() {
             return
         }
         readerArgs = parsedArgs
-        htmlExportController = ReadablePaperHtmlExportController(this, lifecycleScope)
         communityTheme = (application as PaperReaderApplication).themeExtensionManager.theme(readerArgs.themeKey)
         readerIcons = communityTheme?.let { PaperIconSet.community(it.iconPaths) }
             ?: paperIconSet(readerArgs.themePreset)
@@ -226,7 +224,6 @@ class ReadablePaperActivity : AppCompatActivity() {
                 changeLayout = ::showReadingLayoutDialog,
                 openOriginalPdf = ::openOriginalPdf,
                 openReadableSource = { currentDocument?.sourceUrl?.let(::openSafeReaderExternalUri) },
-                exportHtml = { currentDocument?.let(htmlExportController::launch) },
             ),
         )
     }

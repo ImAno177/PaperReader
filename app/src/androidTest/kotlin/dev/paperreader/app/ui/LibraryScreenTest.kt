@@ -19,6 +19,7 @@ import java.time.Instant
 import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -96,6 +97,25 @@ class LibraryScreenTest {
 
         composeRule.onNodeWithContentDescription("Show grid").performClick()
         composeRule.runOnIdle { assertEquals(LibraryLayout.GRID, requested) }
+    }
+
+    @Test
+    fun paperCardExposesAFullQuickReadAction() {
+        var read = false
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                LibraryScreen(
+                    state = LoadState.Ready(listOf(paper("paper", "Paper", emptyList()))),
+                    onLayoutChange = {},
+                    onOpenPaper = {},
+                    onDiscover = {},
+                    onReadPaper = { read = true },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Read paper").performClick()
+        composeRule.runOnIdle { assertTrue(read) }
     }
 
     private fun paper(id: String, title: String, authors: List<String>) = PaperUi(

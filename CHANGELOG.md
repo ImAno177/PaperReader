@@ -5,10 +5,24 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+### Added
+
+- Library cards now expose a full-width quick Read action that opens the mobile reader or a local PDF.
+- Paper Detail can download a verified, sanitized readable HTML file beside the PDF action for each
+  supported arXiv version.
+
+### Changed
+
+- Paper Detail labels paper representations as versions and files, keeps secondary source and delete
+  actions behind progressive disclosure, and presents identifiers in one compact group.
+- The Library grid uses a phone-sized minimum column width so the persisted layout toggle produces a
+  visibly distinct two-column layout on common handsets.
+
 ### Removed
 
 - The built-in Doodle preset, its Tabler icon pack, and the associated bundled assets and notices.
   Existing community-theme contracts remain compatible.
+- The duplicate readable HTML download command from the Reader overflow menu.
 
 ## [0.1.6] - 2026-08-15
 

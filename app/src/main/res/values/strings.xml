@@ -339,12 +339,15 @@
     <string name="abstract_missing">No abstract was supplied by the saved providers.</string>
     <string name="abstract_expand">Show full</string>
     <string name="abstract_collapse">Collapse</string>
-    <string name="manifestations_title">Manifestations</string>
+    <string name="manifestations_title">Versions &amp; files</string>
+    <string name="more_file_options">More file options</string>
+    <string name="fewer_file_options">Fewer file options</string>
     <string name="manifestations_missing">No manifestation metadata was supplied.</string>
     <string name="identifiers_title">Identifiers</string>
     <string name="open_landing_page">Open source page</string>
     <string name="open_pdf_source">Open PDF source</string>
     <string name="read_mobile_version">Read mobile version</string>
+    <string name="library_read_paper">Read paper</string>
     <string name="mobile_reading_available">Mobile reading available</string>
     <string name="readable_reader_loading">Preparing mobile paper</string>
     <string name="readable_reader_subtitle">Mobile paper</string>
@@ -368,6 +371,7 @@
     <string name="readable_reader_open_original">Open original PDF</string>
     <string name="readable_reader_open_source">Open official arXiv HTML</string>
     <string name="readable_reader_download_html">Download readable HTML</string>
+    <string name="readable_reader_html_preparing">Preparing HTML…</string>
     <string name="readable_reader_html_saved">Readable HTML saved</string>
     <string name="readable_reader_html_save_failed">The readable HTML could not be saved. Try another destination.</string>
     <string name="readable_reader_search">Search mobile paper</string>

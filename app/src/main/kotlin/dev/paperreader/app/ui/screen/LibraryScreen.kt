@@ -56,6 +56,7 @@ import dev.paperreader.app.ui.components.PaperAppBarTitle
 import dev.paperreader.app.ui.components.PaperLabel
 import dev.paperreader.app.ui.components.PaperMetaRow
 import dev.paperreader.app.ui.components.PaperProgress
+import dev.paperreader.app.ui.components.PaperPrimaryButton
 import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
@@ -82,6 +83,7 @@ fun LibraryScreen(
     onLayoutChange: (LibraryLayout) -> Unit,
     onOpenPaper: (String) -> Unit,
     onDiscover: () -> Unit,
+    onReadPaper: (PaperUi) -> Unit = { onOpenPaper(it.id) },
 ) {
     val grid = layout == LibraryLayout.GRID
     var searchVisible by rememberSaveable { mutableStateOf(false) }
@@ -213,6 +215,7 @@ fun LibraryScreen(
                             papers = visiblePapers,
                             padding = PaddingValues(0.dp),
                             onOpenPaper = onOpenPaper,
+                            onReadPaper = onReadPaper,
                             sectionTitle = librarySortLabel(sortOrder),
                             totalCount = papers.size,
                         )
@@ -221,6 +224,7 @@ fun LibraryScreen(
                             papers = visiblePapers,
                             padding = PaddingValues(0.dp),
                             onOpenPaper = onOpenPaper,
+                            onReadPaper = onReadPaper,
                             sectionTitle = librarySortLabel(sortOrder),
                             totalCount = papers.size,
                         )
@@ -367,6 +371,7 @@ private fun LibraryList(
     papers: List<PaperUi>,
     padding: PaddingValues,
     onOpenPaper: (String) -> Unit,
+    onReadPaper: (PaperUi) -> Unit,
     sectionTitle: String,
     totalCount: Int,
 ) {
@@ -382,7 +387,11 @@ private fun LibraryList(
             )
         }
         items(papers, key = PaperUi::id) { paper ->
-            PaperListCard(paper, onClick = { onOpenPaper(paper.id) })
+            PaperListCard(
+                paper = paper,
+                onClick = { onOpenPaper(paper.id) },
+                onRead = { onReadPaper(paper) },
+            )
         }
     }
 }
@@ -392,11 +401,12 @@ private fun LibraryGrid(
     papers: List<PaperUi>,
     padding: PaddingValues,
     onOpenPaper: (String) -> Unit,
+    onReadPaper: (PaperUi) -> Unit,
     sectionTitle: String,
     totalCount: Int,
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 184.dp),
+        columns = GridCells.Adaptive(minSize = 152.dp),
         modifier = Modifier.fillMaxSize().padding(padding),
         contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 32.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -409,7 +419,11 @@ private fun LibraryGrid(
             )
         }
         items(papers, key = PaperUi::id) { paper ->
-            PaperGridCard(paper, onClick = { onOpenPaper(paper.id) })
+            PaperGridCard(
+                paper = paper,
+                onClick = { onOpenPaper(paper.id) },
+                onRead = { onReadPaper(paper) },
+            )
         }
     }
 }
@@ -446,7 +460,7 @@ private fun libraryStatusFilterLabel(filter: LibraryStatusFilter): String = stri
 )
 
 @Composable
-private fun PaperListCard(paper: PaperUi, onClick: () -> Unit) {
+private fun PaperListCard(paper: PaperUi, onClick: () -> Unit, onRead: () -> Unit) {
     PaperSurface(onClick = onClick) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             PaperDisciplineBadge(paper)
@@ -497,11 +511,13 @@ private fun PaperListCard(paper: PaperUi, onClick: () -> Unit) {
                 PaperProgress(paper.progress)
             }
         }
+        Spacer(Modifier.height(12.dp))
+        LibraryReadButton(onRead)
     }
 }
 
 @Composable
-private fun PaperGridCard(paper: PaperUi, onClick: () -> Unit) {
+private fun PaperGridCard(paper: PaperUi, onClick: () -> Unit, onRead: () -> Unit) {
     PaperSurface(onClick = onClick, contentPadding = PaddingValues(14.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             PaperDisciplineBadge(paper)
@@ -549,6 +565,20 @@ private fun PaperGridCard(paper: PaperUi, onClick: () -> Unit) {
             Spacer(Modifier.height(14.dp))
             PaperProgress(paper.progress)
         }
+        Spacer(Modifier.height(12.dp))
+        LibraryReadButton(onRead)
+    }
+}
+
+@Composable
+private fun LibraryReadButton(onClick: () -> Unit) {
+    PaperPrimaryButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        PaperIcon(PaperIconKey.INFO, contentDescription = null)
+        Spacer(Modifier.size(8.dp))
+        Text(stringResource(R.string.library_read_paper))
     }
 }
 

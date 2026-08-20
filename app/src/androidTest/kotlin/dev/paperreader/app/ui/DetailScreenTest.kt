@@ -23,6 +23,8 @@ import dev.paperreader.logic.domain.ReadingStatus
 import dev.paperreader.logic.domain.ManifestationType
 import dev.paperreader.logic.domain.repository.RemovePaperResult
 import dev.paperreader.logic.domain.repository.SetPaperCollectionsResult
+import dev.paperreader.logic.reader.ReadablePaperFailure
+import dev.paperreader.logic.reader.ReadablePaperResult
 import dev.paperreader.logic.task.DeleteDownloadResult
 import java.time.Instant
 import java.time.LocalDate
@@ -180,10 +182,58 @@ class DetailScreenTest {
             }
         }
 
+        composeRule.onNodeWithText("More file options").performScrollTo().performClick()
         composeRule.onNodeWithText("Delete local copy").performScrollTo().performClick()
         composeRule.onNodeWithText("Delete this local PDF?").assertExists()
         composeRule.onNodeWithText("Delete").performClick()
         composeRule.runOnIdle { assertTrue(deleted) }
+    }
+
+    @Test
+    fun arxivVersionOffersReadableHtmlBesideItsFileActions() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DetailScreen(
+                    state = LoadState.Ready(
+                        paper(manifestations = listOf(manifestation(id = "manifestation-1", local = false))),
+                    ),
+                    onBack = {},
+                    onStatusChange = {},
+                    onRemove = { RemovePaperResult.Removed },
+                    onRemoved = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Download PDF").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Download readable HTML").performScrollTo().assertExists()
+    }
+
+    @Test
+    fun readableHtmlFailureIsExplainedInsideTheVersionCard() {
+        var loadAttempts = 0
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DetailScreen(
+                    state = LoadState.Ready(
+                        paper(manifestations = listOf(manifestation(id = "manifestation-1", local = false))),
+                    ),
+                    onBack = {},
+                    onStatusChange = {},
+                    onLoadReadablePaper = {
+                        loadAttempts += 1
+                        ReadablePaperResult.Unavailable(ReadablePaperFailure.SOURCE_NOT_FOUND)
+                    },
+                    onRemove = { RemovePaperResult.Removed },
+                    onRemoved = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Download readable HTML").performScrollTo().performClick()
+        composeRule.waitUntil { loadAttempts == 1 }
+        composeRule.onNodeWithText("No official HTML for this version. The PDF is unchanged.")
+            .assertExists()
     }
 
     @Test

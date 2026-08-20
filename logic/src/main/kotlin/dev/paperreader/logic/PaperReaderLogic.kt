@@ -93,7 +93,6 @@ class PaperReaderLogic private constructor(
                 developerExtensions = configuration.trustedSourceExtensions,
                 stores = extensionStores,
             )
-            sourceExtensionCoordinator.reconcileNow()
             val library = RoomLibraryRepository(database)
             val search = FederatedPaperSearch(providers)
             val metadataBackup = RoomMetadataBackupRepository(

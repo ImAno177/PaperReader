@@ -1,8 +1,10 @@
 package dev.paperreader.app.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -12,6 +14,8 @@ import androidx.navigation.navArgument
 import dev.paperreader.app.ui.model.*
 import dev.paperreader.app.ui.screen.*
 import dev.paperreader.app.reader.PdfReaderActivity
+import dev.paperreader.app.search.GoogleSearchActivity
+import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.reader.ReadablePaperActivity
 import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.ReadingStatus
@@ -85,6 +89,9 @@ internal fun AppNavHost(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val googleCanvasColor = PaperTheme.tokens.canvas.toArgb()
+    val googleInkColor = PaperTheme.tokens.ink.toArgb()
+    val googleDarkTheme = themeMode.resolveDarkTheme(isSystemInDarkTheme())
     val readLibraryPaper: (PaperUi) -> Unit = { paper ->
         val readable = paper.manifestations.firstOrNull {
             it.source.equals("arxiv", ignoreCase = true)
@@ -141,7 +148,30 @@ internal fun AppNavHost(
                 onReadPaper = readLibraryPaper,
             )
         }
-        composable(AppRoutes.DISCOVER) { DiscoverScreen(search, onSearch, onClearSearch, onSave, { navController.navigate(AppRoutes.detail(it)) }, savedSearches, savedSearchActions, onSaveSearch, { navController.navigate(AppRoutes.UPDATES) { launchSingleTop = true } }) }
+        composable(AppRoutes.DISCOVER) {
+            DiscoverScreen(
+                state = search,
+                onSearch = onSearch,
+                onClear = onClearSearch,
+                onSave = onSave,
+                onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
+                savedSearches = savedSearches,
+                savedSearchActions = savedSearchActions,
+                onSaveSearch = onSaveSearch,
+                onOpenUpdates = { navController.navigate(AppRoutes.UPDATES) { launchSingleTop = true } },
+                onSearchGoogle = { query ->
+                    context.startActivity(
+                        GoogleSearchActivity.createIntent(
+                            context = context,
+                            query = query,
+                            canvasColor = googleCanvasColor,
+                            inkColor = googleInkColor,
+                            darkTheme = googleDarkTheme,
+                        ),
+                    )
+                },
+            )
+        }
         composable(AppRoutes.UPDATES) { UpdatesScreen(tasks, library, providers, savedSearches, savedSearchActions, downloadActions, { navController.navigate(AppRoutes.detail(it)) }, onRefreshSavedSearch, onDeleteSavedSearch, onMarkSavedSearchHitRead, onSaveSavedSearchHit, onCancelDownloadTask, onRetryDownloadTask, onRemoveDownloadTask) }
         composable(AppRoutes.HISTORY) { HistoryScreen(history, { navController.navigate(AppRoutes.detail(it)) }, onRemoveHistory) }
         composable(AppRoutes.MORE) {

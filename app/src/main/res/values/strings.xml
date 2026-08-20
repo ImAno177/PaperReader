@@ -52,9 +52,9 @@
     </plurals>
     <string name="search_no_results_title">No papers found</string>
     <string name="search_no_results_body">Try a shorter title or exact identifier.</string>
-    <string name="search_google_title">Search the web for an arXiv copy</string>
-    <string name="search_google_body">Open an arXiv result, choose PaperReader, or use Share. PaperReader sends the exact ID to your installed arXiv source for API metadata.</string>
-    <string name="search_google_action">Search arXiv on Google</string>
+    <string name="search_google_in_app">Search Google in PaperReader</string>
+    <string name="google_search_title">Google · arXiv</string>
+    <string name="google_search_failed">Google Search could not load.</string>
     <string name="search_failed_title">Sources unavailable</string>
     <string name="search_failed_body">Check your connection and try again.</string>
     <string name="search_filter_all">All sources</string>
@@ -287,6 +287,8 @@
     <string name="store_pinned">Official</string>
     <string name="provider_block_reason">Reason: %1$s</string>
     <string name="provider_signer">Signer SHA-256: %1$s</string>
+    <string name="show_details">Show details</string>
+    <string name="hide_details">Hide details</string>
     <string name="provider_available_notice">Open the signed page; Android asks for confirmation.</string>
     <string name="provider_package">Package: %1$s</string>
     <string name="provider_version_code">Version code: %1$d</string>

@@ -1,6 +1,8 @@
 package dev.paperreader.app
 
 import android.app.Application
+import android.webkit.WebView
+import dev.paperreader.app.search.GOOGLE_SEARCH_DATA_SUFFIX
 import dev.paperreader.app.download.DownloadWorkScheduler
 import dev.paperreader.app.extensions.CommunityThemeExtensionManager
 import dev.paperreader.app.extensions.ExtensionInstaller
@@ -17,6 +19,9 @@ import dev.paperreader.logic.PaperReaderLogic
 import dev.paperreader.logic.plugin.TrustedSourceExtension
 import dev.paperreader.logic.plugin.ExtensionStoreRegistry
 import dev.paperreader.extensions.api.SourceCapability
+import dev.paperreader.extensions.api.SourceIdentifierType
+import dev.paperreader.extensions.api.SourceRole
+import dev.paperreader.extensions.api.SourceSearchSort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -71,12 +76,18 @@ class PaperReaderApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        if (!isMainApplicationProcess(Application.getProcessName(), packageName)) return
+        val processName = Application.getProcessName()
+        if (processName == "$packageName:google_search") {
+            WebView.setDataDirectorySuffix(GOOGLE_SEARCH_DATA_SUFFIX)
+            return
+        }
+        if (!isMainApplicationProcess(processName, packageName)) return
         savedSearchNotificationPublisher.createChannel()
         extensionNotificationPublisher.createChannel()
         sourceExtensionUpdateScheduler.schedule()
         applicationIoScope.launch { themeExtensionManager.refresh() }
         applicationIoScope.launch { savedSearchRefreshScheduler.reconcile() }
+        applicationIoScope.launch { reconcileInstalledExtensions() }
         applicationIoScope.launch {
             refreshExtensionCatalogs()
         }
@@ -109,14 +120,20 @@ private fun developerSourceExtensions(): List<TrustedSourceExtension> {
             signerSha256 = BuildConfig.DEV_SOURCE_SIGNER_SHA256,
             providerId = BuildConfig.DEV_SOURCE_PROVIDER_ID,
             displayName = BuildConfig.DEV_SOURCE_DISPLAY_NAME,
-            minimumRequestIntervalMillis = 1_000,
-            capabilities = setOf(
-                SourceCapability.SEARCH,
-                SourceCapability.DETAILS,
-                SourceCapability.PDF_LINK,
-            ),
+            minimumRequestIntervalMillis = BuildConfig.DEV_SOURCE_MINIMUM_INTERVAL_MILLIS,
+            capabilities = BuildConfig.DEV_SOURCE_CAPABILITIES.parseEnumSet<SourceCapability>(),
+            roles = BuildConfig.DEV_SOURCE_ROLES.parseEnumSet<SourceRole>(),
+            identifierLookupTypes = BuildConfig.DEV_SOURCE_IDENTIFIER_TYPES.parseEnumSet<SourceIdentifierType>(),
+            supportedSorts = BuildConfig.DEV_SOURCE_SUPPORTED_SORTS.parseEnumSet<SourceSearchSort>(),
         ),
     )
+}
+
+private inline fun <reified T : Enum<T>> String.parseEnumSet(): Set<T> {
+    val byWireName = enumValues<T>().associateBy { it.name.lowercase() }
+    return split(',').mapTo(linkedSetOf()) { raw ->
+        requireNotNull(byWireName[raw.trim().lowercase()]) { "Unknown ${T::class.simpleName}: $raw" }
+    }
 }
 
 internal fun isMainApplicationProcess(processName: String, packageName: String): Boolean =

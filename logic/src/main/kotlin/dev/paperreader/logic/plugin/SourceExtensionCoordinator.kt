@@ -28,7 +28,7 @@ internal class SourceExtensionCoordinator(
         reconcileMutex.withLock { reconcileNow() }
     }
 
-    fun reconcileNow() {
+    private suspend fun reconcileNow() {
         providers.unregisterByOrigin(ProviderOrigin.COMMUNITY_PLUGIN)
         val available = mutableListOf<AvailableProviderPlugin>()
         val untrusted = mutableListOf<UntrustedProviderPlugin>()
@@ -45,6 +45,7 @@ internal class SourceExtensionCoordinator(
                     trustedRelease = trusted,
                 )
                 val installedVersion = transport.verifyInstalledPackage()
+                transport.verifyRemoteDescriptor()
                 providers.register(
                     provider = CommunitySourceProvider(transport),
                     origin = ProviderOrigin.COMMUNITY_PLUGIN,

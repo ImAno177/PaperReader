@@ -92,7 +92,7 @@ internal class AndroidSourceExtensionTransport(
     context: Context,
     override val descriptor: SourceExtensionDescriptor,
     private val trustedRelease: TrustedSourceExtension,
-    private val timeoutMillis: Long = 15_000,
+    private val timeoutMillis: Long = DEFAULT_REQUEST_TIMEOUT_MILLIS,
 ) : SourceExtensionTransport {
     private val applicationContext = context.applicationContext
     private val component = ComponentName(trustedRelease.packageName, trustedRelease.serviceClassName)
@@ -120,6 +120,15 @@ internal class AndroidSourceExtensionTransport(
             }
         }.record
 
+    suspend fun verifyRemoteDescriptor() = withTimeout(timeoutMillis) {
+        val bound = bind()
+        try {
+            withContext(Dispatchers.IO) { requireMatchingDescriptor(bound.service) }
+        } finally {
+            bound.close()
+        }
+    }
+
     private suspend fun <T> execute(
         requestId: String,
         decode: (Bundle) -> T,
@@ -129,16 +138,20 @@ internal class AndroidSourceExtensionTransport(
         val bound = bind()
         try {
             withContext(Dispatchers.IO) {
-                val remoteDescriptor = runCatching {
-                    SourceExtensionDescriptor.fromBundle(bound.service.descriptor)
-                }.getOrElse { throw SourceExtensionProtocolException("Invalid source descriptor", it) }
-                if (remoteDescriptor != descriptor) {
-                    throw SourceExtensionProtocolException("Source descriptor does not match the trusted index")
-                }
+                requireMatchingDescriptor(bound.service)
                 awaitResponse(requestId, bound.service, decode, invoke)
             }
         } finally {
             bound.close()
+        }
+    }
+
+    private fun requireMatchingDescriptor(service: IPaperSourceService) {
+        val remoteDescriptor = runCatching {
+            SourceExtensionDescriptor.fromBundle(service.descriptor)
+        }.getOrElse { throw SourceExtensionProtocolException("Source rejected host preflight", it) }
+        if (remoteDescriptor != descriptor) {
+            throw SourceExtensionProtocolException("Source descriptor does not match the trusted index")
         }
     }
 
@@ -282,6 +295,13 @@ internal class AndroidSourceExtensionTransport(
         override fun close() = closeAction()
     }
 }
+
+/**
+ * The extension transport permits a 10 second connection phase followed by a 20 second read.
+ * Leave enough headroom for Binder setup and response validation so the host never cancels a
+ * healthy request before the extension's own bounded network timeout can report the real failure.
+ */
+private const val DEFAULT_REQUEST_TIMEOUT_MILLIS = 35_000L
 
 internal class InstalledSourceVersionOutOfRangeException(
     val installedVersionCode: Long,

@@ -1,6 +1,5 @@
 package dev.paperreader.app.ui.screen
 
-import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -83,6 +82,7 @@ fun DiscoverScreen(
     savedSearchActions: SavedSearchActionUiState = SavedSearchActionUiState(),
     onSaveSearch: (String) -> Unit = {},
     onOpenUpdates: () -> Unit = {},
+    onSearchGoogle: (String) -> Unit = {},
 ) {
     var query by rememberSaveable(state.submittedQuery) {
         mutableStateOf(state.submittedQuery.orEmpty())
@@ -136,56 +136,56 @@ fun DiscoverScreen(
         },
         containerColor = PaperTheme.tokens.canvas,
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 32.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        label = { Text(stringResource(R.string.search_label)) },
-                        trailingIcon = {
-                            if (query.isNotEmpty()) {
-                                IconButton(
-                                    onClick = {
-                                        query = ""
-                                        onClear()
-                                    },
-                                ) {
-                                    PaperIcon(PaperIconKey.CLOSE, contentDescription = stringResource(R.string.search_clear))
-                                }
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.search_label)) },
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            IconButton(
+                                onClick = {
+                                    query = ""
+                                    onClear()
+                                },
+                            ) {
+                                PaperIcon(
+                                    PaperIconKey.CLOSE,
+                                    contentDescription = stringResource(R.string.search_clear),
+                                )
                             }
-                        },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { submitSearch() }),
-                    )
-                    PaperPrimaryButton(
-                        onClick = submitSearch,
-                        enabled = query.isNotBlank() && !state.running,
-                        modifier = Modifier.size(56.dp),
-                    ) {
-                        if (state.running) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                        } else {
-                            PaperIcon(
-                                PaperIconKey.SEARCH,
-                                contentDescription = stringResource(R.string.search_submit),
-                            )
                         }
-                    }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { submitSearch() }),
+                )
+                PaperPrimaryButton(
+                    onClick = submitSearch,
+                    enabled = query.isNotBlank() && !state.running,
+                    modifier = Modifier.size(56.dp),
+                ) {
+                    if (state.running) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    } else {
+                        PaperIcon(
+                            PaperIconKey.SEARCH,
+                            contentDescription = stringResource(R.string.search_submit),
+                        )
                     }
                 }
             }
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentPadding = PaddingValues(16.dp, 4.dp, 16.dp, 32.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
             if (state.running && state.results.isNotEmpty()) {
                 item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth()) }
             }
@@ -269,9 +269,14 @@ fun DiscoverScreen(
                         icon = PaperIconKey.ERROR,
                     )
                     state.submittedQuery?.let { submittedQuery ->
-                        GoogleArxivSearchAction(
-                            onOpen = { uriHandler.openUri(googleArxivSearchUrl(submittedQuery)) },
-                        )
+                        PaperSecondaryButton(
+                            onClick = { onSearchGoogle(submittedQuery) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            PaperIcon(PaperIconKey.SEARCH, contentDescription = null)
+                            Spacer(Modifier.size(8.dp))
+                            Text(stringResource(R.string.search_google_in_app))
+                        }
                     }
                 }
 
@@ -282,9 +287,14 @@ fun DiscoverScreen(
                         icon = PaperIconKey.SEARCH,
                     )
                     state.submittedQuery?.let { submittedQuery ->
-                        GoogleArxivSearchAction(
-                            onOpen = { uriHandler.openUri(googleArxivSearchUrl(submittedQuery)) },
-                        )
+                        PaperSecondaryButton(
+                            onClick = { onSearchGoogle(submittedQuery) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            PaperIcon(PaperIconKey.SEARCH, contentDescription = null)
+                            Spacer(Modifier.size(8.dp))
+                            Text(stringResource(R.string.search_google_in_app))
+                        }
                     }
                 }
 
@@ -331,38 +341,7 @@ fun DiscoverScreen(
         }
     }
 }
-
-@Composable
-private fun GoogleArxivSearchAction(
-    onOpen: () -> Unit,
-) {
-    Spacer(Modifier.height(12.dp))
-    PaperSurface {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            PaperIcon(PaperIconKey.SEARCH, contentDescription = null, tint = PaperTheme.tokens.secondary)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.search_google_title), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    stringResource(R.string.search_google_body),
-                    color = PaperTheme.tokens.inkMuted,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        PaperSecondaryButton(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
-            PaperIcon(PaperIconKey.OPEN_EXTERNAL, contentDescription = null)
-            Spacer(Modifier.size(8.dp))
-            Text(stringResource(R.string.search_google_action))
-        }
-    }
 }
-
-internal fun googleArxivSearchUrl(query: String): String =
-    "https://www.google.com/search?q=${Uri.encode("site:arxiv.org $query")}"
 
 @Composable
 private fun SearchProviderFilters(
@@ -520,105 +499,6 @@ private fun SavedSearchDiscoverAction(
                 ),
                 color = PaperTheme.tokens.danger,
             )
-        }
-    }
-}
-
-@Composable
-private fun ProviderFailureRow(
-    failure: ProviderSearchFailure,
-    onRetry: (() -> Unit)?,
-) {
-    PaperSurface(contentPadding = PaddingValues(12.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.warning)
-            Text(
-                text = when (failure.kind) {
-                    ProviderFailureKind.RATE_LIMITED -> failure.retryAfterMillis?.let { retryAfterMillis ->
-                        stringResource(
-                            R.string.provider_rate_limited_retry,
-                            failure.providerName,
-                            ((retryAfterMillis + 999L) / 1_000L).coerceAtLeast(1L),
-                        )
-                    } ?: stringResource(R.string.provider_rate_limited, failure.providerName)
-                    ProviderFailureKind.UNAVAILABLE -> stringResource(R.string.provider_unavailable, failure.providerName)
-                    ProviderFailureKind.INVALID_RESPONSE -> stringResource(R.string.provider_invalid_response, failure.providerName)
-                },
-                modifier = Modifier.weight(1f),
-                color = PaperTheme.tokens.ink,
-            )
-            onRetry?.let { retry ->
-                PaperSecondaryButton(onClick = retry) {
-                    Text(stringResource(R.string.search_retry))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SearchResultCard(
-    result: SearchPaperUi,
-    saving: Boolean,
-    savedWorkId: String?,
-    saveFailed: Boolean,
-    onPreview: () -> Unit,
-    onSave: () -> Unit,
-    onOpen: (String) -> Unit,
-) {
-    val previewDescription = stringResource(R.string.search_preview_open, result.title)
-    PaperSurface {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onPreview)
-                .semantics {
-                    contentDescription = previewDescription
-                },
-        ) {
-            PaperMetaRow(
-                source = result.sourceDisplayNames.joinToString(),
-                year = result.publishedDate?.year?.toString(),
-                identifier = result.primaryIdentifier?.displayValue(),
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(result.title, style = MaterialTheme.typography.titleLarge, maxLines = 3, overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                result.authors.joinToString().ifBlank { stringResource(R.string.unknown_authors) },
-                color = PaperTheme.tokens.inkMuted,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            result.abstractText?.let { abstractText ->
-                Spacer(Modifier.height(10.dp))
-                Text(abstractText, maxLines = 4, overflow = TextOverflow.Ellipsis, color = PaperTheme.tokens.inkMuted)
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        if (savedWorkId == null) {
-            PaperPrimaryButton(
-                onClick = onSave,
-                enabled = !saving,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (saving) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.size(8.dp))
-                }
-                Text(stringResource(if (saving) R.string.saving_paper else R.string.save_paper))
-            }
-        } else {
-            PaperSecondaryButton(
-                onClick = { onOpen(savedWorkId) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.open_saved_paper))
-            }
-        }
-        if (saveFailed) {
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.save_failed), color = PaperTheme.tokens.danger)
         }
     }
 }

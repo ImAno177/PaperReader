@@ -41,7 +41,7 @@ class ThemeChoiceTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun allVisualPresetsAreAvailableAndSelectable() {
+    fun onlyNeobrutalismIsAvailableAsABuiltInPreset() {
         composeRule.enableAccessibilityChecks()
         var selectedPreset by mutableStateOf(PaperThemePreset.NEOBRUTALISM)
 
@@ -56,13 +56,10 @@ class ThemeChoiceTest {
             }
         }
 
-        composeRule.onNodeWithText("Doodle").assertExists()
         composeRule.onNodeWithText("Neobrutalism").assertExists()
-        composeRule.onNodeWithText("Doodle").performClick()
-
-        composeRule.runOnIdle {
-            assertEquals(PaperThemePreset.DOODLE, selectedPreset)
-        }
+        composeRule.onNodeWithText("Doodle").assertDoesNotExist()
+        composeRule.onNodeWithText("Neobrutalism").performClick()
+        composeRule.runOnIdle { assertEquals(PaperThemePreset.NEOBRUTALISM, selectedPreset) }
     }
 
     @Test

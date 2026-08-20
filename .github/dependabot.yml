@@ -4,11 +4,10 @@ updates:
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
-      # Dependabot has no biweekly interval. Open grouped PRs weekly; maintainers
-      # batch-review and merge the queue every other Monday.
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
+      # Dependabot supports cron schedules. Two fixed monthly review windows keep
+      # dependency work batched without a permanently open weekly queue.
+      interval: "cron"
+      cronjob: "0 9 1,15 * *"
       timezone: "Asia/Ho_Chi_Minh"
     open-pull-requests-limit: 5
     rebase-strategy: "auto"
@@ -32,13 +31,19 @@ updates:
         applies-to: "security-updates"
         patterns:
           - "*"
+    ignore:
+      # These releases require compileSdk 37. Remove the pins only with the
+      # repository's explicit SDK 37 migration.
+      - dependency-name: "androidx.compose:compose-bom"
+        versions: [">= 2026.08.00"]
+      - dependency-name: "androidx.core:core-ktx"
+        versions: [">= 1.19.0"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
+      interval: "cron"
+      cronjob: "0 9 1,15 * *"
       timezone: "Asia/Ho_Chi_Minh"
     open-pull-requests-limit: 5
     rebase-strategy: "auto"

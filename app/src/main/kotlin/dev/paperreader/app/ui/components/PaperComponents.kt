@@ -5,6 +5,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +35,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -109,6 +115,13 @@ fun PaperSurface(
 ) {
     val tokens = PaperTheme.tokens
     val shape = RoundedCornerShape(tokens.cornerRadius)
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val pressedOffset by animateDpAsState(
+        targetValue = if (onClick != null && pressed) tokens.shadowOffset else 0.dp,
+        animationSpec = tween(durationMillis = if (pressed) 100 else 180),
+        label = "paper surface press offset",
+    )
     Box(modifier = modifier.padding(end = tokens.shadowOffset, bottom = tokens.shadowOffset)) {
         if (tokens.shadowOffset > 0.dp) {
             Box(
@@ -122,12 +135,13 @@ fun PaperSurface(
             Modifier
         } else {
             Modifier
-                .clickable(onClick = onClick)
+                .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
                 .semantics { role = Role.Button }
         }
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
+                .offset(x = pressedOffset, y = pressedOffset)
                 .then(clickModifier),
             shape = shape,
             color = tokens.surface,
@@ -224,22 +238,38 @@ fun PaperStatePanel(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         ) {
-            when {
-                loading -> CircularProgressIndicator(color = PaperTheme.tokens.primary)
-                icon != null -> PaperIcon(
-                    key = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
-                    tint = PaperTheme.tokens.emptyStateAccent,
-                )
+            Surface(
+                color = PaperTheme.tokens.surfaceMuted,
+                contentColor = PaperTheme.tokens.emptyStateAccent,
+                shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
+                border = BorderStroke(
+                    PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp),
+                    PaperTheme.tokens.border,
+                ),
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    when {
+                        loading -> CircularProgressIndicator(color = PaperTheme.tokens.emptyStateAccent)
+                        icon != null -> PaperIcon(
+                            key = icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp),
+                            tint = PaperTheme.tokens.emptyStateAccent,
+                        )
+                    }
+                    Text(
+                        text = title,
+                        modifier = Modifier.widthIn(max = 520.dp),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = PaperTheme.tokens.emptyStateAccent,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
-            Text(
-                text = title,
-                modifier = Modifier.widthIn(max = 560.dp),
-                style = MaterialTheme.typography.headlineSmall,
-                color = PaperTheme.tokens.emptyStateAccent,
-                textAlign = TextAlign.Center,
-            )
             Text(
                 text = body,
                 modifier = Modifier.widthIn(max = 560.dp),

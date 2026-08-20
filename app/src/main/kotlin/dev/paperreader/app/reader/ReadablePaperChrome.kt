@@ -35,7 +35,6 @@ internal data class ReadablePaperToolbarActions(
     val changeLayout: () -> Unit,
     val openOriginalPdf: () -> Unit,
     val openReadableSource: () -> Unit,
-    val exportHtml: () -> Unit,
 )
 
 internal fun configureReadablePaperToolbar(
@@ -58,7 +57,6 @@ internal fun configureReadablePaperToolbar(
     toolbar.menu.findItem(R.id.action_reading_layout).icon = icons.drawable(context, PaperIconKey.PALETTE)
     toolbar.menu.findItem(R.id.action_open_original_pdf).icon = icons.drawable(context, PaperIconKey.OPEN_EXTERNAL)
     toolbar.menu.findItem(R.id.action_open_readable_source).icon = icons.drawable(context, PaperIconKey.OPEN_EXTERNAL)
-    toolbar.menu.findItem(R.id.action_download_readable_html).icon = icons.drawable(context, PaperIconKey.DOWNLOAD)
     setReadablePaperActionsEnabled(toolbar, source = false, document = false, contents = false)
     toolbar.setOnMenuItemClickListener { item ->
         when (item.itemId) {
@@ -69,7 +67,6 @@ internal fun configureReadablePaperToolbar(
             R.id.action_reading_layout -> actions.changeLayout()
             R.id.action_open_original_pdf -> actions.openOriginalPdf()
             R.id.action_open_readable_source -> actions.openReadableSource()
-            R.id.action_download_readable_html -> actions.exportHtml()
             else -> return@setOnMenuItemClickListener false
         }
         true
@@ -83,7 +80,6 @@ internal fun setReadablePaperActionsEnabled(
     contents: Boolean,
 ) {
     toolbar.menu.findItem(R.id.action_open_readable_source).isEnabled = source
-    toolbar.menu.findItem(R.id.action_download_readable_html).isEnabled = document
     toolbar.menu.findItem(R.id.action_search_readable).isEnabled = document
     toolbar.menu.findItem(R.id.action_readable_contents).isEnabled = document && contents
     toolbar.menu.findItem(R.id.action_annotate_selection).isEnabled = document

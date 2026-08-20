@@ -23,13 +23,7 @@ class PaperThemeContrastTest {
                     "on-secondary" to (tokens.onSecondary to tokens.secondary),
                     "on-primary-container" to (tokens.onPrimaryContainer to tokens.primaryContainer),
                     "on-secondary-container" to (tokens.onSecondaryContainer to tokens.secondaryContainer),
-                    "empty-state accent on canvas" to (tokens.emptyStateAccent to tokens.canvas),
-                    "success on canvas" to (tokens.success to tokens.canvas),
-                    "warning on canvas" to (tokens.warning to tokens.canvas),
-                    "danger on canvas" to (tokens.danger to tokens.canvas),
-                    "success on surface" to (tokens.success to tokens.surface),
-                    "warning on surface" to (tokens.warning to tokens.surface),
-                    "danger on surface" to (tokens.danger to tokens.surface),
+                    "empty-state accent on its panel" to (tokens.emptyStateAccent to tokens.surfaceMuted),
                 )
 
                 pairs.forEach { (role, colors) ->

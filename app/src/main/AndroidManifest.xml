@@ -94,6 +94,10 @@
             android:name=".reader.ReadablePaperActivity"
             android:exported="false"
             android:theme="@style/Theme.PaperReader.PdfReader" />
+        <activity
+            android:name=".search.GoogleSearchActivity"
+            android:exported="false"
+            android:process=":google_search" />
         <receiver
             android:name=".extensions.ExtensionInstallReceiver"
             android:exported="false" />

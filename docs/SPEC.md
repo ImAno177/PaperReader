@@ -22,12 +22,13 @@ and may be unavailable until the corresponding signed extension is installed.
 | Area | Implemented behavior |
 | --- | --- |
 | Discovery | Semantic Scholar, arXiv, and Europe PMC free-text search; Crossref exact DOI enrichment; deterministic exact-identifier routing and citation-aware ranking. |
-| Google handoff | A `site:arxiv.org` browser fallback; explicit `/abs/`, `/html/`, or `/pdf/` URL handoff through Android VIEW or Share; exact arXiv ID and version parsing. |
-| Library | Room-backed papers, manifestations, collections, reading status, history, bookmarks, annotations, saved searches, update snapshots, downloads, local PDF import, and metadata backup. |
-| Mobile reader | Verified arXiv HTML cache, sanitization, offline WebView rendering, table-of-contents navigation, in-document search, citation return, text/layout controls, figures, MathML, horizontal table scrolling, and readable HTML export. |
+| Google handoff | A hardened in-app `site:arxiv.org/abs` search surface; explicit `/abs/`, `/html/`, or `/pdf/` URL handoff to exact arXiv ID and version parsing. |
+| Library | Room-backed papers, versions and files, full-width quick Read actions, list/grid layouts, collections, reading status, history, bookmarks, annotations, saved searches, update snapshots, downloads, local PDF import, and metadata backup. |
+| Mobile reader | Verified arXiv HTML cache, sanitization, offline WebView rendering, table-of-contents navigation, in-document search, citation return, text/layout controls, figures, MathML, and horizontal table scrolling. |
+| Paper files | Per-version PDF download and readable HTML export from Paper Detail. HTML export uses the same verified, sanitized document artifact as the mobile reader. |
 | Original documents | Bounded PDF download and an in-app PDF reader with search, page navigation, progress, and bookmarks. |
 | Extensions | Separate source and theme APKs over versioned AIDL, signed stores, package verification, user-confirmed PackageInstaller flows, update/orphan/untrusted states, and community extension discovery. |
-| Appearance and access | English UI, Doodle and Neobrutalism presets, theme-specific icon sets, System/Light/Dark mode, adaptive navigation, and 48 dp semantic touch targets. |
+| Appearance and access | English UI, a Neobrutalism preset, complete community themes, System/Light/Dark mode, adaptive navigation, and 48 dp semantic touch targets. |
 | Privacy and safety | Local-first metadata and reading state, no analytics or advertising SDK, bounded network access, sanitized remote HTML, provenance and license retention, and exact-document annotation anchors. |
 
 ## Release scope and status
@@ -61,11 +62,12 @@ Root titles are large, left aligned, and near the top safe area. They have no de
 Bottom-navigation outlines align with the content grid, while independent touch targets remain at least
 48 dp and extend safely around the visible geometry.
 
-Appearance has independent controls for visual preset and System/Light/Dark mode. Doodle uses Tabler
-icons; Neobrutalism uses Material Symbols. A theme extension supplies a complete
-semantic icon set with its declarative tokens. Empty-state color is a semantic theme token, never a
-hard-coded purple. Status colors keep each preset's accent hue and use AA-safe tones when reused as
-text or icons on light surfaces.
+Appearance has independent controls for visual preset and System/Light/Dark mode. Neobrutalism uses
+Material Symbols. A theme extension supplies a complete semantic icon set with its declarative
+tokens. The legacy `DOODLE` extension decoration remains readable for binary compatibility but is
+not a built-in preset. Empty-state color is a semantic theme token, never a hard-coded purple.
+Status colors keep each preset's accent hue and use AA-safe tones when reused as text or icons on
+light surfaces.
 
 ## Domain model
 
@@ -141,11 +143,15 @@ enrichment only.
 
 ### Google-to-arXiv handoff
 
-When installed providers return no match, Search may open a Google query constrained to arXiv. The
-app does not scrape Google result HTML, embed a Google API key, or treat a search snippet as paper
-metadata. The user selects or shares an arXiv `/abs/`, `/html/`, or `/pdf/` URL; Android hands that
-URL back to PaperReader, which normalizes the exact arXiv identifier and routes it to the installed
-arXiv content source for API metadata and manifestations. Unsupported browser URLs are ignored.
+When installed providers return no match, Search may open a Google query constrained to arXiv inside
+PaperReader. The WebView runs in the isolated `:google_search` process, uses the installed Android
+System WebView User-Agent, permits only allowlisted HTTPS Google navigation/resources, exposes no
+JavaScript bridge or local files, and blocks mixed content and popups. JavaScript is enabled only for
+this isolated surface because Google no longer serves a usable no-JavaScript search flow. Selecting an
+arXiv `/abs/`, `/html/`, or `/pdf/` result, including a validated Google redirect, closes the web
+surface, normalizes the exact identifier, and routes it to the installed arXiv source for API metadata
+and manifestations. Google may require an interactive anti-abuse challenge. The app does not parse
+Google result HTML, embed an API key, bypass that challenge, or treat snippets as paper metadata.
 
 ### Network policy
 

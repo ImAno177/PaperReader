@@ -159,6 +159,15 @@ class MainNavigationAndroidTest {
         assertTrue(railBounds.height > railBounds.width)
         assertTrue(itemBounds.width <= railBounds.width)
         assertTrue(itemBounds.width < railBounds.height)
+        listOf("library", "discover", "updates", "history", "more").forEach { route ->
+            val item = composeRule
+                .onNodeWithTag("$PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX$route")
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+            assertTrue("$route starts outside the rail", item.top >= railBounds.top)
+            assertTrue("$route ends outside the rail", item.bottom <= railBounds.bottom)
+        }
     }
 
     private fun waitForScreenTitle(text: String) {

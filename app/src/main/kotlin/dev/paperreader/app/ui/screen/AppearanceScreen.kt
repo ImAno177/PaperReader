@@ -247,7 +247,6 @@ private fun CommunityThemeChoiceCard(
 @Composable
 internal fun themeName(preset: PaperThemePreset): String = stringResource(
     when (preset) {
-        PaperThemePreset.DOODLE -> R.string.theme_doodle
         PaperThemePreset.NEOBRUTALISM -> R.string.theme_neobrutalism
     },
 )
@@ -255,7 +254,6 @@ internal fun themeName(preset: PaperThemePreset): String = stringResource(
 @Composable
 private fun themeDescription(preset: PaperThemePreset): String = stringResource(
     when (preset) {
-        PaperThemePreset.DOODLE -> R.string.theme_doodle_description
         PaperThemePreset.NEOBRUTALISM -> R.string.theme_neobrutalism_description
     },
 )

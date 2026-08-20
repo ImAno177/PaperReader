@@ -7,12 +7,7 @@ import org.junit.Test
 
 class PaperIconSetTest {
     @Test
-    fun `doodle uses Tabler icons`() {
-        assertEquals(PaperIconFamily.TABLER, paperIconSet(PaperThemePreset.DOODLE).family)
-    }
-
-    @Test
-    fun `non illustrative themes use Material Symbols`() {
+    fun `built-in theme uses Material Symbols`() {
         assertEquals(
             PaperIconFamily.MATERIAL_SYMBOLS,
             paperIconSet(PaperThemePreset.NEOBRUTALISM).family,
@@ -22,11 +17,9 @@ class PaperIconSetTest {
     @Test
     fun `every semantic icon has a resource in every family`() {
         requireCompletePaperIconSets()
-        listOf(PaperIconFamily.TABLER, PaperIconFamily.MATERIAL_SYMBOLS).forEach { family ->
-            val iconSet = PaperIconSet(family)
-            PaperIconKey.entries.forEach { key ->
-                assertNotEquals("Missing $family resource for $key", 0, iconSet.resource(key))
-            }
+        val iconSet = PaperIconSet(PaperIconFamily.MATERIAL_SYMBOLS)
+        PaperIconKey.entries.forEach { key ->
+            assertNotEquals("Missing Material Symbols resource for $key", 0, iconSet.resource(key))
         }
     }
 

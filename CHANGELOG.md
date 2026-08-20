@@ -5,7 +5,46 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- Library cards now expose a full-width quick Read action that opens the mobile reader or a local PDF.
+- Paper Detail can download a verified, sanitized readable HTML file beside the PDF action for each
+  supported arXiv version.
+- Search can open a constrained Google arXiv query inside PaperReader and route a selected result to
+  the native arXiv metadata pipeline without launching an external browser.
+
+### Changed
+
+- Paper Detail labels paper representations as versions and files, keeps secondary source and delete
+  actions behind progressive disclosure, and presents identifiers in one compact group.
+- The Library grid uses a phone-sized minimum column width so the persisted layout toggle produces a
+  visibly distinct two-column layout on common handsets.
+- The search field remains fixed below the page title while results scroll.
+- Neobrutalism keeps mustard, violet, and status accents unchanged between light and dark modes;
+  only neutral canvas, surface, text, and outline roles invert.
+- Selected primary-navigation destinations use a mustard fill, hard outline, and short scale/fill
+  transition. Unselected destinations remain transparent without relying on color alone.
+- Source-store cards use progressive disclosure for package, signer, and trust-failure details.
+
+### Fixed
+
+- Source extensions are preflighted through Binder before they appear usable, so an APK pinned to a
+  different host signer is reported as untrusted instead of failing every search.
+- Source Binder deadlines now outlive the bounded connection and read timeouts used by extensions.
+- All five primary destinations remain reachable in short landscape navigation rails.
+- The Google fallback runs in an isolated process, accepts only allowlisted HTTPS Google resources,
+  and canonicalizes validated Google redirect targets before handing an arXiv ID to native search.
+
+### Security
+
+- Updated jsoup to 1.23.1, constrained dependency submission to packaged runtime configurations, and
+  added CodeQL plus grouped twice-monthly security updates to the source-extension repository.
+
+### Removed
+
+- The built-in Doodle preset, its Tabler icon pack, and the associated bundled assets and notices.
+  Existing community-theme contracts remain compatible.
+- The duplicate readable HTML download command from the Reader overflow menu.
 
 ## [0.1.6] - 2026-08-15
 

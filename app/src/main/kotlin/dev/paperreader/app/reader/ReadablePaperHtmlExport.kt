@@ -1,20 +1,10 @@
 package dev.paperreader.app.reader
 
 import android.content.ContentResolver
-import android.content.Context
 import android.net.Uri
-import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.lifecycle.LifecycleCoroutineScope
-import dev.paperreader.app.R
 import dev.paperreader.logic.reader.ReadablePaperDocument
 import java.io.IOException
 import java.io.OutputStream
-import java.util.concurrent.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 internal data class ReadablePaperExportMetadata(
     val title: String,
@@ -71,44 +61,6 @@ internal fun readablePaperHtmlFileName(document: ReadablePaperDocument): String 
         .take(MAX_FILENAME_VERSION_LENGTH)
         .ifBlank { "latest" }
     return "$title-$version.html"
-}
-
-internal class ReadablePaperHtmlExportController(
-    activity: ComponentActivity,
-    private val scope: LifecycleCoroutineScope,
-    private val contentResolver: ContentResolver = activity.contentResolver,
-) {
-    private val context: Context = activity
-    private var pendingDocument: ReadablePaperDocument? = null
-    private val launcher = activity.registerForActivityResult(
-        ActivityResultContracts.CreateDocument(HTML_MIME_TYPE),
-    ) { uri ->
-        val document = pendingDocument
-        pendingDocument = null
-        if (uri == null || document == null) return@registerForActivityResult
-        scope.launch {
-            try {
-                val html = withContext(Dispatchers.Default) { renderReadablePaperExportHtml(document) }
-                withContext(Dispatchers.IO) { ReadablePaperHtmlFileGateway(contentResolver).write(uri, html) }
-                Toast.makeText(context, R.string.readable_reader_html_saved, Toast.LENGTH_SHORT).show()
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                Toast.makeText(context, R.string.readable_reader_html_save_failed, Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    fun launch(document: ReadablePaperDocument) {
-        if (pendingDocument != null) return
-        pendingDocument = document
-        try {
-            launcher.launch(readablePaperHtmlFileName(document))
-        } catch (_: IllegalStateException) {
-            pendingDocument = null
-            Toast.makeText(context, R.string.readable_reader_html_save_failed, Toast.LENGTH_LONG).show()
-        }
-    }
 }
 
 internal class ReadablePaperHtmlFileGateway(
@@ -174,7 +126,6 @@ private fun escapeHtml(value: String): String = buildString(value.length) {
     }
 }
 
-private const val HTML_MIME_TYPE = "text/html"
 private const val MAXIMUM_EXPORT_HTML_BYTES = 24L * 1024L * 1024L
 private const val MAX_FILENAME_TITLE_LENGTH = 80
 private const val MAX_FILENAME_VERSION_LENGTH = 16

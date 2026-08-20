@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,6 +65,8 @@ import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.logic.domain.ReadingStatus
 import dev.paperreader.logic.domain.repository.RemovePaperResult
 import dev.paperreader.logic.domain.repository.SetPaperCollectionsResult
+import dev.paperreader.logic.reader.ReadablePaperFailure
+import dev.paperreader.logic.reader.ReadablePaperResult
 import dev.paperreader.logic.task.DeleteDownloadResult
 import dev.paperreader.logic.task.DownloadedPaper
 import dev.paperreader.logic.task.PaperTask
@@ -88,6 +90,9 @@ fun DetailScreen(
     onRepairSavedPaper: (String) -> Unit = {},
     onRequestDownload: (String) -> Unit = {},
     onGetDownloadedPaper: suspend (String) -> DownloadedPaper? = { null },
+    onLoadReadablePaper: suspend (String) -> ReadablePaperResult = {
+        ReadablePaperResult.Unavailable(ReadablePaperFailure.OFFLINE_OR_UNAVAILABLE)
+    },
     onDeleteDownload: suspend (String) -> DeleteDownloadResult = { DeleteDownloadResult.NotFound },
     onRemove: suspend () -> RemovePaperResult,
     onSetCollections: suspend (Set<Long>) -> SetPaperCollectionsResult = {
@@ -127,7 +132,7 @@ fun DetailScreen(
             }
         },
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
                         PaperIcon(PaperIconKey.BACK, contentDescription = stringResource(R.string.back))
@@ -198,6 +203,7 @@ fun DetailScreen(
                     onRepairSavedPaper = onRepairSavedPaper,
                     onRequestDownload = onRequestDownload,
                     onGetDownloadedPaper = onGetDownloadedPaper,
+                    onLoadReadablePaper = onLoadReadablePaper,
                     onDeleteDownload = onDeleteDownload,
                 )
             }
@@ -293,6 +299,7 @@ private fun PaperDetailContent(
     onRepairSavedPaper: (String) -> Unit,
     onRequestDownload: (String) -> Unit,
     onGetDownloadedPaper: suspend (String) -> DownloadedPaper?,
+    onLoadReadablePaper: suspend (String) -> ReadablePaperResult,
     onDeleteDownload: suspend (String) -> DeleteDownloadResult,
 ) {
     var abstractExpanded by rememberSaveable(paper.id) { mutableStateOf(false) }
@@ -328,6 +335,12 @@ private fun PaperDetailContent(
                     items(assignedCollections, key = PaperCollectionUi::id) { collection ->
                         PaperLabel(collection.name)
                     }
+                }
+            }
+            if (paper.subjects.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(paper.subjects) { subject -> PaperLabel(subject) }
                 }
             }
         }
@@ -383,14 +396,20 @@ private fun PaperDetailContent(
                     showMobileReadAction = manifestation.id != primaryReadableManifestation?.id,
                     onRequestDownload = { onRequestDownload(manifestation.id) },
                     onGetDownloadedPaper = { onGetDownloadedPaper(manifestation.id) },
+                    onLoadReadablePaper = { onLoadReadablePaper(manifestation.id) },
                     onDeleteDownload = { onDeleteDownload(manifestation.id) },
                 )
             }
         }
-        item { PaperSectionHeader(stringResource(R.string.identifiers_title)) }
-        items(paper.identifiers) { identifier ->
-            PaperSurface(contentPadding = PaddingValues(12.dp)) {
-                Text(identifier.displayValue(), style = MaterialTheme.typography.labelLarge)
+        if (paper.identifiers.isNotEmpty()) {
+            item { PaperSectionHeader(stringResource(R.string.identifiers_title)) }
+            item {
+                PaperSurface(contentPadding = PaddingValues(12.dp)) {
+                    Text(
+                        paper.identifiers.joinToString(separator = "\n") { it.displayValue() },
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
             }
         }
     }

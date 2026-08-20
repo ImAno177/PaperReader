@@ -51,7 +51,6 @@ enum class PaperIconKey {
 }
 
 enum class PaperIconFamily {
-    TABLER,
     MATERIAL_SYMBOLS,
     COMMUNITY,
 }
@@ -68,7 +67,6 @@ data class PaperIconSet(
 
     @DrawableRes
     fun resource(key: PaperIconKey): Int = when (family) {
-        PaperIconFamily.TABLER,
         PaperIconFamily.MATERIAL_SYMBOLS,
         -> builtinIconResource(family, key)
         PaperIconFamily.COMMUNITY -> error("Community icons are not Android resources")

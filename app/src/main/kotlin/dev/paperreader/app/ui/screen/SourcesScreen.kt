@@ -1,6 +1,5 @@
 package dev.paperreader.app.ui.screen
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,16 +11,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,8 +49,6 @@ import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.logic.provider.ProviderManagerState
 import dev.paperreader.logic.provider.ProviderOrigin
-import dev.paperreader.logic.plugin.ExtensionStoreRecord
-import dev.paperreader.logic.plugin.ExtensionReleaseKind
 import dev.paperreader.logic.plugin.ExtensionStoreRegistryState
 import dev.paperreader.logic.plugin.VerifiedExtensionRelease
 
@@ -78,6 +74,7 @@ fun SourcesScreen(
     var storeUrl by rememberSaveable { mutableStateOf("") }
     var publicKey by rememberSaveable { mutableStateOf("") }
     var pendingRemovalStoreId by rememberSaveable { mutableStateOf<String?>(null) }
+    var expandedUntrustedPackage by rememberSaveable { mutableStateOf<String?>(null) }
     val storeBusy = extensionStoreAction is ExtensionStoreActionUiState.Working
     val releasesByPackage = extensionStores.stores
         .flatMap { it.index.releases }
@@ -152,6 +149,10 @@ fun SourcesScreen(
         if (providers.untrusted.isNotEmpty()) {
             item { PaperSectionHeader(stringResource(R.string.provider_security_attention)) }
             items(providers.untrusted, key = { "untrusted:${it.packageName}" }) { provider ->
+                val displayName = releasesByPackage[provider.packageName]?.displayName
+                    ?: provider.packageName.substringAfterLast('.').replace('-', ' ')
+                        .replaceFirstChar(Char::uppercase)
+                val expanded = expandedUntrustedPackage == provider.packageName
                 PaperSurface(contentPadding = PaddingValues(12.dp)) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -159,7 +160,7 @@ fun SourcesScreen(
                     ) {
                         PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.danger)
                         Text(
-                            provider.packageName,
+                            displayName,
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 2,
@@ -172,20 +173,35 @@ fun SourcesScreen(
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(stringResource(R.string.provider_blocked_body), color = PaperTheme.tokens.inkMuted)
-                    Text(
-                        stringResource(R.string.provider_block_reason, provider.reason.take(240)),
-                        color = PaperTheme.tokens.inkMuted,
-                        maxLines = 4,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        stringResource(
-                            R.string.provider_signer,
-                            provider.signerSha256.take(64).chunked(8).joinToString(" "),
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = PaperTheme.tokens.inkMuted,
-                    )
+                    if (expanded) {
+                        Text(
+                            stringResource(R.string.provider_package, provider.packageName),
+                            color = PaperTheme.tokens.inkMuted,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            stringResource(R.string.provider_block_reason, provider.reason.take(240)),
+                            color = PaperTheme.tokens.inkMuted,
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            stringResource(
+                                R.string.provider_signer,
+                                provider.signerSha256.take(64).chunked(8).joinToString(" "),
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = PaperTheme.tokens.inkMuted,
+                        )
+                    }
+                    TextButton(
+                        onClick = {
+                            expandedUntrustedPackage = if (expanded) null else provider.packageName
+                        },
+                    ) {
+                        Text(stringResource(if (expanded) R.string.hide_details else R.string.show_details))
+                    }
                 }
             }
         }
@@ -414,176 +430,6 @@ fun SourcesScreen(
             confirmButton = {
                 PaperPrimaryButton(onClick = onDismissStoreAction) { Text(stringResource(R.string.dismiss)) }
             },
-        )
-    }
-}
-
-@Composable
-private fun ExtensionStoreCard(
-    store: ExtensionStoreRecord,
-    refreshing: Boolean,
-    enabled: Boolean,
-    onRefresh: () -> Unit,
-    onRemove: () -> Unit,
-    installStates: Map<String, ExtensionInstallState>,
-    blockedPackages: Set<String>,
-    installedVersions: Map<String, Long>,
-    onInstallExtension: (VerifiedExtensionRelease) -> Unit,
-    onDismissInstallState: (String) -> Unit,
-) {
-    PaperSurface(contentPadding = PaddingValues(12.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(store.index.displayName, style = MaterialTheme.typography.titleMedium)
-                Text(store.index.storeId, color = PaperTheme.tokens.inkMuted)
-            }
-            IconButton(onClick = onRefresh, enabled = enabled && !refreshing) {
-                if (refreshing) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
-                } else {
-                    PaperIcon(PaperIconKey.SYNC, contentDescription = stringResource(R.string.refresh_store))
-                }
-            }
-            if (store.pinned) {
-                StatusBadge(
-                    text = stringResource(R.string.store_pinned),
-                    color = PaperTheme.tokens.success,
-                )
-            } else {
-                IconButton(onClick = onRemove, enabled = enabled) {
-                    PaperIcon(PaperIconKey.DELETE, contentDescription = stringResource(R.string.remove_store))
-                }
-            }
-        }
-        Text(store.index.websiteUrl, color = PaperTheme.tokens.inkMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text(
-            stringResource(R.string.store_sequence_and_release_count, store.index.sequence, store.index.releases.size),
-            color = PaperTheme.tokens.inkMuted,
-        )
-        if (store.index.releases.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            store.index.releases.forEach { release ->
-                ExtensionReleaseRow(
-                    release = release,
-                    installState = installStates[release.packageName],
-                    blocked = release.packageName in blockedPackages,
-                    installedVersionCode = installedVersions[release.packageName],
-                    onInstallExtension = onInstallExtension,
-                    onDismissInstallState = onDismissInstallState,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ExtensionReleaseRow(
-    release: VerifiedExtensionRelease,
-    installState: ExtensionInstallState?,
-    blocked: Boolean,
-    installedVersionCode: Long?,
-    onInstallExtension: (VerifiedExtensionRelease) -> Unit,
-    onDismissInstallState: (String) -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-        color = PaperTheme.tokens.canvas,
-        shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
-        border = BorderStroke(PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp), PaperTheme.tokens.border),
-    ) {
-        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(release.displayName, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-                StatusBadge(
-                    text = if (release.compatible) release.kind.name.lowercase().replaceFirstChar(Char::uppercase)
-                    else stringResource(R.string.extension_incompatible),
-                    color = if (release.compatible) PaperTheme.tokens.success else PaperTheme.tokens.danger,
-                )
-            }
-            Text(
-                stringResource(R.string.extension_version_and_license, release.versionName, release.license),
-                color = PaperTheme.tokens.inkMuted,
-            )
-            val artifactReady = release.apkSha256 != null && release.apkSizeBytes != null
-            if (blocked) {
-                StatusBadge(
-                    text = stringResource(R.string.extension_installed_blocked),
-                    icon = PaperIconKey.ERROR,
-                    color = PaperTheme.tokens.danger,
-                )
-            } else if (installedVersionCode != null && installedVersionCode >= release.versionCode) {
-                StatusBadge(
-                    text = stringResource(R.string.provider_installed_section),
-                    color = PaperTheme.tokens.success,
-                )
-            } else if (release.compatible && artifactReady) {
-                ExtensionInstallAction(
-                    release = release,
-                    state = installState,
-                    update = installedVersionCode != null,
-                    onInstall = onInstallExtension,
-                    onDismissState = onDismissInstallState,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ExtensionInstallAction(
-    release: VerifiedExtensionRelease,
-    state: ExtensionInstallState?,
-    update: Boolean,
-    onInstall: (VerifiedExtensionRelease) -> Unit,
-    onDismissState: (String) -> Unit,
-) {
-    val busy = state is ExtensionInstallState.Pending ||
-        state is ExtensionInstallState.Downloading ||
-        state is ExtensionInstallState.Installing ||
-        state is ExtensionInstallState.AwaitingConfirmation
-    val terminal = state is ExtensionInstallState.Installed ||
-        state is ExtensionInstallState.Cancelled ||
-        state is ExtensionInstallState.Failed
-    PaperSecondaryButton(
-        onClick = {
-            if (busy || terminal) onDismissState(release.packageName) else onInstall(release)
-        },
-        enabled = true,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        if (busy) {
-            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-        } else {
-            PaperIcon(
-                if (terminal) PaperIconKey.CLOSE else PaperIconKey.DOWNLOAD,
-                contentDescription = null,
-            )
-        }
-        Spacer(Modifier.size(8.dp))
-        Text(
-            when (state) {
-                ExtensionInstallState.Pending -> stringResource(R.string.extension_install_pending)
-                is ExtensionInstallState.Downloading -> {
-                    val percentage = ((state.bytesRead * 100L) / state.totalBytes.coerceAtLeast(1L)).coerceIn(0L, 100L)
-                    stringResource(R.string.extension_download_progress, percentage)
-                }
-                ExtensionInstallState.Installing -> stringResource(R.string.extension_installing)
-                ExtensionInstallState.AwaitingConfirmation -> stringResource(R.string.extension_awaiting_confirmation)
-                ExtensionInstallState.Installed -> stringResource(R.string.extension_installed)
-                ExtensionInstallState.Cancelled -> stringResource(R.string.extension_install_cancelled)
-                is ExtensionInstallState.Failed -> stringResource(R.string.dismiss)
-                null -> stringResource(if (update) R.string.update_extension else R.string.install_extension)
-            },
-        )
-    }
-    if (state is ExtensionInstallState.Failed) {
-        Text(
-            stringResource(R.string.extension_install_failed, state.message),
-            color = PaperTheme.tokens.danger,
-            style = MaterialTheme.typography.bodySmall,
         )
     }
 }

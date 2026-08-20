@@ -64,28 +64,27 @@ class GoogleSearchActivity : ComponentActivity() {
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             isIndeterminate = true
         }
-        webView = WebView(this).apply {
-            settings.apply {
-                // Google stopped serving useful no-JavaScript result pages in 2026. This activity
-                // is isolated in its own process/data directory and never installs a JS bridge.
-                setJavaScriptEnabled(true)
-                setDomStorageEnabled(true)
-                setDatabaseEnabled(false)
-                setAllowFileAccess(false)
-                setAllowContentAccess(false)
-                setAllowFileAccessFromFileURLs(false)
-                setAllowUniversalAccessFromFileURLs(false)
-                setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW)
-                setCacheMode(WebSettings.LOAD_NO_CACHE)
-                setJavaScriptCanOpenWindowsAutomatically(false)
-                setMediaPlaybackRequiresUserGesture(true)
-                setGeolocationEnabled(false)
-                setSupportMultipleWindows(false)
-            }
-            CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
-            if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true)
-            webViewClient = GoogleOnlyWebViewClient()
-        }
+        val searchWebView = WebView(this)
+        val webSettings: WebSettings = searchWebView.settings
+        // Google stopped serving useful no-JavaScript result pages in 2026. This activity
+        // is isolated in its own process/data directory and never installs a JS bridge.
+        webSettings.setJavaScriptEnabled(true)
+        webSettings.setDomStorageEnabled(true)
+        webSettings.setDatabaseEnabled(false)
+        webSettings.setAllowFileAccess(false)
+        webSettings.setAllowContentAccess(false)
+        webSettings.setAllowFileAccessFromFileURLs(false)
+        webSettings.setAllowUniversalAccessFromFileURLs(false)
+        webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW)
+        webSettings.setCacheMode(WebSettings.LOAD_NO_CACHE)
+        webSettings.setJavaScriptCanOpenWindowsAutomatically(false)
+        webSettings.setMediaPlaybackRequiresUserGesture(true)
+        webSettings.setGeolocationEnabled(false)
+        webSettings.setSupportMultipleWindows(false)
+        CookieManager.getInstance().setAcceptThirdPartyCookies(searchWebView, false)
+        if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true)
+        searchWebView.webViewClient = GoogleOnlyWebViewClient()
+        webView = searchWebView
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(canvasColor)

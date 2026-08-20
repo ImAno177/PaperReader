@@ -68,17 +68,17 @@ class GoogleSearchActivity : ComponentActivity() {
             settings.apply {
                 // Google stopped serving useful no-JavaScript result pages in 2026. This activity
                 // is isolated in its own process/data directory and never installs a JS bridge.
-                javaScriptEnabled = true
-                domStorageEnabled = true
-                databaseEnabled = false
-                allowFileAccess = false
-                allowContentAccess = false
-                allowFileAccessFromFileURLs = false
-                allowUniversalAccessFromFileURLs = false
-                mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                cacheMode = WebSettings.LOAD_NO_CACHE
-                javaScriptCanOpenWindowsAutomatically = false
-                mediaPlaybackRequiresUserGesture = true
+                setJavaScriptEnabled(true)
+                setDomStorageEnabled(true)
+                setDatabaseEnabled(false)
+                setAllowFileAccess(false)
+                setAllowContentAccess(false)
+                setAllowFileAccessFromFileURLs(false)
+                setAllowUniversalAccessFromFileURLs(false)
+                setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW)
+                setCacheMode(WebSettings.LOAD_NO_CACHE)
+                setJavaScriptCanOpenWindowsAutomatically(false)
+                setMediaPlaybackRequiresUserGesture(true)
                 setGeolocationEnabled(false)
                 setSupportMultipleWindows(false)
             }

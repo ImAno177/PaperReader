@@ -86,10 +86,15 @@ authoritative records as a fallback. A provider failure remains isolated and can
 providers. Ranking is deterministic: exact identifier, title/text match, then a Semantic Scholar
 citation tie-break, publication date, and stable record key.
 
-The Google fallback is browser-mediated, not a provider implementation: the host opens a constrained
-`site:arxiv.org` query, accepts only an explicit arXiv `/abs/`, `/html/`, or `/pdf/` VIEW/share
-handoff, normalizes the identifier, and lets the installed arXiv extension call its API. The host
-never scrapes Google result pages or stores Google credentials.
+The Google fallback is a hardened host-owned WebView in the isolated `:google_search` process, not a
+provider implementation. It opens one constrained `site:arxiv.org/abs` query, allows only HTTPS
+Google navigation and resources from exact Google-owned hosts, and intercepts an explicit arXiv
+`/abs/`, `/html/`, or `/pdf/` selection or validated Google redirect target. The normal import path
+then normalizes the identifier and lets the installed arXiv extension call its API. The WebView uses
+the installed Android System WebView User-Agent and JavaScript because Google's current result surface
+does not provide a usable no-JavaScript flow. It exposes no host bridge, popup, local-file access, or
+shared WebView data; the host never parses Google result HTML or stores Google credentials. Google may
+show an anti-abuse challenge, so this remains an explicit fallback rather than the default provider.
 
 Installed providers are enabled by default. A user may disable an engine without uninstalling it;
 the disabled provider remains available for saved-record provenance and direct access but is excluded

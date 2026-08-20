@@ -20,8 +20,8 @@ The current host behavior is recorded in [`docs/SPEC.md`](docs/SPEC.md). Release
   Crossref, then save papers to an on-device Room library.
 - Keep recent searches, inspect provider-specific progress and failures, filter by source, and retry
   an unavailable provider without discarding successful results.
-- Use a browser-mediated Google fallback to find an arXiv URL, then hand the exact identifier to the
-  installed arXiv source for API metadata. The app never scrapes Google result pages.
+- Search Google inside PaperReader when providers have no match, then hand a selected arXiv URL to
+  the installed arXiv source for authoritative API metadata. The app never scrapes result pages.
 - Read exact-version arXiv HTML offline with selectable text, figures, tables, MathML, search, a table
   of contents, adjustable typography, reading progress, and exact-document highlights with notes.
 - Download verified PDFs and open them in the in-app original-document reader.

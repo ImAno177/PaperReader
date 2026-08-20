@@ -22,7 +22,7 @@ and may be unavailable until the corresponding signed extension is installed.
 | Area | Implemented behavior |
 | --- | --- |
 | Discovery | Semantic Scholar, arXiv, and Europe PMC free-text search; Crossref exact DOI enrichment; deterministic exact-identifier routing and citation-aware ranking. |
-| Google handoff | A `site:arxiv.org` browser fallback; explicit `/abs/`, `/html/`, or `/pdf/` URL handoff through Android VIEW or Share; exact arXiv ID and version parsing. |
+| Google handoff | A hardened in-app `site:arxiv.org/abs` search surface; explicit `/abs/`, `/html/`, or `/pdf/` URL handoff to exact arXiv ID and version parsing. |
 | Library | Room-backed papers, versions and files, full-width quick Read actions, list/grid layouts, collections, reading status, history, bookmarks, annotations, saved searches, update snapshots, downloads, local PDF import, and metadata backup. |
 | Mobile reader | Verified arXiv HTML cache, sanitization, offline WebView rendering, table-of-contents navigation, in-document search, citation return, text/layout controls, figures, MathML, and horizontal table scrolling. |
 | Paper files | Per-version PDF download and readable HTML export from Paper Detail. HTML export uses the same verified, sanitized document artifact as the mobile reader. |
@@ -143,11 +143,15 @@ enrichment only.
 
 ### Google-to-arXiv handoff
 
-When installed providers return no match, Search may open a Google query constrained to arXiv. The
-app does not scrape Google result HTML, embed a Google API key, or treat a search snippet as paper
-metadata. The user selects or shares an arXiv `/abs/`, `/html/`, or `/pdf/` URL; Android hands that
-URL back to PaperReader, which normalizes the exact arXiv identifier and routes it to the installed
-arXiv content source for API metadata and manifestations. Unsupported browser URLs are ignored.
+When installed providers return no match, Search may open a Google query constrained to arXiv inside
+PaperReader. The WebView runs in the isolated `:google_search` process, uses the installed Android
+System WebView User-Agent, permits only allowlisted HTTPS Google navigation/resources, exposes no
+JavaScript bridge or local files, and blocks mixed content and popups. JavaScript is enabled only for
+this isolated surface because Google no longer serves a usable no-JavaScript search flow. Selecting an
+arXiv `/abs/`, `/html/`, or `/pdf/` result, including a validated Google redirect, closes the web
+surface, normalizes the exact identifier, and routes it to the installed arXiv source for API metadata
+and manifestations. Google may require an interactive anti-abuse challenge. The app does not parse
+Google result HTML, embed an API key, bypass that challenge, or treat snippets as paper metadata.
 
 ### Network policy
 

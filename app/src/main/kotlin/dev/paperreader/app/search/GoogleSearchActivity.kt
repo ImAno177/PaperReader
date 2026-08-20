@@ -22,6 +22,8 @@ import androidx.activity.addCallback
 import androidx.activity.ComponentActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import dev.paperreader.app.BuildConfig
 import dev.paperreader.app.MainActivity
 import dev.paperreader.app.R
@@ -34,7 +36,6 @@ import java.nio.charset.StandardCharsets
 
 /** A hardened, in-app Google surface that hands arXiv links back to the native import pipeline. */
 class GoogleSearchActivity : ComponentActivity() {
-    private lateinit var webView: WebView
     private lateinit var progress: ProgressBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,13 +85,23 @@ class GoogleSearchActivity : ComponentActivity() {
         CookieManager.getInstance().setAcceptThirdPartyCookies(searchWebView, false)
         if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true)
         searchWebView.webViewClient = GoogleOnlyWebViewClient()
-        webView = searchWebView
+        lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onDestroy(owner: LifecycleOwner) {
+                    searchWebView.stopLoading()
+                    searchWebView.clearHistory()
+                    searchWebView.clearCache(true)
+                    searchWebView.removeAllViews()
+                    searchWebView.destroy()
+                }
+            },
+        )
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(canvasColor)
             addView(toolbar, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
             addView(progress, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            addView(webView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(searchWebView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         }
         ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -99,20 +110,9 @@ class GoogleSearchActivity : ComponentActivity() {
         }
         setContentView(root)
         onBackPressedDispatcher.addCallback(this) {
-            if (webView.canGoBack()) webView.goBack() else finish()
+            if (searchWebView.canGoBack()) searchWebView.goBack() else finish()
         }
-        webView.loadUrl(googleSearchUrl(query))
-    }
-
-    override fun onDestroy() {
-        if (::webView.isInitialized) {
-            webView.stopLoading()
-            webView.clearHistory()
-            webView.clearCache(true)
-            webView.removeAllViews()
-            webView.destroy()
-        }
-        super.onDestroy()
+        searchWebView.loadUrl(googleSearchUrl(query))
     }
 
     private inner class GoogleOnlyWebViewClient : WebViewClient() {

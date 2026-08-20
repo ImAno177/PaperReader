@@ -50,8 +50,10 @@ class SourcesScreenTest {
         }
 
         composeRule.onNodeWithText("Security attention").assertIsDisplayed()
-        composeRule.onNodeWithText("dev.example.untrusted").assertIsDisplayed()
+        composeRule.onNodeWithText("Untrusted").assertIsDisplayed()
         composeRule.onNodeWithText("Blocked").assertIsDisplayed()
+        composeRule.onNodeWithText("Show details").performClick()
+        composeRule.onNodeWithText("Package: dev.example.untrusted").assertIsDisplayed()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Installed"))
         composeRule.onNodeWithText("Installed").assertIsDisplayed()
         composeRule.onNodeWithText("arXiv").assertIsDisplayed()
@@ -177,7 +179,7 @@ class SourcesScreenTest {
 
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
         composeRule.onNodeWithText("Official").assertIsDisplayed()
-        composeRule.onNodeWithText("Installed but blocked").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithText("Blocked").fetchSemanticsNodes().isNotEmpty())
         composeRule.onNodeWithText("Install extension").assertDoesNotExist()
     }
 

@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
@@ -34,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
@@ -41,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.navigation.NavHostController
 import dev.paperreader.app.R
 import dev.paperreader.app.extensions.CommunityThemeCatalog
@@ -205,6 +208,7 @@ internal fun AdaptiveAppShell(
                 },
             ) { padding -> content(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) }
         } else {
+            val compactRail = maxHeight < 480.dp
             Row(modifier = Modifier.fillMaxSize()) {
                 NavigationRail(
                     modifier = Modifier.testTag(PRIMARY_NAVIGATION_TEST_TAG),
@@ -214,12 +218,14 @@ internal fun AdaptiveAppShell(
                 ) {
                     destinations.forEach { destination ->
                         PaperDestinationItem(
-                            modifier = Modifier.padding(vertical = 4.dp).width(80.dp),
+                            modifier = Modifier.padding(vertical = if (compactRail) 2.dp else 4.dp).width(80.dp),
                             selected = isDestinationSelected(destination, currentRoute),
                             onClick = { onNavigate(destination) },
                             icon = destination.icon,
                             label = stringResource(destination.labelRes),
                             testKey = destination.route,
+                            itemHeight = if (compactRail) 56.dp else 72.dp,
+                            visualPadding = PaddingValues(if (compactRail) 2.dp else 4.dp),
                         )
                     }
                 }
@@ -237,6 +243,7 @@ private fun PaperDestinationItem(
     label: String,
     modifier: Modifier = Modifier,
     testKey: String,
+    itemHeight: Dp = 72.dp,
     visualPadding: PaddingValues = PaddingValues(4.dp),
 ) {
     val tokens = PaperTheme.tokens
@@ -250,8 +257,23 @@ private fun PaperDestinationItem(
         animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
         label = "primary navigation border color",
     )
+    val containerColor by animateColorAsState(
+        targetValue = if (selected) tokens.primary else Color.Transparent,
+        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+        label = "primary navigation container color",
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) tokens.onPrimary else tokens.ink,
+        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
+        label = "primary navigation content color",
+    )
+    val iconScale by animateFloatAsState(
+        targetValue = if (selected) 1.08f else 1f,
+        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+        label = "primary navigation icon scale",
+    )
     Box(
-        modifier = modifier.height(72.dp)
+        modifier = modifier.height(itemHeight)
             .testTag("$PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX$testKey")
             .selectable(selected = selected, onClick = onClick, role = Role.Tab),
         contentAlignment = Alignment.Center,
@@ -260,10 +282,8 @@ private fun PaperDestinationItem(
             modifier = Modifier.fillMaxSize().padding(visualPadding)
                 .testTag("$PRIMARY_NAVIGATION_ITEM_VISUAL_TEST_TAG_PREFIX$testKey"),
             shape = RoundedCornerShape(tokens.cornerRadius),
-            // Keep the tile transparent in every state. Selection is communicated by the
-            // animated outline only, so switching tabs does not flash a new fill color.
-            color = Color.Transparent,
-            contentColor = tokens.ink,
+            color = containerColor,
+            contentColor = contentColor,
             border = BorderStroke(borderWidth, borderColor).takeIf { borderWidth > 0.dp },
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,
@@ -273,7 +293,14 @@ private fun PaperDestinationItem(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
             ) {
-                PaperIcon(icon, contentDescription = null)
+                PaperIcon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = iconScale
+                        scaleY = iconScale
+                    },
+                )
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,

@@ -152,8 +152,8 @@ private fun MoreHubRow(
             Surface(
                 modifier = Modifier.size(48.dp),
                 shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
-                color = PaperTheme.tokens.primaryContainer,
-                contentColor = PaperTheme.tokens.onPrimaryContainer,
+                color = PaperTheme.tokens.primary,
+                contentColor = PaperTheme.tokens.onPrimary,
                 border = BorderStroke(
                     PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp),
                     PaperTheme.tokens.border,

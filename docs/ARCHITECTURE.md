@@ -83,8 +83,9 @@ Crossref is never used for fuzzy discovery. Exact DOI/arXiv/PMID/PMCID requests 
 extension that declares that identifier type. Free-text discovery uses the `DISCOVERY` capability;
 `SEARCH_ENGINE` identifies the preferred ranking owner, while content sources can contribute
 authoritative records as a fallback. A provider failure remains isolated and cannot cancel successful
-providers. Ranking is deterministic: exact identifier, title/text match, then a Semantic Scholar
-citation tie-break, publication date, and stable record key.
+providers. Ranking is deterministic: exact identifier, exact title or main-title segment, anchored
+title phrase, broader text match, then a Semantic Scholar citation tie-break, publication date, and
+stable record key.
 
 The Google fallback is a hardened host-owned WebView in the isolated `:google_search` process, not a
 provider implementation. It opens one constrained `site:arxiv.org/abs` query, allows only HTTPS

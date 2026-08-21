@@ -74,6 +74,8 @@ class ArxivReadablePaperTest {
         assertTrue(document.text().contains("Noam Shazeer"))
         assertTrue(document.text().contains("Google Brain"))
         assertTrue(document.text().contains("noam@example.org"))
+        assertTrue(document.select("details.paperreader-author-notes").text().contains("Legacy Research Lab"))
+        assertFalse(document.select(".paperreader-author").text().contains("Legacy Research Lab"))
         assertTrue(document.text().contains("Body footnote remains"))
         assertEquals("1", document.selectFirst(".ltx_role_footnotemark .ltx_note_mark")?.text())
         assertTrue(document.select(".ltx_role_footnotemark .ltx_note_outer").isEmpty())
@@ -459,6 +461,9 @@ class ArxivReadablePaperTest {
                     <span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span>Google Brain</span>
                     <span class="ltx_contact ltx_role_email">Email: <a href="mailto:noam@example.org">noam@example.org</a></span>
                   </span></span>
+                </span>
+                <span class="ltx_author_before"> </span><span class="ltx_creator ltx_role_author">
+                  <span class="ltx_personname"><span class="ltx_text" style="font-size:90%;">Legacy Research Lab<a href="http://example.org/lab">http://example.org/lab</a></span></span>
                 </span>
               </div>
               <p>$body<span class="ltx_note ltx_role_footnote"><sup class="ltx_note_mark">1</sup>

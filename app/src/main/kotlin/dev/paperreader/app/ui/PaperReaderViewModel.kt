@@ -104,7 +104,7 @@ class PaperReaderViewModel internal constructor(
     private val mutableDownloadActions = MutableStateFlow(DownloadActionUiState())
     val downloadActions: StateFlow<DownloadActionUiState> = mutableDownloadActions
 
-    private val searchController = PaperReaderSearchController(logic, viewModelScope, providers, preferences)
+    private val searchController = PaperReaderSearchController(logic, viewModelScope, providers, preferences, library)
     val search: StateFlow<SearchUiState> = searchController.search
     val savedSearches: StateFlow<LoadState<List<dev.paperreader.logic.domain.SavedSearchFeed>>> =
         searchController.savedSearches

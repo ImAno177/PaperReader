@@ -169,6 +169,23 @@ class SavedSearchUpdatesScreenTest {
     }
 
     @Test
+    fun discoverDoesNotOfferAnUnusableSavedSearchWithoutProviders() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DiscoverScreen(
+                    state = SearchUiState(submittedQuery = "attention is all you need"),
+                    onSearch = {},
+                    onClear = {},
+                    onSave = {},
+                    onOpenPaper = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Save search").assertDoesNotExist()
+    }
+
+    @Test
     fun discoverDoesNotReuseCreatedStateFromAnotherProviderSet() {
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {

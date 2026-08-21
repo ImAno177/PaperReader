@@ -314,11 +314,13 @@ fun PaperStatePanel(
     modifier: Modifier = Modifier,
     icon: PaperIconKey? = null,
     loading: Boolean = false,
+    compact: Boolean = false,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val contentModifier = if (constraints.hasBoundedHeight) {
+        val fillViewport = constraints.hasBoundedHeight && !compact
+        val contentModifier = if (fillViewport) {
             Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
@@ -329,15 +331,20 @@ fun PaperStatePanel(
             // list already owns overflow in that case.
             Modifier.fillMaxWidth()
         }
-        val contentPadding = if (constraints.hasBoundedHeight) {
+        val contentPadding = if (fillViewport) {
             PaddingValues(horizontal = 24.dp, vertical = 32.dp)
+        } else if (compact) {
+            PaddingValues(horizontal = 12.dp, vertical = 8.dp)
         } else {
             PaddingValues(horizontal = 12.dp, vertical = 16.dp)
         }
         Column(
             modifier = contentModifier.padding(contentPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(
+                if (compact) 4.dp else 8.dp,
+                Alignment.CenterVertically,
+            ),
         ) {
             when {
                 loading -> CircularProgressIndicator(
@@ -345,12 +352,12 @@ fun PaperStatePanel(
                     color = PaperTheme.tokens.ink,
                     strokeWidth = 3.dp,
                 )
-                icon != null -> PaperStateIcon(icon)
+                icon != null -> PaperStateIcon(icon, compact)
             }
             Text(
                 text = title,
                 modifier = Modifier.widthIn(max = 520.dp),
-                style = MaterialTheme.typography.titleLarge,
+                style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
                 color = PaperTheme.tokens.emptyStateAccent,
                 textAlign = TextAlign.Center,
             )
@@ -358,7 +365,7 @@ fun PaperStatePanel(
                 Text(
                     text = supportingText,
                     modifier = Modifier.widthIn(max = 560.dp),
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
                     color = PaperTheme.tokens.inkMuted,
                     textAlign = TextAlign.Center,
                 )
@@ -371,13 +378,13 @@ fun PaperStatePanel(
 }
 
 @Composable
-private fun PaperStateIcon(icon: PaperIconKey) {
+private fun PaperStateIcon(icon: PaperIconKey, compact: Boolean) {
     val tokens = PaperTheme.tokens
     val shape = RoundedCornerShape(tokens.cornerRadius)
-    val tileSize = 48.dp
+    val tileSize = if (compact) 36.dp else 48.dp
     Box(
         modifier = Modifier.paperBottomShadow(
-            color = tokens.hardShadow.copy(alpha = 0.18f),
+            color = tokens.hardShadow.copy(alpha = if (compact) 0.12f else 0.18f),
             verticalOffset = tokens.shadowOffset,
         ),
     ) {
@@ -394,7 +401,7 @@ private fun PaperStateIcon(icon: PaperIconKey) {
                 PaperIcon(
                     key = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(26.dp),
+                    modifier = Modifier.size(if (compact) 20.dp else 26.dp),
                     tint = tokens.onPrimary,
                 )
             }
@@ -430,7 +437,7 @@ fun StatusBadge(
         contentColor = PaperTheme.tokens.ink,
         border = BorderStroke(
             PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp),
-            color.copy(alpha = 0.7f),
+            PaperTheme.tokens.border,
         ),
     ) {
         Row(

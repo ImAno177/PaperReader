@@ -9,7 +9,7 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/readable_reader_toolbar"
         android:layout_width="match_parent"
-        android:layout_height="72dp"
+        android:layout_height="wrap_content"
         android:background="?attr/colorSurface"
         android:minHeight="72dp"
         android:paddingStart="4dp"
@@ -141,7 +141,10 @@
             android:id="@+id/readable_reader_error"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:accessibilityLiveRegion="polite"
+            android:focusable="true"
             android:gravity="center"
+            android:importantForAccessibility="yes"
             android:orientation="vertical"
             android:padding="24dp"
             android:visibility="gone">

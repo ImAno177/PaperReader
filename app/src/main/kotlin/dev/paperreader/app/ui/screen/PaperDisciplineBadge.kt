@@ -2,6 +2,7 @@ package dev.paperreader.app.ui.screen
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -20,11 +21,18 @@ import dev.paperreader.app.ui.model.discipline
 import dev.paperreader.app.ui.theme.PaperTheme
 
 @Composable
-internal fun PaperDisciplineBadge(paper: PaperUi, modifier: Modifier = Modifier) {
+internal fun PaperDisciplineBadge(
+    paper: PaperUi,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
     val discipline = paper.discipline()
     val description = stringResource(R.string.paper_discipline_badge, discipline.name.replace('_', ' ').lowercase())
     Surface(
-        modifier = modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).semantics {
+        modifier = modifier.sizeIn(
+            minWidth = if (compact) 32.dp else 40.dp,
+            minHeight = if (compact) 32.dp else 40.dp,
+        ).semantics {
             contentDescription = description
         },
         shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
@@ -32,8 +40,14 @@ internal fun PaperDisciplineBadge(paper: PaperUi, modifier: Modifier = Modifier)
         contentColor = PaperTheme.tokens.onSecondaryContainer,
         border = BorderStroke(PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp), PaperTheme.tokens.border),
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(discipline.label, style = MaterialTheme.typography.labelMedium)
+        Box(
+            modifier = Modifier.padding(horizontal = 4.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                discipline.label,
+                style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium,
+            )
         }
     }
 }

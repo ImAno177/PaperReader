@@ -1,6 +1,5 @@
 package dev.paperreader.app.ui.screen
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -73,30 +72,30 @@ internal fun ExtensionStoreCard(
     )
     val refreshingStoreDescription = stringResource(R.string.refreshing_store)
     PaperSurface(contentPadding = PaddingValues(12.dp)) {
+        Text(
+            store.index.displayName,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
         Row(
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    store.index.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (releaseCount > 0) {
-                    TextButton(
-                        onClick = { releasesExpanded = !releasesExpanded },
-                        modifier = Modifier
-                            .heightIn(min = 48.dp)
-                            .semantics { contentDescription = releaseToggleDescription },
-                        colors = ButtonDefaults.textButtonColors(contentColor = PaperTheme.tokens.inkMuted),
-                        contentPadding = PaddingValues(0.dp),
-                    ) {
-                        Text(releaseCountLabel, style = MaterialTheme.typography.bodySmall)
-                    }
+            if (releaseCount > 0) {
+                TextButton(
+                    onClick = { releasesExpanded = !releasesExpanded },
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .semantics { contentDescription = releaseToggleDescription },
+                    colors = ButtonDefaults.textButtonColors(contentColor = PaperTheme.tokens.inkMuted),
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Text(releaseCountLabel, style = MaterialTheme.typography.bodySmall)
                 }
             }
+            Spacer(Modifier.weight(1f))
             IconButton(onClick = onRefresh, enabled = enabled && !refreshing) {
                 if (refreshing) {
                     CircularProgressIndicator(
@@ -150,9 +149,8 @@ private fun ExtensionReleaseRow(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-        color = PaperTheme.tokens.canvas,
+        color = PaperTheme.tokens.surfaceMuted,
         shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
-        border = BorderStroke(PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp), PaperTheme.tokens.border),
     ) {
         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val artifactReady = release.apkSha256 != null && release.apkSizeBytes != null

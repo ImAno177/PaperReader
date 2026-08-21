@@ -7,14 +7,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -29,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
@@ -41,10 +39,8 @@ import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
-import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.components.StatusBadge
 import dev.paperreader.app.ui.theme.PaperTheme
-import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.logic.provider.ProviderManagerState
 import dev.paperreader.logic.plugin.ExtensionStoreRegistryState
@@ -72,7 +68,6 @@ fun SourcesScreen(
     var storeUrl by rememberSaveable { mutableStateOf("") }
     var publicKey by rememberSaveable { mutableStateOf("") }
     var pendingRemovalStoreId by rememberSaveable { mutableStateOf<String?>(null) }
-    var expandedUntrustedPackage by rememberSaveable { mutableStateOf<String?>(null) }
     val storeBusy = extensionStoreAction is ExtensionStoreActionUiState.Working
     val releasesByPackage = extensionStores.stores
         .flatMap { it.index.releases }
@@ -110,15 +105,20 @@ fun SourcesScreen(
             )
         }
         if (extensionStores.issues.isNotEmpty()) {
-            items(extensionStores.issues, key = { "store-issue:${it.storeId}:${it.message}" }) { issue ->
-                PaperSurface(contentPadding = PaddingValues(12.dp)) {
-                    StatusBadge(
-                        text = stringResource(R.string.store_verification_issue),
-                        icon = PaperIconKey.ERROR,
-                        color = PaperTheme.tokens.danger,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Text(issue.message, color = PaperTheme.tokens.inkMuted)
+            item(key = "store-issues") {
+                PaperSurface(contentPadding = PaddingValues(0.dp)) {
+                    extensionStores.issues.forEachIndexed { index, issue ->
+                        if (index > 0) ProviderRowDivider()
+                        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                            StatusBadge(
+                                text = stringResource(R.string.store_verification_issue),
+                                icon = PaperIconKey.ERROR,
+                                color = PaperTheme.tokens.danger,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(issue.message, color = PaperTheme.tokens.inkMuted)
+                        }
+                    }
                 }
             }
         }
@@ -137,131 +137,107 @@ fun SourcesScreen(
             )
         }
         if (providers.installed.isEmpty() && providers.available.isEmpty() && providers.untrusted.isEmpty() && providers.orphaned.isEmpty()) {
-            item { PaperStatePanel(stringResource(R.string.no_providers), stringResource(R.string.sources_empty_body)) }
+            item {
+                PaperStatePanel(
+                    title = stringResource(R.string.no_providers),
+                    body = stringResource(R.string.sources_empty_body),
+                    compact = true,
+                )
+            }
         }
         if (providers.untrusted.isNotEmpty()) {
             item { PaperSectionHeader(stringResource(R.string.provider_security_attention)) }
-            items(providers.untrusted, key = { "untrusted:${it.packageName}" }) { provider ->
-                val displayName = releasesByPackage[provider.packageName]?.displayName
-                    ?: provider.packageName.substringAfterLast('.').replace('-', ' ')
-                        .replaceFirstChar(Char::uppercase)
-                val expanded = expandedUntrustedPackage == provider.packageName
-                val detailsDescription = stringResource(
-                    if (expanded) R.string.hide_provider_details_accessibility else R.string.show_provider_details_accessibility,
-                    displayName,
-                )
-                PaperSurface(contentPadding = PaddingValues(12.dp)) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.danger)
-                        Text(
-                            displayName,
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        PaperTextButton(
-                            onClick = {
-                                expandedUntrustedPackage = if (expanded) null else provider.packageName
-                            },
-                            modifier = Modifier.semantics { contentDescription = detailsDescription },
-                        ) {
-                            Text(stringResource(if (expanded) R.string.hide_details else R.string.show_details))
-                        }
-                    }
-                    if (expanded) {
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            stringResource(R.string.provider_package, provider.packageName),
-                            color = PaperTheme.tokens.inkMuted,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            stringResource(R.string.provider_block_reason, provider.reason.take(240)),
-                            color = PaperTheme.tokens.inkMuted,
-                            maxLines = 4,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            stringResource(
-                                R.string.provider_signer,
-                                provider.signerSha256.take(64).chunked(8).joinToString(" "),
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = PaperTheme.tokens.inkMuted,
-                        )
+            item(key = "untrusted-providers") {
+                PaperSurface(contentPadding = PaddingValues(0.dp)) {
+                    providers.untrusted.forEachIndexed { index, provider ->
+                        if (index > 0) ProviderRowDivider()
+                        val displayName = releasesByPackage[provider.packageName]?.displayName
+                            ?: provider.packageName.substringAfterLast('.').replace('-', ' ')
+                                .replaceFirstChar(Char::uppercase)
+                        BlockedProviderRow(provider, displayName)
                     }
                 }
             }
         }
         if (providers.orphaned.isNotEmpty()) {
             item { PaperSectionHeader(stringResource(R.string.provider_orphaned_section)) }
-            items(providers.orphaned, key = { "orphaned:${it.packageName}" }) { provider ->
-                OrphanedProviderCard(provider)
+            item(key = "orphaned-providers") {
+                PaperSurface(contentPadding = PaddingValues(0.dp)) {
+                    providers.orphaned.forEachIndexed { index, provider ->
+                        if (index > 0) ProviderRowDivider()
+                        OrphanedProviderRow(provider)
+                    }
+                }
             }
         }
         if (providers.installed.isNotEmpty()) {
             item { PaperSectionHeader(stringResource(R.string.provider_installed_section)) }
-            items(providers.installed, key = { it.descriptor.id }) { provider ->
-                PaperSurface(contentPadding = PaddingValues(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            provider.descriptor.displayName,
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Switch(
-                            checked = provider.descriptor.id !in providers.disabledProviderIds,
-                            onCheckedChange = { onProviderEnabledChange(provider.descriptor.id, it) },
-                            modifier = Modifier.semantics {
-                                contentDescription = provider.descriptor.displayName
-                            },
-                        )
+            item(key = "installed-providers") {
+                PaperSurface(contentPadding = PaddingValues(0.dp)) {
+                    providers.installed.forEachIndexed { index, provider ->
+                        if (index > 0) ProviderRowDivider()
+                        Row(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                provider.descriptor.displayName,
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Switch(
+                                checked = provider.descriptor.id !in providers.disabledProviderIds,
+                                onCheckedChange = { onProviderEnabledChange(provider.descriptor.id, it) },
+                                modifier = Modifier.semantics {
+                                    contentDescription = provider.descriptor.displayName
+                                },
+                            )
+                        }
                     }
                 }
             }
         }
         if (providers.available.isNotEmpty()) {
             item { PaperSectionHeader(stringResource(R.string.provider_available_section)) }
-            items(providers.available, key = { "available:${it.packageName}" }) { provider ->
-                val installedVersion = provider.installedVersionCode
-                PaperSurface(contentPadding = PaddingValues(12.dp)) {
-                    Text(provider.displayName, style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        stringResource(R.string.extension_version_short, provider.versionCode.toString()),
-                        color = PaperTheme.tokens.inkMuted,
-                    )
-                    if (installedVersion != null) {
-                        StatusBadge(
-                            text = stringResource(R.string.provider_update_available),
-                            icon = PaperIconKey.UPDATES,
-                            color = PaperTheme.tokens.warning,
-                        )
-                        Text(
-                            stringResource(
-                                R.string.provider_version_transition,
-                                installedVersion,
-                                provider.versionCode,
-                            ),
-                            color = PaperTheme.tokens.inkMuted,
-                        )
-                    }
-                    releasesByPackage[provider.packageName]?.let { release ->
-                        Spacer(Modifier.height(8.dp))
-                        val artifactReady = release.apkSha256 != null && release.apkSizeBytes != null
-                        if (provider.packageName !in blockedPackages && release.compatible && artifactReady) {
-                            ExtensionInstallAction(
-                                release = release,
-                                state = installStates[provider.packageName],
-                                update = installedVersion != null,
-                                onInstall = onInstallExtension,
-                                onDismissState = onDismissInstallState,
+            item(key = "available-providers") {
+                PaperSurface(contentPadding = PaddingValues(0.dp)) {
+                    providers.available.forEachIndexed { index, provider ->
+                        if (index > 0) ProviderRowDivider()
+                        val installedVersion = provider.installedVersionCode
+                        Column(modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(12.dp)) {
+                            Text(provider.displayName, style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.extension_version_short, provider.versionCode.toString()),
+                                color = PaperTheme.tokens.inkMuted,
                             )
+                            if (installedVersion != null) {
+                                StatusBadge(
+                                    text = stringResource(R.string.provider_update_available),
+                                    icon = PaperIconKey.UPDATES,
+                                    color = PaperTheme.tokens.warning,
+                                )
+                                Text(
+                                    stringResource(
+                                        R.string.provider_version_transition,
+                                        installedVersion,
+                                        provider.versionCode,
+                                    ),
+                                    color = PaperTheme.tokens.inkMuted,
+                                )
+                            }
+                            releasesByPackage[provider.packageName]?.let { release ->
+                                Spacer(Modifier.height(8.dp))
+                                val artifactReady = release.apkSha256 != null && release.apkSizeBytes != null
+                                if (provider.packageName !in blockedPackages && release.compatible && artifactReady) {
+                                    ExtensionInstallAction(
+                                        release = release,
+                                        state = installStates[provider.packageName],
+                                        update = installedVersion != null,
+                                        onInstall = onInstallExtension,
+                                        onDismissState = onDismissInstallState,
+                                    )
+                                }
+                            }
                         }
                     }
                 }

@@ -75,6 +75,7 @@ fun CollectionsScreen(
                 PaperStatePanel(
                     title = stringResource(R.string.collections_loading),
                     loading = true,
+                    compact = true,
                 )
             }
             LoadState.Failed -> item {
@@ -82,6 +83,7 @@ fun CollectionsScreen(
                     title = stringResource(R.string.collections_load_failed_short),
                     body = stringResource(R.string.collections_load_failed),
                     icon = PaperIconKey.ERROR,
+                    compact = true,
                 )
             }
             is LoadState.Ready -> if (collections.value.isEmpty()) {
@@ -90,6 +92,7 @@ fun CollectionsScreen(
                         title = stringResource(R.string.collections_empty_title),
                         body = stringResource(R.string.collections_empty),
                         icon = PaperIconKey.FOLDER,
+                        compact = true,
                         actionLabel = stringResource(R.string.new_collection),
                         onAction = { openEditor(null) },
                     )

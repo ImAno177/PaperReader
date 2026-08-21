@@ -429,7 +429,7 @@ internal fun renderReadablePaperHtml(
               }
             }
             @media (max-width: 520px) {
-              .ltx_authors { grid-template-columns: 1fr; }
+              .ltx_authors { gap: 10px 12px; }
             }
             @media (prefers-reduced-motion: reduce) {
               * { scroll-behavior: auto !important; }

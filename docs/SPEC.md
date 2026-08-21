@@ -138,11 +138,13 @@ enrichment only.
   remain available for exact supported identifiers.
 - Provider requests are cancellable, rate-limited, bounded, and independently fail.
 - Results cluster only on exact canonical aliases and preserve provider alternatives.
-- Ranking is deterministic: exact identifier match, title/text match, Semantic Scholar citation
-  tie-break, publication date, then stable provider-record key.
+- Ranking is deterministic: exact identifier match, exact title or main-title segment, anchored title
+  phrase, broader text match, Semantic Scholar citation tie-break, publication date, then stable
+  provider-record key.
 - The search surface keeps the eight most recent submitted queries locally, exposes source-aware
-  `All sources` and `Has results` filters, and reports loading, success, and failure per provider
-  with a retry action. A source failure never hides successful results from another provider.
+  `All sources` and `Has results` filters, and displays at most five matching recent-query rows. It
+  reports loading, success, and failure per provider with a retry action. A source failure never hides
+  successful results from another provider.
 - Search result cards open the same full metadata preview used by Library before Save/Open.
 - Production tests use fixtures and a local server; a separate audit may exercise live APIs.
 
@@ -195,6 +197,8 @@ The layout must provide:
 - Responsive single-column typography and reversible 85-200% text size.
 - Native table of contents and a find bar reachable without scrolling to the top.
 - Scrollable wide tables/math and responsive figures.
+- Two-column author metadata at phone widths, with long names and affiliations wrapping inside each
+  column instead of widening the page.
 - Citation jumps with a visible Back to reading position action.
 - Stable block/source anchors, selectable text, and exact-hash annotations.
 - Offline reopening from verified cache.
@@ -273,6 +277,8 @@ The provider repository must publish:
 
 - All interactive semantics meet a 48 dp minimum target independent of visible border geometry.
 - Navigation remains usable at 130% system font scale; labels do not collide or wrap unexpectedly.
+  At very large text scales, primary navigation keeps the same five targets and exposes concise icons
+  with complete accessibility labels instead of clipping visible text.
 - Light/dark palettes meet WCAG contrast for body/status text and do not encode state by color alone.
 - Loading, empty, offline, rate-limited, invalid, permission, cancelled, and unavailable states are
   explicit English copy with a relevant recovery action.

@@ -35,8 +35,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -181,6 +184,7 @@ internal fun AdaptiveAppShell(
     content: @Composable (Modifier) -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(PaperTheme.tokens.canvas)) {
+        val showLabels = LocalDensity.current.fontScale < 1.5f
         if (maxWidth < 600.dp) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
@@ -200,6 +204,7 @@ internal fun AdaptiveAppShell(
                                 icon = destination.icon,
                                 label = stringResource(destination.labelRes),
                                 testKey = destination.route,
+                                showLabel = showLabels,
                             )
                         }
                     }
@@ -224,6 +229,7 @@ internal fun AdaptiveAppShell(
                             testKey = destination.route,
                             itemHeight = if (compactRail) 56.dp else 72.dp,
                             visualPadding = PaddingValues(if (compactRail) 2.dp else 4.dp),
+                            showLabel = showLabels,
                         )
                     }
                 }
@@ -243,6 +249,7 @@ private fun PaperDestinationItem(
     testKey: String,
     itemHeight: Dp = 72.dp,
     visualPadding: PaddingValues = PaddingValues(4.dp),
+    showLabel: Boolean = true,
 ) {
     val tokens = PaperTheme.tokens
     val borderWidth by animateDpAsState(
@@ -259,7 +266,8 @@ private fun PaperDestinationItem(
     Box(
         modifier = modifier.height(itemHeight)
             .testTag("$PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX$testKey")
-            .selectable(selected = selected, onClick = onClick, role = Role.Tab),
+            .selectable(selected = selected, onClick = onClick, role = Role.Tab)
+            .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
         Surface(
@@ -285,14 +293,16 @@ private fun PaperDestinationItem(
                         scaleY = iconScale
                     },
                 )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
+                if (showLabel) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }

@@ -121,7 +121,7 @@ class ReadablePaperRenderingTest {
     }
 
     @Test
-    fun `renderer stacks author metadata and hides footnote implementation payloads`() {
+    fun `renderer keeps author metadata in two columns and hides footnote implementation payloads`() {
         val html = renderReadablePaperHtml(
             sanitizedBodyHtml = """
                 <article><div class="ltx_authors"><span class="ltx_creator paperreader-author">

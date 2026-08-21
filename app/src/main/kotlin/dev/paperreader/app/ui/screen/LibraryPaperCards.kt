@@ -2,7 +2,6 @@ package dev.paperreader.app.ui.screen
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -114,7 +113,7 @@ internal fun LibraryGridPaperCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                PaperDisciplineBadge(paper)
+                PaperDisciplineBadge(paper, compact = true)
                 PaperMetaRow(
                     source = paper.sources.firstOrNull()?.displayProviderName(),
                     year = paper.publishedDate?.year?.toString(),
@@ -134,12 +133,7 @@ internal fun LibraryGridPaperCard(
             Spacer(Modifier.height(6.dp))
             LibraryGridStateBadge(paper)
             Spacer(Modifier.height(6.dp))
-            Box(
-                modifier = Modifier.fillMaxWidth().height(8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (paper.progress > 0f) PaperProgress(paper.progress)
-            }
+            PaperProgress(paper.progress)
         }
         Spacer(Modifier.height(8.dp))
         LibraryReadButton(onRead)

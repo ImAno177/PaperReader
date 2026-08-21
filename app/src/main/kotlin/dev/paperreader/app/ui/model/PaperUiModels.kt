@@ -6,6 +6,7 @@ import dev.paperreader.logic.domain.LibraryPaper
 import dev.paperreader.logic.domain.ManifestationType
 import dev.paperreader.logic.domain.PaperIdentifier
 import dev.paperreader.logic.domain.ReadingStatus
+import dev.paperreader.logic.domain.identity.IdentityResolver
 import dev.paperreader.logic.domain.history.ReadingHistoryEntry
 import dev.paperreader.logic.provider.RemotePaper
 import dev.paperreader.logic.usecase.SearchResultCluster
@@ -215,6 +216,28 @@ fun SearchResultCluster.toSearchPaperUi(providerNames: Map<String, String> = emp
         records = orderedRecords,
     )
 }
+
+internal fun persistedSavedWorkIds(
+    results: List<SearchPaperUi>,
+    library: List<PaperUi>,
+): Map<String, String> {
+    val workIdByExactKey = buildMap {
+        library.sortedBy(PaperUi::id).forEach { paper ->
+            paper.identifiers.nonProviderExactKeys().forEach { key -> putIfAbsent(key, paper.id) }
+        }
+    }
+    return buildMap {
+        results.forEach { result ->
+            result.identifiers.nonProviderExactKeys()
+                .firstNotNullOfOrNull(workIdByExactKey::get)
+                ?.let { workId -> put(result.key, workId) }
+        }
+    }
+}
+
+private fun Iterable<PaperIdentifier>.nonProviderExactKeys(): List<String> = IdentityResolver
+    .exactKeys(filterNot { it.type == IdentifierType.PROVIDER })
+    .sorted()
 
 fun ReadingHistoryEntry.toReadingHistoryUi() = ReadingHistoryUi(
     workId = workId.value,

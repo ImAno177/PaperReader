@@ -93,6 +93,7 @@ fun AppearanceScreen(
                 PaperStatePanel(
                     title = stringResource(R.string.community_themes_loading),
                     loading = true,
+                    compact = true,
                 )
             }
         }

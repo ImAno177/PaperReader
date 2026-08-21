@@ -52,7 +52,6 @@ class SourcesScreenTest {
 
         composeRule.onNodeWithText("Blocked extensions").assertIsDisplayed()
         composeRule.onNodeWithText("Untrusted").assertIsDisplayed()
-        composeRule.onNodeWithText("Blocked extensions").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Show details for Untrusted").performClick()
         composeRule.onNodeWithText("Package: dev.example.untrusted").assertIsDisplayed()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Installed"))

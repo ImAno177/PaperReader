@@ -128,6 +128,7 @@ class PdfReaderContractAndroidTest {
         try {
             val findBar = root.findViewById<LinearLayout>(R.id.readable_reader_find_bar)
             val citationReturn = root.findViewById<Button>(R.id.readable_reader_citation_return)
+            val error = root.findViewById<LinearLayout>(R.id.readable_reader_error)
             val controls = listOf(
                 root.findViewById<ImageButton>(R.id.readable_reader_find_previous),
                 root.findViewById<ImageButton>(R.id.readable_reader_find_next),
@@ -136,6 +137,8 @@ class PdfReaderContractAndroidTest {
 
             assertEquals(View.GONE, findBar.visibility)
             assertEquals(View.GONE, citationReturn.visibility)
+            assertEquals(View.ACCESSIBILITY_LIVE_REGION_POLITE, error.accessibilityLiveRegion)
+            assertTrue(error.isFocusable)
             val minimumTouchTarget = (48 * context.resources.displayMetrics.density).toInt()
             controls.forEach { control ->
                 assertTrue(control.layoutParams.width >= minimumTouchTarget)

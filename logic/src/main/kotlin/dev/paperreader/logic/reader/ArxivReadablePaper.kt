@@ -210,9 +210,9 @@ internal class ArxivReadablePaperLoader(
     companion object {
         private const val ARXIV_PROVIDER_ID = "arxiv"
         // Bump whenever sanitized output changes so a previously cached document cannot
-        // bypass a security or fidelity fix. Version 9 also normalizes author metadata and
-        // removes raw footnote-mark internals from the mobile reading flow.
-        private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-9"
+        // bypass a security or fidelity fix. Version 10 also separates legacy trailing
+        // affiliation rows from author identity cards.
+        private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-10"
         private const val RENDERER_CONTRACT_VERSION = "mobile-html-6"
         private const val MAXIMUM_HTML_BYTES = 4L * 1024L * 1024L
         private val UNVERSIONED_ARXIV_ID = Regex(
@@ -348,7 +348,25 @@ internal class ArxivHtmlSanitizer(
     private fun collapseAuthorNotes(article: Element) {
         val authors = article.selectFirst(".ltx_authors") ?: return
         val deferredNotes = mutableListOf<Element>()
+        var sawDirectAuthorName = false
         authors.select(".ltx_creator").forEach { creator ->
+            val personName = creator.selectFirst(".ltx_personname")
+            val legacyPersonName = personName?.takeIf { candidate ->
+                sawDirectAuthorName &&
+                    candidate.ownText().isBlank() &&
+                    candidate.children().any { child ->
+                        child.hasClass("ltx_text") &&
+                            child.attr("style").contains("font-size", ignoreCase = true)
+                    }
+            }
+            if (legacyPersonName != null) {
+                legacyPersonName.select("a").forEach { link -> link.before(" ") }
+                legacyPersonName.removeClass("ltx_personname")
+                creator.removeClass("ltx_role_author").addClass("paperreader-author-details")
+                deferredNotes.add(creator)
+                return@forEach
+            }
+            if (!personName?.ownText().isNullOrBlank()) sawDirectAuthorName = true
             val authorNotes = creator.selectFirst(".ltx_author_notes") ?: return@forEach
             authorNotes.select(".ltx_contact_name").remove()
             // Thanks/acknowledgement prose is not author identity metadata. Keep affiliations

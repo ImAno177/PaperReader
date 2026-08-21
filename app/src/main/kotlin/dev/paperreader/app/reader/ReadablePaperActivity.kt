@@ -415,6 +415,8 @@ class ReadablePaperActivity : AppCompatActivity() {
                 ReadablePaperFailure.INVALID_RESPONSE -> R.string.readable_reader_invalid
             },
         )
+        errorContainer.contentDescription = "${getString(R.string.readable_reader_failed_title)}. ${errorBody.text}"
+        errorContainer.requestFocus()
     }
 
     private suspend fun prepareReadingState(document: ReadablePaperDocument): Double? =

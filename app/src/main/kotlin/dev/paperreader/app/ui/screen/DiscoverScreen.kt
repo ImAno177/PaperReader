@@ -263,7 +263,7 @@ fun DiscoverScreen(
                     )
                 }
             }
-            state.submittedQuery?.let { submittedQuery ->
+            state.submittedQuery?.takeIf { state.providerIds.isNotEmpty() }?.let { submittedQuery ->
                 item {
                     SavedSearchDiscoverAction(
                         query = submittedQuery,
@@ -297,6 +297,7 @@ fun DiscoverScreen(
                         ),
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         loading = true,
+                        compact = true,
                     )
                 }
 
@@ -306,6 +307,7 @@ fun DiscoverScreen(
                         body = stringResource(R.string.search_failed_body),
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         icon = PaperIconKey.ERROR,
+                        compact = true,
                     )
                     state.submittedQuery?.let { submittedQuery ->
                         PaperSecondaryButton(
@@ -325,6 +327,7 @@ fun DiscoverScreen(
                         body = stringResource(R.string.search_no_results_body),
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         icon = PaperIconKey.SEARCH,
+                        compact = true,
                     )
                     state.submittedQuery?.let { submittedQuery ->
                         PaperSecondaryButton(
@@ -344,6 +347,7 @@ fun DiscoverScreen(
                         body = stringResource(R.string.search_filter_no_results_body),
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         icon = PaperIconKey.SEARCH,
+                        compact = true,
                     )
                 }
 

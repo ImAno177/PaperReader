@@ -41,7 +41,7 @@ internal fun ProviderFailureRow(
 ) {
     PaperSurface(contentPadding = PaddingValues(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.warning)
+            PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.ink)
             Text(
                 text = when (failure.kind) {
                     ProviderFailureKind.RATE_LIMITED -> failure.retryAfterMillis?.let { retryAfterMillis ->

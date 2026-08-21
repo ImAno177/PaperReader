@@ -9,7 +9,7 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/reader_toolbar"
         android:layout_width="match_parent"
-        android:layout_height="72dp"
+        android:layout_height="wrap_content"
         android:background="?attr/colorSurface"
         android:minHeight="72dp"
         android:paddingStart="4dp"

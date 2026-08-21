@@ -209,7 +209,7 @@ private fun LocalPdfImportStatus(
                 ) {
                     Text(stringResource(R.string.open_imported_paper))
                 }
-                PaperSecondaryButton(onClick = onDismiss) {
+                PaperSecondaryButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.dismiss))
                 }
             }

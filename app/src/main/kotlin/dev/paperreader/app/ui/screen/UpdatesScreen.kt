@@ -109,6 +109,7 @@ fun UpdatesScreen(
                     PaperStatePanel(
                         title = stringResource(R.string.saved_searches_loading),
                         loading = true,
+                        compact = true,
                     )
                 }
 
@@ -117,6 +118,7 @@ fun UpdatesScreen(
                         title = stringResource(R.string.saved_searches_load_failed),
                         body = stringResource(R.string.data_error_body),
                         icon = PaperIconKey.ERROR,
+                        compact = true,
                     )
                 }
 
@@ -126,6 +128,7 @@ fun UpdatesScreen(
                             title = stringResource(R.string.saved_searches_empty_title),
                             body = stringResource(R.string.saved_searches_empty_body),
                             icon = PaperIconKey.BOOKMARK_ADD,
+                            compact = true,
                         )
                     }
                 } else {
@@ -159,6 +162,7 @@ fun UpdatesScreen(
                                         },
                                     ),
                                     icon = PaperIconKey.SEARCH,
+                                    compact = true,
                                 )
                             }
                         } else {
@@ -188,6 +192,7 @@ fun UpdatesScreen(
                     PaperStatePanel(
                         title = stringResource(R.string.updates_title),
                         loading = true,
+                        compact = true,
                     )
                 }
 
@@ -196,6 +201,7 @@ fun UpdatesScreen(
                         title = stringResource(R.string.data_error_title),
                         body = stringResource(R.string.data_error_body),
                         icon = PaperIconKey.ERROR,
+                        compact = true,
                     )
                 }
 
@@ -204,6 +210,7 @@ fun UpdatesScreen(
                         PaperStatePanel(
                             title = stringResource(R.string.download_queue_empty_title),
                             icon = PaperIconKey.SYNC,
+                            compact = true,
                         )
                     }
                 } else {

@@ -12,7 +12,7 @@ class BuiltinThemePaletteTest {
 
         assertEquals(Color(0xFFFFD84D), tokens.primary)
         assertEquals(Color(0xFF0099FF), tokens.secondary)
-        assertEquals(Color(0xFFC84D00), tokens.warning)
+        assertEquals(Color(0xFFFFD84D), tokens.warning)
         assertEquals(Color(0xFFFFF4DD), tokens.canvas)
         assertEquals(Color.White, tokens.surface)
         assertEquals(Color.Black, tokens.ink)

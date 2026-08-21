@@ -11,5 +11,5 @@ internal val NeoViolet = Color(0xFF7357FF)
 // Status colors are chosen for clear icon, border, and badge recognition on the
 // built-in surfaces. Foreground copy still uses the dedicated ink roles.
 internal val BuiltinSuccess = Color(0xFF166534)
-internal val BuiltinWarning = Color(0xFFC84D00)
+internal val BuiltinWarning = NeoAmber
 internal val BuiltinDanger = Color(0xFFB91C1C)

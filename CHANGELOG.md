@@ -5,6 +5,10 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+No unreleased changes are currently pending.
+
+## [0.1.8] - 2026-08-21
+
 ### Added
 
 - Library cards now expose a full-width quick Read action that opens the mobile reader or a local PDF.
@@ -188,7 +192,8 @@ current branch. Released sections correspond to Git tags.
 
 - The separate-extension model and the first signed source-update contract.
 
-[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.1.8...HEAD
+[0.1.8]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.8
 [0.1.6]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.6
 [0.1.5]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.5
 [0.1.4]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.4

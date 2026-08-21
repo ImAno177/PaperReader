@@ -2,8 +2,10 @@ package dev.paperreader.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-internal val NeoMustard = Color(0xFFFDC800)
-internal val NeoViolet = Color(0xFF432DD7)
+// A softer sun yellow keeps large actions readable without turning the light
+// canvas into one saturated amber block.
+internal val NeoAmber = Color(0xFFFFD84D)
+internal val NeoBlue = Color(0xFF0099FF)
 
 // The design skills name brighter 600 tones, but those fail normal-text AA on a
 // light canvas. These darker, same-hue variants keep status text, icons, and

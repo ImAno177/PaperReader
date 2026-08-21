@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.button.MaterialButton
 import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.theme.PaperThemePreset
@@ -56,7 +57,7 @@ class ReadablePaperActivity : AppCompatActivity() {
     private lateinit var errorBody: TextView
     private lateinit var findController: ReadablePaperFindController
     private lateinit var annotationController: ReadablePaperAnnotationController
-    private lateinit var citationReturnButton: ImageButton
+    private lateinit var citationReturnButton: MaterialButton
     private val sessionState: ReaderSessionViewModel by viewModels()
     private var currentDocument: ReadablePaperDocument? = null
     private var loadJob: Job? = null
@@ -178,6 +179,11 @@ class ReadablePaperActivity : AppCompatActivity() {
         previous.setImageDrawable(readerIcons.drawable(this, PaperIconKey.BACK))
         next.setImageDrawable(readerIcons.drawable(this, PaperIconKey.FORWARD))
         close.setImageDrawable(readerIcons.drawable(this, PaperIconKey.CLOSE))
+        val actionColor = resolveReadablePaperActionColor(this, communityTheme)
+        val actionTint = ColorStateList.valueOf(actionColor)
+        previous.imageTintList = actionTint
+        next.imageTintList = actionTint
+        close.imageTintList = actionTint
         findController = ReadablePaperFindController(
             context = this,
             webView = webView,
@@ -188,13 +194,9 @@ class ReadablePaperActivity : AppCompatActivity() {
             nextButton = next,
             closeButton = close,
         )
-        citationReturnButton = findViewById<ImageButton>(R.id.readable_reader_citation_return).apply {
-            setImageDrawable(readerIcons.drawable(this@ReadablePaperActivity, PaperIconKey.BACK))
-            imageTintList = ColorStateList.valueOf(
-                resolveReadablePaperActionColor(this@ReadablePaperActivity, communityTheme),
-            )
-            contentDescription = getString(R.string.readable_reader_citation_return)
-            setOnClickListener { returnFromCitation() }
+        val citationStyle = resolveReadablePaperPrimaryActionStyle(this, communityTheme)
+        citationReturnButton = findViewById<MaterialButton>(R.id.readable_reader_citation_return).apply {
+            configureReadableCitationReturn(readerIcons, citationStyle) { returnFromCitation() }
         }
         annotationController = ReadablePaperAnnotationController(
             activity = this,
@@ -226,6 +228,7 @@ class ReadablePaperActivity : AppCompatActivity() {
                 openReadableSource = { currentDocument?.sourceUrl?.let(::openSafeReaderExternalUri) },
             ),
         )
+        tintReaderToolbarIcons(toolbar, resolveReadablePaperActionColor(this, communityTheme))
     }
 
     private fun configureWebView() {

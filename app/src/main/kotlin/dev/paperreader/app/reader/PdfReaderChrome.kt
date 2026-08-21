@@ -34,6 +34,7 @@ internal fun applyPdfCommunityChrome(
     toolbar.setTitleTextColor(palette.ink)
     toolbar.setSubtitleTextColor(palette.inkMuted)
     pageIndicator.setTextColor(palette.ink)
+    tintReaderToolbarIcons(toolbar, palette.ink)
 }
 
 internal fun configurePdfReaderToolbar(
@@ -48,6 +49,7 @@ internal fun configurePdfReaderToolbar(
 ) {
     val context = toolbar.context
     toolbar.title = title
+    constrainReaderToolbarTitle(toolbar, title)
     toolbar.subtitle = context.getString(R.string.reader_subtitle)
     toolbar.navigationIcon = icons.drawable(context, PaperIconKey.BACK)
     toolbar.navigationContentDescription = context.getString(R.string.back)
@@ -57,6 +59,7 @@ internal fun configurePdfReaderToolbar(
     toolbar.menu.findItem(R.id.action_toggle_bookmark).icon = icons.drawable(context, PaperIconKey.BOOKMARK_ADD)
     toolbar.menu.findItem(R.id.action_view_bookmarks).icon = icons.drawable(context, PaperIconKey.BOOKMARKS)
     toolbar.menu.findItem(R.id.action_open_external).icon = icons.drawable(context, PaperIconKey.OPEN_EXTERNAL)
+    tintReaderToolbarIcons(toolbar, toolbar.context.resolveReaderToolbarIconColor())
     toolbar.setOnMenuItemClickListener { item ->
         when (item.itemId) {
             R.id.action_search_pdf -> onSearch()

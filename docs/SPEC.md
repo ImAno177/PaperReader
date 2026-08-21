@@ -62,12 +62,16 @@ Root titles are large, left aligned, and near the top safe area. They have no de
 Bottom-navigation outlines align with the content grid, while independent touch targets remain at least
 48 dp and extend safely around the visible geometry.
 
-Appearance has independent controls for visual preset and System/Light/Dark mode. Neobrutalism uses
-Material Symbols. A theme extension supplies a complete semantic icon set with its declarative
-tokens. The legacy `DOODLE` extension decoration remains readable for binary compatibility but is
-not a built-in preset. Empty-state color is a semantic theme token, never a hard-coded purple.
-Status colors keep each preset's accent hue and use AA-safe tones when reused as text or icons on
-light surfaces.
+Appearance has independent controls for visual preset and System/Light/Dark mode. The built-in
+Neobrutalism preset uses Material Symbols, a restrained sun-yellow accent, 5 dp corners, 2 dp
+outlines, and grounded 2 by 4 dp hard shadows. Dark mode inverts neutral surfaces, text, outlines,
+and shadows while preserving accent, container, selection, and status colors. A theme extension
+supplies a complete semantic icon set with its declarative tokens. The legacy `DOODLE` extension
+decoration remains readable for binary
+compatibility but is not a built-in preset. Empty-state headlines are unframed and use the readable
+foreground role; sun yellow is reserved for the icon tile, primary action, and small state accents.
+Library grid cards keep titles to two lines, omit authors, and use one compact state row instead of
+reserving empty rows for status, annotations, and progress.
 
 ## Domain model
 

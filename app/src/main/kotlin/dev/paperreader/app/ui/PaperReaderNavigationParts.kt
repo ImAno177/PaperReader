@@ -7,7 +7,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -41,7 +40,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.navigation.NavHostController
@@ -252,21 +250,7 @@ private fun PaperDestinationItem(
         animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
         label = "primary navigation border width",
     )
-    val borderColor by animateColorAsState(
-        targetValue = if (selected) tokens.border else Color.Transparent,
-        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-        label = "primary navigation border color",
-    )
-    val containerColor by animateColorAsState(
-        targetValue = if (selected) tokens.primary else Color.Transparent,
-        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-        label = "primary navigation container color",
-    )
-    val contentColor by animateColorAsState(
-        targetValue = if (selected) tokens.onPrimary else tokens.ink,
-        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
-        label = "primary navigation content color",
-    )
+    val borderColor = if (selected) tokens.border else Color.Transparent
     val iconScale by animateFloatAsState(
         targetValue = if (selected) 1.08f else 1f,
         animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
@@ -282,8 +266,8 @@ private fun PaperDestinationItem(
             modifier = Modifier.fillMaxSize().padding(visualPadding)
                 .testTag("$PRIMARY_NAVIGATION_ITEM_VISUAL_TEST_TAG_PREFIX$testKey"),
             shape = RoundedCornerShape(tokens.cornerRadius),
-            color = containerColor,
-            contentColor = contentColor,
+            color = Color.Transparent,
+            contentColor = tokens.ink,
             border = BorderStroke(borderWidth, borderColor).takeIf { borderWidth > 0.dp },
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,
@@ -306,10 +290,7 @@ private fun PaperDestinationItem(
                     style = MaterialTheme.typography.labelSmall,
                     maxLines = 1,
                     softWrap = false,
-                    // Five destinations share a compact navigation bar. A smaller fixed label
-                    // keeps every English label readable instead of truncating it to “Upda…”.
-                    fontSize = 10.sp,
-                    overflow = TextOverflow.Clip,
+                    overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
                 )
             }

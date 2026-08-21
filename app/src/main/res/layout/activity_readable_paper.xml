@@ -114,20 +114,19 @@
             android:importantForAccessibility="yes"
             android:visibility="invisible" />
 
-        <ImageButton
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/readable_reader_citation_return"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_gravity="bottom|end"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
             android:layout_margin="16dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/readable_reader_citation_return"
             android:elevation="8dp"
             android:importantForAccessibility="yes"
             android:minWidth="48dp"
             android:minHeight="48dp"
-            android:padding="16dp"
-            android:scaleType="center"
+            android:text="@string/readable_reader_citation_return"
+            android:textAllCaps="false"
             android:visibility="gone" />
 
         <ProgressBar

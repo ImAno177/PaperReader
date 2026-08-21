@@ -107,8 +107,8 @@ class DetailScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Read mobile version").assertExists().assertIsEnabled()
-        composeRule.onNodeWithText("Read downloaded PDF").assertExists().assertIsEnabled()
+        composeRule.onNodeWithText("Read").assertExists().assertIsEnabled()
+        composeRule.onNodeWithText("Open PDF").assertExists().assertIsEnabled()
     }
 
     @Test
@@ -130,7 +130,7 @@ class DetailScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Read mobile version").assertExists().assertIsEnabled()
+        composeRule.onNodeWithText("Read").assertExists().assertIsEnabled()
         composeRule.onNodeWithText("Abstract").assertExists()
     }
 

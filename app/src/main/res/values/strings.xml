@@ -34,6 +34,8 @@
         <item quantity="one">%1$d highlight</item>
         <item quantity="other">%1$d highlights</item>
     </plurals>
+    <string name="library_grid_state_count">%1$s · %2$d</string>
+    <string name="library_grid_state_description">%1$s, %2$s</string>
     <string name="library_filtered_count">%1$d of %2$d</string>
     <string name="library_no_matches_title">No saved papers match</string>
     <string name="library_no_matches_body">Try another search or filter.</string>
@@ -274,7 +276,7 @@
     </plurals>
     <string name="visual_style">Visual style</string>
     <string name="theme_neobrutalism">Neobrutalism</string>
-    <string name="theme_neobrutalism_description">Mustard · hard shadows</string>
+    <string name="theme_neobrutalism_description">Sun yellow · grounded shadows</string>
     <string name="provider_status">Provider status</string>
     <string name="provider_builtin">Built in</string>
     <string name="provider_interval">Minimum interval: %1$s</string>
@@ -348,7 +350,7 @@
     <string name="identifiers_title">Identifiers</string>
     <string name="open_landing_page">Open source page</string>
     <string name="open_pdf_source">Open PDF source</string>
-    <string name="read_mobile_version">Read mobile version</string>
+    <string name="read_mobile_version">Read</string>
     <string name="library_read_paper">Read</string>
     <string name="mobile_reading_available">Mobile reading available</string>
     <string name="readable_reader_loading">Preparing mobile paper</string>
@@ -445,8 +447,8 @@
     <string name="download_running">Downloading %1$d%%</string>
     <string name="downloaded_file_size">Downloaded &#8226; %1$s</string>
     <string name="local_file_size">Local file &#8226; %1$s</string>
-    <string name="open_downloaded_pdf">Read downloaded PDF</string>
-    <string name="open_imported_local_pdf">Read local PDF</string>
+    <string name="open_downloaded_pdf">Open PDF</string>
+    <string name="open_imported_local_pdf">Open PDF</string>
     <string name="opening_pdf">Opening PDF</string>
     <string name="open_pdf_with">Open PDF with</string>
     <string name="delete_local_copy">Delete local copy</string>

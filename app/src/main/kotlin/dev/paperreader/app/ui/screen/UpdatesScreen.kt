@@ -454,48 +454,52 @@ private fun TaskRow(
     onRemove: () -> Unit,
 ) {
     val availableActions = downloadTaskActions(task)
-    PaperSurface(onClick = onClick) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            StatusBadge(taskStateLabel(task.state), color = taskStateColor(task.state))
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+    val rowClick = onClick.takeIf { availableActions.isEmpty() }
+    val kindLabel = stringResource(
+        if (task.kind == TaskKind.DOWNLOAD) R.string.task_download else R.string.task_extraction,
+    )
+    val metadata = buildList {
+        if (paperTitle != null) add(kindLabel)
+        if (task.attempt > 0) add(stringResource(R.string.task_attempt, task.attempt))
+    }
+    PaperSurface(onClick = rowClick) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
                 Text(
-                    text = paperTitle ?: stringResource(
-                        if (task.kind == TaskKind.DOWNLOAD) R.string.task_download else R.string.task_extraction,
-                    ),
+                    text = paperTitle ?: kindLabel,
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                if (paperTitle != null) {
-                    PaperLabel(
-                        stringResource(
-                            if (task.kind == TaskKind.DOWNLOAD) R.string.task_download else R.string.task_extraction,
-                        ),
-                    )
+                if (acting) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 }
-                if (task.state == TaskState.RUNNING) PaperProgress(task.progress.toFloat())
-                if (task.attempt > 0) {
-                    PaperLabel(stringResource(R.string.task_attempt, task.attempt))
-                }
-                if (task.state == TaskState.FAILED) {
-                    Text(
-                        text = downloadFailureMessage(task.failureCode),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = PaperTheme.tokens.danger,
-                    )
-                }
-                if (task.kind == TaskKind.DOWNLOAD && task.state == TaskState.SUCCEEDED) {
-                    Text(
-                        text = stringResource(R.string.task_clear_keeps_file),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = PaperTheme.tokens.inkMuted,
-                    )
-                }
+                StatusBadge(taskStateLabel(task.state), color = taskStateColor(task.state))
             }
-            if (acting) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            if (metadata.isNotEmpty()) PaperLabel(metadata.joinToString(" · "))
+            if (task.state == TaskState.RUNNING) PaperProgress(task.progress.toFloat())
+            if (task.state == TaskState.FAILED) {
+                Text(
+                    text = downloadFailureMessage(task.failureCode),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PaperTheme.tokens.danger,
+                )
+            }
+            if (task.kind == TaskKind.DOWNLOAD && task.state == TaskState.SUCCEEDED) {
+                Text(
+                    text = stringResource(R.string.task_clear_keeps_file),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PaperTheme.tokens.inkMuted,
+                )
             }
         }
         if (actionFailed) {
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.task_action_failed),
                 style = MaterialTheme.typography.bodyMedium,
@@ -503,30 +507,36 @@ private fun TaskRow(
             )
         }
         if (availableActions.isNotEmpty()) {
-            Spacer(Modifier.height(12.dp))
-            Row(
+            Spacer(Modifier.height(8.dp))
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                if (onClick != null) {
+                    PaperSecondaryButton(
+                        onClick = onClick,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.task_open_paper)) }
+                }
                 if (DownloadTaskAction.CANCEL in availableActions) {
                     PaperSecondaryButton(
                         onClick = onCancel,
                         enabled = !acting,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.task_cancel_action)) }
                 }
                 if (DownloadTaskAction.RETRY in availableActions) {
                     PaperPrimaryButton(
                         onClick = onRetry,
                         enabled = !acting,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.task_retry_action)) }
                 }
                 if (DownloadTaskAction.REMOVE in availableActions) {
                     PaperSecondaryButton(
                         onClick = onRemove,
                         enabled = !acting,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.task_remove_action)) }
                 }
             }

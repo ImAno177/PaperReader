@@ -358,6 +358,7 @@ private fun PaperDetailContent(
                                     stringResource(
                                         if (abstractExpanded) R.string.abstract_collapse else R.string.abstract_expand,
                                     ),
+                                    color = PaperTheme.tokens.ink,
                                 )
                             }
                         }
@@ -436,7 +437,7 @@ private fun ReadingStatusCard(
                 Surface(
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = 40.dp)
+                        .heightIn(min = 48.dp)
                         .selectable(
                             selected = selected,
                             onClick = { if (!selected) onStatusChange(option) },

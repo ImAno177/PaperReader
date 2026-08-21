@@ -23,7 +23,7 @@ class PaperThemeContrastTest {
                     "on-secondary" to (tokens.onSecondary to tokens.secondary),
                     "on-primary-container" to (tokens.onPrimaryContainer to tokens.primaryContainer),
                     "on-secondary-container" to (tokens.onSecondaryContainer to tokens.secondaryContainer),
-                    "empty-state accent on its panel" to (tokens.emptyStateAccent to tokens.surfaceMuted),
+                    "empty-state accent on canvas" to (tokens.emptyStateAccent to tokens.canvas),
                 )
 
                 pairs.forEach { (role, colors) ->
@@ -38,10 +38,12 @@ class PaperThemeContrastTest {
     }
 
     @Test
-    fun `empty-state accent is theme semantic rather than a shared purple`() {
+    fun `empty-state accent follows the readable foreground`() {
         listOf(false, true).forEach { dark ->
-            val accents = PaperThemePreset.entries.map { paperThemeTokens(it, dark).emptyStateAccent }
-            assertEquals(PaperThemePreset.entries.size, accents.toSet().size)
+            PaperThemePreset.entries.forEach { preset ->
+                val tokens = paperThemeTokens(preset, dark)
+                assertEquals(tokens.ink, tokens.emptyStateAccent)
+            }
         }
     }
 

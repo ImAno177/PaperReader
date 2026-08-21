@@ -2,10 +2,14 @@ package dev.paperreader.app.reader
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.net.Uri
+import android.text.TextUtils
 import android.util.TypedValue
+import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -13,7 +17,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.button.MaterialButton
 import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.theme.CommunityPaperTheme
@@ -22,6 +28,7 @@ import dev.paperreader.app.ui.theme.PaperIconSet
 import dev.paperreader.logic.reader.ReadablePaperSection
 import java.util.Locale
 import java.util.concurrent.CancellationException
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -37,6 +44,30 @@ internal data class ReadablePaperToolbarActions(
     val openReadableSource: () -> Unit,
 )
 
+internal data class ReadablePaperPrimaryActionStyle(
+    val container: Int,
+    val content: Int,
+    val border: Int,
+    val cornerRadiusDp: Float,
+    val borderWidthDp: Float,
+)
+
+internal fun MaterialButton.configureReadableCitationReturn(
+    icons: PaperIconSet,
+    style: ReadablePaperPrimaryActionStyle,
+    onClick: () -> Unit,
+) {
+    icon = icons.drawable(context, PaperIconKey.BACK)
+    iconTint = ColorStateList.valueOf(style.content)
+    backgroundTintList = ColorStateList.valueOf(style.container)
+    strokeColor = ColorStateList.valueOf(style.border)
+    strokeWidth = (style.borderWidthDp * resources.displayMetrics.density).roundToInt()
+    cornerRadius = (style.cornerRadiusDp * resources.displayMetrics.density).roundToInt()
+    setTextColor(style.content)
+    contentDescription = context.getString(R.string.readable_reader_citation_return)
+    setOnClickListener { onClick() }
+}
+
 internal fun configureReadablePaperToolbar(
     toolbar: Toolbar,
     title: String,
@@ -45,6 +76,7 @@ internal fun configureReadablePaperToolbar(
 ) {
     val context = toolbar.context
     toolbar.title = title
+    constrainReaderToolbarTitle(toolbar, title)
     toolbar.subtitle = context.getString(R.string.readable_reader_subtitle)
     toolbar.navigationIcon = icons.drawable(context, PaperIconKey.BACK)
     toolbar.navigationContentDescription = context.getString(R.string.back)
@@ -57,7 +89,9 @@ internal fun configureReadablePaperToolbar(
     toolbar.menu.findItem(R.id.action_reading_layout).icon = icons.drawable(context, PaperIconKey.PALETTE)
     toolbar.menu.findItem(R.id.action_open_original_pdf).icon = icons.drawable(context, PaperIconKey.OPEN_EXTERNAL)
     toolbar.menu.findItem(R.id.action_open_readable_source).icon = icons.drawable(context, PaperIconKey.OPEN_EXTERNAL)
+    toolbar.menu.findItem(R.id.action_readable_contents).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
     setReadablePaperActionsEnabled(toolbar, source = false, document = false, contents = false)
+    tintReaderToolbarIcons(toolbar, context.resolveReaderToolbarIconColor())
     toolbar.setOnMenuItemClickListener { item ->
         when (item.itemId) {
             R.id.action_search_readable -> actions.search()
@@ -71,6 +105,30 @@ internal fun configureReadablePaperToolbar(
         }
         true
     }
+}
+
+internal fun tintReaderToolbarIcons(toolbar: Toolbar, color: Int) {
+    toolbar.navigationIcon?.let { DrawableCompat.setTint(it, color) }
+    for (index in 0 until toolbar.menu.size()) {
+        toolbar.menu.getItem(index).icon?.let { DrawableCompat.setTint(it, color) }
+    }
+}
+
+internal fun constrainReaderToolbarTitle(toolbar: Toolbar, title: String) {
+    for (index in 0 until toolbar.childCount) {
+        val child = toolbar.getChildAt(index) as? TextView ?: continue
+        if (child.text?.toString() != title) continue
+        child.maxLines = 1
+        child.ellipsize = TextUtils.TruncateAt.END
+        child.setHorizontallyScrolling(false)
+        return
+    }
+}
+
+internal fun Context.resolveReaderToolbarIconColor(): Int {
+    val value = TypedValue()
+    check(theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, value, true))
+    return if (value.resourceId != 0) ContextCompat.getColor(this, value.resourceId) else value.data
 }
 
 internal fun setReadablePaperActionsEnabled(
@@ -122,6 +180,23 @@ internal fun resolveReadablePaperActionColor(
 ): Int = communityTheme?.palette(activity.isReaderDarkMode())?.ink
     ?: activity.resolveThemeColor(com.google.android.material.R.attr.colorOnSurface)
 
+internal fun resolveReadablePaperPrimaryActionStyle(
+    activity: Activity,
+    communityTheme: CommunityPaperTheme?,
+): ReadablePaperPrimaryActionStyle {
+    val communityPalette = communityTheme?.palette(activity.isReaderDarkMode())
+    return ReadablePaperPrimaryActionStyle(
+        container = communityPalette?.primary
+            ?: activity.resolveThemeColor(com.google.android.material.R.attr.colorSecondary),
+        content = communityPalette?.onPrimary
+            ?: activity.resolveThemeColor(com.google.android.material.R.attr.colorOnSecondary),
+        border = communityPalette?.border
+            ?: activity.resolveThemeColor(com.google.android.material.R.attr.colorOutline),
+        cornerRadiusDp = communityTheme?.definition?.cornerRadiusDp ?: 4f,
+        borderWidthDp = communityTheme?.definition?.borderWidthDp ?: 2f,
+    )
+}
+
 internal fun applyReadablePaperCommunityChrome(
     root: View,
     toolbar: Toolbar,
@@ -138,6 +213,7 @@ internal fun applyReadablePaperCommunityChrome(
     toolbar.setSubtitleTextColor(palette.inkMuted)
     provenance.setBackgroundColor(palette.primaryContainer)
     provenance.setTextColor(palette.onPrimaryContainer)
+    tintReaderToolbarIcons(toolbar, palette.ink)
 }
 
 internal fun Activity.openSafeReaderExternalUri(raw: String) {

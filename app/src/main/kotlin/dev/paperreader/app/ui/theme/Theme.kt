@@ -197,11 +197,13 @@ private fun PaperThemeTokens.materialTypography(): Typography {
         ),
         bodyLarge = base.bodyLarge.copy(
             fontFamily = bodyFont,
+            fontWeight = FontWeight.Medium,
             fontSize = 16.sp,
             lineHeight = 24.sp,
         ),
         bodyMedium = base.bodyMedium.copy(
             fontFamily = bodyFont,
+            fontWeight = FontWeight.Medium,
             fontSize = 14.sp,
             lineHeight = 20.sp,
         ),

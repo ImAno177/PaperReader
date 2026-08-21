@@ -19,14 +19,19 @@ current branch. Released sections correspond to Git tags.
   actions behind progressive disclosure, and presents identifiers in one compact group.
 - The Library grid uses a phone-sized minimum column width so the persisted layout toggle produces a
   visibly distinct two-column layout on common handsets.
-- Grid cards now prioritize title, discipline, and reading state by omitting secondary author metadata,
-  keeping only the text before `:` in long titles, and clamping the result to two lines; the quick-read
-  action is labeled `Read` in both library layouts.
-- The search field remains fixed below the page title while results scroll.
-- Neobrutalism keeps mustard, violet, and status accents unchanged between light and dark modes;
-  only neutral canvas, surface, text, and outline roles invert.
-- Selected primary-navigation destinations use a mustard fill, hard outline, and short scale/fill
-  transition. Unselected destinations remain transparent without relying on color alone.
+- Grid cards now prioritize title, discipline, and reading state by omitting secondary author
+  metadata, keeping only the text before `:` in long titles, and clamping the result to two lines.
+  One compact state row and a thin progress strip keep cards equal without large empty regions.
+- The search field remains fixed below the page title while results scroll, and Recent searches shows
+  at most the five newest matching queries.
+- Neobrutalism now uses a softer sun-yellow accent on a warm paper canvas, 5 dp corners, 2 dp
+  outlines, and grounded 2 by 4 dp hard shadows. Dark mode uses black surfaces and white foreground
+  roles without recoloring accents or status colors.
+- Selected primary-navigation destinations use an outline and short icon-scale transition without
+  changing the tab fill or label color. Unselected destinations remain transparent.
+- Library list and grid cards separate the paper-preview target from the full-width `Read` action.
+- Paper Detail uses concise `Read` and `Open PDF` labels, 48 dp reading-status targets, ellipsized
+  two-column version metadata, and compact wrapping status badges.
 - Source-store cards use progressive disclosure for package, signer, and trust-failure details.
 
 ### Fixed
@@ -35,8 +40,16 @@ current branch. Released sections correspond to Git tags.
   different host signer is reported as untrusted instead of failing every search.
 - Source Binder deadlines now outlive the bounded connection and read timeouts used by extensions.
 - All five primary destinations remain reachable in short landscape navigation rails.
+- Reading-history removal now requires confirmation and states that the saved paper remains in
+  Library. Search and update rows expose non-overlapping button semantics at large text sizes.
+- Reader toolbar and find icons remain visible in dark mode, long titles yield space to actions, and
+  citation jumps provide a full-width `Back to reading` control reachable by either hand.
+- Readable HTML uses theme-aware figure surfaces, two-column author metadata with a narrow-screen
+  fallback, and intrinsic wide tables inside their own horizontal scroller.
 - The Google fallback runs in an isolated process, accepts only allowlisted HTTPS Google resources,
   and canonicalizes validated Google redirect targets before handing an arXiv ID to native search.
+- Empty states no longer wrap their icon and headline in a large tinted card. Completed download rows
+  place the status at the right edge of the title and combine task metadata into one compact line.
 
 ### Security
 

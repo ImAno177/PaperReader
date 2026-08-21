@@ -312,7 +312,7 @@ internal fun renderReadablePaperHtml(
             }
             .ltx_author_before { display: none; }
             .ltx_creator, .paperreader-author { display: block; min-width: 0; margin: 0; }
-            .ltx_personname, .paperreader-author-name { display: inline; color: var(--text); font-weight: 650; }
+            .ltx_personname, .paperreader-author-name { display: inline; color: var(--text); font-weight: 650; overflow-wrap: anywhere; }
             .ltx_author_notes, .paperreader-author-details { display: block; margin: 4px 0 0; color: var(--muted); font-size: 0.88em; overflow-wrap: anywhere; }
             .ltx_contact { display: block; margin: 2px 0; }
             .ltx_contact_name { font-weight: 600; }
@@ -346,7 +346,7 @@ internal fun renderReadablePaperHtml(
               max-width: 100%;
               height: auto;
               margin: 0 auto;
-              background: white;
+              background: var(--surface);
               border: 1px solid var(--border);
             }
             figcaption, caption {
@@ -427,6 +427,9 @@ internal fun renderReadablePaperHtml(
                 width: min(100%, 58rem);
                 padding-inline: calc(var(--reader-side-margin) + 16px);
               }
+            }
+            @media (max-width: 520px) {
+              .ltx_authors { grid-template-columns: 1fr; }
             }
             @media (prefers-reduced-motion: reduce) {
               * { scroll-behavior: auto !important; }

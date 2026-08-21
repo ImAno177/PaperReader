@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -221,7 +222,7 @@ fun DiscoverScreen(
                     RecentSearches(
                         queries = state.recentQueries.filter { recentQuery ->
                             query.isBlank() || recentQuery.contains(query.trim(), ignoreCase = true)
-                        },
+                        }.take(MAX_VISIBLE_RECENT_SEARCHES),
                         onSelect = { recentQuery ->
                             query = recentQuery
                             submitSearch()
@@ -343,6 +344,8 @@ fun DiscoverScreen(
 }
 }
 
+private const val MAX_VISIBLE_RECENT_SEARCHES = 5
+
 @Composable
 private fun SearchProviderFilters(
     providers: List<ProviderSearchUiState>,
@@ -404,10 +407,14 @@ private fun RecentSearches(
         Text(stringResource(R.string.search_recent_title), style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(4.dp))
         queries.forEach { recentQuery ->
+            val recentQueryDescription = stringResource(R.string.search_recent_query, recentQuery)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onSelect(recentQuery) }
+                    .clickable(role = Role.Button) { onSelect(recentQuery) }
+                    .semantics {
+                        contentDescription = recentQueryDescription
+                    }
                     .padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,

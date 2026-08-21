@@ -2,6 +2,7 @@ package dev.paperreader.app.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.paperreader.app.reader.PdfReaderActivity
 import dev.paperreader.app.reader.ReadablePaperActivity
@@ -80,7 +82,7 @@ internal fun MobileReadAction(
         },
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
     ) {
-        PaperIcon(PaperIconKey.INFO, contentDescription = null)
+        PaperIcon(PaperIconKey.MARK_READ, contentDescription = null)
         Spacer(Modifier.size(8.dp))
         Text(stringResource(R.string.read_mobile_version))
     }
@@ -179,12 +181,14 @@ internal fun ManifestationCard(
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = manifestation.source.displayProviderName(),
                         modifier = Modifier.weight(1f),
                         color = PaperTheme.tokens.inkMuted,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Row(
@@ -197,6 +201,7 @@ internal fun ManifestationCard(
                             modifier = Modifier.weight(1f),
                             color = PaperTheme.tokens.inkMuted,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     } else {
                         Spacer(Modifier.weight(1f))
@@ -207,39 +212,46 @@ internal fun ManifestationCard(
                             modifier = Modifier.weight(1f),
                             color = PaperTheme.tokens.inkMuted,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     } else {
                         Spacer(Modifier.weight(1f))
                     }
                 }
-                StatusBadge(
-                    text = manifestation.license ?: stringResource(
-                        if (supportsMobileReading) {
-                            R.string.license_available_in_mobile_source
-                        } else {
-                            R.string.license_unknown
-                        },
-                    ),
-                    color = when {
-                        manifestation.license != null -> PaperTheme.tokens.success
-                        supportsMobileReading -> PaperTheme.tokens.primary
-                        else -> PaperTheme.tokens.warning
-                    },
-                )
-                if (supportsMobileReading) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     StatusBadge(
-                        text = stringResource(R.string.mobile_reading_available),
-                        color = PaperTheme.tokens.primary,
-                    )
-                }
-                manifestation.localCopy?.let { localCopy ->
-                    StatusBadge(
-                        text = stringResource(
-                            if (isImportedLocalPdf) R.string.local_file_size else R.string.downloaded_file_size,
-                            formatFileSize(localCopy.byteLength),
+                        text = manifestation.license ?: stringResource(
+                            if (supportsMobileReading) {
+                                R.string.license_available_in_mobile_source
+                            } else {
+                                R.string.license_unknown
+                            },
                         ),
-                        color = PaperTheme.tokens.success,
+                        color = when {
+                            manifestation.license != null -> PaperTheme.tokens.success
+                            supportsMobileReading -> PaperTheme.tokens.primary
+                            else -> PaperTheme.tokens.warning
+                        },
                     )
+                    if (supportsMobileReading) {
+                        StatusBadge(
+                            text = stringResource(R.string.mobile_reading_available),
+                            color = PaperTheme.tokens.primary,
+                        )
+                    }
+                    manifestation.localCopy?.let { localCopy ->
+                        StatusBadge(
+                            text = stringResource(
+                                if (isImportedLocalPdf) R.string.local_file_size else R.string.downloaded_file_size,
+                                formatFileSize(localCopy.byteLength),
+                            ),
+                            color = PaperTheme.tokens.success,
+                        )
+                    }
                 }
             }
         }

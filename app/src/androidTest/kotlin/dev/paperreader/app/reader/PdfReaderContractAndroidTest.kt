@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -126,7 +127,8 @@ class PdfReaderContractAndroidTest {
         }
         try {
             val findBar = root.findViewById<LinearLayout>(R.id.readable_reader_find_bar)
-            val citationReturn = root.findViewById<ImageButton>(R.id.readable_reader_citation_return)
+            val citationReturn = root.findViewById<Button>(R.id.readable_reader_citation_return)
+            val error = root.findViewById<LinearLayout>(R.id.readable_reader_error)
             val controls = listOf(
                 root.findViewById<ImageButton>(R.id.readable_reader_find_previous),
                 root.findViewById<ImageButton>(R.id.readable_reader_find_next),
@@ -135,6 +137,8 @@ class PdfReaderContractAndroidTest {
 
             assertEquals(View.GONE, findBar.visibility)
             assertEquals(View.GONE, citationReturn.visibility)
+            assertEquals(View.ACCESSIBILITY_LIVE_REGION_POLITE, error.accessibilityLiveRegion)
+            assertTrue(error.isFocusable)
             val minimumTouchTarget = (48 * context.resources.displayMetrics.density).toInt()
             controls.forEach { control ->
                 assertTrue(control.layoutParams.width >= minimumTouchTarget)
@@ -144,6 +148,7 @@ class PdfReaderContractAndroidTest {
             assertTrue(citationReturn.minimumHeight >= minimumTouchTarget)
             assertTrue(citationReturn.minimumWidth >= minimumTouchTarget)
             assertTrue(citationReturn.contentDescription.isNotBlank())
+            assertEquals(context.getString(R.string.readable_reader_citation_return), citationReturn.text)
         } finally {
             InstrumentationRegistry.getInstrumentation().runOnMainSync {
                 root.findViewById<ReadablePaperWebView>(R.id.readable_reader_webview).destroy()

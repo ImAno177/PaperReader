@@ -132,16 +132,17 @@ internal fun readableSelectionCaptureScript(): String = """
 internal fun readableAnnotationRenderScript(annotations: List<Annotation>): String {
     val safe = annotations
         .asSequence()
-        .filter { it.id.matches(SAFE_READER_ID) && it.blockId.matches(SAFE_READER_ID) }
+        .filter { it.id.matches(SAFE_READER_ELEMENT_ID) && it.blockId.matches(SAFE_READER_ELEMENT_ID) }
         .filter { it.startOffset >= 0 && it.endOffset > it.startOffset }
         .sortedWith(compareBy<Annotation> { it.blockId }.thenByDescending { it.startOffset })
         .map { annotation ->
-            "{id:'${annotation.id}',blockId:'${annotation.blockId}',start:${annotation.startOffset},end:${annotation.endOffset}}"
+            "{id:'${annotation.id}',blockId:'${annotation.blockId}',start:${annotation.startOffset}," +
+                "end:${annotation.endOffset},hasNote:${!annotation.note.isNullOrBlank()}}"
         }
         .joinToString(",")
     return """
         (() => {
-          document.querySelectorAll('mark.paperreader-highlight').forEach(mark => {
+          document.querySelectorAll('.paperreader-highlight').forEach(mark => {
             const parent = mark.parentNode;
             while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
             parent.removeChild(mark);
@@ -170,10 +171,18 @@ internal fun readableAnnotationRenderScript(annotations: List<Annotation>): Stri
               if (localEnd <= localStart) return;
               const selected = node.splitText(localStart);
               selected.splitText(localEnd - localStart);
-              const mark = document.createElement('mark');
-              mark.className = 'paperreader-highlight';
+              const insideLink = node.parentElement && node.parentElement.closest('a');
+              const mark = document.createElement(insideLink ? 'mark' : 'a');
+              mark.className = annotation.hasNote
+                ? 'paperreader-highlight paperreader-highlight-note'
+                : 'paperreader-highlight';
               mark.setAttribute('data-paperreader-annotation-id', annotation.id);
-              mark.setAttribute('title', 'Highlighted passage');
+              if (mark.tagName === 'A') {
+                mark.setAttribute('href', 'https://$LOCAL_RENDERER_HOST$READABLE_ANNOTATION_PATH_PREFIX' + annotation.id);
+              }
+              mark.setAttribute('title', annotation.hasNote
+                ? 'Highlighted passage with note'
+                : 'Highlighted passage');
               selected.parentNode.replaceChild(mark, selected);
               mark.appendChild(selected);
               wrapped = true;
@@ -186,7 +195,7 @@ internal fun readableAnnotationRenderScript(annotations: List<Annotation>): Stri
 }
 
 internal fun readableAnnotationNavigationScript(id: String): String {
-    require(id.matches(SAFE_READER_ID))
+    require(id.matches(SAFE_READER_ELEMENT_ID))
     return """
         (() => {
           const target = document.querySelector('[data-paperreader-annotation-id="$id"]');
@@ -204,7 +213,8 @@ internal fun List<Annotation>.hasSameRenderedAnchors(other: List<Annotation>): B
         first.id == second.id &&
             first.blockId == second.blockId &&
             first.startOffset == second.startOffset &&
-            first.endOffset == second.endOffset
+            first.endOffset == second.endOffset &&
+            first.note.isNullOrBlank() == second.note.isNullOrBlank()
     }
 
 internal fun renderReadablePaperHtml(
@@ -266,11 +276,22 @@ internal fun renderReadablePaperHtml(
               text-rendering: optimizeLegibility;
             }
             ::selection { background: var(--selection); color: var(--text); }
-            mark.paperreader-highlight {
+            .paperreader-highlight {
               background: var(--selection);
               color: inherit;
               padding: 0.04em 0;
               border-bottom: 2px solid var(--link);
+              border-radius: 0.12em;
+              text-decoration: none;
+              -webkit-box-decoration-break: clone;
+              box-decoration-break: clone;
+            }
+            .paperreader-highlight-note {
+              border-bottom-style: double;
+            }
+            a.paperreader-highlight:focus-visible {
+              outline: 2px solid var(--link);
+              outline-offset: 2px;
             }
             .paperreader-document {
               width: min(100%, 48rem);
@@ -312,7 +333,7 @@ internal fun renderReadablePaperHtml(
             }
             .ltx_author_before { display: none; }
             .ltx_creator, .paperreader-author { display: block; min-width: 0; margin: 0; }
-            .ltx_personname, .paperreader-author-name { display: inline; color: var(--text); font-weight: 650; }
+            .ltx_personname, .paperreader-author-name { display: inline; color: var(--text); font-weight: 650; overflow-wrap: anywhere; }
             .ltx_author_notes, .paperreader-author-details { display: block; margin: 4px 0 0; color: var(--muted); font-size: 0.88em; overflow-wrap: anywhere; }
             .ltx_contact { display: block; margin: 2px 0; }
             .ltx_contact_name { font-weight: 600; }
@@ -346,7 +367,7 @@ internal fun renderReadablePaperHtml(
               max-width: 100%;
               height: auto;
               margin: 0 auto;
-              background: white;
+              background: var(--surface);
               border: 1px solid var(--border);
             }
             figcaption, caption {
@@ -370,6 +391,18 @@ internal fun renderReadablePaperHtml(
               overflow-x: auto;
               -webkit-overflow-scrolling: touch;
               overscroll-behavior-x: contain;
+              padding-bottom: 6px;
+              scrollbar-color: var(--border) transparent;
+              scrollbar-width: thin;
+            }
+            .paperreader-table-scroll::-webkit-scrollbar {
+              height: 6px;
+            }
+            .paperreader-table-scroll::-webkit-scrollbar-track {
+              background: transparent;
+            }
+            .paperreader-table-scroll::-webkit-scrollbar-thumb {
+              background: var(--border);
             }
             .paperreader-table-scroll > table {
               width: max-content;
@@ -428,6 +461,9 @@ internal fun renderReadablePaperHtml(
                 padding-inline: calc(var(--reader-side-margin) + 16px);
               }
             }
+            @media (max-width: 520px) {
+              .ltx_authors { gap: 10px 12px; }
+            }
             @media (prefers-reduced-motion: reduce) {
               * { scroll-behavior: auto !important; }
             }
@@ -444,4 +480,4 @@ internal fun rewriteBibliographyLinks(sanitizedBodyHtml: String): String =
         "href=$quote$CITATION_SCHEME://anchor/${match.groupValues[2]}$quote"
     }
 
-private val SAFE_READER_ID = Regex("[A-Za-z0-9._:-]{1,160}")
+internal val SAFE_READER_ELEMENT_ID = Regex("[A-Za-z0-9._:-]{1,160}")

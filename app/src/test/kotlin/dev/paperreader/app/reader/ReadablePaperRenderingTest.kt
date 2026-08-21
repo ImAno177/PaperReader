@@ -62,7 +62,9 @@ class ReadablePaperRenderingTest {
         assertTrue(script.contains("id:'ann-safe'"))
         assertTrue(script.contains("blockId:'prx-b00012'"))
         assertTrue(script.contains("start:4,end:17"))
-        assertTrue(script.contains("mark.paperreader-highlight"))
+        assertTrue(script.contains(".paperreader-highlight"))
+        assertTrue(script.contains("https://appassets.androidplatform.net/annotation/"))
+        assertTrue(script.contains("hasNote:true"))
         assertFalse(script.contains(annotation.note!!))
         assertFalse(script.contains(annotation.quoteExact))
         assertFalse(script.contains("tracker.invalid"))
@@ -110,6 +112,9 @@ class ReadablePaperRenderingTest {
         assertTrue(html.contains("width: min(100%, 48rem)"))
         assertTrue(html.contains(".paperreader-table-scroll"))
         assertTrue(html.contains("overflow-x: auto"))
+        assertTrue(html.contains("background: var(--surface)"))
+        assertFalse(html.contains("background: white"))
+        assertTrue(html.contains("@media (max-width: 520px)"))
         assertTrue(html.contains("font-size: 18px"))
         assertTrue(html.contains("--reader-line-height: 1.68"))
         assertTrue(html.contains("--reader-side-margin: 20px"))
@@ -118,7 +123,7 @@ class ReadablePaperRenderingTest {
     }
 
     @Test
-    fun `renderer stacks author metadata and hides footnote implementation payloads`() {
+    fun `renderer keeps author metadata in two columns and hides footnote implementation payloads`() {
         val html = renderReadablePaperHtml(
             sanitizedBodyHtml = """
                 <article><div class="ltx_authors"><span class="ltx_creator paperreader-author">

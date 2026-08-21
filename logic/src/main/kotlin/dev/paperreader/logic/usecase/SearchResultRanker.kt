@@ -8,6 +8,8 @@ import java.text.Normalizer
 
 /** Deterministic local ranking applied after exact-alias clustering. */
 object SearchResultRanker {
+    private val mainTitleSeparator = Regex("(?::|\\s[-–—]\\s)")
+
     fun rank(query: String, clusters: List<SearchResultCluster>): List<SearchResultCluster> {
         val normalizedQuery = query.normalizedSearchText()
         val queryTokens = normalizedQuery.split(' ').filter(String::isNotEmpty).toSet()
@@ -20,6 +22,8 @@ object SearchResultRanker {
                 }
             }.thenByDescending { cluster ->
                 cluster.records.any { it.title.normalizedSearchText() == normalizedQuery }
+            }.thenByDescending { cluster ->
+                cluster.records.maxOf { record -> record.titlePhraseTier(normalizedQuery, queryTokens.size) }
             }.thenByDescending { cluster ->
                 cluster.records.maxOf { record -> record.textualScore(normalizedQuery, queryTokens) }
             }.thenByDescending { cluster ->
@@ -35,6 +39,21 @@ object SearchResultRanker {
                     .joinToString("|")
             },
         )
+    }
+
+    private fun dev.paperreader.logic.provider.RemotePaper.titlePhraseTier(
+        normalizedQuery: String,
+        queryTokenCount: Int,
+    ): Int {
+        if (queryTokenCount < 2) return 0
+        val titleText = title.normalizedSearchText()
+        val mainTitleText = title.split(mainTitleSeparator, limit = 2).first().normalizedSearchText()
+        return when {
+            mainTitleText == normalizedQuery -> 3
+            titleText.startsWith("$normalizedQuery ") -> 2
+            titleText.endsWith(" $normalizedQuery") || titleText.contains(" $normalizedQuery ") -> 1
+            else -> 0
+        }
     }
 
     private fun dev.paperreader.logic.provider.RemotePaper.textualScore(

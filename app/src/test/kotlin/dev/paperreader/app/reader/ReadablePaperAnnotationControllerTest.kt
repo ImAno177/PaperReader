@@ -5,15 +5,11 @@ import org.junit.Test
 
 class ReadablePaperAnnotationControllerTest {
     @Test
-    fun labelNormalizesWhitespaceAndCapsQuoteLength() {
+    fun labelNormalizesWhitespaceCapsLengthAndPreviewsNotes() {
         val quote = "word\n\n" + "x".repeat(100)
 
         assertEquals("word " + "x".repeat(67), readableAnnotationLabel(quote, null))
-    }
-
-    @Test
-    fun labelAddsNoteMarkerOnlyForNonBlankNotes() {
         assertEquals("quoted", readableAnnotationLabel("quoted", "   "))
-        assertEquals("quoted — note", readableAnnotationLabel("quoted", "note") { "$it — note" })
+        assertEquals("quoted\nnote preview", readableAnnotationLabel("quoted", "note\npreview"))
     }
 }

@@ -16,7 +16,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,14 +25,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.LoadState
 import dev.paperreader.app.ui.components.PaperSecondaryButton
+import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.ui.theme.PaperIcon
@@ -72,21 +72,30 @@ fun CollectionsScreen(
     MoreBranchScaffold(title = stringResource(R.string.collections_title), onBack = onBack) {
         when (collections) {
             LoadState.Loading -> item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text(stringResource(R.string.collections_loading), color = PaperTheme.tokens.inkMuted)
-                }
+                PaperStatePanel(
+                    title = stringResource(R.string.collections_loading),
+                    loading = true,
+                    compact = true,
+                )
             }
             LoadState.Failed -> item {
-                Text(stringResource(R.string.collections_load_failed), color = PaperTheme.tokens.danger)
+                PaperStatePanel(
+                    title = stringResource(R.string.collections_load_failed_short),
+                    body = stringResource(R.string.collections_load_failed),
+                    icon = PaperIconKey.ERROR,
+                    compact = true,
+                )
             }
             is LoadState.Ready -> if (collections.value.isEmpty()) {
                 item {
-                    PaperSurface { Text(stringResource(R.string.collections_empty), color = PaperTheme.tokens.inkMuted) }
+                    PaperStatePanel(
+                        title = stringResource(R.string.collections_empty_title),
+                        body = stringResource(R.string.collections_empty),
+                        icon = PaperIconKey.FOLDER,
+                        compact = true,
+                        actionLabel = stringResource(R.string.new_collection),
+                        onAction = { openEditor(null) },
+                    )
                 }
             } else {
                 items(collections.value, key = PaperCollectionUi::id) { collection ->
@@ -98,11 +107,13 @@ fun CollectionsScreen(
                 }
             }
         }
-        item {
-            PaperSecondaryButton(onClick = { openEditor(null) }, modifier = Modifier.fillMaxWidth()) {
-                PaperIcon(PaperIconKey.ADD, contentDescription = null)
-                Spacer(Modifier.size(8.dp))
-                Text(stringResource(R.string.new_collection))
+        if (collections is LoadState.Ready && collections.value.isNotEmpty()) {
+            item {
+                PaperSecondaryButton(onClick = { openEditor(null) }, modifier = Modifier.fillMaxWidth()) {
+                    PaperIcon(PaperIconKey.ADD, contentDescription = null)
+                    Spacer(Modifier.size(8.dp))
+                    Text(stringResource(R.string.new_collection))
+                }
             }
         }
     }
@@ -127,12 +138,12 @@ fun CollectionsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showEditor = false }, enabled = !saving) {
+                PaperTextButton(onClick = { showEditor = false }, enabled = !saving) {
                     Text(stringResource(R.string.cancel))
                 }
             },
             confirmButton = {
-                TextButton(
+                PaperTextButton(
                     enabled = !saving && name.isNotBlank(),
                     onClick = {
                         scope.launch {
@@ -165,7 +176,11 @@ fun CollectionsScreen(
                     },
                 ) {
                     if (saving) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(Modifier.size(8.dp))
                     }
                     Text(stringResource(if (isRename) R.string.save else R.string.create_collection))
@@ -185,12 +200,12 @@ fun CollectionsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { toDelete = null }, enabled = !deleting) {
+                PaperTextButton(onClick = { toDelete = null }, enabled = !deleting) {
                     Text(stringResource(R.string.cancel))
                 }
             },
             confirmButton = {
-                TextButton(
+                PaperTextButton(
                     enabled = !deleting,
                     onClick = {
                         scope.launch {
@@ -213,7 +228,11 @@ fun CollectionsScreen(
                     },
                 ) {
                     if (deleting) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(Modifier.size(8.dp))
                     }
                     Text(stringResource(R.string.delete), color = PaperTheme.tokens.danger)

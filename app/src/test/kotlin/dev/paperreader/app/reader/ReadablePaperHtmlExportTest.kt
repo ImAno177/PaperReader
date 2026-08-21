@@ -21,7 +21,8 @@ class ReadablePaperHtmlExportTest {
         assertTrue(html.contains("name=\"paperreader-source-url\""))
         assertTrue(html.contains("https://arxiv.org/html/1706.03762v2"))
         assertTrue(html.contains("name=\"paperreader-document-sha256\""))
-        assertTrue(html.contains("arxiv-html-sanitizer-9"))
+        assertTrue(html.contains("arxiv-html-sanitizer-10"))
+        assertTrue(html.contains("mobile-html-7"))
         assertTrue(html.contains("Paper Reader HTML export"))
         assertFalse(html.contains("<script", ignoreCase = true))
     }

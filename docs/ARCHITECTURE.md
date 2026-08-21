@@ -83,8 +83,9 @@ Crossref is never used for fuzzy discovery. Exact DOI/arXiv/PMID/PMCID requests 
 extension that declares that identifier type. Free-text discovery uses the `DISCOVERY` capability;
 `SEARCH_ENGINE` identifies the preferred ranking owner, while content sources can contribute
 authoritative records as a fallback. A provider failure remains isolated and cannot cancel successful
-providers. Ranking is deterministic: exact identifier, title/text match, then a Semantic Scholar
-citation tie-break, publication date, and stable record key.
+providers. Ranking is deterministic: exact identifier, exact title or main-title segment, anchored
+title phrase, broader text match, then a Semantic Scholar citation tie-break, publication date, and
+stable record key.
 
 The Google fallback is a hardened host-owned WebView in the isolated `:google_search` process, not a
 provider implementation. It opens one constrained `site:arxiv.org/abs` query, allows only HTTPS
@@ -145,6 +146,15 @@ content hash, and rendered in a non-exported, network-blocked WebView with a den
 The UI never renders an unsanitized provider response. Figures, math, tables, citations, source,
 version, and license remain explicit. Bibliography jumps provide a native return action; find and
 table-of-contents controls remain reachable without scrolling to the top.
+
+Readable HTML export writes a separate shareable document through Android's storage picker. After a
+successful write, logic attempts a cache-only retention of the exact document SHA-256; it never
+refetches while satisfying that request. Retained entries have a separate 120 MiB quota and ordinary
+LRU pruning skips them. When the quota or app-private storage is unavailable, the external file stays
+saved and the UI reports that no offline app copy was kept. A successful Room removal triggers
+non-cancellable, best-effort artifact cleanup; rejected removals leave artifacts untouched. Startup
+reconciliation removes any orphan left by process death or storage failure. Read always validates and
+opens the app-private artifact; it never trusts the mutable exported copy.
 
 ## Supported host surface
 

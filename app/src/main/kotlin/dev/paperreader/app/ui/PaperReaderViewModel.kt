@@ -104,7 +104,7 @@ class PaperReaderViewModel internal constructor(
     private val mutableDownloadActions = MutableStateFlow(DownloadActionUiState())
     val downloadActions: StateFlow<DownloadActionUiState> = mutableDownloadActions
 
-    private val searchController = PaperReaderSearchController(logic, viewModelScope, providers, preferences)
+    private val searchController = PaperReaderSearchController(logic, viewModelScope, providers, preferences, library)
     val search: StateFlow<SearchUiState> = searchController.search
     val savedSearches: StateFlow<LoadState<List<dev.paperreader.logic.domain.SavedSearchFeed>>> =
         searchController.savedSearches
@@ -359,10 +359,15 @@ class PaperReaderViewModel internal constructor(
     suspend fun downloadedPaper(manifestationId: String): DownloadedPaper? =
         logic.downloads.downloadedPaper(ManifestationId(manifestationId))
 
-    suspend fun loadReadablePaper(workId: String, manifestationId: String): ReadablePaperResult =
+    suspend fun loadReadablePaper(
+        workId: String,
+        manifestationId: String,
+        retainDocumentSha256: String? = null,
+    ): ReadablePaperResult =
         logic.useCases.loadReadablePaper.await(
             WorkId(workId),
             ManifestationId(manifestationId),
+            retainDocumentSha256,
         )
 
     suspend fun deleteDownload(workId: String, manifestationId: String): DeleteDownloadResult =

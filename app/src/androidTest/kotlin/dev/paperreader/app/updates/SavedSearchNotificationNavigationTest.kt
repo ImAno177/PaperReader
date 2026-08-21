@@ -21,7 +21,7 @@ class SavedSearchNotificationNavigationTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun notificationActionReusesMainActivityAndOpensUpdates() {
+    fun notificationActionsReuseMainActivityAndOpenTheirDestinations() {
         val app = ApplicationProvider.getApplicationContext<PaperReaderApplication>()
         val activityIdentity = System.identityHashCode(composeRule.activity)
         composeRule.waitUntil(timeoutMillis = 10_000) {
@@ -42,15 +42,6 @@ class SavedSearchNotificationNavigationTest {
         composeRule.runOnIdle {
             assertEquals(activityIdentity, System.identityHashCode(composeRule.activity))
             assertEquals(Intent.ACTION_MAIN, composeRule.activity.intent.action)
-        }
-    }
-
-    @Test
-    fun extensionNotificationReusesMainActivityAndOpensSources() {
-        val app = ApplicationProvider.getApplicationContext<PaperReaderApplication>()
-        val activityIdentity = System.identityHashCode(composeRule.activity)
-        composeRule.waitUntil(timeoutMillis = 10_000) {
-            composeRule.onAllNodesWithText("More").fetchSemanticsNodes().isNotEmpty()
         }
 
         app.startActivity(

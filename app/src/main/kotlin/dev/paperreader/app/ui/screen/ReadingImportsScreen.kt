@@ -50,48 +50,9 @@ fun ReadingImportsScreen(
 ) {
     val actionsEnabled = state is LocalPdfImportUiState.Idle ||
         state is LocalPdfImportUiState.Complete || state is LocalPdfImportUiState.Failed
-    MoreBranchScaffold(title = stringResource(R.string.reading_and_imports_title), onBack = onBack) {
+    MoreBranchScaffold(title = stringResource(R.string.local_pdf_import_title), onBack = onBack) {
         item {
             PaperSurface {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    PaperIcon(
-                        PaperIconKey.LIBRARY,
-                        contentDescription = null,
-                        tint = PaperTheme.tokens.primary,
-                    )
-                    Text(
-                        stringResource(R.string.mobile_reading_formats_title),
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                StatusBadge(
-                    text = stringResource(R.string.original_pdf_available),
-                    icon = PaperIconKey.DONE,
-                    color = PaperTheme.tokens.success,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.mobile_reading_formats_body),
-                    color = PaperTheme.tokens.inkMuted,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.mobile_reflow_planned),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = PaperTheme.tokens.inkMuted,
-                )
-            }
-        }
-        item {
-            PaperSurface {
-                Text(stringResource(R.string.local_pdf_import_title), style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(6.dp))
                 Text(stringResource(R.string.local_pdf_import_body), color = PaperTheme.tokens.inkMuted)
                 LocalPdfImportStatus(state, onOpenImportedPaper, onDismissImport)
                 Spacer(Modifier.height(12.dp))
@@ -141,7 +102,6 @@ private fun LocalPdfImportDialog(
                         stringResource(R.string.local_pdf_selected_size, formatImportFileSize(candidate.byteLength)),
                         color = PaperTheme.tokens.inkMuted,
                     )
-                    Text(stringResource(R.string.local_pdf_title_explanation), color = PaperTheme.tokens.inkMuted)
                     OutlinedTextField(
                         value = title,
                         onValueChange = { if (!importing) editableTitle = it },
@@ -164,10 +124,15 @@ private fun LocalPdfImportDialog(
                     )
                     if (importing) {
                         Row(
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = PaperTheme.tokens.ink,
+                                strokeWidth = 2.dp,
+                            )
                             Text(stringResource(R.string.importing_local_pdf))
                         }
                     }
@@ -206,7 +171,11 @@ private fun LocalPdfImportStatus(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = PaperTheme.tokens.ink,
+                    strokeWidth = 2.dp,
+                )
                 Text(stringResource(R.string.inspecting_local_pdf))
             }
         }
@@ -240,7 +209,7 @@ private fun LocalPdfImportStatus(
                 ) {
                     Text(stringResource(R.string.open_imported_paper))
                 }
-                PaperSecondaryButton(onClick = onDismiss) {
+                PaperSecondaryButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.dismiss))
                 }
             }

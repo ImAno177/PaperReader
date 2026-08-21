@@ -91,13 +91,14 @@ class DetailScreenTest {
     }
 
     @Test
-    fun arxivManifestationMakesMobileReadingThePrimaryVisibleAction() {
+    fun arxivManifestationSurfacesReadingAbstractAndVerifiedLicense() {
         composeRule.enableAccessibilityChecks()
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 DetailScreen(
                     state = LoadState.Ready(
-                        paper(manifestations = listOf(manifestation(id = "manifestation-1", local = true))),
+                        paper(manifestations = listOf(manifestation(id = "manifestation-1", local = true)))
+                            .copy(abstractText = "A concise abstract for the saved paper."),
                     ),
                     onBack = {},
                     onStatusChange = {},
@@ -107,50 +108,9 @@ class DetailScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Read mobile version").assertExists().assertIsEnabled()
-        composeRule.onNodeWithText("Read downloaded PDF").assertExists().assertIsEnabled()
-    }
-
-    @Test
-    fun paperDetailSurfacesReadingAndAbstractWithoutLocalCopyBanner() {
-        composeRule.enableAccessibilityChecks()
-        composeRule.setContent {
-            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
-                DetailScreen(
-                    state = LoadState.Ready(
-                        paper(
-                            manifestations = listOf(manifestation(id = "manifestation-1", local = false)),
-                        ).copy(abstractText = "A concise abstract for the saved paper."),
-                    ),
-                    onBack = {},
-                    onStatusChange = {},
-                    onRemove = { RemovePaperResult.Removed },
-                    onRemoved = {},
-                )
-            }
-        }
-
-        composeRule.onNodeWithText("Read mobile version").assertExists().assertIsEnabled()
+        composeRule.onNodeWithText("Read").assertExists().assertIsEnabled()
+        composeRule.onNodeWithText("Open PDF").assertExists().assertIsEnabled()
         composeRule.onNodeWithText("Abstract").assertExists()
-    }
-
-    @Test
-    fun arxivManifestationDefersLicenseToTheVerifiedMobileSource() {
-        composeRule.enableAccessibilityChecks()
-        composeRule.setContent {
-            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
-                DetailScreen(
-                    state = LoadState.Ready(
-                        paper(manifestations = listOf(manifestation(id = "manifestation-1", local = true))),
-                    ),
-                    onBack = {},
-                    onStatusChange = {},
-                    onRemove = { RemovePaperResult.Removed },
-                    onRemoved = {},
-                )
-            }
-        }
-
         composeRule.onNodeWithText("License shown in verified mobile source")
             .performScrollTo()
             .assertExists()
@@ -220,7 +180,7 @@ class DetailScreenTest {
                     ),
                     onBack = {},
                     onStatusChange = {},
-                    onLoadReadablePaper = {
+                    onLoadReadablePaper = { _, _ ->
                         loadAttempts += 1
                         ReadablePaperResult.Unavailable(ReadablePaperFailure.SOURCE_NOT_FOUND)
                     },

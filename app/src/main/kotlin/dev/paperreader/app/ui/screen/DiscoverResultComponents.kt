@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,7 +41,7 @@ internal fun ProviderFailureRow(
 ) {
     PaperSurface(contentPadding = PaddingValues(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.warning)
+            PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.ink)
             Text(
                 text = when (failure.kind) {
                     ProviderFailureKind.RATE_LIMITED -> failure.retryAfterMillis?.let { retryAfterMillis ->
@@ -76,7 +77,7 @@ internal fun SearchResultCard(
     val previewDescription = stringResource(R.string.search_preview_open, result.title)
     PaperSurface {
         Column(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onPreview).semantics {
+            modifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onPreview).semantics {
                 contentDescription = previewDescription
             },
         ) {
@@ -103,7 +104,11 @@ internal fun SearchResultCard(
         if (savedWorkId == null) {
             PaperPrimaryButton(onClick = onSave, enabled = !saving, modifier = Modifier.fillMaxWidth()) {
                 if (saving) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = PaperTheme.tokens.ink,
+                        strokeWidth = 2.dp,
+                    )
                     Spacer(Modifier.size(8.dp))
                 }
                 Text(stringResource(if (saving) R.string.saving_paper else R.string.save_paper))

@@ -13,7 +13,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +31,7 @@ import dev.paperreader.app.R
 import dev.paperreader.app.ui.components.PaperPrimaryButton
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSurface
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.model.MetadataBackupFailure
 import dev.paperreader.app.ui.model.MetadataBackupUiState
 import dev.paperreader.app.ui.model.MetadataRestoreIssueUi
@@ -91,12 +91,12 @@ private fun MetadataRestoreDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var detailsExpanded by rememberSaveable { mutableStateOf(false) }
     val preview = when (state) {
         is MetadataBackupUiState.Preview -> state.value
         is MetadataBackupUiState.Restoring -> state.preview
         else -> null
     }
+    var detailsExpanded by rememberSaveable(preview?.createdAt?.toEpochMilli()) { mutableStateOf(false) }
     preview?.let {
         val restoring = state is MetadataBackupUiState.Restoring
         AlertDialog(
@@ -208,7 +208,7 @@ private fun MetadataRestoreDialog(
                         (it.missingProviders.size > RESTORE_DETAIL_COLLAPSED_LIMIT ||
                             it.conflicts.size > RESTORE_DETAIL_COLLAPSED_LIMIT)
                     ) {
-                        TextButton(onClick = { detailsExpanded = true }) {
+                        PaperTextButton(onClick = { detailsExpanded = true }) {
                             Text(stringResource(R.string.restore_backup_show_details))
                         }
                     }
@@ -234,7 +234,11 @@ private fun MetadataRestoreDialog(
             confirmButton = {
                 PaperPrimaryButton(onClick = onConfirm, enabled = !restoring) {
                     if (restoring) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(Modifier.size(8.dp))
                     }
                     Text(stringResource(if (restoring) R.string.restoring_backup else R.string.restore_backup))
@@ -265,7 +269,11 @@ private fun MetadataBackupStatus(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = PaperTheme.tokens.ink,
+                    strokeWidth = 2.dp,
+                )
                 Text(
                     stringResource(
                         if (state == MetadataBackupUiState.Exporting) {
@@ -327,7 +335,7 @@ private fun MetadataBackupStatus(
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 color = PaperTheme.tokens.danger,
             )
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
+            PaperTextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
         }
     }
 }

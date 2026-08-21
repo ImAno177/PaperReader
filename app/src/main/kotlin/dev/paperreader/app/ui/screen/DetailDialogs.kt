@@ -19,7 +19,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,6 +36,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.LoadState
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.displayValue
@@ -128,7 +128,11 @@ internal fun CollectionAssignmentDialog(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
                         Text(stringResource(R.string.collections_loading))
                     }
 
@@ -181,12 +185,12 @@ internal fun CollectionAssignmentDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !saving) {
+            PaperTextButton(onClick = onDismiss, enabled = !saving) {
                 Text(stringResource(R.string.cancel))
             }
         },
         confirmButton = {
-            TextButton(
+            PaperTextButton(
                 enabled = collections is LoadState.Ready && available.isNotEmpty() && !saving,
                 onClick = {
                     scope.launch {
@@ -210,7 +214,11 @@ internal fun CollectionAssignmentDialog(
                 },
             ) {
                 if (saving) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = PaperTheme.tokens.ink,
+                        strokeWidth = 2.dp,
+                    )
                     Spacer(Modifier.size(8.dp))
                 }
                 Text(stringResource(R.string.save))
@@ -218,4 +226,3 @@ internal fun CollectionAssignmentDialog(
         },
     )
 }
-

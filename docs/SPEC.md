@@ -24,8 +24,8 @@ and may be unavailable until the corresponding signed extension is installed.
 | Discovery | Semantic Scholar, arXiv, and Europe PMC free-text search; Crossref exact DOI enrichment; deterministic exact-identifier routing and citation-aware ranking. |
 | Google handoff | A hardened in-app `site:arxiv.org/abs` search surface; explicit `/abs/`, `/html/`, or `/pdf/` URL handoff to exact arXiv ID and version parsing. |
 | Library | Room-backed papers, versions and files, full-width quick Read actions, list/grid layouts, collections, reading status, history, bookmarks, annotations, saved searches, update snapshots, downloads, local PDF import, and metadata backup. |
-| Mobile reader | Verified arXiv HTML cache, sanitization, offline WebView rendering, table-of-contents navigation, in-document search, citation return, text/layout controls, figures, MathML, and horizontal table scrolling. |
-| Paper files | Per-version PDF download and readable HTML export from Paper Detail. HTML export uses the same verified, sanitized document artifact as the mobile reader. |
+| Mobile reader | Verified arXiv HTML cache, bounded retained offline artifacts, sanitization, offline WebView rendering, table-of-contents navigation, in-document search, citation return, text/layout controls, figures, MathML, and horizontal table scrolling. |
+| Paper files | Per-version PDF download and readable HTML export from Paper Detail. After export, PaperReader attempts to retain the exact verified app-private artifact used by Read. |
 | Original documents | Bounded PDF download and an in-app PDF reader with search, page navigation, progress, and bookmarks. |
 | Extensions | Separate source and theme APKs over versioned AIDL, signed stores, package verification, user-confirmed PackageInstaller flows, update/orphan/untrusted states, and community extension discovery. |
 | Appearance and access | English UI, a Neobrutalism preset, complete community themes, System/Light/Dark mode, adaptive navigation, and 48 dp semantic touch targets. |
@@ -62,12 +62,17 @@ Root titles are large, left aligned, and near the top safe area. They have no de
 Bottom-navigation outlines align with the content grid, while independent touch targets remain at least
 48 dp and extend safely around the visible geometry.
 
-Appearance has independent controls for visual preset and System/Light/Dark mode. Neobrutalism uses
-Material Symbols. A theme extension supplies a complete semantic icon set with its declarative
-tokens. The legacy `DOODLE` extension decoration remains readable for binary compatibility but is
-not a built-in preset. Empty-state color is a semantic theme token, never a hard-coded purple.
-Status colors keep each preset's accent hue and use AA-safe tones when reused as text or icons on
-light surfaces.
+Appearance has independent controls for visual preset and System/Light/Dark mode. The built-in
+Neobrutalism preset uses Material Symbols, a restrained sun-yellow accent, 5 dp corners, 2 dp
+outlines, and subtle 1 dp bottom-only shadows. Dark mode inverts neutral surfaces, text, outlines,
+and shadows while preserving accent, container, selection, and status colors. A theme extension
+supplies a complete semantic icon set with its declarative tokens. The legacy `DOODLE` extension
+decoration remains readable for binary
+compatibility but is not a built-in preset. Empty-state headlines are unframed and keep the same
+accessible violet accent in light and dark modes; sun yellow is reserved for the icon tile, primary
+action, and small state accents. Library grid cards keep titles to one line, omit authors, and use
+one compact state row instead of
+reserving empty rows for status, annotations, and progress.
 
 ## Domain model
 
@@ -133,11 +138,13 @@ enrichment only.
   remain available for exact supported identifiers.
 - Provider requests are cancellable, rate-limited, bounded, and independently fail.
 - Results cluster only on exact canonical aliases and preserve provider alternatives.
-- Ranking is deterministic: exact identifier match, title/text match, Semantic Scholar citation
-  tie-break, publication date, then stable provider-record key.
+- Ranking is deterministic: exact identifier match, exact title or main-title segment, anchored title
+  phrase, broader text match, Semantic Scholar citation tie-break, publication date, then stable
+  provider-record key.
 - The search surface keeps the eight most recent submitted queries locally, exposes source-aware
-  `All sources` and `Has results` filters, and reports loading, success, and failure per provider
-  with a retry action. A source failure never hides successful results from another provider.
+  `All sources` and `Has results` filters, and displays at most five matching recent-query rows. It
+  reports loading, success, and failure per provider with a retry action. A source failure never hides
+  successful results from another provider.
 - Search result cards open the same full metadata preview used by Library before Save/Open.
 - Production tests use fixtures and a local server; a separate audit may exercise live APIs.
 
@@ -181,6 +188,12 @@ with byte/time/count limits. Sanitize before storage; remove executable markup a
 retaining headings, paragraphs, lists, tables, citations, MathML, and bounded same-document figures.
 Store an app-private artifact with sanitizer version and SHA-256.
 
+Exporting readable HTML first writes a shareable copy to the user-selected document location, then
+attempts to protect the matching SHA-256-verified app-private artifact from ordinary cache eviction.
+Retention is cache-only and never fetches a potentially different source revision. The retained pool
+is capped at 120 MiB; a new retention request is rejected rather than evicting an existing retained
+paper. The UI reports when only the external file was saved. Read never renders that mutable copy.
+
 The renderer is a non-exported, network-blocked WebView with a deny-by-default CSP. JavaScript is off
 except for short, app-owned commands required for bounded find, selection, and anchor navigation,
 then disabled again.
@@ -190,9 +203,15 @@ The layout must provide:
 - Responsive single-column typography and reversible 85-200% text size.
 - Native table of contents and a find bar reachable without scrolling to the top.
 - Scrollable wide tables/math and responsive figures.
-- Citation jumps with a visible Back to reading position action.
-- Stable block/source anchors, selectable text, and exact-hash annotations.
-- Offline reopening from verified cache.
+- Two-column author metadata at phone widths, with long names and affiliations wrapping inside each
+  column instead of widening the page.
+- Citation jumps with a visible full-width Back to reading action. Toolbar and system Back return to
+  the previous reading position before leaving the reader.
+- Stable block/source anchors, selectable text, and exact-hash annotations. A rendered highlight can
+  reopen one mobile editor for its optional note or deletion; note-bearing highlights are visually
+  distinct without changing their exact anchor.
+- Offline reopening from verified cache, with eligible exported versions retained within the bounded
+  offline pool.
 - Original PDF action always reachable when the file exists.
 
 ### Original PDF
@@ -268,6 +287,8 @@ The provider repository must publish:
 
 - All interactive semantics meet a 48 dp minimum target independent of visible border geometry.
 - Navigation remains usable at 130% system font scale; labels do not collide or wrap unexpectedly.
+  At very large text scales, primary navigation keeps the same five targets and exposes concise icons
+  with complete accessibility labels instead of clipping visible text.
 - Light/dark palettes meet WCAG contrast for body/status text and do not encode state by color alone.
 - Loading, empty, offline, rate-limited, invalid, permission, cancelled, and unavailable states are
   explicit English copy with a relevant recovery action.

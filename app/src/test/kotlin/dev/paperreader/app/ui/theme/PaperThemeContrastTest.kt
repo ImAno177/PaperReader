@@ -23,7 +23,6 @@ class PaperThemeContrastTest {
                     "on-secondary" to (tokens.onSecondary to tokens.secondary),
                     "on-primary-container" to (tokens.onPrimaryContainer to tokens.primaryContainer),
                     "on-secondary-container" to (tokens.onSecondaryContainer to tokens.secondaryContainer),
-                    "empty-state accent on its panel" to (tokens.emptyStateAccent to tokens.surfaceMuted),
                 )
 
                 pairs.forEach { (role, colors) ->
@@ -38,10 +37,25 @@ class PaperThemeContrastTest {
     }
 
     @Test
-    fun `empty-state accent is theme semantic rather than a shared purple`() {
+    fun `empty-state heading keeps its violet identity in both modes`() {
         listOf(false, true).forEach { dark ->
-            val accents = PaperThemePreset.entries.map { paperThemeTokens(it, dark).emptyStateAccent }
-            assertEquals(PaperThemePreset.entries.size, accents.toSet().size)
+            PaperThemePreset.entries.forEach { preset ->
+                val tokens = paperThemeTokens(preset, dark)
+                assertEquals(NeoViolet, tokens.emptyStateAccent)
+                assertTrue(
+                    contrastRatio(tokens.emptyStateAccent, tokens.canvas) >= WCAG_AA_LARGE_TEXT,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `material semantic primary preserves the theme accent contract`() {
+        listOf(false, true).forEach { dark ->
+            val tokens = neobrutalismThemeTokens(dark)
+            val scheme = tokens.materialScheme(dark)
+            assertEquals(tokens.primary, scheme.primary)
+            assertEquals(tokens.onPrimary, scheme.onPrimary)
         }
     }
 
@@ -91,5 +105,6 @@ class PaperThemeContrastTest {
 
     private companion object {
         const val WCAG_AA_NORMAL_TEXT = 4.5
+        const val WCAG_AA_LARGE_TEXT = 3.0
     }
 }

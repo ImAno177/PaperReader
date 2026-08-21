@@ -1,13 +1,18 @@
 package dev.paperreader.app.reader
 
 import android.text.InputFilter
-import android.text.InputType
-import android.widget.EditText
+import android.view.View
+import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.R
 import dev.paperreader.logic.PaperReaderLogic
@@ -27,7 +32,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Owns the readable-reader annotation lifecycle and all annotation dialogs/actions. */
+/** Owns the readable-reader annotation lifecycle and its single mobile editor. */
 internal class ReadablePaperAnnotationController(
     private val activity: AppCompatActivity,
     private val toolbar: Toolbar,
@@ -100,7 +105,7 @@ internal class ReadablePaperAnnotationController(
             when (result) {
                 is ReadableSelectionResult.Ready -> {
                     webView.clearTextSelection()
-                    showCreateDialog(result.selection)
+                    showCreateEditor(result.selection)
                 }
                 is ReadableSelectionResult.Unavailable -> toast(
                     when (result.reason) {
@@ -115,21 +120,31 @@ internal class ReadablePaperAnnotationController(
         }
     }
 
+    fun openAnnotation(id: String) {
+        val annotation = currentAnnotations.firstOrNull { it.id == id }
+        if (annotation == null) toast(R.string.readable_reader_annotation_missing, Toast.LENGTH_LONG)
+        else showEditEditor(annotation)
+    }
+
     fun showAnnotations() {
-        if (currentAnnotations.isEmpty()) {
-            toast(R.string.readable_reader_annotations_empty, Toast.LENGTH_SHORT)
+        val listed = currentAnnotations.toList()
+        if (listed.isEmpty()) {
+            MaterialAlertDialogBuilder(activity)
+                .setTitle(R.string.readable_reader_annotations_empty_title)
+                .setMessage(R.string.readable_reader_annotations_empty_body)
+                .setPositiveButton(R.string.close, null)
+                .show()
             return
         }
-        val labels = currentAnnotations.map { annotation ->
-            readableAnnotationLabel(annotation.quoteExact, annotation.note) { quote ->
-                activity.getString(R.string.readable_reader_annotation_with_note, quote)
-            }
-        }.toTypedArray()
-        AlertDialog.Builder(activity)
-            .setTitle(activity.getString(R.string.readable_reader_annotations_count, currentAnnotations.size))
-            .setItems(labels) { dialog, index ->
-                showAnnotationActions(currentAnnotations[index])
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(activity.getString(R.string.readable_reader_annotations_count, listed.size))
+            .setItems(listed.map { readableAnnotationLabel(it.quoteExact, it.note) }.toTypedArray()) { dialog, index ->
+                val annotation = listed[index]
                 dialog.dismiss()
+                webView.scrollToAnnotation(annotation.id) { found ->
+                    if (found) openAnnotation(annotation.id)
+                    else toast(R.string.readable_reader_annotation_anchor_missing, Toast.LENGTH_LONG)
+                }
             }
             .setNegativeButton(R.string.close, null)
             .show()
@@ -145,175 +160,186 @@ internal class ReadablePaperAnnotationController(
         }
     }
 
-    private fun showCreateDialog(selection: ReadableTextSelection) {
+    private fun showCreateEditor(selection: ReadableTextSelection) {
         val paperDocument = document() ?: return
-        val noteInput = annotationNoteInput()
-        val dialog = AlertDialog.Builder(activity)
-            .setTitle(R.string.readable_reader_add_highlight)
-            .setMessage(activity.getString(R.string.readable_reader_selected_quote, selection.quoteExact))
-            .setView(noteInput)
-            .setNegativeButton(R.string.cancel, null)
-            .setPositiveButton(R.string.save, null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val anchor = runCatching {
-                    AnnotationSelection(
-                        documentSha256 = paperDocument.documentSha256,
-                        blockId = selection.blockId,
-                        startOffset = selection.startOffset,
-                        endOffset = selection.endOffset,
-                        quotePrefix = selection.quotePrefix,
-                        quoteExact = selection.quoteExact,
-                        quoteSuffix = selection.quoteSuffix,
-                    )
-                }.getOrNull()
-                if (anchor == null) {
-                    toast(R.string.readable_reader_annotation_invalid_selection, Toast.LENGTH_LONG)
-                    dialog.dismiss()
-                    return@setOnClickListener
-                }
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
-                activity.lifecycleScope.launch {
-                    val result = try {
-                        withContext(Dispatchers.IO) {
-                            logic().useCases.saveAnnotation.await(workId(), anchor, noteInput.text.toString())
-                        }
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (_: Exception) {
-                        toast(R.string.readable_reader_annotation_save_failed, Toast.LENGTH_LONG)
-                        dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
-                        return@launch
-                    }
-                    when (result) {
-                        is SaveAnnotationResult.Saved -> {
-                            toast(
-                                if (result.created) R.string.readable_reader_annotation_saved
-                                else R.string.readable_reader_annotation_updated,
-                                Toast.LENGTH_SHORT,
-                            )
-                            dialog.dismiss()
-                        }
-                        SaveAnnotationResult.OverlapsExisting -> {
-                            toast(R.string.readable_reader_annotation_overlap, Toast.LENGTH_LONG)
-                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
-                        }
-                        SaveAnnotationResult.InvalidNote -> {
-                            noteInput.error = activity.getString(R.string.readable_reader_annotation_note_too_long)
-                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
-                        }
-                        SaveAnnotationResult.PaperNotFound,
-                        SaveAnnotationResult.DocumentNotCurrent,
-                        -> {
-                            toast(R.string.readable_reader_annotation_stale_document, Toast.LENGTH_LONG)
-                            dialog.dismiss()
-                        }
-                    }
-                }
-            }
-        }
-        dialog.show()
-    }
-
-    private fun showAnnotationActions(annotation: Annotation) {
-        val actions = arrayOf(
-            activity.getString(R.string.readable_reader_annotation_jump),
-            activity.getString(R.string.readable_reader_annotation_edit_note),
-            activity.getString(R.string.readable_reader_annotation_delete),
+        val editor = createEditor(
+            title = activity.getString(R.string.readable_reader_add_highlight),
+            quote = selection.quoteExact,
+            note = null,
+            canDelete = false,
+            saveLabel = activity.getString(R.string.readable_reader_annotation_save_highlight),
         )
-        AlertDialog.Builder(activity)
-            .setTitle(activity.getString(R.string.readable_reader_selected_quote, annotation.quoteExact))
-            .setMessage(annotation.note ?: activity.getString(R.string.readable_reader_annotation_no_note))
-            .setItems(actions) { dialog, which ->
-                when (which) {
-                    0 -> webView.scrollToAnnotation(annotation.id) { found ->
-                        if (!found) toast(R.string.readable_reader_annotation_anchor_missing, Toast.LENGTH_LONG)
-                    }
-                    1 -> showEditNoteDialog(annotation)
-                    2 -> confirmDelete(annotation)
-                }
-                dialog.dismiss()
+        editor.save.setOnClickListener {
+            val anchor = runCatching {
+                AnnotationSelection(
+                    documentSha256 = paperDocument.documentSha256,
+                    blockId = selection.blockId,
+                    startOffset = selection.startOffset,
+                    endOffset = selection.endOffset,
+                    quotePrefix = selection.quotePrefix,
+                    quoteExact = selection.quoteExact,
+                    quoteSuffix = selection.quoteSuffix,
+                )
+            }.getOrNull()
+            if (anchor == null) {
+                toast(R.string.readable_reader_annotation_invalid_selection, Toast.LENGTH_LONG)
+                editor.dialog.dismiss()
+                return@setOnClickListener
             }
-            .setNegativeButton(R.string.close, null)
-            .show()
-    }
-
-    private fun showEditNoteDialog(annotation: Annotation) {
-        val noteInput = annotationNoteInput(annotation.note)
-        val dialog = AlertDialog.Builder(activity)
-            .setTitle(R.string.readable_reader_annotation_edit_note)
-            .setView(noteInput)
-            .setNegativeButton(R.string.cancel, null)
-            .setPositiveButton(R.string.save, null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
-                activity.lifecycleScope.launch {
-                    val result = try {
-                        withContext(Dispatchers.IO) {
-                            logic().useCases.updateAnnotationNote.await(annotation.id, noteInput.text.toString())
-                        }
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (_: Exception) {
-                        toast(R.string.readable_reader_annotation_save_failed, Toast.LENGTH_LONG)
-                        dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
-                        return@launch
+            setEditorBusy(editor, true)
+            activity.lifecycleScope.launch {
+                val result = try {
+                    withContext(Dispatchers.IO) {
+                        logic().useCases.saveAnnotation.await(workId(), anchor, editor.note.text?.toString())
                     }
-                    when (result) {
-                        is UpdateAnnotationNoteResult.Updated -> dialog.dismiss()
-                        UpdateAnnotationNoteResult.InvalidNote -> {
-                            noteInput.error = activity.getString(R.string.readable_reader_annotation_note_too_long)
-                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
-                        }
-                        UpdateAnnotationNoteResult.NotFound -> {
-                            toast(R.string.readable_reader_annotation_missing, Toast.LENGTH_LONG)
-                            dialog.dismiss()
-                        }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    toast(R.string.readable_reader_annotation_save_failed, Toast.LENGTH_LONG)
+                    setEditorBusy(editor, false)
+                    return@launch
+                }
+                when (result) {
+                    is SaveAnnotationResult.Saved -> {
+                        toast(
+                            if (result.created) R.string.readable_reader_annotation_saved
+                            else R.string.readable_reader_annotation_updated,
+                            Toast.LENGTH_SHORT,
+                        )
+                        editor.dialog.dismiss()
+                    }
+                    SaveAnnotationResult.OverlapsExisting -> {
+                        toast(R.string.readable_reader_annotation_overlap, Toast.LENGTH_LONG)
+                        setEditorBusy(editor, false)
+                    }
+                    SaveAnnotationResult.InvalidNote -> showInvalidNote(editor)
+                    SaveAnnotationResult.PaperNotFound,
+                    SaveAnnotationResult.DocumentNotCurrent,
+                    -> {
+                        toast(R.string.readable_reader_annotation_stale_document, Toast.LENGTH_LONG)
+                        editor.dialog.dismiss()
                     }
                 }
             }
         }
-        dialog.show()
+        editor.dialog.showExpanded()
     }
 
-    private fun confirmDelete(annotation: Annotation) {
-        AlertDialog.Builder(activity)
+    private fun showEditEditor(annotation: Annotation) {
+        val editor = createEditor(
+            title = activity.getString(R.string.readable_reader_annotation_editor_title),
+            quote = annotation.quoteExact,
+            note = annotation.note,
+            canDelete = true,
+            saveLabel = activity.getString(R.string.readable_reader_annotation_save_note),
+        )
+        editor.save.setOnClickListener {
+            setEditorBusy(editor, true)
+            activity.lifecycleScope.launch {
+                val result = try {
+                    withContext(Dispatchers.IO) {
+                        logic().useCases.updateAnnotationNote.await(annotation.id, editor.note.text?.toString())
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    toast(R.string.readable_reader_annotation_save_failed, Toast.LENGTH_LONG)
+                    setEditorBusy(editor, false)
+                    return@launch
+                }
+                when (result) {
+                    is UpdateAnnotationNoteResult.Updated -> {
+                        toast(R.string.readable_reader_annotation_note_saved, Toast.LENGTH_SHORT)
+                        editor.dialog.dismiss()
+                    }
+                    UpdateAnnotationNoteResult.InvalidNote -> showInvalidNote(editor)
+                    UpdateAnnotationNoteResult.NotFound -> {
+                        toast(R.string.readable_reader_annotation_missing, Toast.LENGTH_LONG)
+                        editor.dialog.dismiss()
+                    }
+                }
+            }
+        }
+        editor.delete.setOnClickListener { confirmDelete(annotation) { editor.dialog.dismiss() } }
+        editor.dialog.showExpanded()
+    }
+
+    private fun createEditor(
+        title: String,
+        quote: String,
+        note: String?,
+        canDelete: Boolean,
+        saveLabel: String,
+    ): AnnotationEditor {
+        val content = activity.layoutInflater.inflate(R.layout.sheet_readable_annotation, null)
+        content.findViewById<TextView>(R.id.readable_annotation_title).text = title
+        content.findViewById<TextView>(R.id.readable_annotation_quote).text = quote
+        val noteInput = content.findViewById<TextInputEditText>(R.id.readable_annotation_note).apply {
+            filters = arrayOf(InputFilter.LengthFilter(MAX_ANNOTATION_NOTE_LENGTH))
+            setText(note.orEmpty())
+            setSelection(text?.length ?: 0)
+        }
+        val dialog = BottomSheetDialog(activity).apply { setContentView(content) }
+        val close = content.findViewById<MaterialButton>(R.id.readable_annotation_close).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+        return AnnotationEditor(
+            dialog = dialog,
+            noteContainer = content.findViewById(R.id.readable_annotation_note_container),
+            note = noteInput,
+            save = content.findViewById<MaterialButton>(R.id.readable_annotation_save).apply { text = saveLabel },
+            delete = content.findViewById<MaterialButton>(R.id.readable_annotation_delete).apply {
+                visibility = if (canDelete) View.VISIBLE else View.GONE
+            },
+            close = close,
+        )
+    }
+
+    private fun confirmDelete(annotation: Annotation, onDeleted: () -> Unit) {
+        MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.readable_reader_annotation_delete_title)
             .setMessage(R.string.readable_reader_annotation_delete_body)
             .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.delete) { _, _ ->
                 activity.lifecycleScope.launch {
                     val result = try {
-                        withContext(Dispatchers.IO) {
-                            logic().useCases.removeAnnotation.await(annotation.id)
-                        }
+                        withContext(Dispatchers.IO) { logic().useCases.removeAnnotation.await(annotation.id) }
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (_: Exception) {
                         toast(R.string.readable_reader_annotation_delete_failed, Toast.LENGTH_LONG)
                         return@launch
                     }
-                    if (result == RemoveAnnotationResult.NotFound) {
-                        toast(R.string.readable_reader_annotation_missing, Toast.LENGTH_LONG)
-                    }
+                    toast(
+                        if (result == RemoveAnnotationResult.Removed) R.string.readable_reader_annotation_deleted
+                        else R.string.readable_reader_annotation_missing,
+                        Toast.LENGTH_SHORT,
+                    )
+                    onDeleted()
                 }
             }
             .show()
     }
 
-    private fun annotationNoteInput(existing: String? = null) = EditText(activity).apply {
-        hint = activity.getString(R.string.readable_reader_annotation_note_hint)
-        contentDescription = hint
-        inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or
-            InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-        minLines = 3
-        maxLines = 8
-        filters = arrayOf(InputFilter.LengthFilter(MAX_ANNOTATION_NOTE_LENGTH))
-        setText(existing.orEmpty())
-        setSelection(text.length)
+    private fun showInvalidNote(editor: AnnotationEditor) {
+        editor.noteContainer.error = activity.getString(R.string.readable_reader_annotation_note_too_long)
+        setEditorBusy(editor, false)
+    }
+
+    private fun setEditorBusy(editor: AnnotationEditor, busy: Boolean) {
+        editor.note.isEnabled = !busy
+        editor.save.isEnabled = !busy
+        editor.delete.isEnabled = !busy
+        editor.close.isEnabled = !busy
+    }
+
+    private fun BottomSheetDialog.showExpanded() {
+        setOnShowListener {
+            findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.let { sheet ->
+                BottomSheetBehavior.from(sheet).state = BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
+        show()
     }
 
     private fun toast(message: Int, duration: Int) {
@@ -321,11 +347,17 @@ internal class ReadablePaperAnnotationController(
     }
 }
 
-internal fun readableAnnotationLabel(
-    quoteExact: String,
-    note: String?,
-    withNote: (String) -> String = { quote -> quote },
-): String {
+private data class AnnotationEditor(
+    val dialog: BottomSheetDialog,
+    val noteContainer: TextInputLayout,
+    val note: TextInputEditText,
+    val save: MaterialButton,
+    val delete: MaterialButton,
+    val close: MaterialButton,
+)
+
+internal fun readableAnnotationLabel(quoteExact: String, note: String?): String {
     val quote = quoteExact.replace(Regex("\\s+"), " ").trim().take(72)
-    return if (note.isNullOrBlank()) quote else withNote(quote)
+    val notePreview = note?.replace(Regex("\\s+"), " ")?.trim()?.take(72).orEmpty()
+    return if (notePreview.isBlank()) quote else "$quote\n$notePreview"
 }

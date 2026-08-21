@@ -20,7 +20,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,6 +45,7 @@ import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.components.StatusBadge
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.displayProviderName
@@ -108,8 +108,8 @@ fun UpdatesScreen(
                 LoadState.Loading -> item {
                     PaperStatePanel(
                         title = stringResource(R.string.saved_searches_loading),
-                        body = stringResource(R.string.saved_searches_loading_body),
                         loading = true,
+                        compact = true,
                     )
                 }
 
@@ -118,6 +118,7 @@ fun UpdatesScreen(
                         title = stringResource(R.string.saved_searches_load_failed),
                         body = stringResource(R.string.data_error_body),
                         icon = PaperIconKey.ERROR,
+                        compact = true,
                     )
                 }
 
@@ -127,6 +128,7 @@ fun UpdatesScreen(
                             title = stringResource(R.string.saved_searches_empty_title),
                             body = stringResource(R.string.saved_searches_empty_body),
                             icon = PaperIconKey.BOOKMARK_ADD,
+                            compact = true,
                         )
                     }
                 } else {
@@ -160,6 +162,7 @@ fun UpdatesScreen(
                                         },
                                     ),
                                     icon = PaperIconKey.SEARCH,
+                                    compact = true,
                                 )
                             }
                         } else {
@@ -188,8 +191,8 @@ fun UpdatesScreen(
                 LoadState.Loading -> item {
                     PaperStatePanel(
                         title = stringResource(R.string.updates_title),
-                        body = stringResource(R.string.library_loading_body),
                         loading = true,
+                        compact = true,
                     )
                 }
 
@@ -198,6 +201,7 @@ fun UpdatesScreen(
                         title = stringResource(R.string.data_error_title),
                         body = stringResource(R.string.data_error_body),
                         icon = PaperIconKey.ERROR,
+                        compact = true,
                     )
                 }
 
@@ -205,8 +209,8 @@ fun UpdatesScreen(
                     item {
                         PaperStatePanel(
                             title = stringResource(R.string.download_queue_empty_title),
-                            body = stringResource(R.string.download_queue_empty_body),
                             icon = PaperIconKey.SYNC,
+                            compact = true,
                         )
                     }
                 } else {
@@ -233,7 +237,7 @@ fun UpdatesScreen(
             title = { Text(stringResource(R.string.delete_saved_search_title)) },
             text = { Text(stringResource(R.string.delete_saved_search_body, feed.search.queryText)) },
             confirmButton = {
-                TextButton(
+                PaperTextButton(
                     onClick = {
                         pendingDeleteSearch = null
                         onDeleteSearch(feed.search.id.value)
@@ -241,7 +245,7 @@ fun UpdatesScreen(
                 ) { Text(stringResource(R.string.delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDeleteSearch = null }) {
+                PaperTextButton(onClick = { pendingDeleteSearch = null }) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -318,7 +322,11 @@ private fun SavedSearchHeader(
         }
         if (refreshing) {
             Spacer(Modifier.height(10.dp))
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth(),
+                color = PaperTheme.tokens.ink,
+                trackColor = PaperTheme.tokens.surfaceMuted,
+            )
         }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -397,7 +405,11 @@ private fun SavedSearchHitRow(
                     modifier = Modifier.weight(1f),
                 ) {
                     if (saving) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(Modifier.size(8.dp))
                     }
                     Text(stringResource(if (saving) R.string.saving_paper else R.string.save_paper))
@@ -454,48 +466,56 @@ private fun TaskRow(
     onRemove: () -> Unit,
 ) {
     val availableActions = downloadTaskActions(task)
-    PaperSurface(onClick = onClick) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            StatusBadge(taskStateLabel(task.state), color = taskStateColor(task.state))
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+    val rowClick = onClick.takeIf { availableActions.isEmpty() }
+    val kindLabel = stringResource(
+        if (task.kind == TaskKind.DOWNLOAD) R.string.task_download else R.string.task_extraction,
+    )
+    val metadata = buildList {
+        if (paperTitle != null) add(kindLabel)
+        if (task.attempt > 0) add(stringResource(R.string.task_attempt, task.attempt))
+    }
+    PaperSurface(onClick = rowClick) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
                 Text(
-                    text = paperTitle ?: stringResource(
-                        if (task.kind == TaskKind.DOWNLOAD) R.string.task_download else R.string.task_extraction,
-                    ),
+                    text = paperTitle ?: kindLabel,
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                if (paperTitle != null) {
-                    PaperLabel(
-                        stringResource(
-                            if (task.kind == TaskKind.DOWNLOAD) R.string.task_download else R.string.task_extraction,
-                        ),
+                if (acting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = PaperTheme.tokens.ink,
+                        strokeWidth = 2.dp,
                     )
                 }
-                if (task.state == TaskState.RUNNING) PaperProgress(task.progress.toFloat())
-                if (task.attempt > 0) {
-                    PaperLabel(stringResource(R.string.task_attempt, task.attempt))
-                }
-                if (task.state == TaskState.FAILED) {
-                    Text(
-                        text = downloadFailureMessage(task.failureCode),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = PaperTheme.tokens.danger,
-                    )
-                }
-                if (task.kind == TaskKind.DOWNLOAD && task.state == TaskState.SUCCEEDED) {
-                    Text(
-                        text = stringResource(R.string.task_clear_keeps_file),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = PaperTheme.tokens.inkMuted,
-                    )
-                }
+                StatusBadge(taskStateLabel(task.state), color = taskStateColor(task.state))
             }
-            if (acting) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            if (metadata.isNotEmpty()) PaperLabel(metadata.joinToString(" · "))
+            if (task.state == TaskState.RUNNING) PaperProgress(task.progress.toFloat())
+            if (task.state == TaskState.FAILED) {
+                Text(
+                    text = downloadFailureMessage(task.failureCode),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PaperTheme.tokens.danger,
+                )
+            }
+            if (task.kind == TaskKind.DOWNLOAD && task.state == TaskState.SUCCEEDED) {
+                Text(
+                    text = stringResource(R.string.task_clear_keeps_file),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PaperTheme.tokens.inkMuted,
+                )
             }
         }
         if (actionFailed) {
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.task_action_failed),
                 style = MaterialTheme.typography.bodyMedium,
@@ -503,30 +523,36 @@ private fun TaskRow(
             )
         }
         if (availableActions.isNotEmpty()) {
-            Spacer(Modifier.height(12.dp))
-            Row(
+            Spacer(Modifier.height(8.dp))
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                if (onClick != null) {
+                    PaperSecondaryButton(
+                        onClick = onClick,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.task_open_paper)) }
+                }
                 if (DownloadTaskAction.CANCEL in availableActions) {
                     PaperSecondaryButton(
                         onClick = onCancel,
                         enabled = !acting,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.task_cancel_action)) }
                 }
                 if (DownloadTaskAction.RETRY in availableActions) {
                     PaperPrimaryButton(
                         onClick = onRetry,
                         enabled = !acting,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.task_retry_action)) }
                 }
                 if (DownloadTaskAction.REMOVE in availableActions) {
                     PaperSecondaryButton(
                         onClick = onRemove,
                         enabled = !acting,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.task_remove_action)) }
                 }
             }

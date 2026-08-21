@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="remove_history_title">Remove from reading history?</string>
+    <string name="remove_history_body">Remove “%1$s” from History? The saved paper remains available in Library.</string>
+    <string name="remove_history_confirm">Remove</string>
+    <string name="search_recent_query">Search again for “%1$s”</string>
+    <string name="task_open_paper">Open paper</string>
+</resources>

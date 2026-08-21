@@ -25,6 +25,7 @@ import dev.paperreader.app.reader.renderReadablePaperExportHtml
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
+import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.reader.ReadablePaperFailure
 import dev.paperreader.logic.reader.ReadablePaperResult
@@ -36,17 +37,19 @@ import kotlinx.coroutines.withContext
 @Composable
 internal fun ReadableHtmlDownloadAction(
     manifestationId: String,
-    onLoadReadablePaper: suspend () -> ReadablePaperResult,
+    onLoadReadablePaper: suspend (String?) -> ReadablePaperResult,
     onError: (Int?) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var preparing by remember(manifestationId) { mutableStateOf(false) }
+    var selectingDestination by remember(manifestationId) { mutableStateOf(false) }
     var writing by remember(manifestationId) { mutableStateOf(false) }
     var pendingDocument by remember(manifestationId) { mutableStateOf<ReadablePaperDocument?>(null) }
     val createDocument = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/html"),
     ) { destination ->
+        selectingDestination = false
         val document = pendingDocument
         pendingDocument = null
         if (destination == null || document == null) {
@@ -60,7 +63,29 @@ internal fun ReadableHtmlDownloadAction(
                 withContext(Dispatchers.IO) {
                     ReadablePaperHtmlFileGateway(context.contentResolver).write(destination, html)
                 }
-                Toast.makeText(context, R.string.readable_reader_html_saved, Toast.LENGTH_SHORT).show()
+                val retained = try {
+                    withContext(Dispatchers.IO) {
+                        (onLoadReadablePaper(document.documentSha256) as? ReadablePaperResult.Ready)
+                            ?.document
+                            ?.let { retainedDocument ->
+                                retainedDocument.documentSha256 == document.documentSha256 &&
+                                    retainedDocument.keptForOffline
+                            } == true
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    false
+                }
+                Toast.makeText(
+                    context,
+                    if (retained) {
+                        R.string.readable_reader_html_saved_offline
+                    } else {
+                        R.string.readable_reader_html_saved_external_only
+                    },
+                    Toast.LENGTH_LONG,
+                ).show()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
@@ -70,17 +95,19 @@ internal fun ReadableHtmlDownloadAction(
             }
         }
     }
+    val busy = preparing || selectingDestination || writing
     PaperSecondaryButton(
-        enabled = !preparing && !writing,
+        enabled = !busy,
         onClick = {
-            if (preparing || writing) return@PaperSecondaryButton
+            if (busy) return@PaperSecondaryButton
             scope.launch {
                 preparing = true
                 onError(null)
                 try {
-                    when (val result = onLoadReadablePaper()) {
+                    when (val result = withContext(Dispatchers.IO) { onLoadReadablePaper(null) }) {
                         is ReadablePaperResult.Ready -> {
                             pendingDocument = result.document
+                            selectingDestination = true
                             createDocument.launch(readablePaperHtmlFileName(result.document))
                         }
                         is ReadablePaperResult.Unavailable -> onError(result.reason.messageResource())
@@ -88,6 +115,8 @@ internal fun ReadableHtmlDownloadAction(
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (_: Exception) {
+                    selectingDestination = false
+                    pendingDocument = null
                     onError(R.string.readable_reader_html_save_failed)
                 } finally {
                     preparing = false
@@ -96,15 +125,19 @@ internal fun ReadableHtmlDownloadAction(
         },
         modifier = Modifier.fillMaxWidth(),
     ) {
-        if (preparing || writing) {
-            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+        if (busy) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                color = PaperTheme.tokens.ink,
+                strokeWidth = 2.dp,
+            )
         } else {
             PaperIcon(PaperIconKey.DOWNLOAD, contentDescription = null)
         }
         Spacer(Modifier.size(8.dp))
         Text(
             stringResource(
-                if (preparing || writing) {
+                if (busy) {
                     R.string.readable_reader_html_preparing
                 } else {
                     R.string.readable_reader_download_html

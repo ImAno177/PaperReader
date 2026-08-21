@@ -9,8 +9,10 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -82,9 +84,8 @@ fun PaperReaderApp(
         if (logic == null) {
             PaperStatePanel(
                 title = stringResource(R.string.app_initializing_title),
-                body = stringResource(R.string.app_initializing_body),
                 loading = true,
-                modifier = Modifier.fillMaxSize().background(PaperTheme.tokens.canvas),
+                modifier = Modifier.fillMaxSize().background(PaperTheme.tokens.canvas).windowInsetsPadding(WindowInsets.safeDrawing),
             )
         } else {
             PaperReaderContent(
@@ -379,7 +380,7 @@ private fun PaperReaderNavigation(
     onSetPaperCollections: suspend (String, Set<Long>) -> dev.paperreader.logic.domain.repository.SetPaperCollectionsResult,
     onRequestDownload: (String, String) -> Unit,
     onGetDownloadedPaper: suspend (String) -> dev.paperreader.logic.task.DownloadedPaper?,
-    onLoadReadablePaper: suspend (String, String) -> dev.paperreader.logic.reader.ReadablePaperResult,
+    onLoadReadablePaper: suspend (String, String, String?) -> dev.paperreader.logic.reader.ReadablePaperResult,
     onDeleteDownload: suspend (String, String) -> dev.paperreader.logic.task.DeleteDownloadResult,
     onCancelDownloadTask: (String) -> Unit,
     onRetryDownloadTask: (String) -> Unit,

@@ -19,6 +19,7 @@ import dev.paperreader.app.ui.theme.PaperReaderTheme
 import dev.paperreader.app.ui.theme.PaperThemePreset
 import dev.paperreader.logic.provider.AvailableProviderPlugin
 import dev.paperreader.logic.provider.InstalledProvider
+import dev.paperreader.logic.provider.OrphanedProviderPlugin
 import dev.paperreader.logic.provider.ProviderDescriptor
 import dev.paperreader.logic.provider.ProviderManagerState
 import dev.paperreader.logic.provider.ProviderOrigin
@@ -49,23 +50,18 @@ class SourcesScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Security attention").assertIsDisplayed()
+        composeRule.onNodeWithText("Blocked extensions").assertIsDisplayed()
         composeRule.onNodeWithText("Untrusted").assertIsDisplayed()
-        composeRule.onNodeWithText("Blocked").assertIsDisplayed()
-        composeRule.onNodeWithText("Show details").performClick()
+        composeRule.onNodeWithContentDescription("Show details for Untrusted").performClick()
         composeRule.onNodeWithText("Package: dev.example.untrusted").assertIsDisplayed()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Installed"))
         composeRule.onNodeWithText("Installed").assertIsDisplayed()
         composeRule.onNodeWithText("arXiv").assertIsDisplayed()
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Available packages"))
-        composeRule.onNodeWithText("Available packages").assertIsDisplayed()
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Available"))
+        composeRule.onNodeWithText("Available").assertIsDisplayed()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Example provider"))
         composeRule.onNodeWithText("Example provider").assertIsDisplayed()
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(
-            hasText("Android asks for confirmation.", substring = true),
-        )
-        composeRule.onNodeWithText("Android asks for confirmation.", substring = true)
-            .assertIsDisplayed()
+        composeRule.onNodeWithText("v2").assertIsDisplayed()
     }
 
     @Test
@@ -82,6 +78,8 @@ class SourcesScreenTest {
 
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
         composeRule.onNodeWithText("PaperReader community").assertIsDisplayed()
+        composeRule.onNodeWithText("Semantic Scholar").assertDoesNotExist()
+        composeRule.onNodeWithText("1 release").performClick()
         composeRule.onNodeWithText("Semantic Scholar").assertIsDisplayed()
         composeRule.onNodeWithText("Install extension").assertIsDisplayed()
     }
@@ -100,25 +98,48 @@ class SourcesScreenTest {
             }
         }
 
+        composeRule.onNodeWithText("1 release").performClick()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader Community Theme"))
         composeRule.onNodeWithText("Install extension").performClick()
         assertEquals("dev.paperreader.themes.community", requestedPackage)
     }
 
     @Test
-    fun installedThemeDoesNotOfferInstallAgain() {
+    fun installedSourceAndThemeReleasesDoNotOfferInstallAgain() {
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 SourcesScreen(
-                    providers = ProviderManagerState(),
-                    extensionStores = signedThemeStoreState(),
+                    providers = ProviderManagerState(
+                        installed = listOf(
+                            InstalledProvider(
+                                descriptor = ProviderDescriptor(
+                                    id = "semanticscholar",
+                                    displayName = "Semantic Scholar",
+                                    minimumRequestIntervalMillis = 1_000,
+                                ),
+                                origin = ProviderOrigin.COMMUNITY_PLUGIN,
+                                packageName = "dev.paperreader.extensions.semanticscholar",
+                                versionCode = 3,
+                            ),
+                        ),
+                    ),
+                    extensionStores = signedStoreState().copy(
+                        stores = signedStoreState().stores + signedThemeStoreState().stores,
+                    ),
                     installedThemeVersions = mapOf("dev.paperreader.themes.community" to 4L),
                     onBack = {},
                 )
             }
         }
 
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader Community Theme"))
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
+        composeRule.onNodeWithContentDescription("Show releases from PaperReader community").performClick()
+        composeRule.onNodeWithText("Semantic Scholar").assertIsDisplayed()
+        composeRule.onNodeWithText("Install extension").assertDoesNotExist()
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader themes"))
+        composeRule.onNodeWithContentDescription("Show releases from PaperReader themes").performClick()
+        composeRule.onNodeWithText("PaperReader Community Theme").assertIsDisplayed()
         composeRule.onNodeWithText("Install extension").assertDoesNotExist()
         assertTrue(composeRule.onAllNodesWithText("Installed").fetchSemanticsNodes().isNotEmpty())
     }
@@ -139,6 +160,7 @@ class SourcesScreenTest {
             }
         }
 
+        composeRule.onNodeWithText("1 release").performClick()
         composeRule.onNode(hasScrollToIndexAction())
             .performScrollToNode(hasText("Cancel · Waiting to download"))
         composeRule.onNodeWithText("Cancel · Waiting to download").performClick()
@@ -179,7 +201,7 @@ class SourcesScreenTest {
 
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
         composeRule.onNodeWithText("Official").assertIsDisplayed()
-        assertTrue(composeRule.onAllNodesWithText("Blocked").fetchSemanticsNodes().isNotEmpty())
+        composeRule.onNodeWithText("Blocked extensions").assertIsDisplayed()
         composeRule.onNodeWithText("Install extension").assertDoesNotExist()
     }
 
@@ -215,6 +237,7 @@ class SourcesScreenTest {
             }
         }
 
+        composeRule.onNodeWithText("1 release").performClick()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Semantic Scholar"))
         assertTrue(
             composeRule.onAllNodesWithText("Update extension").fetchSemanticsNodes().isNotEmpty(),
@@ -239,55 +262,34 @@ class SourcesScreenTest {
             }
         }
 
+        composeRule.onNodeWithText("1 release").performClick()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Semantic Scholar"))
         composeRule.onNodeWithText("Install extension").assertDoesNotExist()
+        composeRule.onNodeWithText("Unavailable").assertIsDisplayed()
     }
 
     @Test
-    fun currentInstalledReleaseDoesNotOfferInstallAgain() {
-        val installedPackage = "dev.paperreader.extensions.semanticscholar"
-        composeRule.setContent {
-            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
-                SourcesScreen(
-                    providers = ProviderManagerState(
-                        installed = listOf(
-                            InstalledProvider(
-                                descriptor = ProviderDescriptor(
-                                    id = "semanticscholar",
-                                    displayName = "Semantic Scholar",
-                                    minimumRequestIntervalMillis = 1_000,
-                                ),
-                                origin = ProviderOrigin.COMMUNITY_PLUGIN,
-                                packageName = installedPackage,
-                                versionCode = 3,
-                            ),
-                        ),
-                    ),
-                    extensionStores = signedStoreState(),
-                    onBack = {},
-                )
-            }
-        }
-
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
-        composeRule.onNodeWithText("Install extension").assertDoesNotExist()
-        assertTrue(composeRule.onAllNodesWithText("Installed").fetchSemanticsNodes().isNotEmpty())
-    }
-
-    @Test
-    fun MoreHubSurfacesBlockedProviderAttentionBeforeInstalledCount() {
+    fun MoreHubCombinesAllProviderIssuesIntoOneReviewCount() {
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 MoreScreen(
                     selectedPreset = PaperThemePreset.NEOBRUTALISM,
-                    providers = providerState(),
+                    providers = providerState().copy(
+                        orphaned = listOf(
+                            OrphanedProviderPlugin(
+                                packageName = "dev.example.orphaned",
+                                displayName = "Orphaned",
+                                versionCode = 1,
+                            ),
+                        ),
+                    ),
                 )
             }
         }
 
         composeRule.onNode(hasScrollToIndexAction())
-            .performScrollToNode(hasText("1 blocked provider needs review"))
-        composeRule.onNodeWithText("1 blocked provider needs review").assertIsDisplayed()
+            .performScrollToNode(hasText("2 need review"))
+        composeRule.onNodeWithText("2 need review").assertIsDisplayed()
     }
 
     @Test
@@ -326,6 +328,30 @@ class SourcesScreenTest {
     }
 
     @Test
+    fun orphanedProviderDefersTechnicalDetails() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                SourcesScreen(
+                    providers = ProviderManagerState(
+                        orphaned = listOf(
+                            OrphanedProviderPlugin(
+                                packageName = "dev.example.orphaned",
+                                displayName = "Example source",
+                                versionCode = 1,
+                            ),
+                        ),
+                    ),
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Package: dev.example.orphaned").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Show details for Example source").performClick()
+        composeRule.onNodeWithText("Package: dev.example.orphaned").assertIsDisplayed()
+    }
+
+    @Test
     fun emptySourcesStateRendersInsideLazyListWithoutNestedScrollCrash() {
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
@@ -335,8 +361,8 @@ class SourcesScreenTest {
 
         composeRule.waitForIdle()
         composeRule.onNode(hasScrollToIndexAction())
-            .performScrollToNode(hasText("No providers are installed."))
-        composeRule.onNodeWithText("No providers are installed.").assertIsDisplayed()
+            .performScrollToNode(hasText("No providers installed"))
+        composeRule.onNodeWithText("No providers installed").assertIsDisplayed()
     }
 
     private fun providerState() = ProviderManagerState(

@@ -39,6 +39,33 @@ class SearchResultRankerTest {
     }
 
     @Test
+    fun `anchored phrase outranks incidental text without treating a short suffix as identity`() {
+        val canonical = paper(
+            "semanticscholar",
+            "1506.02640v5",
+            "You Only Look Once: Unified, Real-Time Object Detection",
+            citations = 10_000,
+            publishedDate = LocalDate.of(2015, 6, 8),
+        )
+        val shorterPrefix = paper(
+            "arxiv",
+            "shorter-prefix",
+            "You Only Look Once: A Survey",
+            publishedDate = LocalDate.of(2026, 7, 3),
+        )
+        val newer = paper(
+            "arxiv",
+            "2607.02025v1",
+            "You Only Look Once at Anytime (AnytimeYOLO): Early-Exit Object Detection",
+            publishedDate = LocalDate.of(2026, 7, 2),
+        )
+
+        val ranked = SearchResultRanker.rank("you only look once", clusters(shorterPrefix, newer, canonical))
+
+        assertEquals("1506.02640v5", ranked.first().records.single().providerRecordId)
+    }
+
+    @Test
     fun `exact canonical identifier outranks title and citations`() {
         val exact = paper(
             "arxiv",

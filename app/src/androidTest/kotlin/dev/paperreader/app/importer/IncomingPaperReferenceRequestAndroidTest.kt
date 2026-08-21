@@ -13,42 +13,47 @@ import org.junit.runner.RunWith
 class IncomingPaperReferenceRequestAndroidTest {
     @Test
     fun plainTextShareReturnsAnExactReferenceQuery() {
-        val reference = Intent(Intent.ACTION_SEND)
-            .setType("text/plain; charset=utf-8")
-            .putExtra(Intent.EXTRA_TEXT, "Read this\nhttps://arxiv.org/abs/2501.04510v2")
-            .incomingPaperReferencePayloadOrNull()
-            .let { it as IncomingPaperReferencePayload.Valid }
-            .reference
+        data class ValidCase(
+            val intent: Intent,
+            val type: IdentifierType,
+            val value: String,
+            val query: String,
+        )
 
-        assertEquals(IdentifierType.ARXIV, reference?.identifier?.type)
-        assertEquals("2501.04510", reference?.identifier?.value)
-        assertEquals("2501.04510v2", reference?.query)
-    }
-
-    @Test
-    fun clipTextIsAConstrainedFallback() {
-        val reference = Intent(Intent.ACTION_SEND).setType("text/plain").apply {
-            clipData = ClipData.newPlainText("DOI", "https://doi.org/10.1000/XYZ+ABC")
-        }.incomingPaperReferencePayloadOrNull()
-            .let { it as IncomingPaperReferencePayload.Valid }
-            .reference
-
-        assertEquals(IdentifierType.DOI, reference?.identifier?.type)
-        assertEquals("10.1000/xyz+abc", reference?.query)
-    }
-
-    @Test
-    fun arxivViewLinkReturnsAnExactReferenceQuery() {
-        val reference = Intent(
-            Intent.ACTION_VIEW,
-            android.net.Uri.parse("https://arxiv.org/html/1706.03762v7"),
-        ).incomingPaperReferencePayloadOrNull()
-            .let { it as IncomingPaperReferencePayload.Valid }
-            .reference
-
-        assertEquals(IdentifierType.ARXIV, reference?.identifier?.type)
-        assertEquals("1706.03762", reference?.identifier?.value)
-        assertEquals("1706.03762v7", reference?.query)
+        listOf(
+            ValidCase(
+                intent = Intent(Intent.ACTION_SEND)
+                    .setType("text/plain; charset=utf-8")
+                    .putExtra(Intent.EXTRA_TEXT, "Read this\nhttps://arxiv.org/abs/2501.04510v2"),
+                type = IdentifierType.ARXIV,
+                value = "2501.04510",
+                query = "2501.04510v2",
+            ),
+            ValidCase(
+                intent = Intent(Intent.ACTION_SEND).setType("text/plain").apply {
+                    clipData = ClipData.newPlainText("DOI", "https://doi.org/10.1000/XYZ+ABC")
+                },
+                type = IdentifierType.DOI,
+                value = "10.1000/xyz+abc",
+                query = "10.1000/xyz+abc",
+            ),
+            ValidCase(
+                intent = Intent(
+                    Intent.ACTION_VIEW,
+                    android.net.Uri.parse("https://arxiv.org/html/1706.03762v7"),
+                ),
+                type = IdentifierType.ARXIV,
+                value = "1706.03762",
+                query = "1706.03762v7",
+            ),
+        ).forEach { case ->
+            val reference = case.intent.incomingPaperReferencePayloadOrNull()
+                .let { it as IncomingPaperReferencePayload.Valid }
+                .reference
+            assertEquals(case.type, reference?.identifier?.type)
+            assertEquals(case.value, reference?.identifier?.value)
+            assertEquals(case.query, reference?.query)
+        }
     }
 
     @Test

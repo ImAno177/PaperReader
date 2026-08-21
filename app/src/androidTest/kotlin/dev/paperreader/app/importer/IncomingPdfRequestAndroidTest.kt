@@ -15,15 +15,11 @@ class IncomingPdfRequestAndroidTest {
     private val uri = Uri.parse("content://fixture/paper.pdf")
 
     @Test
-    fun viewIntentUsesItsContentUri() {
+    fun validPdfIntentsResolveTheSameContentUri() {
         assertEquals(
             uri,
             Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/pdf").incomingPdfUriOrNull(),
         )
-    }
-
-    @Test
-    fun sendIntentUsesStreamThenClipDataFallback() {
         val stream = Intent(Intent.ACTION_SEND).setType("application/pdf").putExtra(Intent.EXTRA_STREAM, uri)
         assertEquals(uri, stream.incomingPdfUriOrNull())
 

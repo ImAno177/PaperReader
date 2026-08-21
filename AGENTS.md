@@ -117,7 +117,13 @@ Update the relevant document when a decision changes.
 ## Development and verification
 
 - Use the Gradle wrapper, JDK 21, Android SDK 36/36.1, and Java/Kotlin bytecode target 17.
-- Every non-trivial logic change gets the smallest deterministic test plus the full local gate.
+- Keep the smallest stable contract test for regression-prone domain, persistence, migration, trust,
+  and security behavior. Extend the nearest existing test before adding another Kotlin test case or
+  test file.
+- Do not keep one-off tests that mirror an implementation detail or a closed visual bug once the
+  durable behavior is covered elsewhere. Remove obsolete, tautological, and duplicate tests during
+  the fix; verify UI polish and device-specific behavior through the connected/local smoke flow in
+  [`docs/TESTING.md`](docs/TESTING.md), not with one Kotlin test per pixel-level defect.
 - Preserve coroutine cancellation; do not block the main thread with database, network, parsing,
   hashing, or Binder work.
 - Do not add analytics, proprietary SDKs, credentials, private endpoints, destructive migrations,

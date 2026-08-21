@@ -10,6 +10,7 @@ import dev.paperreader.logic.domain.ReadingStatus
 import dev.paperreader.logic.domain.ReadingBookmark
 import dev.paperreader.logic.domain.ReadingBookmarkId
 import dev.paperreader.logic.domain.ManifestationId
+import dev.paperreader.logic.domain.PaperManifestation
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.domain.repository.LibraryRepository
 import dev.paperreader.logic.domain.repository.AnnotationRepository
@@ -41,7 +42,9 @@ import dev.paperreader.logic.provider.RemotePaper
 import dev.paperreader.logic.reader.ReadablePaperFailure
 import dev.paperreader.logic.reader.ReadablePaperLoader
 import dev.paperreader.logic.reader.ReadablePaperResult
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.Instant
 
@@ -81,8 +84,22 @@ class GetPaper(private val repository: LibraryRepository) {
     suspend fun await(workId: WorkId): LibraryPaper? = repository.get(workId)
 }
 
-class RemovePaper(private val repository: LibraryRepository) {
-    suspend fun await(workId: WorkId): RemovePaperResult = repository.remove(workId)
+class RemovePaper(
+    private val repository: LibraryRepository,
+    private val removeReadableArtifacts: suspend (PaperManifestation) -> Unit = {},
+) {
+    suspend fun await(workId: WorkId): RemovePaperResult {
+        val manifestations = repository.get(workId)?.manifestations.orEmpty()
+        val result = repository.remove(workId)
+        if (result == RemovePaperResult.Removed) {
+            withContext(NonCancellable) {
+                manifestations.forEach { manifestation ->
+                    runCatching { removeReadableArtifacts(manifestation) }
+                }
+            }
+        }
+        return result
+    }
 }
 
 class CreateCollection(private val repository: LibraryRepository) {
@@ -198,12 +215,13 @@ class LoadReadablePaper internal constructor(
     suspend fun await(
         workId: WorkId,
         manifestationId: ManifestationId,
+        retainDocumentSha256: String? = null,
     ): ReadablePaperResult {
         val paper = repository.get(workId)
             ?: return ReadablePaperResult.Unavailable(ReadablePaperFailure.PAPER_NOT_FOUND)
         val manifestation = paper.manifestations.firstOrNull { it.id == manifestationId }
             ?: return ReadablePaperResult.Unavailable(ReadablePaperFailure.MANIFESTATION_NOT_FOUND)
-        return loader.load(paper.work.title, manifestation)
+        return loader.load(paper.work.title, manifestation, retainDocumentSha256)
     }
 }
 
@@ -288,10 +306,11 @@ internal fun paperReaderUseCases(
     savedSearchRepository: SavedSearchRepository = UnavailableSavedSearchRepository,
     providerManager: dev.paperreader.logic.provider.ProviderManager =
         dev.paperreader.logic.provider.MutableProviderManager(emptyList()),
-    readablePaperLoader: ReadablePaperLoader = ReadablePaperLoader { _, _ ->
+    readablePaperLoader: ReadablePaperLoader = ReadablePaperLoader { _, _, _ ->
         ReadablePaperResult.Unavailable(ReadablePaperFailure.OFFLINE_OR_UNAVAILABLE)
     },
     annotationRepository: AnnotationRepository = UnavailableAnnotationRepository,
+    removeReadableArtifacts: suspend (PaperManifestation) -> Unit = {},
 ) : PaperReaderUseCases {
     val refreshSavedSearch = RefreshSavedSearch(savedSearchRepository, providerManager)
     val savedPaperEnricher = ReadableManifestationResolver(providerManager)
@@ -302,7 +321,7 @@ internal fun paperReaderUseCases(
     saveSearchResult = SaveSearchResult(repository, savedPaperEnricher),
     getPaper = GetPaper(repository),
     repairSavedPaper = RepairSavedPaper(repository, savedPaperEnricher),
-    removePaper = RemovePaper(repository),
+    removePaper = RemovePaper(repository, removeReadableArtifacts),
     createCollection = CreateCollection(repository),
     renameCollection = RenameCollection(repository),
     deleteCollection = DeleteCollection(repository),

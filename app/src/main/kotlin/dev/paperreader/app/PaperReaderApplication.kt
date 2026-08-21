@@ -88,6 +88,7 @@ class PaperReaderApplication : Application() {
         applicationIoScope.launch { themeExtensionManager.refresh() }
         applicationIoScope.launch { savedSearchRefreshScheduler.reconcile() }
         applicationIoScope.launch { reconcileInstalledExtensions() }
+        applicationIoScope.launch { logic.reconcileReadableArtifacts() }
         applicationIoScope.launch {
             refreshExtensionCatalogs()
         }

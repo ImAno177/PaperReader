@@ -74,6 +74,8 @@ class ArxivReadablePaperTest {
         assertTrue(document.text().contains("Noam Shazeer"))
         assertTrue(document.text().contains("Google Brain"))
         assertTrue(document.text().contains("noam@example.org"))
+        assertTrue(document.select("details.paperreader-author-notes").text().contains("Legacy Research Lab"))
+        assertFalse(document.select(".paperreader-author").text().contains("Legacy Research Lab"))
         assertTrue(document.text().contains("Body footnote remains"))
         assertEquals("1", document.selectFirst(".ltx_role_footnotemark .ltx_note_mark")?.text())
         assertTrue(document.select(".ltx_role_footnotemark .ltx_note_outer").isEmpty())
@@ -100,18 +102,35 @@ class ArxivReadablePaperTest {
             now = { Instant.parse("2026-08-12T00:00:00Z") },
         )
 
-        val first = firstLoader.load("CGP-Tuning", manifestation()) as ReadablePaperResult.Ready
+        val first = firstLoader.load("CGP-Tuning", manifestation(), null) as ReadablePaperResult.Ready
         assertFalse(first.document.servedFromCache)
+        assertFalse(first.document.keptForOffline)
         assertEquals(2, calls)
         assertEquals("v2", first.document.sourceVersion)
         assertTrue(first.document.documentSha256.matches(Regex("[0-9a-f]{64}")))
+
+        val retained = firstLoader.load(
+            "CGP-Tuning",
+            manifestation(),
+            retainDocumentSha256 = first.document.documentSha256,
+        ) as ReadablePaperResult.Ready
+        assertTrue(retained.document.servedFromCache)
+        assertTrue(retained.document.keptForOffline)
+        assertEquals(2, calls)
+        val mismatched = firstLoader.load("CGP-Tuning", manifestation(), "b".repeat(64))
+        assertEquals(
+            ReadablePaperFailure.INVALID_RESPONSE,
+            (mismatched as ReadablePaperResult.Unavailable).reason,
+        )
+        assertEquals(2, calls)
 
         val offlineLoader = ArxivReadablePaperLoader(
             fetcher = ReadableResourceFetcher { ReadableRemoteResult.Unavailable },
             cache = ReadablePaperCache(directory),
         )
-        val cached = offlineLoader.load("CGP-Tuning", manifestation()) as ReadablePaperResult.Ready
+        val cached = offlineLoader.load("CGP-Tuning", manifestation(), null) as ReadablePaperResult.Ready
         assertTrue(cached.document.servedFromCache)
+        assertTrue(cached.document.keptForOffline)
         assertEquals(first.document.bodyHtml, cached.document.bodyHtml)
         assertEquals(first.document.documentSha256, cached.document.documentSha256)
         assertEquals(first.document.sections, cached.document.sections)
@@ -130,7 +149,11 @@ class ArxivReadablePaperTest {
             cache = ReadablePaperCache(Files.createTempDirectory("attention-readable-paper")),
         )
 
-        val result = loader.load("Attention Is All You Need", attentionManifestation()) as ReadablePaperResult.Ready
+        val result = loader.load(
+            "Attention Is All You Need",
+            attentionManifestation(),
+            null,
+        ) as ReadablePaperResult.Ready
         val document = Jsoup.parseBodyFragment(result.document.bodyHtml, result.document.sourceUrl)
 
         assertEquals(listOf("https://arxiv.org/html/1706.03762v7"), requestedUrls)
@@ -146,7 +169,7 @@ class ArxivReadablePaperTest {
     }
 
     @Test
-    fun `sanitizer policy v9 bypasses a document cached under v7`() = runTest {
+    fun `current reader contract removes an older artifact for the same exact source`() = runTest {
         val directory = Files.createTempDirectory("readable-paper-policy")
         val cache = ReadablePaperCache(directory)
         val v7Key = ReadablePaperCache.keyFor(
@@ -154,7 +177,8 @@ class ArxivReadablePaperTest {
             sanitizerPolicyVersion = "arxiv-html-sanitizer-7",
             rendererContractVersion = "mobile-html-5",
         )
-        cache.write(v7Key, cachedRecord("stale-v7"))
+        cache.write(v7Key, cachedRecord("stale-v7").copy(sourceUrl = SOURCE_URL))
+        assertTrue(cache.keepForOffline(v7Key))
         var calls = 0
         val loader = ArxivReadablePaperLoader(
             fetcher = ReadableResourceFetcher { request ->
@@ -170,11 +194,12 @@ class ArxivReadablePaperTest {
             cache = cache,
         )
 
-        val result = loader.load("CGP-Tuning", manifestation()) as ReadablePaperResult.Ready
+        val result = loader.load("CGP-Tuning", manifestation(), null) as ReadablePaperResult.Ready
 
         assertFalse(result.document.servedFromCache)
         assertEquals(2, calls)
         assertTrue(result.document.bodyHtml.contains("paperreader-figure-unavailable"))
+        assertEquals(null, cache.read(v7Key))
     }
 
     @Test
@@ -187,6 +212,7 @@ class ArxivReadablePaperTest {
         val result = loader.load(
             "Unversioned",
             manifestation().copy(sourceRecordId = "2501.04510", version = null),
+            null,
         )
 
         assertEquals(
@@ -215,6 +241,7 @@ class ArxivReadablePaperTest {
         val prefixed = loader.load(
             "Paper",
             manifestation().copy(sourceProvider = "ARXIV", sourceRecordId = "arXiv:2501.04510", version = "v3"),
+            null,
         ) as ReadablePaperResult.Ready
         assertEquals("v3", prefixed.document.sourceVersion)
         assertEquals("https://arxiv.org/html/2501.04510v3", requested.first())
@@ -223,6 +250,7 @@ class ArxivReadablePaperTest {
         val explicit = loader.load(
             "Paper",
             manifestation().copy(sourceRecordId = "2501.04510v4", version = null),
+            null,
         ) as ReadablePaperResult.Ready
         assertEquals("v4", explicit.document.sourceVersion)
         assertEquals("https://arxiv.org/html/2501.04510v4", requested.first())
@@ -244,37 +272,45 @@ class ArxivReadablePaperTest {
             cache = ReadablePaperCache(unavailableCachePath),
         )
 
-        val result = loader.load("CGP-Tuning", manifestation())
+        val result = loader.load("CGP-Tuning", manifestation(), null)
 
         assertTrue(result is ReadablePaperResult.Ready)
         assertFalse((result as ReadablePaperResult.Ready).document.servedFromCache)
     }
 
     @Test
-    fun `cache evicts the least recently used complete document within a total byte budget`() {
+    fun `cache preserves an offline artifact while evicting ordinary entries`() {
         val directory = Files.createTempDirectory("readable-paper-budget")
         val cache = ReadablePaperCache(
             directory = directory,
             maximumCachedBodyBytes = 1_024,
             maximumTotalCacheBytes = 1_800,
+            maximumRetainedBytes = 1_300,
         )
         val firstKey = "1".repeat(64)
         val secondKey = "2".repeat(64)
+        val thirdKey = "3".repeat(64)
         val stalePartial = Files.write(directory.resolve(".interrupted.body.part"), ByteArray(512))
         cache.write(firstKey, cachedRecord("first"))
+        assertTrue(cache.keepForOffline(firstKey))
         val old = FileTime.fromMillis(1)
         Files.setLastModifiedTime(directory.resolve("$firstKey.body.html"), old)
         Files.setLastModifiedTime(directory.resolve("$firstKey.manifest"), old)
 
         cache.write(secondKey, cachedRecord("second"))
+        assertFalse(cache.keepForOffline(secondKey))
+        cache.write(thirdKey, cachedRecord("third"))
 
-        assertEquals(null, cache.read(firstKey))
-        assertEquals("second", cache.read(secondKey)?.sourceLicense)
+        assertTrue(checkNotNull(cache.read(firstKey)).keptForOffline)
+        assertEquals(null, cache.read(secondKey))
         assertFalse(Files.exists(stalePartial))
-        val cacheBytes = Files.newDirectoryStream(directory).use { paths ->
-            paths.filter(Files::isRegularFile).sumOf(Files::size)
-        }
-        assertTrue(cacheBytes <= 1_800)
+        val orphanKey = "4".repeat(64)
+        cache.write(orphanKey, cachedRecord("orphan"))
+        assertEquals(1, cache.removeSourcesNotIn(setOf("https://arxiv.org/html/first")))
+        assertEquals(null, cache.read(orphanKey))
+        assertTrue(checkNotNull(cache.read(firstKey)).keptForOffline)
+        assertEquals(1, cache.removeBySourceUrl("https://arxiv.org/html/first"))
+        assertEquals(null, cache.read(firstKey))
     }
 
     @Test
@@ -294,7 +330,7 @@ class ArxivReadablePaperTest {
         val unsupported = ArxivReadablePaperLoader(
             fetcher = ReadableResourceFetcher { error("must not fetch") },
             cache = ReadablePaperCache(directory),
-        ).load("Title", manifestation().copy(sourceProvider = "crossref"))
+        ).load("Title", manifestation().copy(sourceProvider = "crossref"), null)
         assertEquals(ReadablePaperFailure.UNSUPPORTED_SOURCE, (unsupported as ReadablePaperResult.Unavailable).reason)
 
         val outcomes = listOf(
@@ -308,7 +344,7 @@ class ArxivReadablePaperTest {
             val result = ArxivReadablePaperLoader(
                 fetcher = ReadableResourceFetcher { remote },
                 cache = ReadablePaperCache(directory.resolve("failure-$index")),
-            ).load("Title", manifestation()) as ReadablePaperResult.Unavailable
+            ).load("Title", manifestation(), null) as ReadablePaperResult.Unavailable
             assertEquals(expected, result.reason)
             if (remote is ReadableRemoteResult.RateLimited) assertEquals(2_000L, result.retryAfterMillis)
         }
@@ -322,14 +358,14 @@ class ArxivReadablePaperTest {
                 ReadableRemoteResult.Success(ReadableRemoteResource("pdf".toByteArray(), "application/pdf"))
             },
             cache = ReadablePaperCache(directory.resolve("non-html")),
-        ).load("Title", manifestation())
+        ).load("Title", manifestation(), null)
         assertEquals(ReadablePaperFailure.INVALID_RESPONSE, (nonHtml as ReadablePaperResult.Unavailable).reason)
 
         val malformed = manifestation().copy(sourceRecordId = "2501.04510", version = "bad")
         val result = ArxivReadablePaperLoader(
             fetcher = ReadableResourceFetcher { error("must not fetch") },
             cache = ReadablePaperCache(directory.resolve("malformed-version")),
-        ).load("Title", malformed)
+        ).load("Title", malformed, null)
         assertEquals(ReadablePaperFailure.UNVERSIONED_SOURCE, (result as ReadablePaperResult.Unavailable).reason)
     }
 
@@ -459,6 +495,9 @@ class ArxivReadablePaperTest {
                     <span class="ltx_contact ltx_role_affiliation"><span class="ltx_contact_name">Affiliation: </span>Google Brain</span>
                     <span class="ltx_contact ltx_role_email">Email: <a href="mailto:noam@example.org">noam@example.org</a></span>
                   </span></span>
+                </span>
+                <span class="ltx_author_before"> </span><span class="ltx_creator ltx_role_author">
+                  <span class="ltx_personname"><span class="ltx_text" style="font-size:90%;">Legacy Research Lab<a href="http://example.org/lab">http://example.org/lab</a></span></span>
                 </span>
               </div>
               <p>$body<span class="ltx_note ltx_role_footnote"><sup class="ltx_note_mark">1</sup>

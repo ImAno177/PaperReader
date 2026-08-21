@@ -2,7 +2,7 @@ package dev.paperreader.app.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -21,13 +21,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -42,10 +43,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
@@ -76,16 +80,38 @@ fun PaperPrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    contentDescription: String? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = 48.dp),
-        enabled = enabled,
-        shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        content = content,
-    )
+    val tokens = PaperTheme.tokens
+    PaperButtonFrame(modifier = modifier, enabled = enabled) { buttonModifier, interactionSource ->
+        val accessibleButtonModifier = contentDescription?.let { description ->
+            buttonModifier.semantics { this.contentDescription = description }
+        } ?: buttonModifier
+        Button(
+            onClick = onClick,
+            modifier = accessibleButtonModifier,
+            enabled = enabled,
+            shape = RoundedCornerShape(tokens.cornerRadius),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = tokens.primary,
+                contentColor = tokens.onPrimary,
+                disabledContainerColor = tokens.surfaceMuted,
+                disabledContentColor = tokens.inkMuted,
+            ),
+            border = BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp,
+                focusedElevation = 0.dp,
+                hoveredElevation = 0.dp,
+                disabledElevation = 0.dp,
+            ),
+            interactionSource = interactionSource,
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            content = content,
+        )
+    }
 }
 
 @Composable
@@ -95,15 +121,83 @@ fun PaperSecondaryButton(
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
-    OutlinedButton(
+    val tokens = PaperTheme.tokens
+    PaperButtonFrame(modifier = modifier, enabled = enabled) { buttonModifier, interactionSource ->
+        OutlinedButton(
+            onClick = onClick,
+            modifier = buttonModifier,
+            enabled = enabled,
+            shape = RoundedCornerShape(tokens.cornerRadius),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = tokens.surface,
+                contentColor = tokens.ink,
+                disabledContainerColor = tokens.surfaceMuted,
+                disabledContentColor = tokens.inkMuted,
+            ),
+            border = BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp,
+                focusedElevation = 0.dp,
+                hoveredElevation = 0.dp,
+                disabledElevation = 0.dp,
+            ),
+            interactionSource = interactionSource,
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            content = content,
+        )
+    }
+}
+
+@Composable
+fun PaperTextButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    contentPadding: PaddingValues = ButtonDefaults.TextButtonContentPadding,
+    content: @Composable RowScope.() -> Unit,
+) {
+    TextButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = 48.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
-        border = BorderStroke(PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp), PaperTheme.tokens.border),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = PaperTheme.tokens.ink,
+            disabledContentColor = PaperTheme.tokens.inkMuted.copy(alpha = 0.55f),
+        ),
+        contentPadding = contentPadding,
         content = content,
     )
+}
+
+@Composable
+private fun PaperButtonFrame(
+    modifier: Modifier,
+    enabled: Boolean,
+    content: @Composable (Modifier, MutableInteractionSource) -> Unit,
+) {
+    val tokens = PaperTheme.tokens
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val pressedOffsetY by animateDpAsState(
+        targetValue = if (enabled && pressed) tokens.shadowOffset else 0.dp,
+        animationSpec = tween(durationMillis = if (pressed) 100 else 180),
+        label = "paper button vertical press offset",
+    )
+    Box(
+        modifier = modifier.paperBottomShadow(
+            color = tokens.hardShadow.copy(alpha = if (enabled) 0.18f else 0.07f),
+            verticalOffset = tokens.shadowOffset,
+        ),
+        propagateMinConstraints = true,
+    ) {
+        content(
+            Modifier
+                .heightIn(min = 48.dp)
+                .offset(y = pressedOffsetY),
+            interactionSource,
+        )
+    }
 }
 
 @Composable
@@ -117,31 +211,33 @@ fun PaperSurface(
     val shape = RoundedCornerShape(tokens.cornerRadius)
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val pressedOffset by animateDpAsState(
+    val pressedOffsetY by animateDpAsState(
         targetValue = if (onClick != null && pressed) tokens.shadowOffset else 0.dp,
         animationSpec = tween(durationMillis = if (pressed) 100 else 180),
-        label = "paper surface press offset",
+        label = "paper surface vertical press offset",
     )
-    Box(modifier = modifier.padding(end = tokens.shadowOffset, bottom = tokens.shadowOffset)) {
-        if (tokens.shadowOffset > 0.dp) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .offset(x = tokens.shadowOffset, y = tokens.shadowOffset)
-                    .background(tokens.hardShadow, shape),
-            )
-        }
+    Box(
+        modifier = modifier.paperBottomShadow(
+            color = tokens.hardShadow.copy(alpha = 0.12f),
+            verticalOffset = tokens.shadowOffset,
+        ),
+    ) {
         val clickModifier = if (onClick == null) {
             Modifier
         } else {
             Modifier
-                .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-                .semantics { role = Role.Button }
+                .heightIn(min = 48.dp)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
+                    role = Role.Button,
+                    onClick = onClick,
+                )
         }
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(x = pressedOffset, y = pressedOffset)
+                .offset(y = pressedOffsetY)
                 .then(clickModifier),
             shape = shape,
             color = tokens.surface,
@@ -214,15 +310,17 @@ fun PaperMetaRow(
 @Composable
 fun PaperStatePanel(
     title: String,
-    body: String,
+    body: String? = null,
     modifier: Modifier = Modifier,
     icon: PaperIconKey? = null,
     loading: Boolean = false,
+    compact: Boolean = false,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val contentModifier = if (constraints.hasBoundedHeight) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val fillViewport = constraints.hasBoundedHeight && !compact
+        val contentModifier = if (fillViewport) {
             Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
@@ -233,56 +331,97 @@ fun PaperStatePanel(
             // list already owns overflow in that case.
             Modifier.fillMaxWidth()
         }
+        val contentPadding = if (fillViewport) {
+            PaddingValues(horizontal = 24.dp, vertical = 32.dp)
+        } else if (compact) {
+            PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+        } else {
+            PaddingValues(horizontal = 12.dp, vertical = 16.dp)
+        }
         Column(
-            modifier = contentModifier.padding(horizontal = 24.dp, vertical = 40.dp),
+            modifier = contentModifier.padding(contentPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(
+                if (compact) 4.dp else 8.dp,
+                Alignment.CenterVertically,
+            ),
         ) {
-            Surface(
-                color = PaperTheme.tokens.surfaceMuted,
-                contentColor = PaperTheme.tokens.emptyStateAccent,
-                shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
-                border = BorderStroke(
-                    PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp),
-                    PaperTheme.tokens.border,
-                ),
-            ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    when {
-                        loading -> CircularProgressIndicator(color = PaperTheme.tokens.emptyStateAccent)
-                        icon != null -> PaperIcon(
-                            key = icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(40.dp),
-                            tint = PaperTheme.tokens.emptyStateAccent,
-                        )
-                    }
-                    Text(
-                        text = title,
-                        modifier = Modifier.widthIn(max = 520.dp),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = PaperTheme.tokens.emptyStateAccent,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+            when {
+                loading -> CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    color = PaperTheme.tokens.ink,
+                    strokeWidth = 3.dp,
+                )
+                icon != null -> PaperStateIcon(icon, compact)
             }
             Text(
-                text = body,
-                modifier = Modifier.widthIn(max = 560.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                color = PaperTheme.tokens.inkMuted,
+                text = title,
+                modifier = Modifier.widthIn(max = 520.dp),
+                style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
+                color = PaperTheme.tokens.emptyStateAccent,
                 textAlign = TextAlign.Center,
             )
+            body?.takeIf(String::isNotBlank)?.let { supportingText ->
+                Text(
+                    text = supportingText,
+                    modifier = Modifier.widthIn(max = 560.dp),
+                    style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
+                    color = PaperTheme.tokens.inkMuted,
+                    textAlign = TextAlign.Center,
+                )
+            }
             if (actionLabel != null && onAction != null) {
                 PaperPrimaryButton(onClick = onAction) { Text(actionLabel) }
             }
         }
     }
 }
+
+@Composable
+private fun PaperStateIcon(icon: PaperIconKey, compact: Boolean) {
+    val tokens = PaperTheme.tokens
+    val shape = RoundedCornerShape(tokens.cornerRadius)
+    val tileSize = if (compact) 36.dp else 48.dp
+    Box(
+        modifier = Modifier.paperBottomShadow(
+            color = tokens.hardShadow.copy(alpha = if (compact) 0.12f else 0.18f),
+            verticalOffset = tokens.shadowOffset,
+        ),
+    ) {
+        Surface(
+            modifier = Modifier.size(tileSize),
+            shape = shape,
+            color = tokens.primary,
+            contentColor = tokens.onPrimary,
+            border = BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border),
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                PaperIcon(
+                    key = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(if (compact) 20.dp else 26.dp),
+                    tint = tokens.onPrimary,
+                )
+            }
+        }
+    }
+}
+
+private fun Modifier.paperBottomShadow(
+    color: Color,
+    verticalOffset: Dp,
+): Modifier = drawBehind {
+    val offsetY = verticalOffset.toPx()
+    if (offsetY > 0f) {
+        drawRect(
+            color = color,
+            topLeft = Offset(0f, (size.height - offsetY).coerceAtLeast(0f)),
+            size = Size(width = size.width, height = offsetY.coerceAtMost(size.height)),
+        )
+    }
+}.padding(bottom = verticalOffset)
 
 @Composable
 fun StatusBadge(
@@ -298,7 +437,7 @@ fun StatusBadge(
         contentColor = PaperTheme.tokens.ink,
         border = BorderStroke(
             PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp),
-            color.copy(alpha = 0.7f),
+            PaperTheme.tokens.border,
         ),
     ) {
         Row(
@@ -309,7 +448,12 @@ fun StatusBadge(
             if (icon != null) {
                 PaperIcon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
             }
-            Text(text, style = MaterialTheme.typography.labelMedium)
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -320,6 +464,7 @@ fun PaperProgress(
     modifier: Modifier = Modifier,
     label: String? = null,
 ) {
+    val boundedProgress = progress.coerceIn(0f, 1f)
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (label != null) {
             Row(
@@ -327,16 +472,16 @@ fun PaperProgress(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 PaperLabel(label)
-                PaperLabel("${(progress * 100).toInt()}%", color = PaperTheme.tokens.primary)
+                PaperLabel("${(boundedProgress * 100).toInt()}%", color = PaperTheme.tokens.ink)
             }
         }
         LinearProgressIndicator(
-            progress = { progress.coerceIn(0f, 1f) },
+            progress = { boundedProgress },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(PaperTheme.tokens.cornerRadius / 2)),
-            color = PaperTheme.tokens.primary,
+            color = PaperTheme.tokens.ink,
             trackColor = PaperTheme.tokens.surfaceMuted,
         )
     }

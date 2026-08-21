@@ -10,6 +10,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.ui.model.MetadataBackupSummaryUi
 import dev.paperreader.app.ui.model.MetadataBackupUiState
@@ -190,6 +193,47 @@ class MetadataBackupScreenTest {
         composeRule.onNodeWithText("Show more details").performClick()
         composeRule.onNodeWithText("provider-5", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText("annotation-5", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun aNewRestorePreviewStartsWithDetailsCollapsed() {
+        fun preview(createdAt: Instant) = MetadataRestorePreviewUi(
+            createdAt = createdAt,
+            summary = summary(),
+            newWorks = 2,
+            mergedWorks = 0,
+            skippedWorks = 1,
+            conflicts = (1..5).map { MetadataRestoreIssueUi("annotation_conflict", "annotation-$it") },
+            missingProviders = (1..5).map { "provider-$it" },
+            dormantReadingStates = 0,
+            dormantBookmarks = 0,
+            dormantAnnotations = 0,
+            skippedRecords = 1,
+        )
+        var state by mutableStateOf<MetadataBackupUiState>(
+            MetadataBackupUiState.Preview(preview(Instant.parse("2026-08-12T00:00:00Z"))),
+        )
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DataBackupScreen(
+                    state = state,
+                    onRequestExport = {},
+                    onRequestImport = {},
+                    onConfirmRestore = {},
+                    onDismissState = {},
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Show more details").performClick()
+        composeRule.onNodeWithText("provider-5", substring = true).assertIsDisplayed()
+        composeRule.runOnIdle {
+            state = MetadataBackupUiState.Preview(preview(Instant.parse("2026-08-13T00:00:00Z")))
+        }
+
+        composeRule.onNodeWithText("Show more details").assertIsDisplayed()
+        composeRule.onNodeWithText("provider-5", substring = true).assertDoesNotExist()
     }
 
     private fun summary() = MetadataBackupSummaryUi(

@@ -2,6 +2,7 @@ package dev.paperreader.app.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,7 +14,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.paperreader.app.reader.PdfReaderActivity
 import dev.paperreader.app.reader.ReadablePaperActivity
@@ -35,6 +36,7 @@ import dev.paperreader.app.R
 import dev.paperreader.app.ui.components.PaperPrimaryButton
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSurface
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.components.StatusBadge
 import dev.paperreader.app.ui.model.ManifestationUi
 import dev.paperreader.app.ui.model.displayProviderName
@@ -80,8 +82,6 @@ internal fun MobileReadAction(
         },
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
     ) {
-        PaperIcon(PaperIconKey.INFO, contentDescription = null)
-        Spacer(Modifier.size(8.dp))
         Text(stringResource(R.string.read_mobile_version))
     }
 }
@@ -100,7 +100,7 @@ internal fun ManifestationCard(
     showMobileReadAction: Boolean = true,
     onRequestDownload: () -> Unit,
     onGetDownloadedPaper: suspend () -> DownloadedPaper?,
-    onLoadReadablePaper: suspend () -> ReadablePaperResult,
+    onLoadReadablePaper: suspend (String?) -> ReadablePaperResult,
     onDeleteDownload: suspend () -> DeleteDownloadResult,
 ) {
     val uriHandler = LocalUriHandler.current
@@ -179,12 +179,14 @@ internal fun ManifestationCard(
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = manifestation.source.displayProviderName(),
                         modifier = Modifier.weight(1f),
                         color = PaperTheme.tokens.inkMuted,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Row(
@@ -197,6 +199,7 @@ internal fun ManifestationCard(
                             modifier = Modifier.weight(1f),
                             color = PaperTheme.tokens.inkMuted,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     } else {
                         Spacer(Modifier.weight(1f))
@@ -207,39 +210,46 @@ internal fun ManifestationCard(
                             modifier = Modifier.weight(1f),
                             color = PaperTheme.tokens.inkMuted,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     } else {
                         Spacer(Modifier.weight(1f))
                     }
                 }
-                StatusBadge(
-                    text = manifestation.license ?: stringResource(
-                        if (supportsMobileReading) {
-                            R.string.license_available_in_mobile_source
-                        } else {
-                            R.string.license_unknown
-                        },
-                    ),
-                    color = when {
-                        manifestation.license != null -> PaperTheme.tokens.success
-                        supportsMobileReading -> PaperTheme.tokens.primary
-                        else -> PaperTheme.tokens.warning
-                    },
-                )
-                if (supportsMobileReading) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     StatusBadge(
-                        text = stringResource(R.string.mobile_reading_available),
-                        color = PaperTheme.tokens.primary,
-                    )
-                }
-                manifestation.localCopy?.let { localCopy ->
-                    StatusBadge(
-                        text = stringResource(
-                            if (isImportedLocalPdf) R.string.local_file_size else R.string.downloaded_file_size,
-                            formatFileSize(localCopy.byteLength),
+                        text = manifestation.license ?: stringResource(
+                            if (supportsMobileReading) {
+                                R.string.license_available_in_mobile_source
+                            } else {
+                                R.string.license_unknown
+                            },
                         ),
-                        color = PaperTheme.tokens.success,
+                        color = when {
+                            manifestation.license != null -> PaperTheme.tokens.success
+                            supportsMobileReading -> PaperTheme.tokens.primary
+                            else -> PaperTheme.tokens.warning
+                        },
                     )
+                    if (supportsMobileReading) {
+                        StatusBadge(
+                            text = stringResource(R.string.mobile_reading_available),
+                            color = PaperTheme.tokens.primary,
+                        )
+                    }
+                    manifestation.localCopy?.let { localCopy ->
+                        StatusBadge(
+                            text = stringResource(
+                                if (isImportedLocalPdf) R.string.local_file_size else R.string.downloaded_file_size,
+                                formatFileSize(localCopy.byteLength),
+                            ),
+                            color = PaperTheme.tokens.success,
+                        )
+                    }
                 }
             }
         }
@@ -259,9 +269,15 @@ internal fun ManifestationCard(
                     LinearProgressIndicator(
                         progress = { task.progress.toFloat() },
                         modifier = Modifier.fillMaxWidth(),
+                        color = PaperTheme.tokens.ink,
+                        trackColor = PaperTheme.tokens.surfaceMuted,
                     )
                 } else {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = PaperTheme.tokens.ink,
+                        trackColor = PaperTheme.tokens.surfaceMuted,
+                    )
                 }
             }
         }
@@ -349,7 +365,7 @@ internal fun ManifestationCard(
                 }
                 val hasMoreOptions = manifestation.localCopy != null || pdfUrl != null || landingPageUrl != null
                 if (hasMoreOptions) {
-                    TextButton(
+                    PaperTextButton(
                         onClick = { showMoreOptions = !showMoreOptions },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
@@ -409,12 +425,12 @@ internal fun ManifestationCard(
                 )
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }, enabled = !deleting) {
+                PaperTextButton(onClick = { showDeleteDialog = false }, enabled = !deleting) {
                     Text(stringResource(R.string.cancel))
                 }
             },
             confirmButton = {
-                TextButton(
+                PaperTextButton(
                     enabled = !deleting,
                     onClick = {
                         scope.launch {
@@ -443,7 +459,11 @@ internal fun ManifestationCard(
                     },
                 ) {
                     if (deleting) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(Modifier.size(8.dp))
                     }
                     Text(stringResource(R.string.delete))

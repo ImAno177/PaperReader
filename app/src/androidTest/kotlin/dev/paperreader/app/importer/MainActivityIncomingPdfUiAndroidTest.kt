@@ -3,6 +3,8 @@ package dev.paperreader.app.importer
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -34,8 +36,8 @@ class MainActivityIncomingPdfUiAndroidTest {
             assertNull(composeRule.activity.intent.incomingPdfUriOrNull())
         }
 
-        composeRule.onNodeWithText("Import PDF").performClick()
-        waitForText("Local PDF ready")
+        composeRule.onNode(hasText("Import PDF") and hasClickAction()).performClick()
+        waitForText("Imported")
         composeRule.onNodeWithText("Open imported paper").performClick()
         waitForText("Paper detail")
 

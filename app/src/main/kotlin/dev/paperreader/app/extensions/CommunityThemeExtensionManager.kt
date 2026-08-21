@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import androidx.core.graphics.PathParser
+import dev.paperreader.app.R
 import dev.paperreader.app.ui.theme.CommunityPaperTheme
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.extensions.api.CommunityTheme
@@ -127,7 +128,8 @@ class CommunityThemeExtensionManager(
             } catch (error: Exception) {
                 issues += ThemeExtensionIssue(
                     packageName = trusted.packageName,
-                    message = error.message?.take(160)?.takeIf(String::isNotBlank) ?: "Theme extension failed validation",
+                    message = error.message?.take(160)?.takeIf(String::isNotBlank)
+                        ?: applicationContext.getString(R.string.theme_validation_failed),
                 )
             }
         }
@@ -138,7 +140,7 @@ class CommunityThemeExtensionManager(
             .forEach { packageName ->
                 issues += ThemeExtensionIssue(
                     packageName = packageName,
-                    message = "Installed theme extension is not present in a trusted store",
+                    message = applicationContext.getString(R.string.theme_not_in_trusted_store),
                 )
             }
         mutableCatalog.value = CommunityThemeCatalog(

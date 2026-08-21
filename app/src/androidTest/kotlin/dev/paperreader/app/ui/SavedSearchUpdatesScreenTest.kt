@@ -1,13 +1,19 @@
 package dev.paperreader.app.ui
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.ui.screen.DiscoverScreen
 import dev.paperreader.app.ui.screen.UpdatesScreen
@@ -31,8 +37,14 @@ import dev.paperreader.logic.provider.RemoteManifestation
 import dev.paperreader.logic.provider.CitationMetrics
 import dev.paperreader.logic.domain.ManifestationType
 import dev.paperreader.logic.usecase.SearchResultCluster
+import dev.paperreader.logic.task.PaperTask
+import dev.paperreader.logic.task.TaskId
+import dev.paperreader.logic.task.TaskKind
+import dev.paperreader.logic.task.TaskState
 import java.time.Instant
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,6 +53,31 @@ import org.junit.runner.RunWith
 class SavedSearchUpdatesScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Test
+    fun discoverSearchActionStaysAlignedAtLargeFontScale() {
+        composeRule.setContent {
+            val currentDensity = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(currentDensity.density, fontScale = 1.3f),
+            ) {
+                PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                    DiscoverScreen(
+                        state = SearchUiState(),
+                        onSearch = {},
+                        onClear = {},
+                        onSave = {},
+                        onOpenPaper = {},
+                    )
+                }
+            }
+        }
+
+        val fieldBounds = composeRule.onNode(hasSetTextAction()).fetchSemanticsNode().boundsInRoot
+        val actionBounds = composeRule.onNodeWithContentDescription("Search").fetchSemanticsNode().boundsInRoot
+        assertTrue(abs(fieldBounds.top - actionBounds.top) <= 2f)
+        assertTrue(abs(fieldBounds.height - actionBounds.height) <= 2f)
+    }
 
     @Test
     fun discoverFieldTracksANewExternallySubmittedQuery() {
@@ -62,6 +99,7 @@ class SavedSearchUpdatesScreenTest {
             state = SearchUiState(submittedQuery = "2501.04510v2", running = true)
         }
         composeRule.onNodeWithText("2501.04510v2").assertExists()
+        composeRule.onNodeWithContentDescription("Searching").assertExists()
     }
 
     @Test
@@ -88,6 +126,23 @@ class SavedSearchUpdatesScreenTest {
         composeRule.onNodeWithText("Save search").performClick()
 
         composeRule.runOnIdle { assertEquals("graph learning", savedQuery) }
+    }
+
+    @Test
+    fun discoverDoesNotOfferAnUnusableSavedSearchWithoutProviders() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DiscoverScreen(
+                    state = SearchUiState(submittedQuery = "attention is all you need"),
+                    onSearch = {},
+                    onClear = {},
+                    onSave = {},
+                    onOpenPaper = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Save search").assertDoesNotExist()
     }
 
     @Test
@@ -216,6 +271,24 @@ class SavedSearchUpdatesScreenTest {
     }
 
     @Test
+    fun discoverShowsAtMostFiveRecentSearchRows() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DiscoverScreen(
+                    state = SearchUiState(recentQueries = (1..6).map { "recent query $it" }),
+                    onSearch = {},
+                    onClear = {},
+                    onSave = {},
+                    onOpenPaper = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("recent query 5").assertExists()
+        composeRule.onNodeWithText("recent query 6").assertDoesNotExist()
+    }
+
+    @Test
     fun updatesRendersDurableHitsAndDispatchesInboxActions() {
         composeRule.enableAccessibilityChecks()
         val feed = feed()
@@ -279,6 +352,57 @@ class SavedSearchUpdatesScreenTest {
 
         composeRule.onNodeWithText("A real saved-search result").assertExists()
         composeRule.onNodeWithText("arXiv is unavailable.").assertExists()
+    }
+
+    @Test
+    fun emptyUpdateSectionsRemainCompactEnoughToScanTogether() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                UpdatesScreen(
+                    tasks = LoadState.Ready(emptyList()),
+                    providers = providerState(),
+                    savedSearches = LoadState.Ready(emptyList()),
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("No saved searches").assertIsDisplayed()
+        composeRule.onNodeWithText("No queued downloads").assertIsDisplayed()
+    }
+
+    @Test
+    fun completedDownloadPlacesStatusAtTheRightOfItsCompactHeader() {
+        val task = PaperTask(
+            id = TaskId("completed-download-ui"),
+            kind = TaskKind.DOWNLOAD,
+            workId = null,
+            targetKey = "paper.pdf",
+            state = TaskState.SUCCEEDED,
+            progress = 1.0,
+            attempt = 1,
+            failureCode = null,
+            createdAt = NOW,
+            updatedAt = NOW,
+        )
+        var removedTaskId: String? = null
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                UpdatesScreen(
+                    tasks = LoadState.Ready(listOf(task)),
+                    providers = providerState(),
+                    savedSearches = LoadState.Ready(emptyList()),
+                    onRemove = { removedTaskId = it },
+                )
+            }
+        }
+
+        val titleNode = composeRule.onNodeWithText("PDF download").performScrollTo()
+        val titleBounds = titleNode.fetchSemanticsNode().boundsInRoot
+        val statusBounds = composeRule.onNodeWithText("Completed").fetchSemanticsNode().boundsInRoot
+        assertTrue(statusBounds.left > titleBounds.left)
+        assertTrue(statusBounds.top < titleBounds.bottom)
+        composeRule.onNodeWithText("Clear").performClick()
+        composeRule.runOnIdle { assertEquals(task.id.value, removedTaskId) }
     }
 
     private fun feed() = SavedSearchFeed(

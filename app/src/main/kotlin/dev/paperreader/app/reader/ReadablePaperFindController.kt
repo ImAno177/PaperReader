@@ -13,8 +13,11 @@ import dev.paperreader.app.R
 
 internal const val LOCAL_RENDERER_HOST = "appassets.androidplatform.net"
 internal const val LOCAL_RENDERER_PATH = "/readable/"
+internal const val READABLE_ANNOTATION_PATH_PREFIX = "/annotation/"
 internal const val CITATION_SCHEME = "paperreader-citation"
 private const val FIND_DEBOUNCE_MILLIS = 150L
+private const val FIND_SCROLL_SETTLE_MILLIS = 48L
+private const val FIND_TOP_INSET_DP = 24
 private val SAFE_BIBLIOGRAPHY_ANCHOR = Regex("bib\\.[A-Za-z0-9._:-]{1,150}", RegexOption.IGNORE_CASE)
 
 internal class ReadablePaperFindController(
@@ -30,22 +33,24 @@ internal class ReadablePaperFindController(
     private var pendingSearch: Runnable? = null
     private var currentQuery = ""
     private var dispatchedQuery: String? = null
+    private var findRequestId = 0L
 
     val isVisible: Boolean
         get() = container.visibility == View.VISIBLE
 
     init {
-        previousButton.setOnClickListener { webView.findNext(false) }
-        nextButton.setOnClickListener { webView.findNext(true) }
+        previousButton.setOnClickListener { findNext(forward = false) }
+        nextButton.setOnClickListener { findNext(forward = true) }
         closeButton.setOnClickListener { hide(clearQuery = true) }
         queryInput.doAfterTextChanged { search(it?.toString().orEmpty()) }
         queryInput.setOnEditorActionListener { _, _, _ ->
-            if (nextButton.isEnabled) webView.findNext(true)
+            if (nextButton.isEnabled) findNext(forward = true)
             true
         }
         webView.setFindListener { activeMatchOrdinal, numberOfMatches, isDoneCounting ->
             if (isDoneCounting && dispatchedQuery == currentQuery && currentQuery.isNotEmpty()) {
                 showResult(activeMatchOrdinal, numberOfMatches)
+                if (numberOfMatches > 0) keepActiveMatchBelowTopEdge(findRequestId)
             }
         }
     }
@@ -64,6 +69,7 @@ internal class ReadablePaperFindController(
     }
 
     fun hide(clearQuery: Boolean) {
+        findRequestId += 1
         pendingSearch?.let(queryInput::removeCallbacks)
         pendingSearch = null
         dispatchedQuery = null
@@ -77,6 +83,7 @@ internal class ReadablePaperFindController(
     }
 
     private fun search(rawQuery: String) {
+        findRequestId += 1
         val query = rawQuery.trim()
         currentQuery = query
         dispatchedQuery = null
@@ -99,6 +106,23 @@ internal class ReadablePaperFindController(
             dispatchedQuery = query
             webView.findAllAsync(query)
         }.also { queryInput.postDelayed(it, FIND_DEBOUNCE_MILLIS) }
+    }
+
+    private fun findNext(forward: Boolean) {
+        findRequestId += 1
+        webView.findNext(forward)
+    }
+
+    private fun keepActiveMatchBelowTopEdge(requestId: Long) {
+        webView.postDelayed(
+            {
+                if (isVisible && requestId == findRequestId) {
+                    val inset = (FIND_TOP_INSET_DP * webView.resources.displayMetrics.density).toInt()
+                    webView.scrollBy(0, -inset)
+                }
+            },
+            FIND_SCROLL_SETTLE_MILLIS,
+        )
     }
 
     private fun showResult(activeMatchOrdinal: Int, numberOfMatches: Int) {
@@ -131,5 +155,20 @@ internal fun bibliographyAnchorFromCitationTarget(target: String?): String? {
     val anchor = uri.path?.removePrefix("/") ?: return null
     return anchor.takeIf {
         uri.scheme == CITATION_SCHEME && uri.host == "anchor" && isBibliographyAnchor(it)
+    }
+}
+
+internal fun annotationIdFromReaderTarget(target: String?): String? {
+    val uri = target?.let { runCatching { URI(it) }.getOrNull() } ?: return null
+    val id = uri.path?.removePrefix(READABLE_ANNOTATION_PATH_PREFIX) ?: return null
+    return id.takeIf {
+        uri.scheme == "https" &&
+            uri.host == LOCAL_RENDERER_HOST &&
+            uri.port == -1 &&
+            uri.userInfo == null &&
+            uri.query == null &&
+            uri.fragment == null &&
+            uri.path == "$READABLE_ANNOTATION_PATH_PREFIX$id" &&
+            SAFE_READER_ELEMENT_ID.matches(id)
     }
 }

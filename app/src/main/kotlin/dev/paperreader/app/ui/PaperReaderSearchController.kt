@@ -1,6 +1,8 @@
 package dev.paperreader.app.ui
 
 import dev.paperreader.app.ui.model.SearchPaperUi
+import dev.paperreader.app.ui.model.PaperUi
+import dev.paperreader.app.ui.model.persistedSavedWorkIds
 import dev.paperreader.app.ui.model.toSearchPaperUi
 import dev.paperreader.app.settings.PaperReaderPreferences
 import dev.paperreader.logic.PaperReaderLogic
@@ -104,6 +106,7 @@ internal class PaperReaderSearchController(
     private val scope: CoroutineScope,
     private val providers: StateFlow<ProviderManagerState>,
     private val preferences: PaperReaderPreferences,
+    private val library: StateFlow<LoadState<List<PaperUi>>>,
 ) {
     val savedSearches: StateFlow<LoadState<List<SavedSearchFeed>>> = logic.useCases.observeSavedSearches
         .subscribe()
@@ -113,11 +116,23 @@ internal class PaperReaderSearchController(
     val search: StateFlow<SearchUiState> = mutableSearch
     private var searchJob: Job? = null
     private var searchGeneration = 0L
+    private var savedLibrary = emptyList<PaperUi>()
+    private val newlySavedWorkIds = linkedMapOf<String, String>()
 
     private val mutableSavedSearchActions = MutableStateFlow(SavedSearchActionUiState())
     val savedSearchActions: StateFlow<SavedSearchActionUiState> = mutableSavedSearchActions
 
     init {
+        scope.launch {
+            library.collect { state ->
+                if (state !is LoadState.Ready) return@collect
+                savedLibrary = state.value
+                val liveWorkIds = savedLibrary.mapTo(hashSetOf(), PaperUi::id)
+                newlySavedWorkIds.entries.removeAll { (_, workId) -> workId !in liveWorkIds }
+                val current = mutableSearch.value
+                mutableSearch.value = current.copy(savedWorkIds = savedWorkIdsFor(current.results))
+            }
+        }
         scope.launch {
             preferences.recentSearchQueries.collect { queries ->
                 mutableSearch.value = mutableSearch.value.copy(recentQueries = queries)
@@ -174,8 +189,9 @@ internal class PaperReaderSearchController(
                                 ).map { it.toSearchPaperUi(providerNames) }
                             }
                             if (generation == searchGeneration) {
-                                mutableSearch.value = mutableSearch.value.copy(
-                                    providerStates = mutableSearch.value.providerStates.map { provider ->
+                                val current = mutableSearch.value
+                                mutableSearch.value = current.copy(
+                                    providerStates = current.providerStates.map { provider ->
                                         if (provider.providerId == event.providerId) {
                                             provider.copy(
                                                 status = ProviderSearchStatus.READY,
@@ -186,6 +202,7 @@ internal class PaperReaderSearchController(
                                         }
                                     },
                                     results = rankedResults,
+                                    savedWorkIds = savedWorkIdsFor(rankedResults),
                                 )
                             }
                         }
@@ -239,9 +256,11 @@ internal class PaperReaderSearchController(
         scope.launch {
             try {
                 val workId = logic.useCases.saveSearchResult.await(SearchResultCluster(result.records))
-                mutableSearch.value = mutableSearch.value.copy(
-                    savingKeys = mutableSearch.value.savingKeys - result.key,
-                    savedWorkIds = mutableSearch.value.savedWorkIds + (result.key to workId.value),
+                newlySavedWorkIds[result.key] = workId.value
+                val latest = mutableSearch.value
+                mutableSearch.value = latest.copy(
+                    savingKeys = latest.savingKeys - result.key,
+                    savedWorkIds = savedWorkIdsFor(latest.results),
                 )
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -252,6 +271,12 @@ internal class PaperReaderSearchController(
                 )
             }
         }
+    }
+
+    private fun savedWorkIdsFor(results: List<SearchPaperUi>): Map<String, String> {
+        val resultKeys = results.mapTo(hashSetOf(), SearchPaperUi::key)
+        return persistedSavedWorkIds(results, savedLibrary) +
+            newlySavedWorkIds.filterKeys(resultKeys::contains)
     }
 
     fun createSavedSearch(query: String) {

@@ -7,7 +7,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -36,12 +35,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.navigation.NavHostController
@@ -183,6 +184,7 @@ internal fun AdaptiveAppShell(
     content: @Composable (Modifier) -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(PaperTheme.tokens.canvas)) {
+        val showLabels = LocalDensity.current.fontScale < 1.5f
         if (maxWidth < 600.dp) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
@@ -202,6 +204,7 @@ internal fun AdaptiveAppShell(
                                 icon = destination.icon,
                                 label = stringResource(destination.labelRes),
                                 testKey = destination.route,
+                                showLabel = showLabels,
                             )
                         }
                     }
@@ -226,6 +229,7 @@ internal fun AdaptiveAppShell(
                             testKey = destination.route,
                             itemHeight = if (compactRail) 56.dp else 72.dp,
                             visualPadding = PaddingValues(if (compactRail) 2.dp else 4.dp),
+                            showLabel = showLabels,
                         )
                     }
                 }
@@ -245,6 +249,7 @@ private fun PaperDestinationItem(
     testKey: String,
     itemHeight: Dp = 72.dp,
     visualPadding: PaddingValues = PaddingValues(4.dp),
+    showLabel: Boolean = true,
 ) {
     val tokens = PaperTheme.tokens
     val borderWidth by animateDpAsState(
@@ -252,21 +257,7 @@ private fun PaperDestinationItem(
         animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
         label = "primary navigation border width",
     )
-    val borderColor by animateColorAsState(
-        targetValue = if (selected) tokens.border else Color.Transparent,
-        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-        label = "primary navigation border color",
-    )
-    val containerColor by animateColorAsState(
-        targetValue = if (selected) tokens.primary else Color.Transparent,
-        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-        label = "primary navigation container color",
-    )
-    val contentColor by animateColorAsState(
-        targetValue = if (selected) tokens.onPrimary else tokens.ink,
-        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
-        label = "primary navigation content color",
-    )
+    val borderColor = if (selected) tokens.border else Color.Transparent
     val iconScale by animateFloatAsState(
         targetValue = if (selected) 1.08f else 1f,
         animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
@@ -275,15 +266,16 @@ private fun PaperDestinationItem(
     Box(
         modifier = modifier.height(itemHeight)
             .testTag("$PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX$testKey")
-            .selectable(selected = selected, onClick = onClick, role = Role.Tab),
+            .selectable(selected = selected, onClick = onClick, role = Role.Tab)
+            .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
         Surface(
             modifier = Modifier.fillMaxSize().padding(visualPadding)
                 .testTag("$PRIMARY_NAVIGATION_ITEM_VISUAL_TEST_TAG_PREFIX$testKey"),
             shape = RoundedCornerShape(tokens.cornerRadius),
-            color = containerColor,
-            contentColor = contentColor,
+            color = Color.Transparent,
+            contentColor = tokens.ink,
             border = BorderStroke(borderWidth, borderColor).takeIf { borderWidth > 0.dp },
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,
@@ -301,17 +293,16 @@ private fun PaperDestinationItem(
                         scaleY = iconScale
                     },
                 )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    softWrap = false,
-                    // Five destinations share a compact navigation bar. A smaller fixed label
-                    // keeps every English label readable instead of truncating it to “Upda…”.
-                    fontSize = 10.sp,
-                    overflow = TextOverflow.Clip,
-                    textAlign = TextAlign.Center,
-                )
+                if (showLabel) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }

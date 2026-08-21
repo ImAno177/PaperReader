@@ -118,6 +118,26 @@ class LibraryScreenTest {
         composeRule.runOnIdle { assertTrue(read) }
     }
 
+    @Test
+    fun emptyLibraryKeepsTheMessageActionableWithoutAContentCard() {
+        var discover = false
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                LibraryScreen(
+                    state = LoadState.Ready(emptyList()),
+                    onLayoutChange = {},
+                    onOpenPaper = {},
+                    onDiscover = { discover = true },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Your library is empty").assertExists()
+        composeRule.onNodeWithText("Search for a paper or import a PDF.").assertExists()
+        composeRule.onNodeWithText("Find a paper").performClick()
+        composeRule.runOnIdle { assertTrue(discover) }
+    }
+
     private fun paper(id: String, title: String, authors: List<String>) = PaperUi(
         id = id,
         title = title,

@@ -1,7 +1,7 @@
 # PaperReader contributor instructions
 
-These rules apply to the whole repository. Prefer the smallest complete vertical slice, preserve
-existing user work, and never present a stub as a production feature.
+Status: current contributor policy for the whole repository. Prefer the smallest complete vertical
+slice, preserve existing user work, and never present a stub as a production feature.
 
 ## Documentation index
 
@@ -25,6 +25,8 @@ Update the relevant document when a decision changes.
   documents.
 - Use one H1 per file, sentence case for section headings, and a blank line around headings, lists,
   tables, and code fences. Keep paragraphs short enough to scan on GitHub.
+- GitHub issue and pull-request templates are exempt from the H1 and opening-status rules because the
+  surrounding GitHub page supplies that context.
 - Start each document with its purpose and status. Describe implemented behavior as present tense;
   put planned, deferred, experimental, and removed behavior in clearly named sections.
 - Do not describe mocks, screenshots, prototypes, or roadmap items as shipped features. Use explicit
@@ -117,16 +119,14 @@ Update the relevant document when a decision changes.
 ## Development and verification
 
 - Use the Gradle wrapper, JDK 21, Android SDK 36/36.1, and Java/Kotlin bytecode target 17.
-- Every non-trivial logic change gets the smallest deterministic test plus the full local gate.
+- Every non-trivial logic change gets the smallest deterministic test plus the local gate defined in
+  [`docs/TESTING.md`](docs/TESTING.md).
 - Preserve coroutine cancellation; do not block the main thread with database, network, parsing,
   hashing, or Binder work.
 - Do not add analytics, proprietary SDKs, credentials, private endpoints, destructive migrations,
   lint baselines, or speculative modules.
 - Reuse a connected emulator; do not wipe it, factory-reset it, or start a duplicate instance.
 
-```powershell
-.\gradlew.bat hostUnitTest hostLint :app:assembleDebug
-```
-
-Run connected tests for Android-runtime or UI changes and report the exact device/API and actions.
+Run the connected gate in [`docs/TESTING.md`](docs/TESTING.md) for Android-runtime or UI changes and
+report the exact device/API and actions.
 A handoff states behavior, public API/schema impact, exact checks, and intentionally deferred work.

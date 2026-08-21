@@ -74,9 +74,9 @@ jobs:
           cache-read-only: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
           cache-cleanup: on-success
 
-      - name: Run unit tests
+      - name: Run unit tests and generate coverage
         id: unit_tests
-        run: ./gradlew hostUnitTest --stacktrace
+        run: ./gradlew coverageReport --continue --stacktrace
 
       - name: Verify lint and debug APK
         run: ./gradlew hostLint :app:assembleDebug --stacktrace
@@ -92,15 +92,6 @@ jobs:
             app/build/reports/tests/testDebugUnitTest
           if-no-files-found: warn
           retention-days: 14
-
-      - name: Generate JaCoCo unit-test reports
-        if: always()
-        run: >-
-          ./gradlew
-          :extension-api:jacocoDebugUnitTestReport
-          :logic:jacocoDebugUnitTestReport
-          :app:jacocoDebugUnitTestReport
-          --stacktrace
 
       - name: Upload JaCoCo reports
         if: always()

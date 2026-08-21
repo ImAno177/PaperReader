@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve PaperReader. The project is pre-1.0, so start with a focused issue before
+Status: current contributor workflow for the pre-1.0 `main` branch. Start with a focused issue before
 large UI, schema, provider, reader, or dependency changes.
 
 ## Ground rules
@@ -23,28 +23,17 @@ large UI, schema, provider, reader, or dependency changes.
 3. Update `docs/SPEC.md`, `docs/ARCHITECTURE.md`, or `docs/EXTENSIONS.md` when a documented decision changes.
 4. Update `CHANGELOG.md` for user-visible, public API, schema, security, build, or CI changes. Keep
    unreleased work under `Unreleased` until a tag exists.
-5. Run Markdown lint when changing documentation:
-
-   ```powershell
-   npx --yes markdownlint-cli2 "**/*.md" "!**/build/**" "!**/.gradle/**" "!design-skills/**" "!.agents/**"
-   ```
-
-6. Run the required gate:
-
-   ```powershell
-   .\gradlew.bat hostUnitTest hostLint :app:assembleDebug
-   ```
-
-7. Run connected tests for Android runtime/UI changes and report the device/API used.
+5. Run the Markdown and local host gates defined in [`docs/TESTING.md`](docs/TESTING.md).
+6. Run the connected gate for Android runtime/UI changes and report the device/API used.
 
 Provider unit tests must use recorded local fixtures. Live API calls belong in an explicit manual
 verification, not the deterministic suite. Never weaken `LogicBoundaryTest`, add a lint baseline, or
 use destructive Room migration as a shortcut.
 
-Dependabot opens grouped Gradle and GitHub Actions updates weekly on Monday at 09:00 ICT because its
-configuration does not accept arbitrary cron expressions. Maintainers review and merge that queue
-every other Monday. Security-update groups stay separate from minor and patch updates; handle urgent
-fixes outside the biweekly review cadence.
+Dependabot checks grouped Gradle and GitHub Actions updates at 09:00 ICT on the first and fifteenth of
+each month. The schedule in [`.github/dependabot.yml`](.github/dependabot.yml) is authoritative.
+Security-update groups stay separate from minor and patch updates; handle urgent fixes outside those
+review windows.
 
 Pull requests should explain the user-visible change, public facade/schema impact, tests run, and any
 deliberately deferred behavior.

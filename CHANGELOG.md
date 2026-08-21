@@ -1,15 +1,34 @@
 # Changelog
 
-This file records user-visible changes to PaperReader. The `Unreleased` section describes the
-current branch. Released sections correspond to Git tags.
+Status: current release ledger. This file records user-visible changes to PaperReader. The
+`Unreleased` section describes the current branch; released sections correspond to Git tags.
 
 ## [Unreleased]
 
+### Changed
+
+- Grid cards now prioritize title, discipline, and reading state by omitting secondary author metadata,
+  keeping only the text before `:` in long titles, and clamping the result to two lines; the quick-read
+  action is labeled `Read` in both library layouts.
+
+### Security
+
+- Added the GitHub-verified MobSF source scan with pinned action revisions and SARIF upload to Code
+  Scanning.
+
+### Build
+
+- Centralized host test and lint task ownership. Android CI now runs unit tests and JaCoCo from one
+  coverage task graph, and releases require a green run for the exact commit instead of repeating the
+  host gate.
+
+## [0.1.7] - 2026-08-21
+
 ### Added
 
-- Library cards now expose a full-width quick Read action that opens the mobile reader or a local PDF.
-- Paper Detail can download a verified, sanitized readable HTML file beside the PDF action for each
-  supported arXiv version.
+- Library cards expose a full-width quick Read action that opens the mobile reader or a local PDF.
+- Paper Detail can download verified, sanitized readable HTML beside the PDF action for each supported
+  arXiv version.
 - Search can open a constrained Google arXiv query inside PaperReader and route a selected result to
   the native arXiv metadata pipeline without launching an external browser.
 
@@ -19,9 +38,6 @@ current branch. Released sections correspond to Git tags.
   actions behind progressive disclosure, and presents identifiers in one compact group.
 - The Library grid uses a phone-sized minimum column width so the persisted layout toggle produces a
   visibly distinct two-column layout on common handsets.
-- Grid cards now prioritize title, discipline, and reading state by omitting secondary author metadata,
-  keeping only the text before `:` in long titles, and clamping the result to two lines; the quick-read
-  action is labeled `Read` in both library layouts.
 - The search field remains fixed below the page title while results scroll.
 - Neobrutalism keeps mustard, violet, and status accents unchanged between light and dark modes;
   only neutral canvas, surface, text, and outline roles invert.
@@ -42,13 +58,6 @@ current branch. Released sections correspond to Git tags.
 
 - Updated jsoup to 1.23.1, constrained dependency submission to packaged runtime configurations, and
   added CodeQL plus grouped twice-monthly security updates to the source-extension repository.
-- Added the GitHub-verified MobSF source scan with pinned action revisions and SARIF upload to Code
-  Scanning.
-
-### Build
-
-- Centralized the host unit-test and lint commands in root Gradle tasks. Release builds now require a
-  successful Android CI run for the exact commit instead of rerunning the host gate.
 
 ### Removed
 
@@ -137,7 +146,8 @@ current branch. Released sections correspond to Git tags.
 
 - The separate-extension model and the first signed source-update contract.
 
-[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.7
 [0.1.6]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.6
 [0.1.5]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.5
 [0.1.4]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.4

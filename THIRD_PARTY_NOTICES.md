@@ -1,16 +1,17 @@
 # Third-party notices
 
-PaperReader's source code is licensed under Apache-2.0. The Android application is built from
-open-source dependencies, including the components listed below. The repository root [`NOTICE`](NOTICE)
-contains the project notice text; CI publishes an SPDX SBOM for each build artifact.
+Status: current for the `main` branch. PaperReader's source code is licensed under Apache-2.0. The
+Android application is built from open-source dependencies, including the components listed below.
+The repository root [`NOTICE`](NOTICE) contains the project notice text; CI publishes an SPDX SBOM
+for each build artifact.
 
 | Component | Version/source | License |
 | --- | --- | --- |
 | AndroidX libraries, including Room, WorkManager, Compose, Navigation, and PDF | versions declared in Gradle | Apache-2.0 |
 | Kotlin and kotlinx.coroutines/serialization | versions declared in Gradle | Apache-2.0 |
-| OkHttp | 5.1.0 | Apache-2.0 |
-| jsoup | 1.22.2 | MIT |
-| Google Tink | 1.23.0 | Apache-2.0 |
+| OkHttp | version declared in Gradle | Apache-2.0 |
+| jsoup | version declared in Gradle | MIT |
+| Google Tink | version declared in Gradle | Apache-2.0 |
 | Material Components / Material 3 | versions declared in Gradle | Apache-2.0 |
 | Material Symbols | `50f0603134ce7b70b2d71b686cc13e8b57ccb74c` | Apache-2.0 |
 

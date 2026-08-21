@@ -51,10 +51,9 @@ records instead of host database/domain types. A source preserves provider recor
 validates URLs, limits responses to 50 records per page, and reports rate limiting through
 `retryAfterMillis`.
 
-Each official provider owns one upstream API only. Crossref is exact-DOI metadata enrichment, not
-free-text discovery. Semantic Scholar is the default free-text engine. arXiv and Europe PMC expose
-search and content capabilities; the host admits them as discovery fallbacks when they advertise
-`DISCOVERY`, while content manifestations still require upstream response and license/access evidence.
+Each official provider owns one upstream API only. The canonical provider roles and host routing
+policy live in the [`Provider model`](SPEC.md#provider-model); this document owns only the extension
+wire, packaging, and trust contract.
 
 ## Theme extensions
 
@@ -100,42 +99,8 @@ The envelope contains Base64 exact UTF-8 index bytes and an Ed25519 signature ov
 The decoded index uses schema version 1. Increment `sequence` whenever any signed content changes.
 PaperReader rejects rollback, same-sequence equivocation, duplicate packages, unknown fields/values,
 oversized data, non-HTTPS URLs, incompatible API ranges, and indexes beyond the clock-skew allowance.
-
-```json
-{
-  "schemaVersion": 1,
-  "storeId": "paperreader.official.sources",
-  "displayName": "PaperReader official sources",
-  "websiteUrl": "https://github.com/ImAno177/PaperReader-sources",
-  "sequence": 1,
-  "generatedAt": "2026-08-13T06:00:00Z",
-  "extensions": [
-    {
-      "kind": "source",
-      "packageName": "dev.paperreader.sources.semanticscholar",
-      "serviceClassName": "dev.paperreader.sources.semanticscholar.SemanticScholarSourceService",
-      "displayName": "Semantic Scholar",
-      "versionCode": 1,
-      "minimumVersionCode": 1,
-      "versionName": "0.1.0",
-      "signerSha256": "64_HEX_CHARACTERS",
-      "minimumHostApi": 1,
-      "maximumHostApi": 1,
-      "installUrl": "https://github.com/ImAno177/PaperReader-sources/releases/download/v0.1.0/source-semanticscholar.apk",
-      "apkSha256": "64_HEX_CHARACTERS",
-      "apkSizeBytes": 123456,
-      "license": "Apache-2.0",
-      "privacyUrl": "https://api.semanticscholar.org/api-docs/graph",
-      "providerId": "semanticscholar",
-      "minimumRequestIntervalMillis": 1000,
-      "sourceCapabilities": ["search", "details"],
-      "sourceRoles": ["search_engine"],
-      "sourceIdentifierTypes": [],
-      "sourceSupportedSorts": ["relevance"]
-    }
-  ]
-}
-```
+The complete tracked example in [`docs/examples/extension-index.json`](examples/extension-index.json)
+is the canonical documentation fixture for index fields; the runtime decoder remains authoritative.
 
 `apkSha256` and `apkSizeBytes` are required together for every newly published installable release. They
 bind the signed registry to exact APK bytes. A legacy schema-v1 entry missing both fields remains visible

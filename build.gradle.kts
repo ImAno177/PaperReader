@@ -27,9 +27,19 @@ tasks.register("hostLint") {
     )
 }
 
+tasks.register("hostConnectedTest") {
+    group = "verification"
+    description = "Runs connected Android tests for every production module."
+    dependsOn(
+        ":extension-api:connectedDebugAndroidTest",
+        ":logic:connectedDebugAndroidTest",
+        ":app:connectedDebugAndroidTest",
+    )
+}
+
 tasks.register("coverageReport") {
     group = "verification"
-    description = "Generates debug unit-test coverage reports for every production module."
+    description = "Runs deterministic JVM tests and generates debug coverage for every production module."
     dependsOn(
         ":extension-api:jacocoDebugUnitTestReport",
         ":logic:jacocoDebugUnitTestReport",
@@ -39,9 +49,9 @@ tasks.register("coverageReport") {
 
 tasks.register("coverageConnectedReport") {
     group = "verification"
-    description = "Generates merged unit and connected Android coverage for every production module."
+    description = "Generates merged Android coverage and enforces configured module thresholds."
     dependsOn(
-        ":extension-api:jacocoDebugCombinedReport",
+        ":extension-api:verifyDebugCombinedCoverage",
         ":logic:jacocoDebugCombinedReport",
         ":app:jacocoDebugCombinedReport",
     )

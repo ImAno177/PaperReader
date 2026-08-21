@@ -303,11 +303,11 @@ APK, placeholder reader, or passing screenshot alone does not satisfy this contr
 
 ## Primary references
 
-- [Mihon extension API update flow](https://github.com/mihonapp/mihon/blob/main/app/src/main/java/eu/kanade/tachiyomi/extension/api/ExtensionApi.kt)
-- [Mihon extension manager](https://github.com/mihonapp/mihon/blob/main/app/src/main/java/eu/kanade/tachiyomi/extension/ExtensionManager.kt)
-- [Mihon extension installer](https://github.com/mihonapp/mihon/blob/main/app/src/main/java/eu/kanade/tachiyomi/extension/ExtensionInstaller.kt)
-- [Mihon global-search toolbar and source filters](https://raw.githubusercontent.com/mihonapp/mihon/master/app/src/main/java/eu/kanade/presentation/browse/components/GlobalSearchToolbar.kt)
-- [Mihon per-source search states](https://raw.githubusercontent.com/mihonapp/mihon/master/app/src/main/java/eu/kanade/presentation/browse/GlobalSearchScreen.kt)
+- [Mihon extension API update flow](https://github.com/mihonapp/mihon/blob/497e2662565c2727113125493a324465b9bc56ff/app/src/main/java/eu/kanade/tachiyomi/extension/api/ExtensionApi.kt)
+- [Mihon extension manager](https://github.com/mihonapp/mihon/blob/497e2662565c2727113125493a324465b9bc56ff/app/src/main/java/eu/kanade/tachiyomi/extension/ExtensionManager.kt)
+- [Mihon extension installer](https://github.com/mihonapp/mihon/blob/497e2662565c2727113125493a324465b9bc56ff/app/src/main/java/eu/kanade/tachiyomi/extension/util/ExtensionInstaller.kt)
+- [Mihon global-search toolbar and source filters](https://github.com/mihonapp/mihon/blob/497e2662565c2727113125493a324465b9bc56ff/app/src/main/java/eu/kanade/presentation/browse/components/GlobalSearchToolbar.kt)
+- [Mihon per-source search states](https://github.com/mihonapp/mihon/blob/497e2662565c2727113125493a324465b9bc56ff/app/src/main/java/eu/kanade/presentation/browse/GlobalSearchScreen.kt)
 - [Android Compose SearchBar guidance](https://developer.android.com/develop/ui/compose/components/search-bar)
 - [arXiv API user manual](https://info.arxiv.org/help/api/user-manual.html)
 - [arXiv HTML availability](https://info.arxiv.org/about/reports/2023_arxiv_annual_report.html)

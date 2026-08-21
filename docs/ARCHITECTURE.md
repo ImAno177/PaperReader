@@ -68,23 +68,12 @@ feature, state-machine, or lifecycle seam instead of introducing pass-through wr
 - An annotation belongs to one exact sanitized document hash and stable source/text anchor. It is
   never silently moved across revisions, renderers, sanitizers, or files.
 
-## Provider roles
+## Provider boundary
 
-Provider capabilities are explicit and independently selectable:
-
-| Provider | Role | Default |
-| --- | --- | --- |
-| Semantic Scholar | Free-text search and citation observations | Search engine |
-| Crossref | Exact DOI metadata enrichment | Metadata engine |
-| arXiv | Phrase-aware arXiv search and content manifestations | Content source with discovery capability |
-| Europe PMC | Biomedical search and licensed content manifestations | Content source with discovery capability |
-
-Crossref is never used for fuzzy discovery. Exact DOI/arXiv/PMID/PMCID requests route only to an
-extension that declares that identifier type. Free-text discovery uses the `DISCOVERY` capability;
-`SEARCH_ENGINE` identifies the preferred ranking owner, while content sources can contribute
-authoritative records as a fallback. A provider failure remains isolated and cannot cancel successful
-providers. Ranking is deterministic: exact identifier, title/text match, then a Semantic Scholar
-citation tie-break, publication date, and stable record key.
+The provider roles, defaults, routing, and ranking policy are defined once in the
+[`Provider model`](SPEC.md#provider-model). Architecturally, every provider implementation remains in
+an external APK, advertises bounded capabilities through `:extension-api`, and fails independently so
+one unavailable service cannot discard successful results from another.
 
 The Google fallback is a hardened host-owned WebView in the isolated `:google_search` process, not a
 provider implementation. It opens one constrained `site:arxiv.org/abs` query, allows only HTTPS
@@ -148,15 +137,13 @@ table-of-contents controls remain reachable without scrolling to the top.
 
 ## Supported host surface
 
-The app creates one process-scoped instance:
+The app creates one process-scoped instance. The following example uses the production defaults and
+contains no provider implementation:
 
 ```kotlin
 val logic = PaperReaderLogic.open(
     context = applicationContext,
-    configuration = PaperReaderConfiguration(
-        userAgent = "PaperReader/<version> (Android; <project-url>)",
-        contactEmail = "<api-contact>",
-    ),
+    configuration = PaperReaderConfiguration(),
     builtInProviders = emptyList(),
 )
 ```
@@ -168,15 +155,8 @@ app API.
 
 ## Verification
 
-Host gate:
-
-```powershell
-.\gradlew.bat hostUnitTest hostLint :app:assembleDebug
-```
-
-When a production-signed host is already installed on the shared emulator, connected UI tests use
-`-PpaperReaderConnectedTestApplicationIdSuffix=.uitest`. This installs an isolated debug test host
-without replacing the release app or deleting its data; it is not set for normal debug/release builds.
+The canonical local, connected, coverage, and CI gates are defined in
+[`TESTING.md`](TESTING.md). `LogicBoundaryTest` is part of that host gate and must remain enabled.
 
 Provider parser, fixture, lint, signed-APK, registry, and SBOM checks run in the external provider
 repository. Android-runtime and UI changes also run connected tests on a declared emulator.

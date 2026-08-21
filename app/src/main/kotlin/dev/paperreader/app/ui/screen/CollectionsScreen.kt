@@ -26,13 +26,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.LoadState
 import dev.paperreader.app.ui.components.PaperSecondaryButton
+import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.theme.PaperTheme
@@ -72,21 +72,27 @@ fun CollectionsScreen(
     MoreBranchScaffold(title = stringResource(R.string.collections_title), onBack = onBack) {
         when (collections) {
             LoadState.Loading -> item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text(stringResource(R.string.collections_loading), color = PaperTheme.tokens.inkMuted)
-                }
+                PaperStatePanel(
+                    title = stringResource(R.string.collections_loading),
+                    loading = true,
+                )
             }
             LoadState.Failed -> item {
-                Text(stringResource(R.string.collections_load_failed), color = PaperTheme.tokens.danger)
+                PaperStatePanel(
+                    title = stringResource(R.string.collections_load_failed_short),
+                    body = stringResource(R.string.collections_load_failed),
+                    icon = PaperIconKey.ERROR,
+                )
             }
             is LoadState.Ready -> if (collections.value.isEmpty()) {
                 item {
-                    PaperSurface { Text(stringResource(R.string.collections_empty), color = PaperTheme.tokens.inkMuted) }
+                    PaperStatePanel(
+                        title = stringResource(R.string.collections_empty_title),
+                        body = stringResource(R.string.collections_empty),
+                        icon = PaperIconKey.FOLDER,
+                        actionLabel = stringResource(R.string.new_collection),
+                        onAction = { openEditor(null) },
+                    )
                 }
             } else {
                 items(collections.value, key = PaperCollectionUi::id) { collection ->
@@ -98,11 +104,13 @@ fun CollectionsScreen(
                 }
             }
         }
-        item {
-            PaperSecondaryButton(onClick = { openEditor(null) }, modifier = Modifier.fillMaxWidth()) {
-                PaperIcon(PaperIconKey.ADD, contentDescription = null)
-                Spacer(Modifier.size(8.dp))
-                Text(stringResource(R.string.new_collection))
+        if (collections is LoadState.Ready && collections.value.isNotEmpty()) {
+            item {
+                PaperSecondaryButton(onClick = { openEditor(null) }, modifier = Modifier.fillMaxWidth()) {
+                    PaperIcon(PaperIconKey.ADD, contentDescription = null)
+                    Spacer(Modifier.size(8.dp))
+                    Text(stringResource(R.string.new_collection))
+                }
             }
         }
     }

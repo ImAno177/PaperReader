@@ -82,8 +82,6 @@ internal fun MobileReadAction(
         },
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
     ) {
-        PaperIcon(PaperIconKey.MARK_READ, contentDescription = null)
-        Spacer(Modifier.size(8.dp))
         Text(stringResource(R.string.read_mobile_version))
     }
 }

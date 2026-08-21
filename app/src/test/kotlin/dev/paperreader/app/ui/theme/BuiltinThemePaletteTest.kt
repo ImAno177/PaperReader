@@ -17,7 +17,7 @@ class BuiltinThemePaletteTest {
         assertEquals(Color.Black, tokens.ink)
         assertEquals(5.dp, tokens.cornerRadius)
         assertEquals(2.dp, tokens.borderWidth)
-        assertEquals(4.dp, tokens.shadowOffset)
+        assertEquals(2.dp, tokens.shadowOffset)
         assertEquals(PaperDecoration.NONE, tokens.decoration)
         assertEquals(Color.Black, tokens.emptyStateAccent)
     }
@@ -43,6 +43,12 @@ class BuiltinThemePaletteTest {
         assertEquals(Color.White, dark.border)
         assertEquals(Color.White, dark.hardShadow)
         assertEquals(dark.ink, dark.emptyStateAccent)
+    }
+
+    @Test
+    fun `error foreground follows the supplied theme color contrast`() {
+        assertEquals(Color.Black, contrastForeground(Color(0xFFFFD84D)))
+        assertEquals(Color.White, contrastForeground(Color(0xFF6B1020)))
     }
 
     @Test

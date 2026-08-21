@@ -69,7 +69,6 @@ fun HistoryScreen(
         when (state) {
             LoadState.Loading -> PaperStatePanel(
                 title = stringResource(R.string.history_loading_title),
-                body = stringResource(R.string.history_loading_body),
                 loading = true,
                 modifier = Modifier.fillMaxSize().padding(padding),
             )
@@ -158,7 +157,10 @@ private fun HistoryRow(
             }
         }
         IconButton(onClick = { onRemove(entry.workId) }, modifier = Modifier.size(48.dp)) {
-            PaperIcon(PaperIconKey.DELETE, contentDescription = stringResource(R.string.remove_history))
+            PaperIcon(
+                PaperIconKey.DELETE,
+                contentDescription = stringResource(R.string.remove_history_accessibility, entry.title),
+            )
         }
     }
 }

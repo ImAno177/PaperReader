@@ -126,7 +126,7 @@ class LibraryScreenTest {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 LibraryScreen(
                     state = LoadState.Ready(
-                        listOf(paper("compact", "Compact grid title", listOf("Ada Lovelace"))),
+                        listOf(paper("compact", "Compact grid title: full subtitle", listOf("Ada Lovelace"))),
                     ),
                     layout = LibraryLayout.GRID,
                     onLayoutChange = {},
@@ -137,6 +137,7 @@ class LibraryScreenTest {
         }
 
         composeRule.onNodeWithContentDescription("Unread", substring = true).assertExists()
+        composeRule.onNodeWithContentDescription("Compact grid title: full subtitle").assertExists()
         composeRule.onNodeWithText("Ada Lovelace").assertDoesNotExist()
         val titleBounds = composeRule.onNodeWithText("Compact grid title").getUnclippedBoundsInRoot()
         val readBounds = composeRule.onNodeWithText("Read").getUnclippedBoundsInRoot()

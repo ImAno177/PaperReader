@@ -1,10 +1,14 @@
 package dev.paperreader.app.ui
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -37,6 +41,7 @@ import dev.paperreader.logic.task.TaskId
 import dev.paperreader.logic.task.TaskKind
 import dev.paperreader.logic.task.TaskState
 import java.time.Instant
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -47,6 +52,69 @@ import org.junit.runner.RunWith
 class SavedSearchUpdatesScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Test
+    fun discoverInitialStateUsesOneCompactIdentifierHint() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DiscoverScreen(
+                    state = SearchUiState(),
+                    onSearch = {},
+                    onClear = {},
+                    onSave = {},
+                    onOpenPaper = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("DOI", substring = true).assertExists()
+        composeRule.onNodeWithText("Search papers").assertDoesNotExist()
+    }
+
+    @Test
+    fun discoverSearchActionAlignsWithTheInputField() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DiscoverScreen(
+                    state = SearchUiState(),
+                    onSearch = {},
+                    onClear = {},
+                    onSave = {},
+                    onOpenPaper = {},
+                )
+            }
+        }
+
+        val fieldBounds = composeRule.onNode(hasSetTextAction()).fetchSemanticsNode().boundsInRoot
+        val actionBounds = composeRule.onNodeWithContentDescription("Search").fetchSemanticsNode().boundsInRoot
+        assertTrue(abs(fieldBounds.top - actionBounds.top) <= 2f)
+        assertTrue(abs(fieldBounds.height - actionBounds.height) <= 2f)
+    }
+
+    @Test
+    fun discoverSearchActionStaysAlignedAtLargeFontScale() {
+        composeRule.setContent {
+            val currentDensity = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(currentDensity.density, fontScale = 1.3f),
+            ) {
+                PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                    DiscoverScreen(
+                        state = SearchUiState(),
+                        onSearch = {},
+                        onClear = {},
+                        onSave = {},
+                        onOpenPaper = {},
+                    )
+                }
+            }
+        }
+
+        val fieldBounds = composeRule.onNode(hasSetTextAction()).fetchSemanticsNode().boundsInRoot
+        val actionBounds = composeRule.onNodeWithContentDescription("Search").fetchSemanticsNode().boundsInRoot
+        assertTrue(abs(fieldBounds.top - actionBounds.top) <= 2f)
+        assertTrue(abs(fieldBounds.height - actionBounds.height) <= 2f)
+    }
 
     @Test
     fun discoverFieldTracksANewExternallySubmittedQuery() {
@@ -68,6 +136,7 @@ class SavedSearchUpdatesScreenTest {
             state = SearchUiState(submittedQuery = "2501.04510v2", running = true)
         }
         composeRule.onNodeWithText("2501.04510v2").assertExists()
+        composeRule.onNodeWithContentDescription("Searching").assertExists()
     }
 
     @Test

@@ -71,7 +71,7 @@ fun MoreScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 32.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item {
                 MoreHubRow(
@@ -91,7 +91,7 @@ fun MoreScreen(
             }
             item {
                 MoreHubRow(
-                    title = stringResource(R.string.reading_and_imports_title),
+                    title = stringResource(R.string.local_pdf_import_title),
                     supportingText = localPdfHubSummary(localPdfImportState),
                     icon = PaperIconKey.PDF,
                     onClick = onOpenReadingImports,
@@ -124,7 +124,6 @@ fun MoreScreen(
             item {
                 MoreHubRow(
                     title = stringResource(R.string.about_title),
-                    supportingText = stringResource(R.string.about_summary),
                     icon = PaperIconKey.INFO,
                     onClick = onOpenAbout,
                 )
@@ -136,21 +135,21 @@ fun MoreScreen(
 @Composable
 private fun MoreHubRow(
     title: String,
-    supportingText: String,
+    supportingText: String? = null,
     icon: PaperIconKey,
     onClick: () -> Unit,
 ) {
     PaperSurface(
         onClick = onClick,
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(40.dp),
                 shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
                 color = PaperTheme.tokens.primary,
                 contentColor = PaperTheme.tokens.onPrimary,
@@ -160,21 +159,23 @@ private fun MoreHubRow(
                 ),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    PaperIcon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
+                    PaperIcon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
                 }
             }
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    supportingText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PaperTheme.tokens.inkMuted,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                supportingText?.takeIf(String::isNotBlank)?.let { summary ->
+                    Text(
+                        summary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = PaperTheme.tokens.inkMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             PaperIcon(
                 PaperIconKey.FORWARD,
@@ -197,16 +198,17 @@ private fun collectionsHubSummary(collections: LoadState<List<PaperCollectionUi>
 }
 
 @Composable
-private fun localPdfHubSummary(state: LocalPdfImportUiState): String = stringResource(
-    when (state) {
-        LocalPdfImportUiState.Idle -> R.string.reading_and_imports_summary
+private fun localPdfHubSummary(state: LocalPdfImportUiState): String? {
+    val label = when (state) {
+        LocalPdfImportUiState.Idle -> null
         LocalPdfImportUiState.Preparing -> R.string.local_pdf_hub_preparing
         is LocalPdfImportUiState.Confirming -> R.string.local_pdf_hub_review
         is LocalPdfImportUiState.Importing -> R.string.local_pdf_hub_importing
         is LocalPdfImportUiState.Complete -> R.string.local_pdf_hub_complete
         is LocalPdfImportUiState.Failed -> R.string.local_pdf_hub_failed
-    },
-)
+    }
+    return if (label == null) null else stringResource(label)
+}
 
 @Composable
 private fun updatesHubSummary(enabled: Boolean, notificationsAvailable: Boolean): String = stringResource(
@@ -218,9 +220,9 @@ private fun updatesHubSummary(enabled: Boolean, notificationsAvailable: Boolean)
 )
 
 @Composable
-private fun backupHubSummary(state: MetadataBackupUiState): String = stringResource(
-    when (state) {
-        MetadataBackupUiState.Idle -> R.string.data_backup_summary
+private fun backupHubSummary(state: MetadataBackupUiState): String? {
+    val label = when (state) {
+        MetadataBackupUiState.Idle -> null
         MetadataBackupUiState.Exporting -> R.string.creating_metadata_backup
         MetadataBackupUiState.Inspecting -> R.string.inspecting_metadata_backup
         is MetadataBackupUiState.Preview -> R.string.backup_hub_review
@@ -228,29 +230,28 @@ private fun backupHubSummary(state: MetadataBackupUiState): String = stringResou
         is MetadataBackupUiState.Exported -> R.string.backup_hub_exported
         is MetadataBackupUiState.Restored -> R.string.backup_hub_restored
         is MetadataBackupUiState.Failed -> R.string.backup_hub_failed
-    },
-)
+    }
+    return if (label == null) null else stringResource(label)
+}
 
 @Composable
-private fun sourcesHubSummary(state: ProviderManagerState): String = when {
-    state.untrusted.isNotEmpty() -> pluralStringResource(
-        R.plurals.untrusted_provider_count,
-        state.untrusted.size,
-        state.untrusted.size,
-    )
-    state.orphaned.isNotEmpty() -> pluralStringResource(
-        R.plurals.orphaned_provider_count,
-        state.orphaned.size,
-        state.orphaned.size,
-    )
-    state.available.isNotEmpty() -> pluralStringResource(
-        R.plurals.available_provider_count,
-        state.available.size,
-        state.available.size,
-    )
-    else -> pluralStringResource(
-        R.plurals.installed_provider_count,
-        state.installed.size,
-        state.installed.size,
-    )
+private fun sourcesHubSummary(state: ProviderManagerState): String {
+    val reviewCount = state.untrusted.size + state.orphaned.size
+    return when {
+        reviewCount > 0 -> pluralStringResource(
+            R.plurals.provider_review_count,
+            reviewCount,
+            reviewCount,
+        )
+        state.available.isNotEmpty() -> pluralStringResource(
+            R.plurals.available_provider_count,
+            state.available.size,
+            state.available.size,
+        )
+        else -> pluralStringResource(
+            R.plurals.installed_provider_count,
+            state.installed.size,
+            state.installed.size,
+        )
+    }
 }

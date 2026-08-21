@@ -158,7 +158,6 @@ fun LibraryScreen(
         when (state) {
             LoadState.Loading -> PaperStatePanel(
                 title = stringResource(R.string.library_loading_title),
-                body = stringResource(R.string.library_loading_body),
                 loading = true,
                 modifier = Modifier.fillMaxSize().padding(padding),
             )

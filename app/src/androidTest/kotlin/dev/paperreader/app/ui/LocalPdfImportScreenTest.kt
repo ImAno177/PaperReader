@@ -11,6 +11,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.ui.model.LocalPdfImportUiState
 import dev.paperreader.app.ui.screen.ReadingImportsScreen
@@ -51,7 +53,7 @@ class LocalPdfImportScreenTest {
         val titleField = composeRule.onNodeWithText("Attention Paper")
         titleField.performTextClearance()
         composeRule.onNode(hasSetTextAction()).performTextInput("A verified title")
-        composeRule.onNodeWithText("Import PDF").performClick()
+        composeRule.onNode(hasText("Import PDF") and hasClickAction()).performClick()
 
         composeRule.runOnIdle { assertEquals("A verified title", confirmedTitle) }
     }
@@ -71,8 +73,8 @@ class LocalPdfImportScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Verifying and importing the PDF").assertIsDisplayed()
-        composeRule.onNodeWithText("Import PDF").assertIsNotEnabled()
+        composeRule.onNodeWithText("Importing PDF").assertIsDisplayed()
+        composeRule.onNode(hasText("Import PDF") and hasClickAction()).assertIsNotEnabled()
         composeRule.onNodeWithText("Cancel").assertIsNotEnabled()
     }
 
@@ -119,7 +121,7 @@ class LocalPdfImportScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("No duplicate was created.", substring = true)
+        composeRule.onNodeWithText("Already in Library.")
             .performScrollTo()
             .assertIsDisplayed()
         composeRule.onNodeWithText("Open imported paper").performScrollTo().performClick()

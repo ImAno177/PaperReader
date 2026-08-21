@@ -29,7 +29,7 @@ internal fun neobrutalismThemeTokens(dark: Boolean): PaperThemeTokens {
         hardShadow = Color.Black,
         cornerRadius = 5.dp,
         borderWidth = 2.dp,
-        shadowOffset = 4.dp,
+        shadowOffset = 2.dp,
         titleFont = FontFamily.SansSerif,
         bodyFont = FontFamily.SansSerif,
         labelFont = FontFamily.Monospace,

@@ -151,14 +151,8 @@ private fun PaperButtonFrame(
     content: @Composable (Modifier, MutableInteractionSource) -> Unit,
 ) {
     val tokens = PaperTheme.tokens
-    val horizontalShadowOffset = tokens.shadowOffset / 2
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val pressedOffsetX by animateDpAsState(
-        targetValue = if (enabled && pressed) horizontalShadowOffset else 0.dp,
-        animationSpec = tween(durationMillis = if (pressed) 100 else 180),
-        label = "paper button horizontal press offset",
-    )
     val pressedOffsetY by animateDpAsState(
         targetValue = if (enabled && pressed) tokens.shadowOffset else 0.dp,
         animationSpec = tween(durationMillis = if (pressed) 100 else 180),
@@ -168,7 +162,6 @@ private fun PaperButtonFrame(
         modifier = modifier.paperHardShadow(
             color = tokens.hardShadow.copy(alpha = if (enabled) 1f else 0.35f),
             cornerRadius = tokens.cornerRadius,
-            horizontalOffset = horizontalShadowOffset,
             verticalOffset = tokens.shadowOffset,
         ),
         propagateMinConstraints = true,
@@ -176,7 +169,7 @@ private fun PaperButtonFrame(
         content(
             Modifier
                 .heightIn(min = 48.dp)
-                .offset(x = pressedOffsetX, y = pressedOffsetY),
+                .offset(y = pressedOffsetY),
             interactionSource,
         )
     }
@@ -191,14 +184,8 @@ fun PaperSurface(
 ) {
     val tokens = PaperTheme.tokens
     val shape = RoundedCornerShape(tokens.cornerRadius)
-    val horizontalShadowOffset = tokens.shadowOffset / 2
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val pressedOffsetX by animateDpAsState(
-        targetValue = if (onClick != null && pressed) horizontalShadowOffset else 0.dp,
-        animationSpec = tween(durationMillis = if (pressed) 100 else 180),
-        label = "paper surface horizontal press offset",
-    )
     val pressedOffsetY by animateDpAsState(
         targetValue = if (onClick != null && pressed) tokens.shadowOffset else 0.dp,
         animationSpec = tween(durationMillis = if (pressed) 100 else 180),
@@ -208,7 +195,6 @@ fun PaperSurface(
         modifier = modifier.paperHardShadow(
             color = tokens.hardShadow,
             cornerRadius = tokens.cornerRadius,
-            horizontalOffset = horizontalShadowOffset,
             verticalOffset = tokens.shadowOffset,
         ),
     ) {
@@ -216,6 +202,7 @@ fun PaperSurface(
             Modifier
         } else {
             Modifier
+                .heightIn(min = 48.dp)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = LocalIndication.current,
@@ -226,7 +213,7 @@ fun PaperSurface(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(x = pressedOffsetX, y = pressedOffsetY)
+                .offset(y = pressedOffsetY)
                 .then(clickModifier),
             shape = shape,
             color = tokens.surface,
@@ -299,7 +286,7 @@ fun PaperMetaRow(
 @Composable
 fun PaperStatePanel(
     title: String,
-    body: String,
+    body: String? = null,
     modifier: Modifier = Modifier,
     icon: PaperIconKey? = null,
     loading: Boolean = false,
@@ -318,10 +305,15 @@ fun PaperStatePanel(
             // list already owns overflow in that case.
             Modifier.fillMaxWidth()
         }
+        val contentPadding = if (constraints.hasBoundedHeight) {
+            PaddingValues(horizontal = 24.dp, vertical = 32.dp)
+        } else {
+            PaddingValues(horizontal = 12.dp, vertical = 16.dp)
+        }
         Column(
-            modifier = contentModifier.padding(horizontal = 24.dp, vertical = 32.dp),
+            modifier = contentModifier.padding(contentPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         ) {
             when {
                 loading -> CircularProgressIndicator(
@@ -338,13 +330,15 @@ fun PaperStatePanel(
                 color = PaperTheme.tokens.emptyStateAccent,
                 textAlign = TextAlign.Center,
             )
-            Text(
-                text = body,
-                modifier = Modifier.widthIn(max = 560.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                color = PaperTheme.tokens.inkMuted,
-                textAlign = TextAlign.Center,
-            )
+            body?.takeIf(String::isNotBlank)?.let { supportingText ->
+                Text(
+                    text = supportingText,
+                    modifier = Modifier.widthIn(max = 560.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = PaperTheme.tokens.inkMuted,
+                    textAlign = TextAlign.Center,
+                )
+            }
             if (actionLabel != null && onAction != null) {
                 PaperPrimaryButton(onClick = onAction) { Text(actionLabel) }
             }
@@ -361,7 +355,6 @@ private fun PaperStateIcon(icon: PaperIconKey) {
         modifier = Modifier.paperHardShadow(
             color = tokens.hardShadow,
             cornerRadius = tokens.cornerRadius,
-            horizontalOffset = tokens.shadowOffset / 2,
             verticalOffset = tokens.shadowOffset,
         ),
     ) {
@@ -389,23 +382,21 @@ private fun PaperStateIcon(icon: PaperIconKey) {
 private fun Modifier.paperHardShadow(
     color: Color,
     cornerRadius: Dp,
-    horizontalOffset: Dp,
     verticalOffset: Dp,
 ): Modifier = drawBehind {
-    val offsetX = horizontalOffset.toPx()
     val offsetY = verticalOffset.toPx()
-    if (offsetX > 0f || offsetY > 0f) {
+    if (offsetY > 0f) {
         drawRoundRect(
             color = color,
-            topLeft = Offset(offsetX, offsetY),
+            topLeft = Offset(0f, offsetY),
             size = Size(
-                width = (size.width - offsetX).coerceAtLeast(0f),
+                width = size.width,
                 height = (size.height - offsetY).coerceAtLeast(0f),
             ),
             cornerRadius = CornerRadius(cornerRadius.toPx()),
         )
     }
-}.padding(end = horizontalOffset, bottom = verticalOffset)
+}.padding(bottom = verticalOffset)
 
 @Composable
 fun StatusBadge(
@@ -448,6 +439,7 @@ fun PaperProgress(
     modifier: Modifier = Modifier,
     label: String? = null,
 ) {
+    val boundedProgress = progress.coerceIn(0f, 1f)
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (label != null) {
             Row(
@@ -455,11 +447,11 @@ fun PaperProgress(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 PaperLabel(label)
-                PaperLabel("${(progress * 100).toInt()}%", color = PaperTheme.tokens.primary)
+                PaperLabel("${(boundedProgress * 100).toInt()}%", color = PaperTheme.tokens.primary)
             }
         }
         LinearProgressIndicator(
-            progress = { progress.coerceIn(0f, 1f) },
+            progress = { boundedProgress },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)

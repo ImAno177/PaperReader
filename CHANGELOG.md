@@ -33,6 +33,12 @@ current branch. Released sections correspond to Git tags.
 - Paper Detail uses concise `Read` and `Open PDF` labels, 48 dp reading-status targets, ellipsized
   two-column version metadata, and compact wrapping status badges.
 - Source-store cards use progressive disclosure for package, signer, and trust-failure details.
+- More, Appearance, Sources, and import screens now use compact rows and concise labels. Repeated
+  provider metadata is hidden unless it affects an action or trust decision.
+- `Read` actions are text-only, while shortened grid titles still expose the full paper title to
+  accessibility services.
+- Neobrutalist controls use a restrained downward shadow with no horizontal offset, and the Search
+  action aligns with the full height of its input field.
 
 ### Fixed
 
@@ -50,6 +56,8 @@ current branch. Released sections correspond to Git tags.
   and canonicalizes validated Google redirect targets before handing an arXiv ID to native search.
 - Empty states no longer wrap their icon and headline in a large tinted card. Completed download rows
   place the status at the right edge of the title and combine task metadata into one compact line.
+- Running search and history-removal controls now expose specific accessible names, and clickable
+  shared surfaces enforce a 48 dp minimum target.
 
 ### Security
 

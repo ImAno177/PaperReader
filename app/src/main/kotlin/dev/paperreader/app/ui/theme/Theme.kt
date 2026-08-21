@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -122,7 +123,7 @@ private fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (da
         outline = border,
         outlineVariant = border.copy(alpha = 0.65f),
         error = danger,
-        onError = Color.White,
+        onError = contrastForeground(danger),
         errorContainer = surfaceMuted,
         onErrorContainer = ink,
         inverseSurface = ink,
@@ -159,7 +160,7 @@ private fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (da
         outline = border,
         outlineVariant = border.copy(alpha = 0.65f),
         error = danger,
-        onError = Color.White,
+        onError = contrastForeground(danger),
         errorContainer = surfaceMuted,
         onErrorContainer = ink,
         inverseSurface = ink,
@@ -168,14 +169,33 @@ private fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (da
     )
 }
 
+internal fun contrastForeground(background: Color): Color =
+    if (background.luminance() > 0.179f) Color.Black else Color.White
+
 private fun PaperThemeTokens.materialTypography(): Typography {
     val base = Typography()
     return base.copy(
+        displayLarge = base.displayLarge.copy(
+            fontFamily = titleFont,
+            fontWeight = FontWeight.Bold,
+        ),
+        displayMedium = base.displayMedium.copy(
+            fontFamily = titleFont,
+            fontWeight = FontWeight.Bold,
+        ),
         displaySmall = base.displaySmall.copy(
             fontFamily = titleFont,
             fontWeight = FontWeight.Bold,
             fontSize = 32.sp,
             lineHeight = 40.sp,
+        ),
+        headlineLarge = base.headlineLarge.copy(
+            fontFamily = bodyFont,
+            fontWeight = FontWeight.Bold,
+        ),
+        headlineMedium = base.headlineMedium.copy(
+            fontFamily = bodyFont,
+            fontWeight = FontWeight.Bold,
         ),
         headlineSmall = base.headlineSmall.copy(
             fontFamily = bodyFont,
@@ -195,6 +215,10 @@ private fun PaperThemeTokens.materialTypography(): Typography {
             fontSize = 16.sp,
             lineHeight = 22.sp,
         ),
+        titleSmall = base.titleSmall.copy(
+            fontFamily = bodyFont,
+            fontWeight = FontWeight.SemiBold,
+        ),
         bodyLarge = base.bodyLarge.copy(
             fontFamily = bodyFont,
             fontWeight = FontWeight.Medium,
@@ -206,6 +230,10 @@ private fun PaperThemeTokens.materialTypography(): Typography {
             fontWeight = FontWeight.Medium,
             fontSize = 14.sp,
             lineHeight = 20.sp,
+        ),
+        bodySmall = base.bodySmall.copy(
+            fontFamily = bodyFont,
+            fontWeight = FontWeight.Medium,
         ),
         labelLarge = base.labelLarge.copy(
             fontFamily = bodyFont,

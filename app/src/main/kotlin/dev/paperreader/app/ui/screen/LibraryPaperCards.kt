@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.paperreader.app.R
@@ -32,7 +32,6 @@ import dev.paperreader.app.ui.components.StatusBadge
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.displayProviderName
 import dev.paperreader.app.ui.model.displayValue
-import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.logic.domain.ReadingStatus
@@ -125,6 +124,7 @@ internal fun LibraryGridPaperCard(
             Spacer(Modifier.height(8.dp))
             Text(
                 text = compactLibraryGridTitle(paper.title),
+                modifier = Modifier.semantics { contentDescription = paper.title },
                 style = MaterialTheme.typography.titleLarge,
                 color = PaperTheme.tokens.ink,
                 minLines = 2,
@@ -200,8 +200,6 @@ private fun LibraryAnnotationBadge(count: Int) {
 @Composable
 private fun LibraryReadButton(onClick: () -> Unit) {
     PaperPrimaryButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        PaperIcon(PaperIconKey.MARK_READ, contentDescription = null)
-        Spacer(Modifier.size(8.dp))
         Text(stringResource(R.string.library_read_paper))
     }
 }

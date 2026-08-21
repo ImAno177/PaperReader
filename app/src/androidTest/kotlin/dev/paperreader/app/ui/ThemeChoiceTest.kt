@@ -107,9 +107,9 @@ class ThemeChoiceTest {
             }
         }
 
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Theme security"))
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Blocked themes"))
         composeRule.onNodeWithText("dev.example.unsafe.theme").assertExists()
-        composeRule.onNodeWithText("Blocked").assertExists()
+        composeRule.onNodeWithText("Blocked themes").assertExists()
         composeRule.onNodeWithText("Theme package signer is not trusted").assertExists()
     }
 
@@ -134,12 +134,12 @@ class ThemeChoiceTest {
             }
         }
 
-        composeRule.onNodeWithText("Off · refresh from Updates when needed.")
+        composeRule.onNodeWithText("Refresh manually from Updates.")
             .performScrollTo()
             .assertExists()
-        composeRule.onNodeWithContentDescription("Automatic saved-search refresh").performClick()
+        composeRule.onNodeWithContentDescription("Saved-search refresh").performClick()
         composeRule.waitUntil { requested == true }
-        composeRule.onNodeWithText("Background checks continue; notifications are blocked.")
+        composeRule.onNodeWithText("Notifications are off; background checks continue.")
             .performScrollTo()
             .assertExists()
         composeRule.onNodeWithText("Open notification settings").assertExists()

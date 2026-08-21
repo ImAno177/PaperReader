@@ -42,7 +42,7 @@ class MainNavigationAndroidTest {
 
         val destinations = listOf(
             "library" to "Library",
-            "discover" to "Discover",
+            "discover" to "Search",
             "updates" to "Updates",
             "history" to "History",
             "more" to "More",
@@ -65,9 +65,9 @@ class MainNavigationAndroidTest {
         listOf(
             "Appearance",
             "Collections",
-            "Reading & imports",
-            "Updates & notifications",
-            "Data & backup",
+            "Import PDF",
+            "Background updates",
+            "Backup",
             "Sources",
         ).forEach { branch ->
             composeRule.onNodeWithText(branch).performClick()

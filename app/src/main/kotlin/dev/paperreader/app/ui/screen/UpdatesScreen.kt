@@ -108,7 +108,6 @@ fun UpdatesScreen(
                 LoadState.Loading -> item {
                     PaperStatePanel(
                         title = stringResource(R.string.saved_searches_loading),
-                        body = stringResource(R.string.saved_searches_loading_body),
                         loading = true,
                     )
                 }
@@ -188,7 +187,6 @@ fun UpdatesScreen(
                 LoadState.Loading -> item {
                     PaperStatePanel(
                         title = stringResource(R.string.updates_title),
-                        body = stringResource(R.string.library_loading_body),
                         loading = true,
                     )
                 }
@@ -205,7 +203,6 @@ fun UpdatesScreen(
                     item {
                         PaperStatePanel(
                             title = stringResource(R.string.download_queue_empty_title),
-                            body = stringResource(R.string.download_queue_empty_body),
                             icon = PaperIconKey.SYNC,
                         )
                     }

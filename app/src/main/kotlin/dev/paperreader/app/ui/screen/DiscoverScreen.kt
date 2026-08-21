@@ -30,13 +30,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
@@ -93,7 +97,10 @@ fun DiscoverScreen(
     var selectedProviderId by rememberSaveable(state.submittedQuery) { mutableStateOf<String?>(null) }
     var onlySourcesWithResults by rememberSaveable(state.submittedQuery) { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    val density = LocalDensity.current
     val uriHandler = LocalUriHandler.current
+    var searchFieldHeightPx by remember { mutableIntStateOf(0) }
+    val searchFieldHeight = if (searchFieldHeightPx == 0) 64.dp else with(density) { searchFieldHeightPx.toDp() }
     val previewResult = state.results.firstOrNull { it.key == previewKey }
     val eligibleProviderIds = state.providerStates
         .filter { !onlySourcesWithResults || it.resultCount > 0 }
@@ -128,6 +135,9 @@ fun DiscoverScreen(
             },
         )
     }
+    val searchActionDescription = stringResource(
+        if (state.running) R.string.searching_title else R.string.search_submit,
+    )
     Scaffold(
         topBar = {
             TopAppBar(
@@ -141,12 +151,14 @@ fun DiscoverScreen(
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .onSizeChanged { searchFieldHeightPx = it.height },
                     singleLine = true,
                     label = { Text(stringResource(R.string.search_label)) },
                     trailingIcon = {
@@ -170,14 +182,22 @@ fun DiscoverScreen(
                 PaperPrimaryButton(
                     onClick = submitSearch,
                     enabled = query.isNotBlank() && !state.running,
-                    modifier = Modifier.size(56.dp),
+                    modifier = Modifier.size(
+                        width = 64.dp,
+                        height = searchFieldHeight + PaperTheme.tokens.shadowOffset,
+                    ),
                 ) {
                     if (state.running) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .semantics { contentDescription = searchActionDescription },
+                            strokeWidth = 2.dp,
+                        )
                     } else {
                         PaperIcon(
                             PaperIconKey.SEARCH,
-                            contentDescription = stringResource(R.string.search_submit),
+                            contentDescription = searchActionDescription,
                         )
                     }
                 }
@@ -243,12 +263,15 @@ fun DiscoverScreen(
                 }
             }
             when {
-                state.submittedQuery == null -> item {
-                    PaperStatePanel(
-                        title = stringResource(R.string.search_start_title),
-                        body = stringResource(R.string.search_start_body),
-                        icon = PaperIconKey.SEARCH,
-                    )
+                state.submittedQuery == null -> if (state.recentQueries.isEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.search_start_body),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = PaperTheme.tokens.inkMuted,
+                        )
+                    }
                 }
 
                 state.running && state.results.isEmpty() -> item {

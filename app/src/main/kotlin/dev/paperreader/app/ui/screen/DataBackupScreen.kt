@@ -91,12 +91,12 @@ private fun MetadataRestoreDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var detailsExpanded by rememberSaveable { mutableStateOf(false) }
     val preview = when (state) {
         is MetadataBackupUiState.Preview -> state.value
         is MetadataBackupUiState.Restoring -> state.preview
         else -> null
     }
+    var detailsExpanded by rememberSaveable(preview?.createdAt?.toEpochMilli()) { mutableStateOf(false) }
     preview?.let {
         val restoring = state is MetadataBackupUiState.Restoring
         AlertDialog(

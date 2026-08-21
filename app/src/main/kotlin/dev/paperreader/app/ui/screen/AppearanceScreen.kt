@@ -3,16 +3,19 @@ package dev.paperreader.app.ui.screen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -21,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -31,7 +33,6 @@ import dev.paperreader.app.extensions.ThemeExtensionIssue
 import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
-import dev.paperreader.app.ui.components.StatusBadge
 import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.ui.theme.CommunityPaperTheme
 import dev.paperreader.app.ui.theme.PaperIcon
@@ -56,11 +57,10 @@ fun AppearanceScreen(
         item {
             PaperSectionHeader(stringResource(R.string.color_mode_title))
         }
-        items(PaperThemeMode.entries, key = PaperThemeMode::storageKey) { mode ->
-            ThemeModeChoiceCard(
-                mode = mode,
-                selected = mode == selectedThemeMode,
-                onClick = { onThemeModeChange(mode) },
+        item {
+            ThemeModeSelector(
+                selectedMode = selectedThemeMode,
+                onModeChange = onThemeModeChange,
             )
         }
         item {
@@ -91,7 +91,6 @@ fun AppearanceScreen(
             item {
                 PaperStatePanel(
                     title = stringResource(R.string.community_themes_loading),
-                    body = stringResource(R.string.community_themes_loading_body),
                     loading = true,
                 )
             }
@@ -109,12 +108,8 @@ fun AppearanceScreen(
                             issue.packageName,
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.titleMedium,
-                            maxLines = 2,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                        )
-                        StatusBadge(
-                            text = stringResource(R.string.community_theme_blocked),
-                            color = PaperTheme.tokens.danger,
                         )
                     }
                     Spacer(Modifier.height(6.dp))
@@ -146,26 +141,44 @@ fun AppearanceScreen(
 }
 
 @Composable
-private fun ThemeModeChoiceCard(
-    mode: PaperThemeMode,
-    selected: Boolean,
-    onClick: () -> Unit,
+private fun ThemeModeSelector(
+    selectedMode: PaperThemeMode,
+    onModeChange: (PaperThemeMode) -> Unit,
 ) {
-    PaperSurface(
-        modifier = Modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+    Row(
+        modifier = Modifier.fillMaxWidth().selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
-            modifier = Modifier.heightIn(min = 52.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            RadioButton(selected = selected, onClick = null)
-            Text(
-                themeModeName(mode),
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleMedium,
-            )
+        PaperThemeMode.entries.forEach { mode ->
+            val selected = mode == selectedMode
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 48.dp)
+                    .selectable(
+                        selected = selected,
+                        role = Role.RadioButton,
+                        onClick = { onModeChange(mode) },
+                    ),
+                shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
+                color = if (selected) PaperTheme.tokens.primary else PaperTheme.tokens.surface,
+                contentColor = if (selected) PaperTheme.tokens.onPrimary else PaperTheme.tokens.ink,
+                border = BorderStroke(
+                    PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp),
+                    PaperTheme.tokens.border,
+                ),
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        themeModeName(mode),
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
     }
 }
@@ -191,21 +204,16 @@ private fun ThemeChoiceCard(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
     ) {
         Row(
-            modifier = Modifier.heightIn(min = 64.dp),
+            modifier = Modifier.heightIn(min = 52.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             RadioButton(selected = selected, onClick = null)
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(themeName(preset), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = themeDescription(preset),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PaperTheme.tokens.inkMuted,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                themeName(preset),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+            )
             ThemeSwatch(preset, dark)
         }
     }
@@ -224,21 +232,18 @@ private fun CommunityThemeChoiceCard(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
     ) {
         Row(
-            modifier = Modifier.heightIn(min = 64.dp),
+            modifier = Modifier.heightIn(min = 52.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             RadioButton(selected = selected, onClick = null)
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(theme.displayName, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = stringResource(R.string.community_theme_provider, theme.packageName),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PaperTheme.tokens.inkMuted,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                theme.displayName,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             ThemeSwatch(listOf(preview.primary, preview.secondary, preview.surface))
         }
     }
@@ -248,13 +253,6 @@ private fun CommunityThemeChoiceCard(
 internal fun themeName(preset: PaperThemePreset): String = stringResource(
     when (preset) {
         PaperThemePreset.NEOBRUTALISM -> R.string.theme_neobrutalism
-    },
-)
-
-@Composable
-private fun themeDescription(preset: PaperThemePreset): String = stringResource(
-    when (preset) {
-        PaperThemePreset.NEOBRUTALISM -> R.string.theme_neobrutalism_description
     },
 )
 

@@ -41,7 +41,7 @@ class HistoryScreenTest {
         composeRule.onNodeWithText(PAPER_TITLE).performClick()
         composeRule.runOnIdle { assertEquals(WORK_ID, openedId) }
 
-        composeRule.onNodeWithContentDescription("Remove from history").performClick()
+        composeRule.onNodeWithContentDescription("Remove $PAPER_TITLE from history").performClick()
         composeRule.onNodeWithText("Remove from reading history?").assertExists()
         composeRule.onNodeWithText(
             "Remove “$PAPER_TITLE” from History? The saved paper remains available in Library.",

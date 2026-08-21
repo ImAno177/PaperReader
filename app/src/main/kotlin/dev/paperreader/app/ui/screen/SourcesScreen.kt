@@ -32,7 +32,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
 import dev.paperreader.app.extensions.ExtensionInstallState
@@ -48,7 +47,6 @@ import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.logic.provider.ProviderManagerState
-import dev.paperreader.logic.provider.ProviderOrigin
 import dev.paperreader.logic.plugin.ExtensionStoreRegistryState
 import dev.paperreader.logic.plugin.VerifiedExtensionRelease
 
@@ -97,24 +95,19 @@ fun SourcesScreen(
     }
     MoreBranchScaffold(title = stringResource(R.string.sources_title), onBack = onBack) {
         item {
-            PaperSurface(contentPadding = PaddingValues(12.dp)) {
-                Text(stringResource(R.string.extension_stores_title), style = MaterialTheme.typography.titleLarge)
-                Text(
-                    stringResource(R.string.extension_stores_body),
-                    color = PaperTheme.tokens.inkMuted,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Spacer(Modifier.height(8.dp))
-                PaperPrimaryButton(
-                    onClick = { addStoreOpen = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !storeBusy,
-                ) {
-                    PaperIcon(PaperIconKey.ADD, contentDescription = null)
-                    Spacer(Modifier.size(8.dp))
-                    Text(stringResource(R.string.add_store))
-                }
-            }
+            val addStoreDescription = stringResource(R.string.add_store)
+            PaperSectionHeader(
+                title = stringResource(R.string.extension_stores_title),
+                action = {
+                    PaperSecondaryButton(
+                        onClick = { addStoreOpen = true },
+                        modifier = Modifier.semantics { contentDescription = addStoreDescription },
+                        enabled = !storeBusy,
+                    ) {
+                        Text(stringResource(R.string.add))
+                    }
+                },
+            )
         }
         if (extensionStores.issues.isNotEmpty()) {
             items(extensionStores.issues, key = { "store-issue:${it.storeId}:${it.message}" }) { issue ->
@@ -153,6 +146,10 @@ fun SourcesScreen(
                     ?: provider.packageName.substringAfterLast('.').replace('-', ' ')
                         .replaceFirstChar(Char::uppercase)
                 val expanded = expandedUntrustedPackage == provider.packageName
+                val detailsDescription = stringResource(
+                    if (expanded) R.string.hide_provider_details_accessibility else R.string.show_provider_details_accessibility,
+                    displayName,
+                )
                 PaperSurface(contentPadding = PaddingValues(12.dp)) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -166,14 +163,17 @@ fun SourcesScreen(
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        StatusBadge(
-                            text = stringResource(R.string.provider_blocked),
-                            color = PaperTheme.tokens.danger,
-                        )
+                        TextButton(
+                            onClick = {
+                                expandedUntrustedPackage = if (expanded) null else provider.packageName
+                            },
+                            modifier = Modifier.semantics { contentDescription = detailsDescription },
+                        ) {
+                            Text(stringResource(if (expanded) R.string.hide_details else R.string.show_details))
+                        }
                     }
-                    Spacer(Modifier.height(6.dp))
-                    Text(stringResource(R.string.provider_blocked_body), color = PaperTheme.tokens.inkMuted)
                     if (expanded) {
+                        Spacer(Modifier.height(6.dp))
                         Text(
                             stringResource(R.string.provider_package, provider.packageName),
                             color = PaperTheme.tokens.inkMuted,
@@ -194,13 +194,6 @@ fun SourcesScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = PaperTheme.tokens.inkMuted,
                         )
-                    }
-                    TextButton(
-                        onClick = {
-                            expandedUntrustedPackage = if (expanded) null else provider.packageName
-                        },
-                    ) {
-                        Text(stringResource(if (expanded) R.string.hide_details else R.string.show_details))
                     }
                 }
             }
@@ -229,47 +222,18 @@ fun SourcesScreen(
                             },
                         )
                     }
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = if (provider.origin == ProviderOrigin.BUILT_IN) {
-                            stringResource(R.string.provider_builtin)
-                        } else {
-                            provider.packageName.orEmpty()
-                        },
-                        color = PaperTheme.tokens.inkMuted,
-                    )
-                    Text(
-                        stringResource(
-                            R.string.provider_interval,
-                            "${provider.descriptor.minimumRequestIntervalMillis} ms",
-                        ),
-                        color = PaperTheme.tokens.inkMuted,
-                    )
                 }
             }
         }
         if (providers.available.isNotEmpty()) {
             item { PaperSectionHeader(stringResource(R.string.provider_available_section)) }
-            item {
-                Text(
-                    stringResource(R.string.provider_available_notice),
-                    color = PaperTheme.tokens.inkMuted,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
             items(providers.available, key = { "available:${it.packageName}" }) { provider ->
                 val installedVersion = provider.installedVersionCode
                 PaperSurface(contentPadding = PaddingValues(12.dp)) {
                     Text(provider.displayName, style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        stringResource(R.string.provider_package, provider.packageName),
-                        color = PaperTheme.tokens.inkMuted,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        stringResource(R.string.provider_version_code, provider.versionCode),
+                        stringResource(R.string.extension_version_short, provider.versionCode.toString()),
                         color = PaperTheme.tokens.inkMuted,
                     )
                     if (installedVersion != null) {
@@ -287,14 +251,6 @@ fun SourcesScreen(
                             color = PaperTheme.tokens.inkMuted,
                         )
                     }
-                    Text(
-                        pluralStringResource(
-                            R.plurals.provider_id_count,
-                            provider.providerIds.size,
-                            provider.providerIds.size,
-                        ),
-                        color = PaperTheme.tokens.inkMuted,
-                    )
                     releasesByPackage[provider.packageName]?.let { release ->
                         Spacer(Modifier.height(8.dp))
                         val artifactReady = release.apkSha256 != null && release.apkSizeBytes != null

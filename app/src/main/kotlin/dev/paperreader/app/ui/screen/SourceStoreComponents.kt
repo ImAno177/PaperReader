@@ -8,19 +8,29 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
 import dev.paperreader.app.extensions.ExtensionInstallState
@@ -31,6 +41,7 @@ import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.logic.plugin.ExtensionStoreRecord
+import dev.paperreader.logic.plugin.ExtensionReleaseKind
 import dev.paperreader.logic.plugin.VerifiedExtensionRelease
 
 @Composable
@@ -46,6 +57,18 @@ internal fun ExtensionStoreCard(
     onInstallExtension: (VerifiedExtensionRelease) -> Unit,
     onDismissInstallState: (String) -> Unit,
 ) {
+    var releasesExpanded by rememberSaveable(store.index.storeId) { mutableStateOf(false) }
+    val releaseCount = store.index.releases.size
+    val releaseCountLabel = pluralStringResource(
+        R.plurals.extension_release_count,
+        releaseCount,
+        releaseCount,
+    )
+    val releaseToggleDescription = stringResource(
+        if (releasesExpanded) R.string.hide_store_releases_accessibility
+        else R.string.show_store_releases_accessibility,
+        store.index.displayName,
+    )
     PaperSurface(contentPadding = PaddingValues(12.dp)) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -58,15 +81,18 @@ internal fun ExtensionStoreCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    stringResource(
-                        R.string.store_sequence_and_release_count,
-                        store.index.sequence,
-                        store.index.releases.size,
-                    ),
-                    color = PaperTheme.tokens.inkMuted,
-                    style = MaterialTheme.typography.bodySmall,
-                )
+                if (releaseCount > 0) {
+                    TextButton(
+                        onClick = { releasesExpanded = !releasesExpanded },
+                        modifier = Modifier
+                            .heightIn(min = 48.dp)
+                            .semantics { contentDescription = releaseToggleDescription },
+                        colors = ButtonDefaults.textButtonColors(contentColor = PaperTheme.tokens.inkMuted),
+                        contentPadding = PaddingValues(0.dp),
+                    ) {
+                        Text(releaseCountLabel, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
             }
             IconButton(onClick = onRefresh, enabled = enabled && !refreshing) {
                 if (refreshing) {
@@ -86,7 +112,7 @@ internal fun ExtensionStoreCard(
                 }
             }
         }
-        if (store.index.releases.isNotEmpty()) {
+        if (releasesExpanded && store.index.releases.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             store.index.releases.forEach { release ->
                 ExtensionReleaseRow(
@@ -142,23 +168,25 @@ private fun ExtensionReleaseRow(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    StatusBadge(
-                        text = if (release.compatible) {
-                            release.kind.name.lowercase().replaceFirstChar(Char::uppercase)
-                        } else {
-                            stringResource(R.string.extension_incompatible)
-                        },
-                        color = if (release.compatible) PaperTheme.tokens.success else PaperTheme.tokens.danger,
-                    )
-                    when {
-                        blocked -> StatusBadge(
-                            text = stringResource(R.string.provider_blocked),
-                            icon = PaperIconKey.ERROR,
-                            color = PaperTheme.tokens.danger,
+                    if (!release.compatible || release.kind == ExtensionReleaseKind.THEME) {
+                        StatusBadge(
+                            text = if (release.compatible) {
+                                release.kind.name.lowercase().replaceFirstChar(Char::uppercase)
+                            } else {
+                                stringResource(R.string.extension_incompatible)
+                            },
+                            color = if (release.compatible) PaperTheme.tokens.success else PaperTheme.tokens.danger,
                         )
+                    }
+                    when {
+                        blocked -> Unit
                         installedVersionCode != null && installedVersionCode >= release.versionCode -> StatusBadge(
                             text = stringResource(R.string.provider_installed_section),
                             color = PaperTheme.tokens.success,
+                        )
+                        release.compatible && !artifactReady -> StatusBadge(
+                            text = stringResource(R.string.extension_unavailable),
+                            color = PaperTheme.tokens.warning,
                         )
                     }
                 }

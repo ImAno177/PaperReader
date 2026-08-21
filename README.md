@@ -3,13 +3,13 @@
 [![Android CI](https://github.com/ImAno177/PaperReader/actions/workflows/android-ci.yml/badge.svg)](https://github.com/ImAno177/PaperReader/actions/workflows/android-ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
+Status: pre-1.0. PaperReader supports Android 9 or newer.
+
 ## About
 
 PaperReader is an open-source, local-first Android app for discovering, collecting, reading, and
 tracking scientific papers. It turns supported papers into a responsive, mobile-readable document
 and keeps the original PDF as a fidelity fallback.
-
-PaperReader is pre-1.0 and supports Android 9 or newer.
 
 The current host behavior is recorded in [`docs/SPEC.md`](docs/SPEC.md). Release history is tracked in
 [`CHANGELOG.md`](CHANGELOG.md).
@@ -48,7 +48,8 @@ Use JDK 21, Android SDK 36/36.1, and the Gradle wrapper:
 ```
 
 The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. See
-[`CONTRIBUTING.md`](CONTRIBUTING.md) for the full verification gate and
+[`docs/TESTING.md`](docs/TESTING.md) for the verification gates,
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for the contribution workflow, and
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the supported module boundary.
 GitHub Actions publishes APK artifacts and an SPDX JSON software bill of materials for each build.
 Extension authors can start with the [`extension-api` guide](docs/EXTENSIONS.md).

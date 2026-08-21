@@ -63,8 +63,10 @@ unit-test and lint gates.
 
 | Workflow or job | Owns | Does not repeat |
 | --- | --- | --- |
+| `android-ci.yml` / `dependency-review` | Pull-request dependency diff | Gradle tests and builds |
 | `android-ci.yml` / `quality-and-apk` | One Gradle invocation for host tests, debug lint, and the debug APK on pull requests; main and manual runs also produce JaCoCo, an unsigned release APK, and an SBOM | CodeQL extraction, MobSF, secrets, dependency review, connected tests |
 | `android-ci.yml` / `documentation` | Markdown lint | Gradle tests or builds |
+| `android-ci.yml` / `secret-scan` | Full-history Gitleaks scan | Gradle tests and builds |
 | `android-ci.yml` / `mobsfscan` | MobSF source scan and SARIF upload | Gradle tests or builds |
 | `codeql.yml` | Java/Kotlin CodeQL extraction and analysis | Unit tests and lint; its debug build exists only to provide extraction input |
 | `release.yml` | Green-commit check, release lint, signed APK, signature verification, release SBOM, and publishing | Unit tests and `lintDebug`, which belong to the green Android CI run |

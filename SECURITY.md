@@ -1,4 +1,6 @@
-# Security Policy
+# Security policy
+
+Status: current reporting policy for the latest `main` branch.
 
 ## Supported versions
 

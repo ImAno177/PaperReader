@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -77,7 +78,7 @@ class SavedSearchUpdatesScreenTest {
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 DiscoverScreen(
-                    state = SearchUiState(),
+                    state = SearchUiState(submittedQuery = "attention is all you need"),
                     onSearch = {},
                     onClear = {},
                     onSave = {},
@@ -87,7 +88,8 @@ class SavedSearchUpdatesScreenTest {
         }
 
         val fieldBounds = composeRule.onNode(hasSetTextAction()).fetchSemanticsNode().boundsInRoot
-        val actionBounds = composeRule.onNodeWithContentDescription("Search").fetchSemanticsNode().boundsInRoot
+        val searchAction = composeRule.onNodeWithContentDescription("Search").assertHasClickAction()
+        val actionBounds = searchAction.fetchSemanticsNode().boundsInRoot
         assertTrue(abs(fieldBounds.top - actionBounds.top) <= 2f)
         assertTrue(abs(fieldBounds.height - actionBounds.height) <= 2f)
     }

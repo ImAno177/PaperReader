@@ -38,7 +38,8 @@ current branch. Released sections correspond to Git tags.
 - `Read` actions are text-only, while shortened grid titles still expose the full paper title to
   accessibility services.
 - The Search control uses stable placeholder geometry, so its action aligns with the input outline
-  from the first frame and keeps a restrained bottom-only shadow.
+  from the first frame. Buttons and cards now use a low-opacity 1 dp shadow strip confined to their
+  bottom edge, with no lateral offset.
 
 ### Fixed
 
@@ -58,6 +59,8 @@ current branch. Released sections correspond to Git tags.
   place the status at the right edge of the title and combine task metadata into one compact line.
 - Empty update sections stay compact, empty-state headings keep their violet accent in both modes,
   and unfilled actions use readable neutral foreground colors instead of pale amber text.
+- The Search action exposes one accessible clickable target instead of placing its label on a nested
+  decorative icon.
 - Search, source refresh, local import, reading-status, and background-update state changes expose
   stable, grouped, live accessibility semantics.
 - Running search and history-removal controls now expose specific accessible names, and clickable

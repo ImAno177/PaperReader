@@ -189,6 +189,7 @@ fun DiscoverScreen(
                 PaperPrimaryButton(
                     onClick = submitSearch,
                     enabled = query.isNotBlank() && !state.running,
+                    contentDescription = searchActionDescription,
                     modifier = Modifier.size(
                         width = 64.dp,
                         height = searchFieldHeight + PaperTheme.tokens.shadowOffset,
@@ -196,16 +197,14 @@ fun DiscoverScreen(
                 ) {
                     if (state.running) {
                         CircularProgressIndicator(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .semantics { contentDescription = searchActionDescription },
+                            modifier = Modifier.size(20.dp),
                             color = PaperTheme.tokens.ink,
                             strokeWidth = 2.dp,
                         )
                     } else {
                         PaperIcon(
                             PaperIconKey.SEARCH,
-                            contentDescription = searchActionDescription,
+                            contentDescription = null,
                         )
                     }
                 }

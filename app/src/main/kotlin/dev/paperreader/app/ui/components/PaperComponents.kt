@@ -44,12 +44,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
@@ -79,13 +80,17 @@ fun PaperPrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    contentDescription: String? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
     val tokens = PaperTheme.tokens
     PaperButtonFrame(modifier = modifier, enabled = enabled) { buttonModifier, interactionSource ->
+        val accessibleButtonModifier = contentDescription?.let { description ->
+            buttonModifier.semantics { this.contentDescription = description }
+        } ?: buttonModifier
         Button(
             onClick = onClick,
-            modifier = buttonModifier,
+            modifier = accessibleButtonModifier,
             enabled = enabled,
             shape = RoundedCornerShape(tokens.cornerRadius),
             colors = ButtonDefaults.buttonColors(
@@ -180,9 +185,8 @@ private fun PaperButtonFrame(
         label = "paper button vertical press offset",
     )
     Box(
-        modifier = modifier.paperHardShadow(
-            color = tokens.hardShadow.copy(alpha = if (enabled) 0.32f else 0.12f),
-            cornerRadius = tokens.cornerRadius,
+        modifier = modifier.paperBottomShadow(
+            color = tokens.hardShadow.copy(alpha = if (enabled) 0.18f else 0.07f),
             verticalOffset = tokens.shadowOffset,
         ),
         propagateMinConstraints = true,
@@ -213,9 +217,8 @@ fun PaperSurface(
         label = "paper surface vertical press offset",
     )
     Box(
-        modifier = modifier.paperHardShadow(
-            color = tokens.hardShadow.copy(alpha = 0.24f),
-            cornerRadius = tokens.cornerRadius,
+        modifier = modifier.paperBottomShadow(
+            color = tokens.hardShadow.copy(alpha = 0.12f),
             verticalOffset = tokens.shadowOffset,
         ),
     ) {
@@ -373,9 +376,8 @@ private fun PaperStateIcon(icon: PaperIconKey) {
     val shape = RoundedCornerShape(tokens.cornerRadius)
     val tileSize = 48.dp
     Box(
-        modifier = Modifier.paperHardShadow(
-            color = tokens.hardShadow.copy(alpha = 0.32f),
-            cornerRadius = tokens.cornerRadius,
+        modifier = Modifier.paperBottomShadow(
+            color = tokens.hardShadow.copy(alpha = 0.18f),
             verticalOffset = tokens.shadowOffset,
         ),
     ) {
@@ -400,21 +402,16 @@ private fun PaperStateIcon(icon: PaperIconKey) {
     }
 }
 
-private fun Modifier.paperHardShadow(
+private fun Modifier.paperBottomShadow(
     color: Color,
-    cornerRadius: Dp,
     verticalOffset: Dp,
 ): Modifier = drawBehind {
     val offsetY = verticalOffset.toPx()
     if (offsetY > 0f) {
-        drawRoundRect(
+        drawRect(
             color = color,
-            topLeft = Offset(0f, offsetY),
-            size = Size(
-                width = size.width,
-                height = (size.height - offsetY).coerceAtLeast(0f),
-            ),
-            cornerRadius = CornerRadius(cornerRadius.toPx()),
+            topLeft = Offset(0f, (size.height - offsetY).coerceAtLeast(0f)),
+            size = Size(width = size.width, height = offsetY.coerceAtMost(size.height)),
         )
     }
 }.padding(bottom = verticalOffset)

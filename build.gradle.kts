@@ -7,6 +7,26 @@ plugins {
     id("androidx.room") version "2.8.4" apply false
 }
 
+tasks.register("hostUnitTest") {
+    group = "verification"
+    description = "Runs the deterministic JVM unit-test gate for every production module."
+    dependsOn(
+        ":extension-api:testDebugUnitTest",
+        ":logic:testDebugUnitTest",
+        ":app:testDebugUnitTest",
+    )
+}
+
+tasks.register("hostLint") {
+    group = "verification"
+    description = "Runs the debug lint gate for every production module."
+    dependsOn(
+        ":extension-api:lintDebug",
+        ":logic:lintDebug",
+        ":app:lintDebug",
+    )
+}
+
 tasks.register("coverageReport") {
     group = "verification"
     description = "Generates debug unit-test coverage reports for every production module."

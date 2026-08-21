@@ -76,22 +76,10 @@ jobs:
 
       - name: Run unit tests
         id: unit_tests
-        run: >-
-          ./gradlew
-          :extension-api:testDebugUnitTest
-          :logic:testDebugUnitTest
-          :app:testDebugUnitTest
-          --stacktrace
+        run: ./gradlew hostUnitTest --stacktrace
 
       - name: Verify lint and debug APK
-        run: >-
-          ./gradlew
-          :extension-api:lintDebug
-          :extension-api:assembleRelease
-          :logic:lintDebug
-          :app:lintDebug
-          :app:assembleDebug
-          --stacktrace
+        run: ./gradlew hostLint :app:assembleDebug --stacktrace
 
       - name: Upload unit-test report when tests fail
         if: steps.unit_tests.outcome == 'failure'

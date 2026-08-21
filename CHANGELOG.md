@@ -45,6 +45,11 @@ current branch. Released sections correspond to Git tags.
 - Added the GitHub-verified MobSF source scan with pinned action revisions and SARIF upload to Code
   Scanning.
 
+### Build
+
+- Centralized the host unit-test and lint commands in root Gradle tasks. Release builds now require a
+  successful Android CI run for the exact commit instead of rerunning the host gate.
+
 ### Removed
 
 - The built-in Doodle preset, its Tabler icon pack, and the associated bundled assets and notices.

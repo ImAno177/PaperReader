@@ -13,6 +13,7 @@ on:
         type: number
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -39,6 +40,20 @@ jobs:
           # A release is a cache consumer; the default-branch CI writer keeps
           # dependency and transform entries fresh without release duplicates.
           cache-read-only: true
+      - name: Require green Android CI for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow android-ci.yml \
+            --commit "$GITHUB_SHA" \
+            --status success \
+            --json databaseId \
+            --jq 'length > 0' | grep -qx true; then
+            echo "Android CI has no successful run for $GITHUB_SHA" >&2
+            exit 1
+          fi
       - name: Restore app signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.APP_RELEASE_KEYSTORE_BASE64 }}
@@ -58,11 +73,6 @@ jobs:
           -PappKeystorePassword="$STORE_PASSWORD"
           -PappKeyAlias="$KEY_ALIAS"
           -PappKeyPassword="$KEY_PASSWORD"
-          :extension-api:testDebugUnitTest
-          :extension-api:lintDebug
-          :logic:testDebugUnitTest
-          :logic:lintDebug
-          :app:testDebugUnitTest
           :app:lintRelease
           :app:assembleRelease
           --stacktrace

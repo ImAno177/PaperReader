@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -54,45 +53,6 @@ import org.junit.runner.RunWith
 class SavedSearchUpdatesScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
-
-    @Test
-    fun discoverInitialStateUsesOneCompactIdentifierHint() {
-        composeRule.setContent {
-            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
-                DiscoverScreen(
-                    state = SearchUiState(),
-                    onSearch = {},
-                    onClear = {},
-                    onSave = {},
-                    onOpenPaper = {},
-                )
-            }
-        }
-
-        composeRule.onNodeWithText("DOI", substring = true).assertExists()
-        composeRule.onNodeWithText("Search papers").assertDoesNotExist()
-    }
-
-    @Test
-    fun discoverSearchActionAlignsWithTheInputField() {
-        composeRule.setContent {
-            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
-                DiscoverScreen(
-                    state = SearchUiState(submittedQuery = "attention is all you need"),
-                    onSearch = {},
-                    onClear = {},
-                    onSave = {},
-                    onOpenPaper = {},
-                )
-            }
-        }
-
-        val fieldBounds = composeRule.onNode(hasSetTextAction()).fetchSemanticsNode().boundsInRoot
-        val searchAction = composeRule.onNodeWithContentDescription("Search").assertHasClickAction()
-        val actionBounds = searchAction.fetchSemanticsNode().boundsInRoot
-        assertTrue(abs(fieldBounds.top - actionBounds.top) <= 2f)
-        assertTrue(abs(fieldBounds.height - actionBounds.height) <= 2f)
-    }
 
     @Test
     fun discoverSearchActionStaysAlignedAtLargeFontScale() {

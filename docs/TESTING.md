@@ -63,7 +63,7 @@ unit-test and lint gates.
 
 | Workflow or job | Owns | Does not repeat |
 | --- | --- | --- |
-| `android-ci.yml` / `quality-and-apk` | Host unit tests, debug lint, debug and unsigned release APKs, JaCoCo, and SBOM | CodeQL extraction, MobSF, secrets, dependency review, connected tests |
+| `android-ci.yml` / `quality-and-apk` | One Gradle invocation for host tests, debug lint, and the debug APK on pull requests; main and manual runs also produce JaCoCo, an unsigned release APK, and an SBOM | CodeQL extraction, MobSF, secrets, dependency review, connected tests |
 | `android-ci.yml` / `documentation` | Markdown lint | Gradle tests or builds |
 | `android-ci.yml` / `mobsfscan` | MobSF source scan and SARIF upload | Gradle tests or builds |
 | `codeql.yml` | Java/Kotlin CodeQL extraction and analysis | Unit tests and lint; its debug build exists only to provide extraction input |
@@ -72,6 +72,12 @@ unit-test and lint gates.
 The release workflow requires a successful `android-ci.yml` run for the exact commit before it
 restores signing material. This keeps release verification tied to the same host gate used for pull
 requests and main, without running that gate a second time.
+
+Pull requests intentionally skip coverage packaging, the unsigned release build, and SBOM generation.
+Those artifacts do not change the review verdict and remain available from main, manual, and release
+runs. Gradle receives all tasks for a run in one invocation, so shared compilation and unit-test work
+is executed once. Connected tests remain a local release-readiness gate on the declared emulator; CI
+does not claim device coverage that it does not run.
 
 GitHub CodeQL Advanced scans the Java/Kotlin build on every pull request and main push, with a weekly
 scheduled security-extended analysis. The repository intentionally uses Advanced setup: `codeql.yml`

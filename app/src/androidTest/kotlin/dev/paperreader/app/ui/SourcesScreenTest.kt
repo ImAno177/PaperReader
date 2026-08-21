@@ -105,20 +105,41 @@ class SourcesScreenTest {
     }
 
     @Test
-    fun installedThemeDoesNotOfferInstallAgain() {
+    fun installedSourceAndThemeReleasesDoNotOfferInstallAgain() {
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 SourcesScreen(
-                    providers = ProviderManagerState(),
-                    extensionStores = signedThemeStoreState(),
+                    providers = ProviderManagerState(
+                        installed = listOf(
+                            InstalledProvider(
+                                descriptor = ProviderDescriptor(
+                                    id = "semanticscholar",
+                                    displayName = "Semantic Scholar",
+                                    minimumRequestIntervalMillis = 1_000,
+                                ),
+                                origin = ProviderOrigin.COMMUNITY_PLUGIN,
+                                packageName = "dev.paperreader.extensions.semanticscholar",
+                                versionCode = 3,
+                            ),
+                        ),
+                    ),
+                    extensionStores = signedStoreState().copy(
+                        stores = signedStoreState().stores + signedThemeStoreState().stores,
+                    ),
                     installedThemeVersions = mapOf("dev.paperreader.themes.community" to 4L),
                     onBack = {},
                 )
             }
         }
 
-        composeRule.onNodeWithText("1 release").performClick()
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader Community Theme"))
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
+        composeRule.onNodeWithContentDescription("Show releases from PaperReader community").performClick()
+        composeRule.onNodeWithText("Semantic Scholar").assertIsDisplayed()
+        composeRule.onNodeWithText("Install extension").assertDoesNotExist()
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader themes"))
+        composeRule.onNodeWithContentDescription("Show releases from PaperReader themes").performClick()
+        composeRule.onNodeWithText("PaperReader Community Theme").assertIsDisplayed()
         composeRule.onNodeWithText("Install extension").assertDoesNotExist()
         assertTrue(composeRule.onAllNodesWithText("Installed").fetchSemanticsNodes().isNotEmpty())
     }
@@ -245,37 +266,6 @@ class SourcesScreenTest {
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Semantic Scholar"))
         composeRule.onNodeWithText("Install extension").assertDoesNotExist()
         composeRule.onNodeWithText("Unavailable").assertIsDisplayed()
-    }
-
-    @Test
-    fun currentInstalledReleaseDoesNotOfferInstallAgain() {
-        val installedPackage = "dev.paperreader.extensions.semanticscholar"
-        composeRule.setContent {
-            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
-                SourcesScreen(
-                    providers = ProviderManagerState(
-                        installed = listOf(
-                            InstalledProvider(
-                                descriptor = ProviderDescriptor(
-                                    id = "semanticscholar",
-                                    displayName = "Semantic Scholar",
-                                    minimumRequestIntervalMillis = 1_000,
-                                ),
-                                origin = ProviderOrigin.COMMUNITY_PLUGIN,
-                                packageName = installedPackage,
-                                versionCode = 3,
-                            ),
-                        ),
-                    ),
-                    extensionStores = signedStoreState(),
-                    onBack = {},
-                )
-            }
-        }
-
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
-        composeRule.onNodeWithText("Install extension").assertDoesNotExist()
-        assertTrue(composeRule.onAllNodesWithText("Installed").fetchSemanticsNodes().isNotEmpty())
     }
 
     @Test

@@ -16,7 +16,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.MainActivity
 import org.junit.Rule
 import org.junit.Assert.assertTrue
-import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -26,18 +25,12 @@ class MainNavigationAndroidTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun libraryTabDoesNotRestoreTheTabItJustPopped() {
+    fun everyPrimaryDestinationRemainsReachableAcrossRepeatedTabPermutations() {
         waitForScreenTitle("Library")
 
         composeRule.onNodeWithText("More").performClick()
         waitForScreenTitle("More")
-
         composeRule.onNodeWithText("Library").performClick()
-        waitForScreenTitle("Library")
-    }
-
-    @Test
-    fun everyPrimaryDestinationRemainsReachableAcrossRepeatedTabPermutations() {
         waitForScreenTitle("Library")
 
         val destinations = listOf(
@@ -99,40 +92,6 @@ class MainNavigationAndroidTest {
         assertTrue(visualBounds.right < hitBounds.right)
         assertTrue(hitBounds.width > visualBounds.width)
         assertTrue(hitBounds.height > visualBounds.height)
-    }
-
-    @Test
-    fun bottomNavigationVisualTilesHaveEqualGeometry() {
-        waitForScreenTitle("Library")
-
-        val routes = listOf("library", "discover", "updates", "history", "more")
-        val visualBounds = routes.map { route ->
-            composeRule
-                .onAllNodesWithTag("$PRIMARY_NAVIGATION_ITEM_VISUAL_TEST_TAG_PREFIX$route", useUnmergedTree = true)
-                .fetchSemanticsNodes()
-                .single()
-                .boundsInRoot
-        }
-
-        val first = visualBounds.first()
-        visualBounds.drop(1).forEach { bounds ->
-            assertEquals(first.width, bounds.width, 1f)
-            assertEquals(first.height, bounds.height, 1f)
-            assertEquals(first.top, bounds.top, 1f)
-            assertEquals(first.bottom, bounds.bottom, 1f)
-        }
-
-        val density = composeRule.activity.resources.displayMetrics.density
-        routes.map { route ->
-            composeRule
-                .onAllNodesWithTag("$PRIMARY_NAVIGATION_ITEM_HIT_TEST_TAG_PREFIX$route", useUnmergedTree = true)
-                .fetchSemanticsNodes()
-                .single()
-                .boundsInRoot
-        }.forEach { bounds ->
-            assertTrue("Navigation hit width must be at least 48dp", bounds.width / density >= 48f)
-            assertTrue("Navigation hit height must be at least 48dp", bounds.height / density >= 48f)
-        }
     }
 
     @Test

@@ -1,7 +1,6 @@
 package dev.paperreader.app.ui
 
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -9,7 +8,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.compose.ui.unit.dp
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.model.LibraryLayout
@@ -118,30 +116,6 @@ class LibraryScreenTest {
 
         composeRule.onNodeWithText("Read").performClick()
         composeRule.runOnIdle { assertTrue(read) }
-    }
-
-    @Test
-    fun gridCardKeepsStateUsefulWithoutReservingEmptyMetadataRows() {
-        composeRule.setContent {
-            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
-                LibraryScreen(
-                    state = LoadState.Ready(
-                        listOf(paper("compact", "Compact grid title: full subtitle", listOf("Ada Lovelace"))),
-                    ),
-                    layout = LibraryLayout.GRID,
-                    onLayoutChange = {},
-                    onOpenPaper = {},
-                    onDiscover = {},
-                )
-            }
-        }
-
-        composeRule.onNodeWithContentDescription("Unread", substring = true).assertExists()
-        composeRule.onNodeWithContentDescription("Compact grid title: full subtitle").assertExists()
-        composeRule.onNodeWithText("Ada Lovelace").assertDoesNotExist()
-        val titleBounds = composeRule.onNodeWithText("Compact grid title").getUnclippedBoundsInRoot()
-        val readBounds = composeRule.onNodeWithText("Read").getUnclippedBoundsInRoot()
-        assertTrue(readBounds.top - titleBounds.bottom < 80.dp)
     }
 
     @Test

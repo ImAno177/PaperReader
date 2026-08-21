@@ -198,6 +198,7 @@
     <string name="trust_and_add_store">Trust and add</string>
     <string name="store_verification_issue">Store blocked</string>
     <string name="refresh_store">Refresh store</string>
+    <string name="refreshing_store">Refreshing store</string>
     <string name="remove_store">Remove store</string>
     <string name="remove_store_title">Remove extension store?</string>
     <string name="remove_store_body">%1$s will stop providing trusted releases. Installed apps stay installed.</string>
@@ -247,6 +248,7 @@
     <string name="automatic_saved_search_refresh">Saved-search refresh</string>
     <string name="automatic_saved_search_refresh_off">Refresh manually from Updates.</string>
     <string name="automatic_saved_search_refresh_on">Checks daily when online.</string>
+    <string name="automatic_saved_search_refresh_updating">Updating refresh setting</string>
     <string name="automatic_saved_search_refresh_failed">Could not enable automatic refresh.</string>
     <string name="saved_search_notifications_blocked">Notifications are off; background checks continue.</string>
     <string name="open_notification_settings">Open notification settings</string>

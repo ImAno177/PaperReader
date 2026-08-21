@@ -16,7 +16,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +33,7 @@ import dev.paperreader.app.ui.LoadState
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.ui.theme.PaperIcon
@@ -135,12 +135,12 @@ fun CollectionsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showEditor = false }, enabled = !saving) {
+                PaperTextButton(onClick = { showEditor = false }, enabled = !saving) {
                     Text(stringResource(R.string.cancel))
                 }
             },
             confirmButton = {
-                TextButton(
+                PaperTextButton(
                     enabled = !saving && name.isNotBlank(),
                     onClick = {
                         scope.launch {
@@ -173,7 +173,11 @@ fun CollectionsScreen(
                     },
                 ) {
                     if (saving) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(Modifier.size(8.dp))
                     }
                     Text(stringResource(if (isRename) R.string.save else R.string.create_collection))
@@ -193,12 +197,12 @@ fun CollectionsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { toDelete = null }, enabled = !deleting) {
+                PaperTextButton(onClick = { toDelete = null }, enabled = !deleting) {
                     Text(stringResource(R.string.cancel))
                 }
             },
             confirmButton = {
-                TextButton(
+                PaperTextButton(
                     enabled = !deleting,
                     onClick = {
                         scope.launch {
@@ -221,7 +225,11 @@ fun CollectionsScreen(
                     },
                 ) {
                     if (deleting) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(Modifier.size(8.dp))
                     }
                     Text(stringResource(R.string.delete), color = PaperTheme.tokens.danger)

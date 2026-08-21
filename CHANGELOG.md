@@ -20,12 +20,12 @@ current branch. Released sections correspond to Git tags.
 - The Library grid uses a phone-sized minimum column width so the persisted layout toggle produces a
   visibly distinct two-column layout on common handsets.
 - Grid cards now prioritize title, discipline, and reading state by omitting secondary author
-  metadata, keeping only the text before `:` in long titles, and clamping the result to two lines.
+  metadata, keeping only the text before `:` in long titles, and clamping the result to one line.
   One compact state row and a thin progress strip keep cards equal without large empty regions.
 - The search field remains fixed below the page title while results scroll, and Recent searches shows
   at most the five newest matching queries.
 - Neobrutalism now uses a softer sun-yellow accent on a warm paper canvas, 5 dp corners, 2 dp
-  outlines, and grounded 2 by 4 dp hard shadows. Dark mode uses black surfaces and white foreground
+  outlines, and a subtle 1 dp bottom shadow. Dark mode uses black surfaces and white foreground
   roles without recoloring accents or status colors.
 - Selected primary-navigation destinations use an outline and short icon-scale transition without
   changing the tab fill or label color. Unselected destinations remain transparent.
@@ -37,8 +37,8 @@ current branch. Released sections correspond to Git tags.
   provider metadata is hidden unless it affects an action or trust decision.
 - `Read` actions are text-only, while shortened grid titles still expose the full paper title to
   accessibility services.
-- Neobrutalist controls use a restrained downward shadow with no horizontal offset, and the Search
-  action aligns with the full height of its input field.
+- The Search control uses stable placeholder geometry, so its action aligns with the input outline
+  from the first frame and keeps a restrained bottom-only shadow.
 
 ### Fixed
 
@@ -56,6 +56,10 @@ current branch. Released sections correspond to Git tags.
   and canonicalizes validated Google redirect targets before handing an arXiv ID to native search.
 - Empty states no longer wrap their icon and headline in a large tinted card. Completed download rows
   place the status at the right edge of the title and combine task metadata into one compact line.
+- Empty update sections stay compact, empty-state headings keep their violet accent in both modes,
+  and unfilled actions use readable neutral foreground colors instead of pale amber text.
+- Search, source refresh, local import, reading-status, and background-update state changes expose
+  stable, grouped, live accessibility semantics.
 - Running search and history-removal controls now expose specific accessible names, and clickable
   shared surfaces enforce a 48 dp minimum target.
 

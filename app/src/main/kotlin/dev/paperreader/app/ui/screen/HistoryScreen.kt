@@ -19,7 +19,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,6 +39,7 @@ import dev.paperreader.app.ui.components.PaperLabel
 import dev.paperreader.app.ui.components.PaperProgress
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.model.ReadingHistoryUi
 import dev.paperreader.app.ui.model.toEnglishDisplayDateTime
 import dev.paperreader.app.ui.theme.PaperTheme
@@ -106,7 +106,7 @@ fun HistoryScreen(
             title = { Text(stringResource(R.string.remove_history_title)) },
             text = { Text(stringResource(R.string.remove_history_body, entry.title)) },
             confirmButton = {
-                TextButton(
+                PaperTextButton(
                     onClick = {
                         pendingRemovalId = null
                         onRemove(entry.workId)
@@ -114,7 +114,7 @@ fun HistoryScreen(
                 ) { Text(stringResource(R.string.remove_history_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingRemovalId = null }) {
+                PaperTextButton(onClick = { pendingRemovalId = null }) {
                     Text(stringResource(R.string.cancel))
                 }
             },

@@ -124,10 +124,15 @@ private fun LocalPdfImportDialog(
                     )
                     if (importing) {
                         Row(
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = PaperTheme.tokens.ink,
+                                strokeWidth = 2.dp,
+                            )
                             Text(stringResource(R.string.importing_local_pdf))
                         }
                     }
@@ -166,7 +171,11 @@ private fun LocalPdfImportStatus(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = PaperTheme.tokens.ink,
+                    strokeWidth = 2.dp,
+                )
                 Text(stringResource(R.string.inspecting_local_pdf))
             }
         }

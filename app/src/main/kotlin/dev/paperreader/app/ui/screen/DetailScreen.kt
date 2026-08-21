@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,7 +28,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -54,6 +54,7 @@ import dev.paperreader.app.ui.components.PaperLabel
 import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.model.ManifestationUi
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.model.PaperUi
@@ -221,7 +222,7 @@ fun DetailScreen(
                 }
             },
             dismissButton = {
-                TextButton(
+                PaperTextButton(
                     onClick = { showRemovalDialog = false },
                     enabled = !removing,
                 ) {
@@ -229,7 +230,7 @@ fun DetailScreen(
                 }
             },
             confirmButton = {
-                TextButton(
+                PaperTextButton(
                     enabled = !removing,
                     onClick = {
                         scope.launch {
@@ -263,7 +264,11 @@ fun DetailScreen(
                     },
                 ) {
                     if (removing) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(Modifier.size(8.dp))
                     }
                     Text(stringResource(R.string.remove_paper_confirm))
@@ -352,7 +357,7 @@ private fun PaperDetailContent(
                     title = stringResource(R.string.abstract_title),
                     action = if (paper.abstractText != null && paper.abstractText.length > 600) {
                         {
-                            TextButton(onClick = { abstractExpanded = !abstractExpanded }) {
+                            PaperTextButton(onClick = { abstractExpanded = !abstractExpanded }) {
                                 Text(
                                     stringResource(
                                         if (abstractExpanded) R.string.abstract_collapse else R.string.abstract_expand,
@@ -428,7 +433,7 @@ private fun ReadingStatusCard(
         )
         Spacer(Modifier.height(8.dp))
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             ReadingStatus.entries.forEach { option ->

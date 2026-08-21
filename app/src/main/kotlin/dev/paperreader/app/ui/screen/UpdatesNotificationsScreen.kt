@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
@@ -71,30 +72,43 @@ fun UpdatesNotificationsScreen(
                             color = PaperTheme.tokens.inkMuted,
                         )
                     }
+                    val label = stringResource(R.string.automatic_saved_search_refresh)
+                    val updatingLabel = stringResource(R.string.automatic_saved_search_refresh_updating)
                     if (changing) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                    } else {
-                        val label = stringResource(R.string.automatic_saved_search_refresh)
-                        Switch(
-                            checked = automaticRefreshEnabled,
-                            onCheckedChange = { enabled ->
-                                scope.launch {
-                                    changing = true
-                                    error = false
-                                    try {
-                                        error = !onAutomaticRefreshChange(enabled)
-                                    } catch (cancelled: CancellationException) {
-                                        throw cancelled
-                                    } catch (_: Exception) {
-                                        error = true
-                                    } finally {
-                                        changing = false
-                                    }
-                                }
-                            },
-                            modifier = Modifier.semantics { contentDescription = label },
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .semantics { contentDescription = updatingLabel },
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
                         )
                     }
+                    Switch(
+                        checked = automaticRefreshEnabled,
+                        enabled = !changing,
+                        onCheckedChange = { enabled ->
+                            scope.launch {
+                                changing = true
+                                error = false
+                                try {
+                                    error = !onAutomaticRefreshChange(enabled)
+                                } catch (cancelled: CancellationException) {
+                                    throw cancelled
+                                } catch (_: Exception) {
+                                    error = true
+                                } finally {
+                                    changing = false
+                                }
+                            }
+                        },
+                        modifier = Modifier.semantics {
+                            contentDescription = label
+                            if (changing) {
+                                stateDescription = updatingLabel
+                                liveRegion = LiveRegionMode.Polite
+                            }
+                        },
+                    )
                 }
                 if (error) {
                     Spacer(Modifier.height(8.dp))

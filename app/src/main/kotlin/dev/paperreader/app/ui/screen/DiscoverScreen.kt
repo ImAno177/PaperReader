@@ -42,7 +42,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -100,7 +102,9 @@ fun DiscoverScreen(
     val density = LocalDensity.current
     val uriHandler = LocalUriHandler.current
     var searchFieldHeightPx by remember { mutableIntStateOf(0) }
-    val searchFieldHeight = if (searchFieldHeightPx == 0) 64.dp else with(density) { searchFieldHeightPx.toDp() }
+    // Material's single-line search field starts at 56 dp. Matching that on the
+    // first frame prevents the action from visibly resizing after measurement.
+    val searchFieldHeight = if (searchFieldHeightPx == 0) 56.dp else with(density) { searchFieldHeightPx.toDp() }
     val previewResult = state.results.firstOrNull { it.key == previewKey }
     val eligibleProviderIds = state.providerStates
         .filter { !onlySourcesWithResults || it.resultCount > 0 }
@@ -160,7 +164,10 @@ fun DiscoverScreen(
                         .weight(1f)
                         .onSizeChanged { searchFieldHeightPx = it.height },
                     singleLine = true,
-                    label = { Text(stringResource(R.string.search_label)) },
+                    // This is a search control, not a form field. A floating label
+                    // reserves visual space above the outline and makes the adjacent
+                    // action look misaligned even when their layout bounds match.
+                    placeholder = { Text(stringResource(R.string.search_label)) },
                     trailingIcon = {
                         if (query.isNotEmpty()) {
                             IconButton(
@@ -192,6 +199,7 @@ fun DiscoverScreen(
                             modifier = Modifier
                                 .size(20.dp)
                                 .semantics { contentDescription = searchActionDescription },
+                            color = PaperTheme.tokens.ink,
                             strokeWidth = 2.dp,
                         )
                     } else {
@@ -208,7 +216,13 @@ fun DiscoverScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
             if (state.running && state.results.isNotEmpty()) {
-                item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth()) }
+                item {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = PaperTheme.tokens.ink,
+                        trackColor = PaperTheme.tokens.surfaceMuted,
+                    )
+                }
             }
             if (state.providerStates.size > 1) {
                 item {
@@ -282,6 +296,7 @@ fun DiscoverScreen(
                             state.providerCount,
                             state.providerCount,
                         ),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         loading = true,
                     )
                 }
@@ -290,6 +305,7 @@ fun DiscoverScreen(
                     PaperStatePanel(
                         title = stringResource(R.string.search_failed_title),
                         body = stringResource(R.string.search_failed_body),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         icon = PaperIconKey.ERROR,
                     )
                     state.submittedQuery?.let { submittedQuery ->
@@ -308,6 +324,7 @@ fun DiscoverScreen(
                     PaperStatePanel(
                         title = stringResource(R.string.search_no_results_title),
                         body = stringResource(R.string.search_no_results_body),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         icon = PaperIconKey.SEARCH,
                     )
                     state.submittedQuery?.let { submittedQuery ->
@@ -326,6 +343,7 @@ fun DiscoverScreen(
                     PaperStatePanel(
                         title = stringResource(R.string.search_filter_no_results_title),
                         body = stringResource(R.string.search_filter_no_results_body),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         icon = PaperIconKey.SEARCH,
                     )
                 }
@@ -507,7 +525,11 @@ private fun SavedSearchDiscoverAction(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (creating) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = PaperTheme.tokens.ink,
+                        strokeWidth = 2.dp,
+                    )
                     Spacer(Modifier.size(8.dp))
                 }
                 Text(stringResource(if (creating) R.string.saving_search else R.string.save_search_action))

@@ -27,6 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -69,6 +71,7 @@ internal fun ExtensionStoreCard(
         else R.string.show_store_releases_accessibility,
         store.index.displayName,
     )
+    val refreshingStoreDescription = stringResource(R.string.refreshing_store)
     PaperSurface(contentPadding = PaddingValues(12.dp)) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -96,7 +99,15 @@ internal fun ExtensionStoreCard(
             }
             IconButton(onClick = onRefresh, enabled = enabled && !refreshing) {
                 if (refreshing) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .semantics {
+                                contentDescription = refreshingStoreDescription
+                            },
+                        color = PaperTheme.tokens.ink,
+                        strokeWidth = 2.dp,
+                    )
                 } else {
                     PaperIcon(PaperIconKey.SYNC, contentDescription = stringResource(R.string.refresh_store))
                 }
@@ -230,7 +241,11 @@ internal fun ExtensionInstallAction(
         modifier = Modifier.fillMaxWidth(),
     ) {
         if (busy) {
-            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                color = PaperTheme.tokens.ink,
+                strokeWidth = 2.dp,
+            )
         } else {
             PaperIcon(
                 if (terminal) PaperIconKey.CLOSE else PaperIconKey.DOWNLOAD,
@@ -257,6 +272,7 @@ internal fun ExtensionInstallAction(
     if (state is ExtensionInstallState.Failed) {
         Text(
             stringResource(R.string.extension_install_failed, state.message),
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             color = PaperTheme.tokens.danger,
             style = MaterialTheme.typography.bodySmall,
         )

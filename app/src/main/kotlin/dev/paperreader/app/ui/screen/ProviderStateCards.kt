@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.components.PaperSurface
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperTheme
@@ -41,7 +41,7 @@ internal fun OrphanedProviderCard(provider: OrphanedProviderPlugin) {
         ) {
             PaperIcon(PaperIconKey.OFFLINE, contentDescription = null, tint = PaperTheme.tokens.warning)
             Text(provider.displayName, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-            TextButton(
+            PaperTextButton(
                 onClick = { expanded = !expanded },
                 modifier = Modifier.semantics { contentDescription = detailsDescription },
             ) {

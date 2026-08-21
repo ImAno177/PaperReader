@@ -119,7 +119,11 @@ internal fun SearchPreviewSheet(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     if (saving) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(Modifier.size(8.dp))
                     }
                     Text(stringResource(if (saving) R.string.saving_paper else R.string.save_paper))

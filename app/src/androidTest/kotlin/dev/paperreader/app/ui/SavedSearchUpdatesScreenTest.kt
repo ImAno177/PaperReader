@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -372,6 +373,22 @@ class SavedSearchUpdatesScreenTest {
 
         composeRule.onNodeWithText("A real saved-search result").assertExists()
         composeRule.onNodeWithText("arXiv is unavailable.").assertExists()
+    }
+
+    @Test
+    fun emptyUpdateSectionsRemainCompactEnoughToScanTogether() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                UpdatesScreen(
+                    tasks = LoadState.Ready(emptyList()),
+                    providers = providerState(),
+                    savedSearches = LoadState.Ready(emptyList()),
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("No saved searches").assertIsDisplayed()
+        composeRule.onNodeWithText("No queued downloads").assertIsDisplayed()
     }
 
     @Test

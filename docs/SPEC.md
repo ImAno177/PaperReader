@@ -64,13 +64,14 @@ Bottom-navigation outlines align with the content grid, while independent touch 
 
 Appearance has independent controls for visual preset and System/Light/Dark mode. The built-in
 Neobrutalism preset uses Material Symbols, a restrained sun-yellow accent, 5 dp corners, 2 dp
-outlines, and grounded 2 by 4 dp hard shadows. Dark mode inverts neutral surfaces, text, outlines,
+outlines, and subtle 1 dp bottom-only shadows. Dark mode inverts neutral surfaces, text, outlines,
 and shadows while preserving accent, container, selection, and status colors. A theme extension
 supplies a complete semantic icon set with its declarative tokens. The legacy `DOODLE` extension
 decoration remains readable for binary
-compatibility but is not a built-in preset. Empty-state headlines are unframed and use the readable
-foreground role; sun yellow is reserved for the icon tile, primary action, and small state accents.
-Library grid cards keep titles to two lines, omit authors, and use one compact state row instead of
+compatibility but is not a built-in preset. Empty-state headlines are unframed and keep the same
+accessible violet accent in light and dark modes; sun yellow is reserved for the icon tile, primary
+action, and small state accents. Library grid cards keep titles to one line, omit authors, and use
+one compact state row instead of
 reserving empty rows for status, annotations, and progress.
 
 ## Domain model

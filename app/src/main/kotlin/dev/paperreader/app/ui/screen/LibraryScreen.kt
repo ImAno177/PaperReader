@@ -29,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -129,7 +130,14 @@ fun LibraryScreen(
                                             sortMenuExpanded = false
                                         },
                                         leadingIcon = {
-                                            RadioButton(selected = option == sortOrder, onClick = null)
+                                            RadioButton(
+                                                selected = option == sortOrder,
+                                                onClick = null,
+                                                colors = RadioButtonDefaults.colors(
+                                                    selectedColor = PaperTheme.tokens.ink,
+                                                    unselectedColor = PaperTheme.tokens.inkMuted,
+                                                ),
+                                            )
                                         },
                                     )
                                 }
@@ -316,7 +324,11 @@ private fun LibraryCollectionsStateRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (loading) {
-            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                color = PaperTheme.tokens.ink,
+                strokeWidth = 2.dp,
+            )
         } else if (error) {
             PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.danger)
         }

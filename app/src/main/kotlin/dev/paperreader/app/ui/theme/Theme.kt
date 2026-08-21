@@ -93,7 +93,7 @@ internal fun paperThemeTokens(preset: PaperThemePreset, dark: Boolean): PaperThe
     PaperThemePreset.NEOBRUTALISM -> neobrutalismThemeTokens(dark)
 }
 
-private fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (dark) {
+internal fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (dark) {
     darkColorScheme(
         primary = primary,
         onPrimary = onPrimary,

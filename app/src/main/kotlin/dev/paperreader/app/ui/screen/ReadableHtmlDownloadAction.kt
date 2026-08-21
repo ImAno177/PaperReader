@@ -25,6 +25,7 @@ import dev.paperreader.app.reader.renderReadablePaperExportHtml
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
+import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.reader.ReadablePaperFailure
 import dev.paperreader.logic.reader.ReadablePaperResult
@@ -97,7 +98,11 @@ internal fun ReadableHtmlDownloadAction(
         modifier = Modifier.fillMaxWidth(),
     ) {
         if (preparing || writing) {
-            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                color = PaperTheme.tokens.ink,
+                strokeWidth = 2.dp,
+            )
         } else {
             PaperIcon(PaperIconKey.DOWNLOAD, contentDescription = null)
         }

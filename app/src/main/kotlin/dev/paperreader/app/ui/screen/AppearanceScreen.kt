@@ -19,6 +19,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -208,7 +209,14 @@ private fun ThemeChoiceCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            RadioButton(selected = selected, onClick = null)
+            RadioButton(
+                selected = selected,
+                onClick = null,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = PaperTheme.tokens.ink,
+                    unselectedColor = PaperTheme.tokens.inkMuted,
+                ),
+            )
             Text(
                 themeName(preset),
                 modifier = Modifier.weight(1f),
@@ -236,7 +244,14 @@ private fun CommunityThemeChoiceCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            RadioButton(selected = selected, onClick = null)
+            RadioButton(
+                selected = selected,
+                onClick = null,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = PaperTheme.tokens.ink,
+                    unselectedColor = PaperTheme.tokens.inkMuted,
+                ),
+            )
             Text(
                 theme.displayName,
                 modifier = Modifier.weight(1f),

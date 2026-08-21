@@ -24,12 +24,12 @@ internal fun neobrutalismThemeTokens(dark: Boolean): PaperThemeTokens {
         success = BuiltinSuccess,
         warning = BuiltinWarning,
         danger = BuiltinDanger,
-        emptyStateAccent = Color.Black,
+        emptyStateAccent = NeoViolet,
         selection = NeoAmber,
         hardShadow = Color.Black,
         cornerRadius = 5.dp,
         borderWidth = 2.dp,
-        shadowOffset = 2.dp,
+        shadowOffset = 1.dp,
         titleFont = FontFamily.SansSerif,
         bodyFont = FontFamily.SansSerif,
         labelFont = FontFamily.Monospace,
@@ -43,7 +43,6 @@ internal fun neobrutalismThemeTokens(dark: Boolean): PaperThemeTokens {
             ink = Color.White,
             inkMuted = Color(0xFFB8B8B8),
             border = Color.White,
-            emptyStateAccent = Color.White,
             hardShadow = Color.White,
         )
     } else {

@@ -20,7 +20,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,6 +45,7 @@ import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.components.StatusBadge
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.displayProviderName
@@ -230,7 +230,7 @@ fun UpdatesScreen(
             title = { Text(stringResource(R.string.delete_saved_search_title)) },
             text = { Text(stringResource(R.string.delete_saved_search_body, feed.search.queryText)) },
             confirmButton = {
-                TextButton(
+                PaperTextButton(
                     onClick = {
                         pendingDeleteSearch = null
                         onDeleteSearch(feed.search.id.value)
@@ -238,7 +238,7 @@ fun UpdatesScreen(
                 ) { Text(stringResource(R.string.delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDeleteSearch = null }) {
+                PaperTextButton(onClick = { pendingDeleteSearch = null }) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -315,7 +315,11 @@ private fun SavedSearchHeader(
         }
         if (refreshing) {
             Spacer(Modifier.height(10.dp))
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth(),
+                color = PaperTheme.tokens.ink,
+                trackColor = PaperTheme.tokens.surfaceMuted,
+            )
         }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -394,7 +398,11 @@ private fun SavedSearchHitRow(
                     modifier = Modifier.weight(1f),
                 ) {
                     if (saving) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(Modifier.size(8.dp))
                     }
                     Text(stringResource(if (saving) R.string.saving_paper else R.string.save_paper))
@@ -474,7 +482,11 @@ private fun TaskRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (acting) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = PaperTheme.tokens.ink,
+                        strokeWidth = 2.dp,
+                    )
                 }
                 StatusBadge(taskStateLabel(task.state), color = taskStateColor(task.state))
             }

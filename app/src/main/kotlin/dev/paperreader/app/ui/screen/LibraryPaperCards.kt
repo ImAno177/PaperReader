@@ -127,8 +127,8 @@ internal fun LibraryGridPaperCard(
                 modifier = Modifier.semantics { contentDescription = paper.title },
                 style = MaterialTheme.typography.titleLarge,
                 color = PaperTheme.tokens.ink,
-                minLines = 2,
-                maxLines = 2,
+                minLines = 1,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(6.dp))

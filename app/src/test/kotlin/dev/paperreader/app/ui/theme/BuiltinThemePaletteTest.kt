@@ -12,14 +12,15 @@ class BuiltinThemePaletteTest {
 
         assertEquals(Color(0xFFFFD84D), tokens.primary)
         assertEquals(Color(0xFF0099FF), tokens.secondary)
+        assertEquals(Color(0xFFC84D00), tokens.warning)
         assertEquals(Color(0xFFFFF4DD), tokens.canvas)
         assertEquals(Color.White, tokens.surface)
         assertEquals(Color.Black, tokens.ink)
         assertEquals(5.dp, tokens.cornerRadius)
         assertEquals(2.dp, tokens.borderWidth)
-        assertEquals(2.dp, tokens.shadowOffset)
+        assertEquals(1.dp, tokens.shadowOffset)
         assertEquals(PaperDecoration.NONE, tokens.decoration)
-        assertEquals(Color.Black, tokens.emptyStateAccent)
+        assertEquals(Color(0xFF7357FF), tokens.emptyStateAccent)
     }
 
     @Test
@@ -35,6 +36,7 @@ class BuiltinThemePaletteTest {
         assertEquals(light.warning, dark.warning)
         assertEquals(light.danger, dark.danger)
         assertEquals(light.selection, dark.selection)
+        assertEquals(light.emptyStateAccent, dark.emptyStateAccent)
         assertEquals(Color.Black, dark.canvas)
         assertEquals(Color.Black, dark.surface)
         assertEquals(Color.Black, dark.surfaceMuted)
@@ -42,7 +44,6 @@ class BuiltinThemePaletteTest {
         assertEquals(Color(0xFFB8B8B8), dark.inkMuted)
         assertEquals(Color.White, dark.border)
         assertEquals(Color.White, dark.hardShadow)
-        assertEquals(dark.ink, dark.emptyStateAccent)
     }
 
     @Test

@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -145,6 +145,27 @@ fun PaperSecondaryButton(
 }
 
 @Composable
+fun PaperTextButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    contentPadding: PaddingValues = ButtonDefaults.TextButtonContentPadding,
+    content: @Composable RowScope.() -> Unit,
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 48.dp),
+        enabled = enabled,
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = PaperTheme.tokens.ink,
+            disabledContentColor = PaperTheme.tokens.inkMuted.copy(alpha = 0.55f),
+        ),
+        contentPadding = contentPadding,
+        content = content,
+    )
+}
+
+@Composable
 private fun PaperButtonFrame(
     modifier: Modifier,
     enabled: Boolean,
@@ -160,7 +181,7 @@ private fun PaperButtonFrame(
     )
     Box(
         modifier = modifier.paperHardShadow(
-            color = tokens.hardShadow.copy(alpha = if (enabled) 1f else 0.35f),
+            color = tokens.hardShadow.copy(alpha = if (enabled) 0.32f else 0.12f),
             cornerRadius = tokens.cornerRadius,
             verticalOffset = tokens.shadowOffset,
         ),
@@ -193,7 +214,7 @@ fun PaperSurface(
     )
     Box(
         modifier = modifier.paperHardShadow(
-            color = tokens.hardShadow,
+            color = tokens.hardShadow.copy(alpha = 0.24f),
             cornerRadius = tokens.cornerRadius,
             verticalOffset = tokens.shadowOffset,
         ),
@@ -293,7 +314,7 @@ fun PaperStatePanel(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val contentModifier = if (constraints.hasBoundedHeight) {
             Modifier
                 .fillMaxWidth()
@@ -318,7 +339,7 @@ fun PaperStatePanel(
             when {
                 loading -> CircularProgressIndicator(
                     modifier = Modifier.size(32.dp),
-                    color = PaperTheme.tokens.primary,
+                    color = PaperTheme.tokens.ink,
                     strokeWidth = 3.dp,
                 )
                 icon != null -> PaperStateIcon(icon)
@@ -353,7 +374,7 @@ private fun PaperStateIcon(icon: PaperIconKey) {
     val tileSize = 48.dp
     Box(
         modifier = Modifier.paperHardShadow(
-            color = tokens.hardShadow,
+            color = tokens.hardShadow.copy(alpha = 0.32f),
             cornerRadius = tokens.cornerRadius,
             verticalOffset = tokens.shadowOffset,
         ),
@@ -447,7 +468,7 @@ fun PaperProgress(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 PaperLabel(label)
-                PaperLabel("${(boundedProgress * 100).toInt()}%", color = PaperTheme.tokens.primary)
+                PaperLabel("${(boundedProgress * 100).toInt()}%", color = PaperTheme.tokens.ink)
             }
         }
         LinearProgressIndicator(
@@ -456,7 +477,7 @@ fun PaperProgress(
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(PaperTheme.tokens.cornerRadius / 2)),
-            color = PaperTheme.tokens.primary,
+            color = PaperTheme.tokens.ink,
             trackColor = PaperTheme.tokens.surfaceMuted,
         )
     }

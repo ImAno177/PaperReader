@@ -14,7 +14,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +36,7 @@ import dev.paperreader.app.R
 import dev.paperreader.app.ui.components.PaperPrimaryButton
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSurface
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.components.StatusBadge
 import dev.paperreader.app.ui.model.ManifestationUi
 import dev.paperreader.app.ui.model.displayProviderName
@@ -269,9 +269,15 @@ internal fun ManifestationCard(
                     LinearProgressIndicator(
                         progress = { task.progress.toFloat() },
                         modifier = Modifier.fillMaxWidth(),
+                        color = PaperTheme.tokens.ink,
+                        trackColor = PaperTheme.tokens.surfaceMuted,
                     )
                 } else {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = PaperTheme.tokens.ink,
+                        trackColor = PaperTheme.tokens.surfaceMuted,
+                    )
                 }
             }
         }
@@ -359,7 +365,7 @@ internal fun ManifestationCard(
                 }
                 val hasMoreOptions = manifestation.localCopy != null || pdfUrl != null || landingPageUrl != null
                 if (hasMoreOptions) {
-                    TextButton(
+                    PaperTextButton(
                         onClick = { showMoreOptions = !showMoreOptions },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
@@ -419,12 +425,12 @@ internal fun ManifestationCard(
                 )
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }, enabled = !deleting) {
+                PaperTextButton(onClick = { showDeleteDialog = false }, enabled = !deleting) {
                     Text(stringResource(R.string.cancel))
                 }
             },
             confirmButton = {
-                TextButton(
+                PaperTextButton(
                     enabled = !deleting,
                     onClick = {
                         scope.launch {
@@ -453,7 +459,11 @@ internal fun ManifestationCard(
                     },
                 ) {
                     if (deleting) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(Modifier.size(8.dp))
                     }
                     Text(stringResource(R.string.delete))

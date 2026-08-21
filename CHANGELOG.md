@@ -90,6 +90,9 @@ current branch. Released sections correspond to Git tags.
   added CodeQL plus grouped twice-monthly security updates to the source-extension repository.
 - Added the GitHub-verified MobSF source scan with pinned action revisions and SARIF upload to Code
   Scanning.
+- Hardened the Android entry point with an empty task affinity and `singleTop`, disabled cleartext
+  traffic and WebView debugging, made the test manifest non-backupable, and removed unverified arXiv
+  App Link claims that the project cannot host with `assetlinks.json`.
 
 ### Build
 

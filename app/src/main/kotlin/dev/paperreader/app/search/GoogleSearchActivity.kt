@@ -24,7 +24,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import dev.paperreader.app.BuildConfig
 import dev.paperreader.app.MainActivity
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.theme.SystemBarAppearance
@@ -83,7 +82,6 @@ class GoogleSearchActivity : ComponentActivity() {
         webSettings.setGeolocationEnabled(false)
         webSettings.setSupportMultipleWindows(false)
         CookieManager.getInstance().setAcceptThirdPartyCookies(searchWebView, false)
-        if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true)
         searchWebView.webViewClient = GoogleOnlyWebViewClient()
         lifecycle.addObserver(
             object : DefaultLifecycleObserver {

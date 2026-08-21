@@ -23,7 +23,7 @@ access.
 
 ## Current hardening baseline
 
-The Android host disables cleartext traffic and application backup, uses a `singleTop` launcher with
+The Android host disables cleartext traffic and application backup, uses a `singleInstance` launcher with
 an empty task affinity, and never enables WebView remote debugging. The Google search WebView runs in
 an isolated process without file/content access, JavaScript bridges, mixed content, or third-party
 cookies. It only follows Google resources and hands canonical HTTPS arXiv URLs to the native import

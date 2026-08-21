@@ -529,16 +529,10 @@ private fun PaperGridCard(paper: PaperUi, onClick: () -> Unit, onRead: () -> Uni
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            text = paper.title,
+            text = gridPaperTitle(paper.title),
             style = MaterialTheme.typography.titleLarge,
             color = PaperTheme.tokens.ink,
-            maxLines = 4,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = paper.authors.joinToString().ifBlank { stringResource(R.string.unknown_authors) },
-            color = PaperTheme.tokens.inkMuted,
+            minLines = 2,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
@@ -569,6 +563,9 @@ private fun PaperGridCard(paper: PaperUi, onClick: () -> Unit, onRead: () -> Uni
         LibraryReadButton(onRead)
     }
 }
+
+private fun gridPaperTitle(title: String): String =
+    title.substringBefore(": ").trim().ifBlank { title }
 
 @Composable
 private fun LibraryReadButton(onClick: () -> Unit) {

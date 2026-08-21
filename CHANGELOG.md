@@ -19,6 +19,9 @@ current branch. Released sections correspond to Git tags.
   actions behind progressive disclosure, and presents identifiers in one compact group.
 - The Library grid uses a phone-sized minimum column width so the persisted layout toggle produces a
   visibly distinct two-column layout on common handsets.
+- Grid cards now prioritize title, discipline, and reading state by omitting secondary author metadata,
+  keeping only the text before `:` in long titles, and clamping the result to two lines; the quick-read
+  action is labeled `Read` in both library layouts.
 - The search field remains fixed below the page title while results scroll.
 - Neobrutalism keeps mustard, violet, and status accents unchanged between light and dark modes;
   only neutral canvas, surface, text, and outline roles invert.

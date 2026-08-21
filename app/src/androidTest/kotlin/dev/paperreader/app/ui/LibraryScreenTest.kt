@@ -114,7 +114,7 @@ class LibraryScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Read paper").performClick()
+        composeRule.onNodeWithText("Read").performClick()
         composeRule.runOnIdle { assertTrue(read) }
     }
 

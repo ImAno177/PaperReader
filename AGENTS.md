@@ -125,9 +125,7 @@ Update the relevant document when a decision changes.
 - Reuse a connected emulator; do not wipe it, factory-reset it, or start a duplicate instance.
 
 ```powershell
-.\gradlew.bat :extension-api:testDebugUnitTest :extension-api:lintDebug `
-  :logic:testDebugUnitTest :logic:lintDebug `
-  :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+.\gradlew.bat hostUnitTest hostLint :app:assembleDebug
 ```
 
 Run connected tests for Android-runtime or UI changes and report the exact device/API and actions.

@@ -171,9 +171,7 @@ app API.
 Host gate:
 
 ```powershell
-.\gradlew.bat :extension-api:testDebugUnitTest :extension-api:lintDebug `
-  :logic:testDebugUnitTest :logic:lintDebug `
-  :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+.\gradlew.bat hostUnitTest hostLint :app:assembleDebug
 ```
 
 When a production-signed host is already installed on the shared emulator, connected UI tests use

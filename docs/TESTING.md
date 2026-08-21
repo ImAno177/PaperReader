@@ -18,9 +18,7 @@ a pull request.
 Run the host gate with the Gradle wrapper, JDK 21, and Android SDK 36/36.1:
 
 ```powershell
-.\gradlew.bat :extension-api:testDebugUnitTest :extension-api:lintDebug `
-  :logic:testDebugUnitTest :logic:lintDebug `
-  :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+.\gradlew.bat hostUnitTest hostLint :app:assembleDebug
 ```
 
 For Android-runtime, Room, reader, or UI changes, reuse the declared API 36 emulator (`emulator-5554`)
@@ -30,8 +28,7 @@ without wiping it:
 .\gradlew.bat :extension-api:connectedDebugAndroidTest
 .\gradlew.bat :logic:connectedDebugAndroidTest
 .\gradlew.bat :app:connectedDebugAndroidTest `
-  -PpaperReaderConnectedTestApplicationIdSuffix=.uitest `
-  -PappVersionCode=4
+  -PpaperReaderConnectedTestApplicationIdSuffix=.uitest
 ```
 
 The isolated app suffix avoids replacing a production-signed installation. Connected XML results are
@@ -57,17 +54,38 @@ make a percentage pass.
 reports while their Android/framework seams are being closed; a threshold is added only when the
 denominator and connected test device are deterministic in CI.
 
-## CI model
+## CI responsibilities
 
-PaperReader's workflow follows Mihon's separation of dependency review, unit tests, failure-only
-test-report artifacts, lint checks, and APK artifacts. It also publishes JaCoCo unit reports and an
-SPDX SBOM. GitHub CodeQL Advanced scans the Java/Kotlin build on every pull request and main push,
-with a weekly scheduled security-extended analysis. The repository intentionally uses Advanced setup:
-the `codeql.yml` workflow is the source of truth, while GitHub's Default setup remains disabled so it
-cannot replace that pinned build-and-query policy. Mihon runs Spotless and SQLDelight migration verification; PaperReader has no formatter
-plugin and keeps Room schema/migration coverage in `logic` Android tests. Mihon's reference workflow is
-[`build.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/build.yml); its tag-based
-APK publishing is in [`release.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/release.yml).
+PaperReader follows Mihon's separation of dependency review, tests, lint, artifacts, and security
+checks. Each workflow owns one gate so a test command is not copied into security or release jobs.
+The root Gradle tasks `hostUnitTest` and `hostLint` are the single command definitions for the host
+unit-test and lint gates.
+
+| Workflow or job | Owns | Does not repeat |
+| --- | --- | --- |
+| `android-ci.yml` / `quality-and-apk` | Host unit tests, debug lint, debug and unsigned release APKs, JaCoCo, and SBOM | CodeQL extraction, MobSF, secrets, dependency review, connected tests |
+| `android-ci.yml` / `documentation` | Markdown lint | Gradle tests or builds |
+| `android-ci.yml` / `mobsfscan` | MobSF source scan and SARIF upload | Gradle tests or builds |
+| `codeql.yml` | Java/Kotlin CodeQL extraction and analysis | Unit tests and lint; its debug build exists only to provide extraction input |
+| `release.yml` | Green-commit check, release lint, signed APK, signature verification, release SBOM, and publishing | Unit tests and `lintDebug`, which belong to the green Android CI run |
+
+The release workflow requires a successful `android-ci.yml` run for the exact commit before it
+restores signing material. This keeps release verification tied to the same host gate used for pull
+requests and main, without running that gate a second time.
+
+GitHub CodeQL Advanced scans the Java/Kotlin build on every pull request and main push, with a weekly
+scheduled security-extended analysis. The repository intentionally uses Advanced setup: `codeql.yml`
+is the source of truth, while GitHub's Default setup remains disabled so it cannot replace that pinned
+build-and-query policy. Mihon runs Spotless and SQLDelight migration verification; PaperReader has no
+formatter plugin and keeps Room schema/migration coverage in `logic` Android tests. Mihon's reference
+workflow is [`build.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/build.yml); its
+tag-based APK publishing is in
+[`release.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/release.yml).
+
+Android CI also runs the GitHub-verified `MobSF/mobsfscan` source scanner for Kotlin, Java, and
+Android XML. It uploads a SARIF report to GitHub Code Scanning. The scan uses `--no-fail` so existing
+findings remain visible for triage without turning an informational baseline into a false-green
+security waiver; no findings are suppressed by repository configuration.
 
 Gradle's enhanced cache has one writer: a successful `push` to `main` in `android-ci.yml`. Pull
 requests, CodeQL, and manual release runs are read-only consumers. This prevents each security scan,

@@ -90,9 +90,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/colorSurfaceVariant"
+        android:clickable="true"
         android:ellipsize="end"
-        android:maxLines="4"
-        android:minHeight="44dp"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        android:accessibilityLiveRegion="polite"
+        android:maxLines="1"
+        android:minHeight="48dp"
         android:paddingStart="16dp"
         android:paddingTop="10dp"
         android:paddingEnd="16dp"
@@ -119,23 +123,49 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
-            android:layout_margin="16dp"
-            android:contentDescription="@string/readable_reader_citation_return"
-            android:elevation="8dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="12dp"
+            android:accessibilityLiveRegion="polite"
+            android:contentDescription="@string/readable_reader_citation_return_description"
+            android:elevation="2dp"
+            android:ellipsize="end"
             android:importantForAccessibility="yes"
+            android:maxLines="1"
             android:minWidth="48dp"
             android:minHeight="48dp"
             android:text="@string/readable_reader_citation_return"
             android:textAllCaps="false"
             android:visibility="gone" />
 
-        <ProgressBar
+        <LinearLayout
             android:id="@+id/readable_reader_loading"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:accessibilityLiveRegion="polite"
             android:contentDescription="@string/readable_reader_loading"
-            android:indeterminate="true" />
+            android:gravity="center"
+            android:importantForAccessibility="yes"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <ProgressBar
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:importantForAccessibility="no"
+                android:indeterminate="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:importantForAccessibility="no"
+                android:text="@string/readable_reader_loading"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/readable_reader_error"

@@ -22,5 +22,10 @@ class ReadableReaderNavigationTest {
         assertTrue(bibliographyAnchorFromCitationTarget("paperreader-citation://anchor/bib.bad/path") == null)
         assertTrue(bibliographyAnchorFromCitationTarget("https://example.org/document.html#bib.bib12") == null)
         assertTrue(bibliographyAnchorFromCitationTarget("javascript:alert(1)#bib.bib12") == null)
+        assertTrue(
+            annotationIdFromReaderTarget("https://appassets.androidplatform.net/annotation/ann-safe") == "ann-safe",
+        )
+        assertTrue(annotationIdFromReaderTarget("https://example.org/annotation/ann-safe") == null)
+        assertTrue(annotationIdFromReaderTarget("https://appassets.androidplatform.net/annotation/ann-safe?q=1") == null)
     }
 }

@@ -43,6 +43,13 @@ current branch. Released sections correspond to Git tags.
   bottom edge, with no lateral offset.
 - At 200% text scale, primary navigation switches to fully labelled icon targets instead of truncating
   all five names. Reader toolbars grow with titles and subtitles instead of clipping them.
+- Successful readable HTML export can retain the same verified app-private artifact for offline Read
+  after restart. Retention is exact-hash and bounded; the user-selected file remains a separate
+  shareable copy.
+- Reader source and license details collapse to one accessible line, loading has a visible status,
+  and wide tables expose a subtle horizontal scrollbar.
+- Reader highlights open a single mobile editor where notes can be added, changed, or deleted without
+  navigating through nested dialogs. Notes are visually distinct from highlight-only passages.
 
 ### Fixed
 
@@ -72,6 +79,10 @@ current branch. Released sections correspond to Git tags.
   stable, grouped, live accessibility semantics.
 - Running search and history-removal controls now expose specific accessible names, and clickable
   shared surfaces enforce a 48 dp minimum target.
+- In-paper search keeps the active match below the top WebView edge instead of clipping its first
+  line.
+- Toolbar and system Back return from a citation before leaving the reader. The full-width return
+  action uses lower elevation and respects the system reduced-motion setting.
 
 ### Security
 
@@ -84,6 +95,8 @@ current branch. Released sections correspond to Git tags.
 
 - Centralized the host unit-test and lint commands in root Gradle tasks. Release builds now require a
   successful Android CI run for the exact commit instead of rerunning the host gate.
+- Pull-request CI now runs host tests, lint, and debug assembly in one Gradle invocation. Coverage,
+  unsigned release APKs, and SBOM packaging run on main or manual builds instead of every review.
 
 ### Removed
 

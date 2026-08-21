@@ -119,11 +119,32 @@ class PaperReaderUseCasesTest {
             override suspend fun get(recordId: String): RemotePaper? = null
         }
         val history = FakeReadingHistoryRepository()
+        val readableManifestation = PaperManifestation(
+            id = ManifestationId("manifestation-remove-readable"),
+            workId = WorkId("w-saved"),
+            type = ManifestationType.PREPRINT,
+            sourceProvider = "arxiv",
+            sourceRecordId = "2501.04510v2",
+            version = "v2",
+            updatedAt = Instant.EPOCH,
+        )
+        val secondReadableManifestation = readableManifestation.copy(
+            id = ManifestationId("manifestation-remove-readable-2"),
+            sourceRecordId = "1706.03762v7",
+            version = "v7",
+        )
+        val released = mutableListOf<PaperManifestation>()
+        val removalEvents = mutableListOf<String>()
+        repository.onRemove = { removalEvents += "repository" }
         val useCases = paperReaderUseCases(
             repository,
             history,
             FakeReadingBookmarkRepository(),
             FederatedPaperSearch(listOf(provider)),
+            removeReadableArtifacts = {
+                released += it
+                removalEvents += "artifact:${it.id.value}"
+            },
         )
         val remote = RemotePaper("fixture", "r-1", "Result")
 
@@ -143,7 +164,57 @@ class PaperReaderUseCasesTest {
             repository.saved,
         )
         assertEquals(WorkId("w-saved"), repository.readingState?.workId)
+        repository.paper = LibraryPaper(
+            work = PaperWork(WorkId("w-saved"), "Result", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH),
+            manifestations = listOf(readableManifestation, secondReadableManifestation),
+        )
         assertEquals(RemovePaperResult.Removed, useCases.removePaper.await(WorkId("w-saved")))
+        assertEquals(listOf(readableManifestation, secondReadableManifestation), released)
+        assertEquals(
+            listOf(
+                "repository",
+                "artifact:${readableManifestation.id.value}",
+                "artifact:${secondReadableManifestation.id.value}",
+            ),
+            removalEvents,
+        )
+
+        val blockedRepository = FakeLibraryRepository().apply {
+            paper = repository.paper
+            removeResult = RemovePaperResult.HasActiveTasks
+        }
+        val blockedCleanup = mutableListOf<PaperManifestation>()
+        val blockedUseCases = paperReaderUseCases(
+            blockedRepository,
+            history,
+            FakeReadingBookmarkRepository(),
+            FederatedPaperSearch(emptyList()),
+            removeReadableArtifacts = { blockedCleanup += it },
+        )
+        assertEquals(
+            RemovePaperResult.HasActiveTasks,
+            blockedUseCases.removePaper.await(WorkId("w-saved")),
+        )
+        assertTrue(blockedCleanup.isEmpty())
+
+        val cleanupFailureRepository = FakeLibraryRepository().apply { paper = repository.paper }
+        val attemptedCleanup = mutableListOf<PaperManifestation>()
+        val cleanupFailureUseCases = paperReaderUseCases(
+            cleanupFailureRepository,
+            history,
+            FakeReadingBookmarkRepository(),
+            FederatedPaperSearch(emptyList()),
+            removeReadableArtifacts = {
+                attemptedCleanup += it
+                error("storage unavailable")
+            },
+        )
+        assertEquals(
+            RemovePaperResult.Removed,
+            cleanupFailureUseCases.removePaper.await(WorkId("w-saved")),
+        )
+        assertEquals(listOf(readableManifestation, secondReadableManifestation), attemptedCleanup)
+        assertEquals(1, cleanupFailureRepository.removeCalls)
         useCases.recordReadingSession.await(WorkId("w-saved"), Instant.EPOCH, Duration.ofMinutes(4))
         assertEquals(Duration.ofMinutes(4), history.duration)
     }
@@ -252,8 +323,10 @@ class PaperReaderUseCasesTest {
             manifestations = listOf(manifestation),
         )
         var receivedTitle: String? = null
-        val loader = ReadablePaperLoader { title, received ->
+        var receivedRetainedSha: String? = null
+        val loader = ReadablePaperLoader { title, received, retainDocumentSha256 ->
             receivedTitle = title
+            receivedRetainedSha = retainDocumentSha256
             assertEquals(manifestation, received)
             ReadablePaperResult.Unavailable(ReadablePaperFailure.SOURCE_NOT_FOUND)
         }
@@ -261,9 +334,10 @@ class PaperReaderUseCasesTest {
 
         assertEquals(
             ReadablePaperResult.Unavailable(ReadablePaperFailure.SOURCE_NOT_FOUND),
-            useCase.await(workId, manifestationId),
+            useCase.await(workId, manifestationId, retainDocumentSha256 = "a".repeat(64)),
         )
         assertEquals("CGP-Tuning", receivedTitle)
+        assertEquals("a".repeat(64), receivedRetainedSha)
         assertEquals(
             ReadablePaperResult.Unavailable(ReadablePaperFailure.MANIFESTATION_NOT_FOUND),
             useCase.await(workId, ManifestationId("other")),
@@ -321,6 +395,8 @@ class PaperReaderUseCasesTest {
         val saved = mutableListOf<RemotePaper>()
         var readingState: ReadingState? = null
         var paper: LibraryPaper? = null
+        var removeCalls = 0
+        var onRemove: () -> Unit = {}
         var removeResult: RemovePaperResult = RemovePaperResult.Removed
         var createResult: CreateCollectionResult = CreateCollectionResult.NameTaken
         var renameResult: RenameCollectionResult = RenameCollectionResult.NotFound
@@ -338,7 +414,11 @@ class PaperReaderUseCasesTest {
             readingState = state
         }
 
-        override suspend fun remove(workId: WorkId): RemovePaperResult = removeResult
+        override suspend fun remove(workId: WorkId): RemovePaperResult {
+            removeCalls += 1
+            onRemove()
+            return removeResult
+        }
         override suspend fun createCollection(name: String): CreateCollectionResult = createResult
         override suspend fun renameCollection(id: CollectionId, name: String): RenameCollectionResult = renameResult
         override suspend fun deleteCollection(id: CollectionId): DeleteCollectionResult = deleteResult

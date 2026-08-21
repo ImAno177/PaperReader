@@ -33,6 +33,7 @@ import dev.paperreader.logic.plugin.SourceExtensionCoordinator
 import dev.paperreader.logic.plugin.TrustedSourceExtension
 import okhttp3.OkHttpClient
 import java.io.Closeable
+import kotlinx.coroutines.flow.first
 
 data class PaperReaderConfiguration(
     val databaseName: String = "paper-reader.db",
@@ -60,9 +61,12 @@ class PaperReaderLogic private constructor(
     val downloads: PaperDownloadCoordinator,
     val extensionStores: ExtensionStoreRegistry,
     private val sourceExtensionCoordinator: SourceExtensionCoordinator,
+    private val reconcileReadableArtifactStore: suspend () -> Unit,
     private val database: LibraryDatabase,
 ) : Closeable {
     suspend fun reconcileSourceExtensions() = sourceExtensionCoordinator.reconcile()
+
+    suspend fun reconcileReadableArtifacts() = reconcileReadableArtifactStore()
 
     fun setDisabledProviderIds(providerIds: Set<String>) = providers.setDisabledProviderIds(providerIds)
 
@@ -151,12 +155,17 @@ class PaperReaderLogic private constructor(
                     providers,
                     readablePaperLoader,
                     RoomAnnotationRepository(database),
+                    removeReadableArtifacts = readablePaperLoader::removeArtifacts,
                 ),
                 providers = providers,
                 tasks = tasks,
                 downloads = downloads,
                 extensionStores = extensionStores,
                 sourceExtensionCoordinator = sourceExtensionCoordinator,
+                reconcileReadableArtifactStore = {
+                    val manifestations = library.library.first().flatMap { it.manifestations }
+                    readablePaperLoader.reconcileArtifacts(manifestations)
+                },
                 database = database,
             )
         }

@@ -1,5 +1,6 @@
 package dev.paperreader.app.reader
 
+import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -11,6 +12,7 @@ import android.text.TextUtils
 import android.util.TypedValue
 import android.view.MenuItem
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -26,6 +28,8 @@ import dev.paperreader.app.ui.theme.CommunityPaperTheme
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperIconSet
 import dev.paperreader.logic.reader.ReadablePaperSection
+import dev.paperreader.logic.reader.ReadablePaperDocument
+import dev.paperreader.logic.reader.ReadablePaperWarning
 import java.util.Locale
 import java.util.concurrent.CancellationException
 import kotlin.math.roundToInt
@@ -64,8 +68,99 @@ internal fun MaterialButton.configureReadableCitationReturn(
     strokeWidth = (style.borderWidthDp * resources.displayMetrics.density).roundToInt()
     cornerRadius = (style.cornerRadiusDp * resources.displayMetrics.density).roundToInt()
     setTextColor(style.content)
-    contentDescription = context.getString(R.string.readable_reader_citation_return)
+    contentDescription = context.getString(R.string.readable_reader_citation_return_description)
     setOnClickListener { onClick() }
+}
+
+internal fun MaterialButton.showReadableCitationReturn() {
+    val alreadyShown = visibility == View.VISIBLE && alpha == 1f && translationY == 0f
+    animate().withEndAction(null).cancel()
+    visibility = View.VISIBLE
+    if (alreadyShown || !ValueAnimator.areAnimatorsEnabled()) {
+        alpha = 1f
+        translationY = 0f
+        return
+    }
+    alpha = 0f
+    translationY = 12f * resources.displayMetrics.density
+    animate()
+        .alpha(1f)
+        .translationY(0f)
+        .setDuration(CITATION_RETURN_MOTION_MILLIS)
+        .setInterpolator(DecelerateInterpolator())
+        .start()
+}
+
+internal fun MaterialButton.hideReadableCitationReturn(animateExit: Boolean = false) {
+    animate().withEndAction(null).cancel()
+    if (animateExit && visibility == View.VISIBLE && ValueAnimator.areAnimatorsEnabled()) {
+        animate()
+            .alpha(0f)
+            .translationY(12f * resources.displayMetrics.density)
+            .setDuration(CITATION_RETURN_MOTION_MILLIS)
+            .withEndAction {
+                visibility = View.GONE
+                alpha = 1f
+                translationY = 0f
+            }
+            .start()
+    } else {
+        visibility = View.GONE
+        alpha = 1f
+        translationY = 0f
+    }
+}
+
+internal fun TextView.configureReadableProvenance(icon: android.graphics.drawable.Drawable, color: Int) {
+    setCompoundDrawablesRelativeWithIntrinsicBounds(
+        icon.mutate().apply { setTint(color) },
+        null,
+        null,
+        null,
+    )
+    compoundDrawablePadding = (8 * resources.displayMetrics.density).roundToInt()
+    setOnClickListener { setReadableProvenanceExpanded(maxLines == 1) }
+}
+
+internal fun TextView.showReadableProvenance(value: String) {
+    text = value
+    setReadableProvenanceExpanded(false)
+    visibility = View.VISIBLE
+}
+
+internal fun Context.readableProvenanceText(document: ReadablePaperDocument): String = buildList {
+    add(
+        getString(
+            if (document.keptForOffline) R.string.readable_reader_provenance
+            else R.string.readable_reader_provenance_fresh,
+            document.sourceVersion,
+        ),
+    )
+    document.license?.takeIf(String::isNotBlank)?.let {
+        add(getString(R.string.readable_reader_license_line, it))
+    }
+    if (ReadablePaperWarning.SOURCE_CONVERSION_ARTIFACT_NORMALIZED in document.warnings) {
+        add(getString(R.string.readable_reader_conversion_warning))
+    }
+    if (
+        ReadablePaperWarning.FIGURE_UNAVAILABLE in document.warnings ||
+        ReadablePaperWarning.FIGURE_LIMIT_REACHED in document.warnings
+    ) {
+        add(getString(R.string.readable_reader_figure_warning))
+    }
+    if (ReadablePaperWarning.TABLE_OF_CONTENTS_MISSING in document.warnings) {
+        add(getString(R.string.readable_reader_contents_warning))
+    }
+}.joinToString("\n")
+
+private fun TextView.setReadableProvenanceExpanded(expanded: Boolean) {
+    maxLines = if (expanded) Int.MAX_VALUE else 1
+    ellipsize = if (expanded) null else TextUtils.TruncateAt.END
+    val action = context.getString(
+        if (expanded) R.string.readable_reader_source_details_hide
+        else R.string.readable_reader_source_details_show,
+    )
+    contentDescription = "$text. $action"
 }
 
 internal fun configureReadablePaperToolbar(
@@ -312,3 +407,5 @@ private fun Int.toCssColor(): String = String.format(Locale.ROOT, "#%06X", this 
 private fun AppCompatActivity.showOriginalUnavailable() {
     Toast.makeText(this, R.string.readable_reader_original_unavailable, Toast.LENGTH_LONG).show()
 }
+
+private const val CITATION_RETURN_MOTION_MILLIS = 160L

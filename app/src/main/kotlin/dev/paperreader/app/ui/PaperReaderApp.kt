@@ -380,7 +380,7 @@ private fun PaperReaderNavigation(
     onSetPaperCollections: suspend (String, Set<Long>) -> dev.paperreader.logic.domain.repository.SetPaperCollectionsResult,
     onRequestDownload: (String, String) -> Unit,
     onGetDownloadedPaper: suspend (String) -> dev.paperreader.logic.task.DownloadedPaper?,
-    onLoadReadablePaper: suspend (String, String) -> dev.paperreader.logic.reader.ReadablePaperResult,
+    onLoadReadablePaper: suspend (String, String, String?) -> dev.paperreader.logic.reader.ReadablePaperResult,
     onDeleteDownload: suspend (String, String) -> dev.paperreader.logic.task.DeleteDownloadResult,
     onCancelDownloadTask: (String) -> Unit,
     onRetryDownloadTask: (String) -> Unit,

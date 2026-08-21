@@ -91,7 +91,7 @@ fun DetailScreen(
     onRepairSavedPaper: (String) -> Unit = {},
     onRequestDownload: (String) -> Unit = {},
     onGetDownloadedPaper: suspend (String) -> DownloadedPaper? = { null },
-    onLoadReadablePaper: suspend (String) -> ReadablePaperResult = {
+    onLoadReadablePaper: suspend (String, String?) -> ReadablePaperResult = { _, _ ->
         ReadablePaperResult.Unavailable(ReadablePaperFailure.OFFLINE_OR_UNAVAILABLE)
     },
     onDeleteDownload: suspend (String) -> DeleteDownloadResult = { DeleteDownloadResult.NotFound },
@@ -303,7 +303,7 @@ private fun PaperDetailContent(
     onRepairSavedPaper: (String) -> Unit,
     onRequestDownload: (String) -> Unit,
     onGetDownloadedPaper: suspend (String) -> DownloadedPaper?,
-    onLoadReadablePaper: suspend (String) -> ReadablePaperResult,
+    onLoadReadablePaper: suspend (String, String?) -> ReadablePaperResult,
     onDeleteDownload: suspend (String) -> DeleteDownloadResult,
 ) {
     var abstractExpanded by rememberSaveable(paper.id) { mutableStateOf(false) }
@@ -401,7 +401,9 @@ private fun PaperDetailContent(
                     showMobileReadAction = manifestation.id != primaryReadableManifestation?.id,
                     onRequestDownload = { onRequestDownload(manifestation.id) },
                     onGetDownloadedPaper = { onGetDownloadedPaper(manifestation.id) },
-                    onLoadReadablePaper = { onLoadReadablePaper(manifestation.id) },
+                    onLoadReadablePaper = { retainDocumentSha256 ->
+                        onLoadReadablePaper(manifestation.id, retainDocumentSha256)
+                    },
                     onDeleteDownload = { onDeleteDownload(manifestation.id) },
                 )
             }

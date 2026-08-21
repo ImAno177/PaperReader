@@ -10,6 +10,8 @@ import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.Base64
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -27,6 +29,8 @@ data class ReadablePaperDocument(
     val documentSha256: String,
     val retrievedAt: Instant,
     val servedFromCache: Boolean,
+    /** True only when the verified app-private artifact is protected from ordinary cache eviction. */
+    val keptForOffline: Boolean = false,
     val sections: List<ReadablePaperSection>,
     val warnings: Set<ReadablePaperWarning>,
 )
@@ -96,7 +100,11 @@ internal data class ReadableResourceRequest(
 )
 
 internal fun interface ReadablePaperLoader {
-    suspend fun load(title: String, manifestation: PaperManifestation): ReadablePaperResult
+    suspend fun load(
+        title: String,
+        manifestation: PaperManifestation,
+        retainDocumentSha256: String?,
+    ): ReadablePaperResult
 }
 
 internal class ArxivReadablePaperLoader(
@@ -105,21 +113,38 @@ internal class ArxivReadablePaperLoader(
     private val sanitizer: ArxivHtmlSanitizer = ArxivHtmlSanitizer(),
     private val now: () -> Instant = Instant::now,
 ) : ReadablePaperLoader {
-    override suspend fun load(title: String, manifestation: PaperManifestation): ReadablePaperResult {
+    override suspend fun load(
+        title: String,
+        manifestation: PaperManifestation,
+        retainDocumentSha256: String?,
+    ): ReadablePaperResult {
         if (!manifestation.sourceProvider.equals(ARXIV_PROVIDER_ID, ignoreCase = true)) {
             return ReadablePaperResult.Unavailable(ReadablePaperFailure.UNSUPPORTED_SOURCE)
         }
+        if (retainDocumentSha256 != null && !DOCUMENT_SHA256.matches(retainDocumentSha256)) {
+            return unavailable(ReadablePaperFailure.INVALID_RESPONSE)
+        }
         val versionedId = versionedArxivId(manifestation)
             ?: return ReadablePaperResult.Unavailable(ReadablePaperFailure.UNVERSIONED_SOURCE)
-        val sourceUrl = "https://arxiv.org/html/$versionedId"
+        val sourceUrl = sourceUrl(versionedId)
         val cacheKey = ReadablePaperCache.keyFor(
             sourceUrl = sourceUrl,
             sanitizerPolicyVersion = SANITIZER_POLICY_VERSION,
             rendererContractVersion = RENDERER_CONTRACT_VERSION,
         )
+        try {
+            cache.removeBySourceUrl(sourceUrl, exceptKey = cacheKey)
+        } catch (_: IOException) {
+            // Contract cleanup is opportunistic while loading; paper removal uses the strict path.
+        }
         cache.read(cacheKey)?.let { cached ->
+            if (retainDocumentSha256 != null && cached.documentSha256 != retainDocumentSha256) {
+                return unavailable(ReadablePaperFailure.INVALID_RESPONSE)
+            }
+            val retained = cached.keptForOffline ||
+                (retainDocumentSha256 != null && cache.keepForOffline(cacheKey))
             return ReadablePaperResult.Ready(
-                cached.toDocument(
+                cached.copy(keptForOffline = retained).toDocument(
                     title = title,
                     sourceProvider = manifestation.sourceProvider,
                     sourceVersion = versionedId.substringAfterLast('v').let { "v$it" },
@@ -127,6 +152,9 @@ internal class ArxivReadablePaperLoader(
                     servedFromCache = true,
                 ),
             )
+        }
+        if (retainDocumentSha256 != null) {
+            return unavailable(ReadablePaperFailure.OFFLINE_OR_UNAVAILABLE)
         }
 
         val page = when (
@@ -179,7 +207,7 @@ internal class ArxivReadablePaperLoader(
         try {
             cache.write(cacheKey, record)
         } catch (_: IOException) {
-            // The verified document remains readable even when the disposable offline cache is unavailable.
+            // The verified document remains readable even when app-private storage is unavailable.
         }
         return ReadablePaperResult.Ready(
             record.toDocument(
@@ -191,6 +219,29 @@ internal class ArxivReadablePaperLoader(
             ),
         )
     }
+
+    suspend fun removeArtifacts(manifestation: PaperManifestation) {
+        if (!manifestation.sourceProvider.equals(ARXIV_PROVIDER_ID, ignoreCase = true)) return
+        val versionedId = versionedArxivId(manifestation) ?: return
+        withContext(Dispatchers.IO) {
+            cache.removeBySourceUrl(sourceUrl(versionedId))
+        }
+    }
+    suspend fun reconcileArtifacts(manifestations: Collection<PaperManifestation>) {
+        val sourceUrls = manifestations.asSequence()
+            .filter { it.sourceProvider.equals(ARXIV_PROVIDER_ID, ignoreCase = true) }
+            .mapNotNull(::versionedArxivId)
+            .map(::sourceUrl)
+            .toSet()
+        withContext(Dispatchers.IO) {
+            try {
+                cache.removeSourcesNotIn(sourceUrls)
+            } catch (_: IOException) {
+                // Retry orphan cleanup on the next start without blocking this one.
+            }
+        }
+    }
+    private fun sourceUrl(versionedId: String): String = "https://arxiv.org/html/$versionedId"
 
     private fun versionedArxivId(manifestation: PaperManifestation): String? {
         val recordId = manifestation.sourceRecordId.trim().removePrefix("arXiv:")
@@ -209,11 +260,9 @@ internal class ArxivReadablePaperLoader(
 
     companion object {
         private const val ARXIV_PROVIDER_ID = "arxiv"
-        // Bump whenever sanitized output changes so a previously cached document cannot
-        // bypass a security or fidelity fix. Version 10 also separates legacy trailing
-        // affiliation rows from author identity cards.
+        // Versioned contracts prevent older cached output from bypassing fidelity or security fixes.
         private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-10"
-        private const val RENDERER_CONTRACT_VERSION = "mobile-html-6"
+        private const val RENDERER_CONTRACT_VERSION = "mobile-html-7"
         private const val MAXIMUM_HTML_BYTES = 4L * 1024L * 1024L
         private val UNVERSIONED_ARXIV_ID = Regex(
             "(?:[0-9]{4}\\.[0-9]{4,5}|[A-Za-z][A-Za-z0-9.-]*/[0-9]{7})",
@@ -221,6 +270,7 @@ internal class ArxivReadablePaperLoader(
         private val VERSIONED_ARXIV_ID = Regex(
             "(?:[0-9]{4}\\.[0-9]{4,5}|[A-Za-z][A-Za-z0-9.-]*/[0-9]{7})v[1-9][0-9]*",
         )
+        private val DOCUMENT_SHA256 = Regex("[0-9a-f]{64}")
     }
 }
 

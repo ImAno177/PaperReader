@@ -359,10 +359,15 @@ class PaperReaderViewModel internal constructor(
     suspend fun downloadedPaper(manifestationId: String): DownloadedPaper? =
         logic.downloads.downloadedPaper(ManifestationId(manifestationId))
 
-    suspend fun loadReadablePaper(workId: String, manifestationId: String): ReadablePaperResult =
+    suspend fun loadReadablePaper(
+        workId: String,
+        manifestationId: String,
+        retainDocumentSha256: String? = null,
+    ): ReadablePaperResult =
         logic.useCases.loadReadablePaper.await(
             WorkId(workId),
             ManifestationId(manifestationId),
+            retainDocumentSha256,
         )
 
     suspend fun deleteDownload(workId: String, manifestationId: String): DeleteDownloadResult =

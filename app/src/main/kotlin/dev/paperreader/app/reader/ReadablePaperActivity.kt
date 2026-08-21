@@ -11,7 +11,6 @@ import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -36,7 +35,6 @@ import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.reader.ReadablePaperFailure
 import dev.paperreader.logic.reader.ReadablePaperResult
 import dev.paperreader.logic.reader.ReadablePaperSection
-import dev.paperreader.logic.reader.ReadablePaperWarning
 import java.time.Instant
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +50,7 @@ class ReadablePaperActivity : AppCompatActivity() {
     private lateinit var toolbar: Toolbar
     private lateinit var provenance: TextView
     private lateinit var webView: ReadablePaperWebView
-    private lateinit var loading: ProgressBar
+    private lateinit var loading: View
     private lateinit var errorContainer: LinearLayout
     private lateinit var errorBody: TextView
     private lateinit var findController: ReadablePaperFindController
@@ -113,9 +111,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         )
         configureToolbar()
         configureWebView()
-        onBackPressedDispatcher.addCallback(this) {
-            if (findController.isVisible) findController.hide(clearQuery = true) else finish()
-        }
+        onBackPressedDispatcher.addCallback(this) { navigateBackWithinReader() }
         findViewById<Button>(R.id.readable_reader_retry).setOnClickListener { loadDocument() }
         findViewById<Button>(R.id.readable_reader_original_pdf).setOnClickListener { openOriginalPdf() }
         loadDocument()
@@ -184,6 +180,10 @@ class ReadablePaperActivity : AppCompatActivity() {
         previous.imageTintList = actionTint
         next.imageTintList = actionTint
         close.imageTintList = actionTint
+        provenance.configureReadableProvenance(
+            readerIcons.drawable(this, PaperIconKey.INFO),
+            actionColor,
+        )
         findController = ReadablePaperFindController(
             context = this,
             webView = webView,
@@ -214,9 +214,7 @@ class ReadablePaperActivity : AppCompatActivity() {
             title = readerArgs.title,
             icons = readerIcons,
             actions = ReadablePaperToolbarActions(
-                navigateBack = {
-                    if (findController.isVisible) findController.hide(clearQuery = true) else finish()
-                },
+                navigateBack = ::navigateBackWithinReader,
                 search = findController::show,
                 showContents = {
                     showReadablePaperContents(currentDocument?.sections.orEmpty(), ::navigateToSection)
@@ -252,10 +250,14 @@ class ReadablePaperActivity : AppCompatActivity() {
     }
 
     private fun handleNavigation(uri: Uri): Boolean {
+        annotationIdFromReaderTarget(uri.toString())?.let { annotationId ->
+            annotationController.openAnnotation(annotationId)
+            return true
+        }
         bibliographyAnchorFromCitationTarget(uri.toString())?.let { anchor ->
             val hadOrigin = citationReturnProgression != null
             if (!hadOrigin) rememberCitationOrigin()
-            citationReturnButton.visibility = View.VISIBLE
+            showCitationReturn()
             webView.scrollToDocumentAnchor(anchor) { found ->
                 if (!found && !hadOrigin) clearCitationReturn()
             }
@@ -264,7 +266,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         if (uri.scheme == "https" && uri.host == LOCAL_RENDERER_HOST && uri.path == LOCAL_RENDERER_PATH) {
             if (isBibliographyAnchor(uri.fragment)) {
                 if (citationReturnProgression == null) rememberCitationOrigin()
-                citationReturnButton.visibility = View.VISIBLE
+                showCitationReturn()
             } else if (uri.fragment != null) {
                 clearCitationReturn()
             }
@@ -328,33 +330,7 @@ class ReadablePaperActivity : AppCompatActivity() {
             contents = document.sections.isNotEmpty(),
         )
         annotationController.updateMenu()
-        val provenanceText = getString(
-            if (document.servedFromCache) {
-                R.string.readable_reader_provenance
-            } else {
-                R.string.readable_reader_provenance_fresh
-            },
-            document.sourceVersion,
-        )
-        provenance.text = buildList {
-            add(provenanceText)
-            document.license?.takeIf(String::isNotBlank)?.let {
-                add(getString(R.string.readable_reader_license_line, it))
-            }
-            if (ReadablePaperWarning.SOURCE_CONVERSION_ARTIFACT_NORMALIZED in document.warnings) {
-                add(getString(R.string.readable_reader_conversion_warning))
-            }
-            if (
-                ReadablePaperWarning.FIGURE_UNAVAILABLE in document.warnings ||
-                ReadablePaperWarning.FIGURE_LIMIT_REACHED in document.warnings
-            ) {
-                add(getString(R.string.readable_reader_figure_warning))
-            }
-            if (ReadablePaperWarning.TABLE_OF_CONTENTS_MISSING in document.warnings) {
-                add(getString(R.string.readable_reader_contents_warning))
-            }
-        }.joinToString("\n")
-        provenance.visibility = View.VISIBLE
+        provenance.showReadableProvenance(readableProvenanceText(document))
         loadRenderedDocument(document)
     }
 
@@ -366,7 +342,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         webView.restoreProgression(pendingRestoreProgression)
         restoredCitationReturnProgression?.let { progression ->
             citationReturnProgression = progression
-            citationReturnButton.visibility = View.VISIBLE
+            showCitationReturn()
             restoredCitationReturnProgression = null
         }
         webView.postDelayed({
@@ -524,7 +500,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         } else {
             webView.restoreProgression(checkNotNull(progression))
         }
-        clearCitationReturn()
+        clearCitationReturn(animate = true)
     }
 
     private fun rememberCitationOrigin() {
@@ -532,10 +508,22 @@ class ReadablePaperActivity : AppCompatActivity() {
         citationReturnProgression = webView.currentProgression()
     }
 
-    private fun clearCitationReturn() {
+    private fun showCitationReturn() {
+        citationReturnButton.showReadableCitationReturn()
+    }
+
+    private fun clearCitationReturn(animate: Boolean = false) {
         citationReturnScrollY = null
         citationReturnProgression = null
-        citationReturnButton.visibility = View.GONE
+        citationReturnButton.hideReadableCitationReturn(animate)
+    }
+
+    private fun navigateBackWithinReader() {
+        when {
+            findController.isVisible -> findController.hide(clearQuery = true)
+            citationReturnProgression != null || citationReturnScrollY != null -> returnFromCitation()
+            else -> finish()
+        }
     }
 
     private fun navigateToSection(section: ReadablePaperSection) {

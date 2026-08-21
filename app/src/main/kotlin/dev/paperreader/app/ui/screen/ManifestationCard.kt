@@ -100,7 +100,7 @@ internal fun ManifestationCard(
     showMobileReadAction: Boolean = true,
     onRequestDownload: () -> Unit,
     onGetDownloadedPaper: suspend () -> DownloadedPaper?,
-    onLoadReadablePaper: suspend () -> ReadablePaperResult,
+    onLoadReadablePaper: suspend (String?) -> ReadablePaperResult,
     onDeleteDownload: suspend () -> DeleteDownloadResult,
 ) {
     val uriHandler = LocalUriHandler.current

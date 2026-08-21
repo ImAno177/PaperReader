@@ -65,7 +65,7 @@ internal fun AppNavHost(
     onSetPaperCollections: suspend (String, Set<Long>) -> SetPaperCollectionsResult,
     onRequestDownload: (String, String) -> Unit,
     onGetDownloadedPaper: suspend (String) -> DownloadedPaper?,
-    onLoadReadablePaper: suspend (String, String) -> ReadablePaperResult,
+    onLoadReadablePaper: suspend (String, String, String?) -> ReadablePaperResult,
     onDeleteDownload: suspend (String, String) -> DeleteDownloadResult,
     onCancelDownloadTask: (String) -> Unit,
     onRetryDownloadTask: (String) -> Unit,
@@ -237,8 +237,8 @@ internal fun AppNavHost(
                 onRepairSavedPaper = onRepairSavedPaper,
                 onRequestDownload = { onRequestDownload(workId, it) },
                 onGetDownloadedPaper = onGetDownloadedPaper,
-                onLoadReadablePaper = { manifestationId ->
-                    onLoadReadablePaper(workId, manifestationId)
+                onLoadReadablePaper = { manifestationId, retainDocumentSha256 ->
+                    onLoadReadablePaper(workId, manifestationId, retainDocumentSha256)
                 },
                 onDeleteDownload = { onDeleteDownload(workId, it) },
                 onRemove = { onRemovePaper(workId) },

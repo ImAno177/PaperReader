@@ -24,8 +24,8 @@ and may be unavailable until the corresponding signed extension is installed.
 | Discovery | Semantic Scholar, arXiv, and Europe PMC free-text search; Crossref exact DOI enrichment; deterministic exact-identifier routing and citation-aware ranking. |
 | Google handoff | A hardened in-app `site:arxiv.org/abs` search surface; explicit `/abs/`, `/html/`, or `/pdf/` URL handoff to exact arXiv ID and version parsing. |
 | Library | Room-backed papers, versions and files, full-width quick Read actions, list/grid layouts, collections, reading status, history, bookmarks, annotations, saved searches, update snapshots, downloads, local PDF import, and metadata backup. |
-| Mobile reader | Verified arXiv HTML cache, sanitization, offline WebView rendering, table-of-contents navigation, in-document search, citation return, text/layout controls, figures, MathML, and horizontal table scrolling. |
-| Paper files | Per-version PDF download and readable HTML export from Paper Detail. HTML export uses the same verified, sanitized document artifact as the mobile reader. |
+| Mobile reader | Verified arXiv HTML cache, bounded retained offline artifacts, sanitization, offline WebView rendering, table-of-contents navigation, in-document search, citation return, text/layout controls, figures, MathML, and horizontal table scrolling. |
+| Paper files | Per-version PDF download and readable HTML export from Paper Detail. After export, PaperReader attempts to retain the exact verified app-private artifact used by Read. |
 | Original documents | Bounded PDF download and an in-app PDF reader with search, page navigation, progress, and bookmarks. |
 | Extensions | Separate source and theme APKs over versioned AIDL, signed stores, package verification, user-confirmed PackageInstaller flows, update/orphan/untrusted states, and community extension discovery. |
 | Appearance and access | English UI, a Neobrutalism preset, complete community themes, System/Light/Dark mode, adaptive navigation, and 48 dp semantic touch targets. |
@@ -188,6 +188,12 @@ with byte/time/count limits. Sanitize before storage; remove executable markup a
 retaining headings, paragraphs, lists, tables, citations, MathML, and bounded same-document figures.
 Store an app-private artifact with sanitizer version and SHA-256.
 
+Exporting readable HTML first writes a shareable copy to the user-selected document location, then
+attempts to protect the matching SHA-256-verified app-private artifact from ordinary cache eviction.
+Retention is cache-only and never fetches a potentially different source revision. The retained pool
+is capped at 120 MiB; a new retention request is rejected rather than evicting an existing retained
+paper. The UI reports when only the external file was saved. Read never renders that mutable copy.
+
 The renderer is a non-exported, network-blocked WebView with a deny-by-default CSP. JavaScript is off
 except for short, app-owned commands required for bounded find, selection, and anchor navigation,
 then disabled again.
@@ -199,9 +205,13 @@ The layout must provide:
 - Scrollable wide tables/math and responsive figures.
 - Two-column author metadata at phone widths, with long names and affiliations wrapping inside each
   column instead of widening the page.
-- Citation jumps with a visible Back to reading position action.
-- Stable block/source anchors, selectable text, and exact-hash annotations.
-- Offline reopening from verified cache.
+- Citation jumps with a visible full-width Back to reading action. Toolbar and system Back return to
+  the previous reading position before leaving the reader.
+- Stable block/source anchors, selectable text, and exact-hash annotations. A rendered highlight can
+  reopen one mobile editor for its optional note or deletion; note-bearing highlights are visually
+  distinct without changing their exact anchor.
+- Offline reopening from verified cache, with eligible exported versions retained within the bounded
+  offline pool.
 - Original PDF action always reachable when the file exists.
 
 ### Original PDF

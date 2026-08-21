@@ -69,6 +69,11 @@ plugin and keeps Room schema/migration coverage in `logic` Android tests. Mihon'
 [`build.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/build.yml); its tag-based
 APK publishing is in [`release.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/release.yml).
 
+Android CI also runs the GitHub-verified `MobSF/mobsfscan` source scanner for Kotlin, Java, and
+Android XML. It uploads a SARIF report to GitHub Code Scanning. The scan uses `--no-fail` so existing
+findings remain visible for triage without turning an informational baseline into a false-green
+security waiver; no findings are suppressed by repository configuration.
+
 Gradle's enhanced cache has one writer: a successful `push` to `main` in `android-ci.yml`. Pull
 requests, CodeQL, and manual release runs are read-only consumers. This prevents each security scan,
 release, or review commit from creating a duplicate dependency/transforms cache; successful writes also

@@ -42,6 +42,8 @@ current branch. Released sections correspond to Git tags.
 
 - Updated jsoup to 1.23.1, constrained dependency submission to packaged runtime configurations, and
   added CodeQL plus grouped twice-monthly security updates to the source-extension repository.
+- Added the GitHub-verified MobSF source scan with pinned action revisions and SARIF upload to Code
+  Scanning.
 
 ### Removed
 

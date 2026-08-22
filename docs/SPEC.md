@@ -10,10 +10,6 @@ PaperReader is an Android paper library and mobile-first reader. It finds schola
 installable providers, preserves the original publication and provenance, and turns supported papers
 into a readable, navigable layout for a phone without pretending that lossy conversion is exact.
 
-Mihon inspired the library, source-extension, update, and reader-navigation model. PaperReader uses
-those ideas for scholarly documents rather than copying Mihon's code organization or in-process
-extension loading.
-
 ## Current feature set
 
 The following behavior is implemented in the host. Provider implementations are installed separately
@@ -243,9 +239,8 @@ failure must not discard the currently verified in-memory document.
 
 ### Update lifecycle
 
-PaperReader uses Mihon's installed, available, update, untrusted, and orphaned states together with its
-package-broadcast reconciliation pattern. It adds cryptographic artifact verification before
-installation:
+PaperReader exposes installed, available, update, untrusted, and orphaned states. Package-broadcast
+reconciliation and cryptographic artifact verification run before installation:
 
 1. Refresh stores on cold start, manual refresh, and constrained periodic work.
 2. Compare package name, versionCode, contract compatibility, and signer.
@@ -324,11 +319,6 @@ APK, placeholder reader, or passing screenshot alone does not satisfy this contr
 
 ## Primary references
 
-- [Mihon extension API update flow](https://github.com/mihonapp/mihon/blob/497e2662565c2727113125493a324465b9bc56ff/app/src/main/java/eu/kanade/tachiyomi/extension/api/ExtensionApi.kt)
-- [Mihon extension manager](https://github.com/mihonapp/mihon/blob/497e2662565c2727113125493a324465b9bc56ff/app/src/main/java/eu/kanade/tachiyomi/extension/ExtensionManager.kt)
-- [Mihon extension installer](https://github.com/mihonapp/mihon/blob/497e2662565c2727113125493a324465b9bc56ff/app/src/main/java/eu/kanade/tachiyomi/extension/util/ExtensionInstaller.kt)
-- [Mihon global-search toolbar and source filters](https://github.com/mihonapp/mihon/blob/497e2662565c2727113125493a324465b9bc56ff/app/src/main/java/eu/kanade/presentation/browse/components/GlobalSearchToolbar.kt)
-- [Mihon per-source search states](https://github.com/mihonapp/mihon/blob/497e2662565c2727113125493a324465b9bc56ff/app/src/main/java/eu/kanade/presentation/browse/GlobalSearchScreen.kt)
 - [Android Compose SearchBar guidance](https://developer.android.com/develop/ui/compose/components/search-bar)
 - [arXiv API user manual](https://info.arxiv.org/help/api/user-manual.html)
 - [arXiv HTML availability](https://info.arxiv.org/about/reports/2023_arxiv_annual_report.html)

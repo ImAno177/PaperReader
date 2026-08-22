@@ -56,8 +56,8 @@ denominator and connected test device are deterministic in CI.
 
 ## CI responsibilities
 
-PaperReader follows Mihon's separation of dependency review, tests, lint, artifacts, and security
-checks. Each workflow owns one gate so a test command is not copied into security or release jobs.
+PaperReader separates dependency review, tests, lint, artifacts, and security checks. Each workflow
+owns one gate so a test command is not copied into security or release jobs.
 The root Gradle tasks `hostUnitTest` and `hostLint` are the single command definitions for the host
 unit-test and lint gates.
 
@@ -84,11 +84,8 @@ does not claim device coverage that it does not run.
 GitHub CodeQL Advanced scans the Java/Kotlin build on every pull request and main push, with a weekly
 scheduled security-extended analysis. The repository intentionally uses Advanced setup: `codeql.yml`
 is the source of truth, while GitHub's Default setup remains disabled so it cannot replace that pinned
-build-and-query policy. Mihon runs Spotless and SQLDelight migration verification; PaperReader has no
-formatter plugin and keeps Room schema/migration coverage in `logic` Android tests. Mihon's reference
-workflow is [`build.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/build.yml); its
-tag-based APK publishing is in
-[`release.yml`](https://github.com/mihonapp/mihon/blob/main/.github/workflows/release.yml).
+build-and-query policy. PaperReader has no formatter plugin and keeps Room schema/migration coverage
+in `logic` Android tests. Release publishing remains in the repository's own `release.yml` workflow.
 
 Android CI also runs the GitHub-verified `MobSF/mobsfscan` source scanner for Kotlin, Java, and
 Android XML. It uploads a SARIF report to GitHub Code Scanning. The scan uses `--no-fail` so existing
@@ -103,15 +100,12 @@ branch-scoped cache model.
 
 ## Test-case policy
 
-Mihon's repository uses a deliberately focused suite rather than a blanket 100% target: migration
-behavior lives in [`MigratorTest`](https://github.com/mihonapp/mihon/blob/main/app/src/test/java/mihon/core/migration/MigratorTest.kt),
-algorithmic edge cases in core/common, and domain invariants/interactors under `domain/src/test`.
-PaperReader follows the same split: fast JVM tests cover deterministic domain, provider, parser, and
-state transitions; connected tests cover Room, Binder, WebView, Compose semantics, and real Android
-lifecycles. A coverage percentage is evidence for review, not a reason to add getter-only or
-tautological tests. The extension API keeps its stricter 100% line/branch guard because that small
-module is a versioned public contract; `logic` and `app` remain report-only until their Android
-framework seams can be measured deterministically.
+The repository uses a focused suite rather than a blanket 100% target. Fast JVM tests cover
+deterministic domain, provider, parser, and state transitions; connected tests cover Room, Binder,
+WebView, Compose semantics, and real Android lifecycles. A coverage percentage is evidence for review,
+not a reason to add getter-only or tautological tests. The extension API keeps its stricter 100%
+line/branch guard because that small module is a versioned public contract; `logic` and `app` remain
+report-only until their Android framework seams can be measured deterministically.
 
 Tests use local fixtures and MockWebServer for provider/network behavior. Live provider APIs and
 Play Protect are release smoke checks, never deterministic unit-test dependencies.

@@ -54,11 +54,6 @@ The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. See
 GitHub Actions publishes APK artifacts and an SPDX JSON software bill of materials for each build.
 Extension authors can start with the [`extension-api` guide](docs/EXTENSIONS.md).
 
-## Inspiration
-
-PaperReader takes inspiration from [Mihon](https://mihon.app/)'s local-first library and extension
-flows.
-
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE). Third-party attributions are listed in

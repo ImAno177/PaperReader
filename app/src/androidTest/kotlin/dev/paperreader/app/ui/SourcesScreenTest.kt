@@ -2,6 +2,7 @@ package dev.paperreader.app.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
@@ -134,7 +135,9 @@ class SourcesScreenTest {
 
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
         composeRule.onNodeWithContentDescription("Show releases from PaperReader community").performClick()
-        composeRule.onNodeWithText("Semantic Scholar").assertIsDisplayed()
+        composeRule.onNode(
+            hasText("Semantic Scholar") and hasAnySibling(hasText("1.2.0 • Apache-2.0")),
+        ).assertIsDisplayed()
         composeRule.onNodeWithText("Install extension").assertDoesNotExist()
 
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader themes"))

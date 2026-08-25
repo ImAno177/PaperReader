@@ -5,7 +5,6 @@ import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.graphics.RectF
-import android.net.Uri
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.SparseArray
@@ -40,7 +39,6 @@ import dev.paperreader.logic.domain.ReadingBookmark
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.domain.repository.ToggleReadingBookmarkResult
 import dev.paperreader.logic.task.DownloadedPaper
-import java.time.Instant
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -71,6 +69,7 @@ class PdfReaderActivity : AppCompatActivity() {
     private var readerResumed = false
     private var communityTheme: CommunityPaperTheme? = null
     private lateinit var readerIcons: PaperIconSet
+    private lateinit var readerStatePersistence: ReaderStatePersistence
 
     private val viewportListener = object : PdfView.OnViewportChangedListener {
         override fun onViewportChanged(
@@ -126,7 +125,9 @@ class PdfReaderActivity : AppCompatActivity() {
             return
         }
         readerArgs = parsedArgs
-        communityTheme = (application as PaperReaderApplication).themeExtensionManager.theme(readerArgs.themeKey)
+        val app = application as PaperReaderApplication
+        readerStatePersistence = ReaderStatePersistence(app, readerArgs.workId)
+        communityTheme = app.themeExtensionManager.theme(readerArgs.themeKey)
         readerIcons = communityTheme?.let { PaperIconSet.community(it.iconPaths) }
             ?: paperIconSet(readerArgs.themePreset)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -442,30 +443,25 @@ class PdfReaderActivity : AppCompatActivity() {
 
     private fun prepareReaderState() {
         lifecycleScope.launch {
-            val app = application as PaperReaderApplication
-            val restorePage = withContext(Dispatchers.IO) {
-                app.readerWriteMutex.withLock {
-                    val logic = app.logic
-                    val paper = logic.useCases.getPaper.await(readerArgs.workId) ?: return@withLock null
-                    val existing = paper.readingState
-                    val page = restorableReaderPage(
+            val restorePage = readerStatePersistence.open(
+                restore = { existing ->
+                    restorableReaderPage(
                         state = existing,
                         manifestationId = readerArgs.manifestationId,
                         documentSha256 = readerArgs.documentSha256,
                         pageCount = pageCount,
                     )
-                    logic.useCases.updateReadingState.await(
-                        readerStateForOpen(
-                            existing = existing,
-                            workId = readerArgs.workId,
-                            manifestationId = readerArgs.manifestationId,
-                            documentSha256 = readerArgs.documentSha256,
-                            now = Instant.now(),
-                        ),
+                },
+                stateForOpen = { existing, now ->
+                    readerStateForOpen(
+                        existing = existing,
+                        workId = readerArgs.workId,
+                        manifestationId = readerArgs.manifestationId,
+                        documentSha256 = readerArgs.documentSha256,
+                        now = now,
                     )
-                    page
-                }
-            }
+                },
+            )
             restorationReady = true
             if (restorePage != null) {
                 jumpToPage(restorePage)
@@ -497,61 +493,42 @@ class PdfReaderActivity : AppCompatActivity() {
     }
 
     private suspend fun persistPosition(position: ReaderPosition) {
-        val app = application as PaperReaderApplication
-        withContext(Dispatchers.IO) {
-            app.readerWriteMutex.withLock {
-                persistPositionLocked(app, readerArgs, position)
-            }
-        }
-    }
-
-    private suspend fun persistPositionLocked(
-        app: PaperReaderApplication,
-        args: PdfReaderArgs,
-        position: ReaderPosition,
-    ) {
-        val paper = app.logic.useCases.getPaper.await(args.workId) ?: return
-        app.logic.useCases.updateReadingState.await(
+        readerStatePersistence.persist { existing, now ->
             readerStateForPosition(
-                existing = paper.readingState,
-                workId = args.workId,
-                manifestationId = args.manifestationId,
-                documentSha256 = args.documentSha256,
+                existing = existing,
+                workId = readerArgs.workId,
+                manifestationId = readerArgs.manifestationId,
+                documentSha256 = readerArgs.documentSha256,
                 position = position,
-                now = Instant.now(),
-            ),
-        )
+                now = now,
+            )
+        }
     }
 
     private fun flushReaderState(includeSession: Boolean) {
         progressSaveJob?.cancel()
+        if (!::readerStatePersistence.isInitialized) return
         val position = latestPosition.takeIf { restorationReady }
         val sessionDuration = if (includeSession) {
             sessionState.drain(MINIMUM_READING_SESSION_MILLIS)
         } else {
             null
         }
-        if (position == null && sessionDuration == null) return
-        val app = application as PaperReaderApplication
-        val args = readerArgs
-        app.applicationIoScope.launch {
-            try {
-                app.readerWriteMutex.withLock {
-                    position?.let { persistPositionLocked(app, args, it) }
-                    sessionDuration?.let { duration ->
-                        app.logic.useCases.recordReadingSession.await(
-                            workId = args.workId,
-                            readAt = Instant.now(),
-                            duration = duration,
-                        )
-                    }
+        readerStatePersistence.flush(
+            stateForUpdate = position?.let { savedPosition ->
+                { existing, now ->
+                    readerStateForPosition(
+                        existing = existing,
+                        workId = readerArgs.workId,
+                        manifestationId = readerArgs.manifestationId,
+                        documentSha256 = readerArgs.documentSha256,
+                        position = savedPosition,
+                        now = now,
+                    )
                 }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                // Reader state is secondary to keeping the local document responsive and intact.
-            }
-        }
+            },
+            sessionDuration = sessionDuration,
+        )
     }
 
     private fun startReaderSession() {

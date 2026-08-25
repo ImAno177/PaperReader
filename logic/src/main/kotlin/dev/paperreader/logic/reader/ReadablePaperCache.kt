@@ -54,12 +54,20 @@ internal class ReadablePaperCache(
     }
 
     @Synchronized
-    fun read(key: String): CachedReadablePaper? {
+    fun read(key: String): CachedReadablePaper? = readInternal(key, prune = true)
+
+    /** Reads one entry without scanning every cached manifest on the Reader hot path. */
+    @Synchronized
+    fun readForLoad(key: String): CachedReadablePaper? = readInternal(key, prune = false)
+
+    private fun readInternal(key: String, prune: Boolean): CachedReadablePaper? {
         if (!key.matches(SHA256_PATTERN)) return null
-        try {
-            pruneToBudget(protectedKey = key)
-        } catch (_: IOException) {
-            // A missing or temporarily unavailable cache directory is an ordinary cache miss.
+        if (prune) {
+            try {
+                pruneToBudget(protectedKey = key)
+            } catch (_: IOException) {
+                // A missing or temporarily unavailable cache directory is an ordinary cache miss.
+            }
         }
         val manifestPath = directory.resolve("$key$MANIFEST_SUFFIX")
         val bodyPath = directory.resolve("$key$BODY_SUFFIX")
@@ -120,7 +128,41 @@ internal class ReadablePaperCache(
     fun keepForOffline(key: String): Boolean {
         if (!key.matches(SHA256_PATTERN)) return false
         val cached = read(key) ?: return false
-        if (cached.keptForOffline) return true
+        return keepForOffline(key, cached)
+    }
+
+    /**
+     * Retains a record that has already passed cache validation. Future reads still validate the
+     * manifest and body hash, so the marker only avoids doing the same full body read twice.
+     */
+    @Synchronized
+    fun keepForOffline(key: String, verified: CachedReadablePaper): Boolean {
+        if (!key.matches(SHA256_PATTERN) || !verified.documentSha256.matches(SHA256_PATTERN)) return false
+        if (!matchesVerifiedEntry(key, verified)) return false
+        if (verified.keptForOffline) return true
+        return keepVerifiedForOffline(key)
+    }
+
+    private fun matchesVerifiedEntry(key: String, verified: CachedReadablePaper): Boolean = runCatching {
+        val bodyPath = directory.resolve("$key$BODY_SUFFIX")
+        val manifestPath = directory.resolve("$key$MANIFEST_SUFFIX")
+        if (!Files.isRegularFile(bodyPath) || !Files.isRegularFile(manifestPath)) return@runCatching false
+        if (Files.size(bodyPath) > maximumCachedBodyBytes || Files.size(manifestPath) > MAXIMUM_MANIFEST_BYTES) {
+            return@runCatching false
+        }
+        val fields = Files.readAllLines(manifestPath, Charsets.UTF_8)
+        if (fields.firstOrNull() != CACHE_HEADER) return@runCatching false
+        val values = fields.drop(1).mapNotNull { line ->
+            val separator = line.indexOf('=')
+            if (separator <= 0) null else line.substring(0, separator) to line.substring(separator + 1)
+        }.toMap()
+        values["document_sha256"] == verified.documentSha256 &&
+            values["source_sha256"] == verified.sourceSha256 &&
+            values["source_url"]?.let(::decode) == verified.sourceUrl &&
+            Files.size(bodyPath) == verified.bodyHtml.toByteArray(Charsets.UTF_8).size.toLong()
+    }.getOrDefault(false)
+
+    private fun keepVerifiedForOffline(key: String): Boolean {
         val entryBytes = entryBytes(key) ?: return false
         val retainedBytes = try {
             storedKeys()

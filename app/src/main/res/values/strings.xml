@@ -163,7 +163,6 @@
     <string name="about_version">Version %1$s</string>
     <string name="about_project">Project on GitHub</string>
     <string name="about_licenses">Licenses &amp; notices</string>
-    <string name="about_inspiration">Inspired by Mihon.</string>
     <string name="paper_discipline_badge">Field: %1$s</string>
     <string name="provider_orphaned_section">Orphaned extensions</string>
     <string name="provider_orphaned_body">Not in a trusted store. It stays installed but cannot run.</string>

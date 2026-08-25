@@ -90,7 +90,7 @@ class LogicBoundaryTest {
     }
 
     @Test
-    fun `internal layers follow Mihon-style dependency direction`() {
+    fun `internal layers follow the declared dependency direction`() {
         val kotlinRoot = findLogicRoot().resolve("src/main/kotlin/dev/paperreader/logic")
         val rules = mapOf(
             "domain" to listOf(

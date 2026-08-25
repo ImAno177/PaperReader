@@ -35,13 +35,11 @@ import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.reader.ReadablePaperFailure
 import dev.paperreader.logic.reader.ReadablePaperResult
 import dev.paperreader.logic.reader.ReadablePaperSection
-import java.time.Instant
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
@@ -73,6 +71,7 @@ class ReadablePaperActivity : AppCompatActivity() {
     private var citationReturnScrollY: Int? = null
     private var citationReturnProgression: Double? = null
     private var restoredCitationReturnProgression: Double? = null
+    private lateinit var readerStatePersistence: ReaderStatePersistence
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(newBase.withEnglishLocale())
@@ -92,7 +91,9 @@ class ReadablePaperActivity : AppCompatActivity() {
             return
         }
         readerArgs = parsedArgs
-        communityTheme = (application as PaperReaderApplication).themeExtensionManager.theme(readerArgs.themeKey)
+        val app = application as PaperReaderApplication
+        readerStatePersistence = ReaderStatePersistence(app, readerArgs.workId)
+        communityTheme = app.themeExtensionManager.theme(readerArgs.themeKey)
         readerIcons = communityTheme?.let { PaperIconSet.community(it.iconPaths) }
             ?: paperIconSet(readerArgs.themePreset)
         val restored = restoreReadableInstanceState(savedInstanceState, readerArgs.manifestationId)
@@ -396,28 +397,24 @@ class ReadablePaperActivity : AppCompatActivity() {
     }
 
     private suspend fun prepareReadingState(document: ReadablePaperDocument): Double? =
-        withContext(Dispatchers.IO) {
-            val app = application as PaperReaderApplication
-            app.readerWriteMutex.withLock {
-                val paper = app.logic.useCases.getPaper.await(readerArgs.workId) ?: return@withLock null
-                val existing = paper.readingState
-                val restore = restorableReadableProgress(
+        readerStatePersistence.open(
+            restore = { existing ->
+                restorableReadableProgress(
                     existing,
                     readerArgs.manifestationId,
                     document.documentSha256,
                 )
-                app.logic.useCases.updateReadingState.await(
-                    readableStateForOpen(
-                        existing,
-                        readerArgs.workId,
-                        readerArgs.manifestationId,
-                        document.documentSha256,
-                        Instant.now(),
-                    ),
+            },
+            stateForOpen = { existing, now ->
+                readableStateForOpen(
+                    existing,
+                    readerArgs.workId,
+                    readerArgs.manifestationId,
+                    document.documentSha256,
+                    now,
                 )
-                restore
-            }
-        }
+            },
+        )
 
     private fun scheduleProgressSave(progression: Double) {
         progressSaveJob?.cancel()
@@ -429,34 +426,21 @@ class ReadablePaperActivity : AppCompatActivity() {
 
     private suspend fun persistProgress(progression: Double) {
         val document = currentDocument ?: return
-        val app = application as PaperReaderApplication
-        withContext(Dispatchers.IO) {
-            app.readerWriteMutex.withLock {
-                persistProgressLocked(app, document, progression)
-            }
-        }
-    }
-
-    private suspend fun persistProgressLocked(
-        app: PaperReaderApplication,
-        document: ReadablePaperDocument,
-        progression: Double,
-    ) {
-        val paper = app.logic.useCases.getPaper.await(readerArgs.workId) ?: return
-        app.logic.useCases.updateReadingState.await(
+        readerStatePersistence.persist { existing, now ->
             readableStateForProgress(
-                paper.readingState,
+                existing,
                 readerArgs.workId,
                 readerArgs.manifestationId,
                 document.documentSha256,
                 progression,
-                Instant.now(),
-            ),
-        )
+                now,
+            )
+        }
     }
 
     private fun flushReaderState(includeSession: Boolean) {
         progressSaveJob?.cancel()
+        if (!::readerStatePersistence.isInitialized) return
         val document = currentDocument.takeIf { restorationReady }
         val progression = document?.let { webView.currentProgression() }
         val sessionDuration = if (includeSession) {
@@ -464,24 +448,23 @@ class ReadablePaperActivity : AppCompatActivity() {
         } else {
             null
         }
-        if (progression == null && sessionDuration == null) return
-        val app = application as PaperReaderApplication
-        app.applicationIoScope.launch {
-            try {
-                app.readerWriteMutex.withLock {
-                    if (document != null && progression != null) {
-                        persistProgressLocked(app, document, progression)
-                    }
-                    sessionDuration?.let {
-                        app.logic.useCases.recordReadingSession.await(readerArgs.workId, Instant.now(), it)
-                    }
+        readerStatePersistence.flush(
+            stateForUpdate = if (document != null && progression != null) {
+                { existing, now ->
+                    readableStateForProgress(
+                        existing,
+                        readerArgs.workId,
+                        readerArgs.manifestationId,
+                        document.documentSha256,
+                        progression,
+                        now,
+                    )
                 }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                // Reading telemetry never blocks or invalidates the cached document.
-            }
-        }
+            } else {
+                null
+            },
+            sessionDuration = sessionDuration,
+        )
     }
 
     private fun updateProgress(progression: Double) {

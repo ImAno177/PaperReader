@@ -103,8 +103,8 @@ from new federated discovery and identifier-resolution calls. This selection is 
 
 ## Extension trust and updates
 
-PaperReader uses the same observable lifecycle states as Mihon and keeps APK verification at the host
-trust boundary:
+PaperReader keeps observable extension lifecycle states and APK verification at the host trust
+boundary:
 
 ```text
 refresh signed store

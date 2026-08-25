@@ -57,8 +57,5 @@ fun AboutScreen(onBack: () -> Unit) {
                 Text(stringResource(R.string.about_licenses), modifier = Modifier.padding(start = 8.dp))
             }
         }
-        item {
-            Text(stringResource(R.string.about_inspiration), color = PaperTheme.tokens.inkMuted)
-        }
     }
 }

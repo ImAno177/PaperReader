@@ -92,5 +92,8 @@ internal fun interface ReadablePaperLoader {
         manifestation: PaperManifestation,
         retainDocumentSha256: String?,
     ): ReadablePaperResult
+
+    /** Retains a document that this loader has already verified without loading it again. */
+    suspend fun retain(document: ReadablePaperDocument): Boolean = false
 }
 

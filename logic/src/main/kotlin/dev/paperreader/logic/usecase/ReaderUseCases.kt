@@ -8,13 +8,17 @@ import dev.paperreader.logic.domain.LocalPdfCandidate
 import dev.paperreader.logic.domain.LocalPdfImportResult
 import dev.paperreader.logic.domain.PrepareLocalPdfResult
 import dev.paperreader.logic.reader.ReadablePaperFailure
+import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.reader.ReadablePaperLoader
 import dev.paperreader.logic.reader.ReadablePaperResult
+import java.lang.ref.WeakReference
 
 class LoadReadablePaper internal constructor(
     private val repository: LibraryRepository,
     private val loader: ReadablePaperLoader,
 ) {
+    private var lastLoaded: LoadedReadablePaper? = null
+
     suspend fun await(
         workId: WorkId,
         manifestationId: ManifestationId,
@@ -24,7 +28,38 @@ class LoadReadablePaper internal constructor(
             ?: return ReadablePaperResult.Unavailable(ReadablePaperFailure.PAPER_NOT_FOUND)
         val manifestation = paper.manifestations.firstOrNull { it.id == manifestationId }
             ?: return ReadablePaperResult.Unavailable(ReadablePaperFailure.MANIFESTATION_NOT_FOUND)
-        return loader.load(paper.work.title, manifestation, retainDocumentSha256)
+        if (retainDocumentSha256 != null) {
+            val recent = lastLoaded
+            val recentDocument = recent?.document
+            if (
+                recent?.workId == workId &&
+                recent.manifestationId == manifestationId &&
+                recentDocument != null &&
+                recentDocument.documentSha256 == retainDocumentSha256 &&
+                loader.retain(recentDocument)
+            ) {
+                lastLoaded = null
+                return ReadablePaperResult.Ready(recentDocument.copy(keptForOffline = true))
+            }
+        }
+        val result = loader.load(paper.work.title, manifestation, retainDocumentSha256)
+        lastLoaded = if (retainDocumentSha256 == null) {
+            (result as? ReadablePaperResult.Ready)?.document?.let {
+                LoadedReadablePaper(workId, manifestationId, WeakReference(it))
+            }
+        } else {
+            null
+        }
+        return result
+    }
+
+    private data class LoadedReadablePaper(
+        val workId: WorkId,
+        val manifestationId: ManifestationId,
+        private val documentReference: WeakReference<ReadablePaperDocument>,
+    ) {
+        val document: ReadablePaperDocument?
+            get() = documentReference.get()
     }
 }
 

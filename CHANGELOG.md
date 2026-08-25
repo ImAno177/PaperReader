@@ -5,7 +5,11 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
-No unreleased changes are currently pending.
+### Fixed
+
+- Readable HTML now opens from the verified app-private cache without scanning and pruning every
+  cached manifest on each Reader load. Export retention also reuses the already verified document
+  instead of rereading and rehashing its full body.
 
 ## [0.1.8] - 2026-08-21
 

@@ -28,22 +28,13 @@ internal class ArxivReadablePaperLoader(
         val versionedId = versionedArxivId(manifestation)
             ?: return ReadablePaperResult.Unavailable(ReadablePaperFailure.UNVERSIONED_SOURCE)
         val sourceUrl = sourceUrl(versionedId)
-        val cacheKey = ReadablePaperCache.keyFor(
-            sourceUrl = sourceUrl,
-            sanitizerPolicyVersion = SANITIZER_POLICY_VERSION,
-            rendererContractVersion = RENDERER_CONTRACT_VERSION,
-        )
-        try {
-            cache.removeBySourceUrl(sourceUrl, exceptKey = cacheKey)
-        } catch (_: IOException) {
-            // Contract cleanup is opportunistic while loading; paper removal uses the strict path.
-        }
-        cache.read(cacheKey)?.let { cached ->
+        val cacheKey = cacheKey(sourceUrl)
+        cache.readForLoad(cacheKey)?.let { cached ->
             if (retainDocumentSha256 != null && cached.documentSha256 != retainDocumentSha256) {
                 return unavailable(ReadablePaperFailure.INVALID_RESPONSE)
             }
             val retained = cached.keptForOffline ||
-                (retainDocumentSha256 != null && cache.keepForOffline(cacheKey))
+                (retainDocumentSha256 != null && cache.keepForOffline(cacheKey, cached))
             return ReadablePaperResult.Ready(
                 cached.copy(keptForOffline = retained).toDocument(
                     title = title,
@@ -53,6 +44,11 @@ internal class ArxivReadablePaperLoader(
                     servedFromCache = true,
                 ),
             )
+        }
+        try {
+            cache.removeBySourceUrl(sourceUrl, exceptKey = cacheKey)
+        } catch (_: IOException) {
+            // Contract cleanup is opportunistic on cache misses; paper removal uses the strict path.
         }
         if (retainDocumentSha256 != null) {
             return unavailable(ReadablePaperFailure.OFFLINE_OR_UNAVAILABLE)
@@ -121,6 +117,30 @@ internal class ArxivReadablePaperLoader(
         )
     }
 
+    override suspend fun retain(document: ReadablePaperDocument): Boolean {
+        if (!document.sourceProvider.equals(ARXIV_PROVIDER_ID, ignoreCase = true)) return false
+        if (!DOCUMENT_SHA256.matches(document.sourceSha256) || !DOCUMENT_SHA256.matches(document.documentSha256)) {
+            return false
+        }
+        val versionedId = document.sourceUrl.removePrefix(ARXIV_HTML_PREFIX)
+            .takeIf { document.sourceUrl == sourceUrl(it) && VERSIONED_ARXIV_ID.matches(it) }
+            ?: return false
+        val record = CachedReadablePaper(
+            bodyHtml = document.bodyHtml,
+            sourceUrl = document.sourceUrl,
+            sourceSha256 = document.sourceSha256,
+            documentSha256 = document.documentSha256,
+            retrievedAt = document.retrievedAt,
+            sourceLicense = document.license,
+            sections = document.sections,
+            warnings = document.warnings,
+        )
+        return cache.keepForOffline(
+            key = cacheKey(sourceUrl(versionedId)),
+            verified = record,
+        )
+    }
+
     suspend fun removeArtifacts(manifestation: PaperManifestation) {
         if (!manifestation.sourceProvider.equals(ARXIV_PROVIDER_ID, ignoreCase = true)) return
         val versionedId = versionedArxivId(manifestation) ?: return
@@ -140,8 +160,21 @@ internal class ArxivReadablePaperLoader(
             } catch (_: IOException) {
                 // Retry orphan cleanup on the next start without blocking this one.
             }
+            sourceUrls.forEach { url ->
+                try {
+                    cache.removeBySourceUrl(url, exceptKey = cacheKey(url))
+                } catch (_: IOException) {
+                    // Contract cleanup is opportunistic; the next start retries it.
+                }
+            }
         }
     }
+    private fun cacheKey(sourceUrl: String): String = ReadablePaperCache.keyFor(
+        sourceUrl = sourceUrl,
+        sanitizerPolicyVersion = SANITIZER_POLICY_VERSION,
+        rendererContractVersion = RENDERER_CONTRACT_VERSION,
+    )
+
     private fun sourceUrl(versionedId: String): String = "https://arxiv.org/html/$versionedId"
 
     private fun versionedArxivId(manifestation: PaperManifestation): String? {
@@ -161,6 +194,7 @@ internal class ArxivReadablePaperLoader(
 
     companion object {
         private const val ARXIV_PROVIDER_ID = "arxiv"
+        private const val ARXIV_HTML_PREFIX = "https://arxiv.org/html/"
         // Versioned contracts prevent older cached output from bypassing fidelity or security fixes.
         private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-10"
         private const val RENDERER_CONTRACT_VERSION = "mobile-html-7"

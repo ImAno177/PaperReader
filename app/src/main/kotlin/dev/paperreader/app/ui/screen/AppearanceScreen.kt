@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,11 +17,13 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
 import dev.paperreader.app.extensions.ThemeExtensionIssue
+import dev.paperreader.app.ui.TabletUiMode
 import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
@@ -41,6 +45,8 @@ import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperThemeMode
 import dev.paperreader.app.ui.theme.PaperThemePreset
 import dev.paperreader.app.ui.theme.paperThemeTokens
+import dev.paperreader.app.ui.model.LibraryLayout
+import dev.paperreader.app.ui.model.PaperDateFormat
 
 @Composable
 fun AppearanceScreen(
@@ -51,6 +57,16 @@ fun AppearanceScreen(
     selectedThemeMode: PaperThemeMode = PaperThemeMode.SYSTEM,
     onThemeChange: (String) -> Unit,
     onThemeModeChange: (PaperThemeMode) -> Unit,
+    selectedLibraryLayout: LibraryLayout = LibraryLayout.LIST,
+    onLibraryLayoutChange: (LibraryLayout) -> Unit = {},
+    selectedDateFormat: PaperDateFormat = PaperDateFormat.DEFAULT,
+    onDateFormatChange: (PaperDateFormat) -> Unit = {},
+    relativeTimeEnabled: Boolean = false,
+    onRelativeTimeChange: (Boolean) -> Unit = {},
+    tabletUiMode: TabletUiMode = TabletUiMode.AUTOMATIC,
+    onTabletUiModeChange: (TabletUiMode) -> Unit = {},
+    showImagesInDescription: Boolean = true,
+    onShowImagesInDescriptionChange: (Boolean) -> Unit = {},
     onBack: () -> Unit,
 ) {
     val dark = selectedThemeMode.resolveDarkTheme(isSystemInDarkTheme())
@@ -119,6 +135,21 @@ fun AppearanceScreen(
                 }
             }
         }
+        item { PaperSectionHeader(stringResource(R.string.appearance_display_title)) }
+        item {
+            DisplaySettings(
+                selectedLibraryLayout = selectedLibraryLayout,
+                onLibraryLayoutChange = onLibraryLayoutChange,
+                selectedDateFormat = selectedDateFormat,
+                onDateFormatChange = onDateFormatChange,
+                relativeTimeEnabled = relativeTimeEnabled,
+                onRelativeTimeChange = onRelativeTimeChange,
+                tabletUiMode = tabletUiMode,
+                onTabletUiModeChange = onTabletUiModeChange,
+                showImagesInDescription = showImagesInDescription,
+                onShowImagesInDescriptionChange = onShowImagesInDescriptionChange,
+            )
+        }
     }
 }
 
@@ -141,6 +172,151 @@ fun AppearanceScreen(
         onBack = onBack,
     )
 }
+
+@Composable
+private fun DisplaySettings(
+    selectedLibraryLayout: LibraryLayout,
+    onLibraryLayoutChange: (LibraryLayout) -> Unit,
+    selectedDateFormat: PaperDateFormat,
+    onDateFormatChange: (PaperDateFormat) -> Unit,
+    relativeTimeEnabled: Boolean,
+    onRelativeTimeChange: (Boolean) -> Unit,
+    tabletUiMode: TabletUiMode,
+    onTabletUiModeChange: (TabletUiMode) -> Unit,
+    showImagesInDescription: Boolean,
+    onShowImagesInDescriptionChange: (Boolean) -> Unit,
+) {
+    PaperSurface(contentPadding = PaddingValues(12.dp)) {
+        DisplayChoiceGroup(
+            title = stringResource(R.string.library_layout_title),
+            options = LibraryLayout.entries.map { layout ->
+                DisplayChoice(
+                    value = layout,
+                    label = stringResource(
+                        if (layout == LibraryLayout.LIST) R.string.library_layout_list else R.string.library_layout_grid,
+                    ),
+                )
+            },
+            selected = selectedLibraryLayout,
+            onSelected = onLibraryLayoutChange,
+        )
+        Spacer(Modifier.height(12.dp))
+        DisplayChoiceGroup(
+            title = stringResource(R.string.tablet_ui_mode_title),
+            options = TabletUiMode.entries.map { mode ->
+                DisplayChoice(value = mode, label = tabletUiModeLabel(mode))
+            },
+            selected = tabletUiMode,
+            onSelected = onTabletUiModeChange,
+        )
+        Spacer(Modifier.height(12.dp))
+        DisplayChoiceGroup(
+            title = stringResource(R.string.date_format_title),
+            options = PaperDateFormat.entries.map { format ->
+                DisplayChoice(value = format, label = paperDateFormatLabel(format))
+            },
+            selected = selectedDateFormat,
+            onSelected = onDateFormatChange,
+        )
+        Spacer(Modifier.height(8.dp))
+        DisplayToggleRow(
+            title = stringResource(R.string.relative_time_title),
+            supportingText = stringResource(R.string.relative_time_summary),
+            checked = relativeTimeEnabled,
+            onCheckedChange = onRelativeTimeChange,
+        )
+        DisplayToggleRow(
+            title = stringResource(R.string.show_images_description_title),
+            supportingText = stringResource(R.string.show_images_description_summary),
+            checked = showImagesInDescription,
+            onCheckedChange = onShowImagesInDescriptionChange,
+        )
+    }
+}
+
+private data class DisplayChoice<T>(val value: T, val label: String)
+
+@Composable
+private fun <T> DisplayChoiceGroup(
+    title: String,
+    options: List<DisplayChoice<T>>,
+    selected: T,
+    onSelected: (T) -> Unit,
+) {
+    Text(title, style = MaterialTheme.typography.labelLarge, color = PaperTheme.tokens.inkMuted)
+    Column(modifier = Modifier.fillMaxWidth().selectableGroup()) {
+        options.forEach { option ->
+            val isSelected = option.value == selected
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.RadioButton,
+                        onClick = { onSelected(option.value) },
+                    )
+                    .padding(horizontal = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                RadioButton(
+                    selected = isSelected,
+                    onClick = null,
+                    colors = RadioButtonDefaults.colors(
+                        selectedColor = PaperTheme.tokens.ink,
+                        unselectedColor = PaperTheme.tokens.inkMuted,
+                    ),
+                )
+                Text(option.label, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DisplayToggleRow(
+    title: String,
+    supportingText: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 60.dp)
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(supportingText, style = MaterialTheme.typography.bodySmall, color = PaperTheme.tokens.inkMuted)
+        }
+        Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+@Composable
+private fun tabletUiModeLabel(mode: TabletUiMode): String = stringResource(
+    when (mode) {
+        TabletUiMode.AUTOMATIC -> R.string.tablet_ui_mode_automatic
+        TabletUiMode.COMPACT -> R.string.tablet_ui_mode_compact
+        TabletUiMode.WIDE -> R.string.tablet_ui_mode_wide
+    },
+)
+
+@Composable
+private fun paperDateFormatLabel(format: PaperDateFormat): String = stringResource(
+    when (format) {
+        PaperDateFormat.DEFAULT -> R.string.date_format_default
+        PaperDateFormat.US_SHORT -> R.string.date_format_us_short
+        PaperDateFormat.EUROPEAN -> R.string.date_format_european
+        PaperDateFormat.ISO -> R.string.date_format_iso
+        PaperDateFormat.LONG -> R.string.date_format_long
+    },
+)
 
 @Composable
 private fun ThemeModeSelector(

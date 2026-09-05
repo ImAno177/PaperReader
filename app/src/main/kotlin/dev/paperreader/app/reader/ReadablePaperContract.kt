@@ -12,6 +12,7 @@ internal const val READABLE_EXTRA_MANIFESTATION_ID = "dev.paperreader.app.reader
 internal const val READABLE_EXTRA_TITLE = "dev.paperreader.app.reader.READABLE_TITLE"
 internal const val READABLE_EXTRA_THEME_PRESET = "dev.paperreader.app.reader.READABLE_THEME_PRESET"
 internal const val READABLE_EXTRA_THEME_MODE = "dev.paperreader.app.reader.READABLE_THEME_MODE"
+internal const val READABLE_EXTRA_SHOW_IMAGES = "dev.paperreader.app.reader.READABLE_SHOW_IMAGES"
 private const val MAX_READABLE_TITLE_LENGTH = 240
 
 internal data class ReadableReaderArgs(
@@ -21,6 +22,7 @@ internal data class ReadableReaderArgs(
     val themePreset: PaperThemePreset,
     val themeKey: String,
     val themeMode: PaperThemeMode,
+    val showImagesInDescription: Boolean,
 )
 
 internal fun parseReadableReaderArgs(intent: Intent, fallbackTitle: String): ReadableReaderArgs? = runCatching {
@@ -36,6 +38,7 @@ internal fun parseReadableReaderArgs(intent: Intent, fallbackTitle: String): Rea
         PaperThemePreset.fromStorageKey(themeKey),
         themeKey,
         PaperThemeMode.fromStorageKey(intent.getStringExtra(READABLE_EXTRA_THEME_MODE)),
+        intent.getBooleanExtra(READABLE_EXTRA_SHOW_IMAGES, true),
     )
 }.getOrNull()
 
@@ -47,10 +50,12 @@ internal fun createReadablePaperIntent(
     themePreset: PaperThemePreset,
     themeKey: String,
     themeMode: PaperThemeMode,
+    showImagesInDescription: Boolean = true,
 ): Intent = Intent(context, ReadablePaperActivity::class.java).apply {
     putExtra(READABLE_EXTRA_WORK_ID, workId.value)
     putExtra(READABLE_EXTRA_MANIFESTATION_ID, manifestationId.value)
     putExtra(READABLE_EXTRA_TITLE, title.take(MAX_READABLE_TITLE_LENGTH))
     putExtra(READABLE_EXTRA_THEME_PRESET, themeKey)
     putExtra(READABLE_EXTRA_THEME_MODE, themeMode.storageKey)
+    putExtra(READABLE_EXTRA_SHOW_IMAGES, showImagesInDescription)
 }

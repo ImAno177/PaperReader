@@ -76,8 +76,34 @@ internal object AppRoutes {
     const val MORE_DATA_BACKUP = "more/data-backup"
     const val MORE_SOURCES = "more/sources"
     const val MORE_ABOUT = "more/about"
+    const val MORE_DOWNLOAD_QUEUE = "more/download-queue"
+    const val MORE_STATS = "more/stats"
+    const val MORE_SETTINGS = "more/settings"
+    const val MORE_LIBRARY_SETTINGS = "more/settings/library"
+    const val MORE_READER_SETTINGS = "more/settings/reader"
     const val DETAIL = "detail/{workId}"
     fun detail(workId: String): String = "detail/${Uri.encode(workId)}"
+}
+
+enum class TabletUiMode(
+    val storageKey: String,
+) {
+    AUTOMATIC("automatic"),
+    COMPACT("compact"),
+    WIDE("wide"),
+    ;
+
+    fun usesWideShell(maxWidthDp: Int): Boolean = when (this) {
+        AUTOMATIC -> maxWidthDp >= 600
+        COMPACT -> false
+        WIDE -> true
+    }
+
+    companion object {
+        fun fromStorageKey(value: String?): TabletUiMode = entries
+            .firstOrNull { it.storageKey == value }
+            ?: AUTOMATIC
+    }
 }
 
 internal data class ExtensionStoreBindings(
@@ -176,16 +202,25 @@ internal fun NavHostController.navigateToMoreBranch(route: String) {
     }
 }
 
+internal fun NavHostController.navigateToMoreChild(parentRoute: String, route: String) {
+    if (currentDestination?.route == route) return
+    navigate(route) {
+        popUpTo(parentRoute) { inclusive = false }
+        launchSingleTop = true
+    }
+}
+
 @Composable
 internal fun AdaptiveAppShell(
     destinations: List<AppDestination>,
     currentRoute: String?,
+    tabletUiMode: TabletUiMode = TabletUiMode.AUTOMATIC,
     onNavigate: (AppDestination) -> Unit,
     content: @Composable (Modifier) -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(PaperTheme.tokens.canvas)) {
         val showLabels = LocalDensity.current.fontScale < 1.5f
-        if (maxWidth < 600.dp) {
+        if (!tabletUiMode.usesWideShell(maxWidth.value.toInt())) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 containerColor = PaperTheme.tokens.canvas,

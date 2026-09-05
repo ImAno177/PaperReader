@@ -6,11 +6,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import dev.paperreader.app.R
 import dev.paperreader.app.ui.model.*
 import dev.paperreader.app.ui.screen.*
 import dev.paperreader.app.reader.PdfReaderActivity
@@ -46,6 +48,10 @@ internal fun AppNavHost(
     themeKey: String,
     themeMode: dev.paperreader.app.ui.theme.PaperThemeMode,
     libraryLayout: LibraryLayout,
+    dateFormat: PaperDateFormat,
+    relativeTimeEnabled: Boolean,
+    tabletUiMode: TabletUiMode,
+    showImagesInDescription: Boolean,
     themeCatalog: dev.paperreader.app.extensions.CommunityThemeCatalog,
     onSearch: (String) -> Unit,
     onClearSearch: () -> Unit,
@@ -80,6 +86,10 @@ internal fun AppNavHost(
     onThemeChange: (String) -> Unit,
     onThemeModeChange: (dev.paperreader.app.ui.theme.PaperThemeMode) -> Unit,
     onLibraryLayoutChange: (LibraryLayout) -> Unit,
+    onDateFormatChange: (PaperDateFormat) -> Unit,
+    onRelativeTimeChange: (Boolean) -> Unit,
+    onTabletUiModeChange: (TabletUiMode) -> Unit,
+    onShowImagesInDescriptionChange: (Boolean) -> Unit,
     automaticRefreshEnabled: Boolean,
     onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
     onProviderEnabledChange: (String, Boolean) -> Unit,
@@ -88,6 +98,7 @@ internal fun AppNavHost(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
     val googleCanvasColor = PaperTheme.tokens.canvas.toArgb()
     val googleInkColor = PaperTheme.tokens.ink.toArgb()
@@ -107,6 +118,7 @@ internal fun AppNavHost(
                     themePreset = preset,
                     themeKey = themeKey,
                     themeMode = themeMode,
+                    showImagesInDescription = showImagesInDescription,
                 ),
             )
             localPdf != null -> scope.launch {
@@ -172,11 +184,59 @@ internal fun AppNavHost(
                 },
             )
         }
-        composable(AppRoutes.UPDATES) { UpdatesScreen(tasks, library, providers, savedSearches, savedSearchActions, downloadActions, { navController.navigate(AppRoutes.detail(it)) }, onRefreshSavedSearch, onDeleteSavedSearch, onMarkSavedSearchHitRead, onSaveSavedSearchHit, onCancelDownloadTask, onRetryDownloadTask, onRemoveDownloadTask) }
-        composable(AppRoutes.HISTORY) { HistoryScreen(history, { navController.navigate(AppRoutes.detail(it)) }, onRemoveHistory) }
+        composable(AppRoutes.UPDATES) {
+            UpdatesScreen(
+                tasks = tasks,
+                library = library,
+                providers = providers,
+                savedSearches = savedSearches,
+                savedSearchActions = savedSearchActions,
+                actions = downloadActions,
+                onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
+                onRefreshSearch = onRefreshSavedSearch,
+                onDeleteSearch = onDeleteSavedSearch,
+                onMarkHitRead = onMarkSavedSearchHitRead,
+                onSaveHit = onSaveSavedSearchHit,
+                onCancel = onCancelDownloadTask,
+                onRetry = onRetryDownloadTask,
+                onRemove = onRemoveDownloadTask,
+                dateFormat = dateFormat,
+                relativeTimeEnabled = relativeTimeEnabled,
+            )
+        }
+        composable(AppRoutes.HISTORY) {
+            HistoryScreen(
+                state = history,
+                onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
+                onRemove = onRemoveHistory,
+                dateFormat = dateFormat,
+                relativeTimeEnabled = relativeTimeEnabled,
+            )
+        }
         composable(AppRoutes.MORE) {
-            MoreScreen(preset, themeCatalog.themes.firstOrNull { it.storageKey == themeKey }?.displayName, automaticRefreshEnabled, notificationsAvailable, providers, collections, localPdfImport, metadataBackup,
-                { navController.navigateToMoreBranch(AppRoutes.MORE_APPEARANCE) }, { navController.navigateToMoreBranch(AppRoutes.MORE_COLLECTIONS) }, { navController.navigateToMoreBranch(AppRoutes.MORE_READING_IMPORTS) }, { navController.navigateToMoreBranch(AppRoutes.MORE_UPDATES) }, { navController.navigateToMoreBranch(AppRoutes.MORE_DATA_BACKUP) }, { navController.navigateToMoreBranch(AppRoutes.MORE_SOURCES) }, { navController.navigateToMoreBranch(AppRoutes.MORE_ABOUT) })
+            MoreScreen(
+                selectedPreset = preset,
+                selectedThemeName = themeCatalog.themes.firstOrNull { it.storageKey == themeKey }?.displayName,
+                automaticRefreshEnabled = automaticRefreshEnabled,
+                notificationsAvailable = notificationsAvailable,
+                providers = providers,
+                collections = collections,
+                localPdfImportState = localPdfImport,
+                backupState = metadataBackup,
+                library = library,
+                tasks = tasks,
+                onOpenAppearance = { navController.navigateToMoreBranch(AppRoutes.MORE_APPEARANCE) },
+                onOpenCollections = { navController.navigateToMoreBranch(AppRoutes.MORE_COLLECTIONS) },
+                onOpenReadingImports = { navController.navigateToMoreBranch(AppRoutes.MORE_READING_IMPORTS) },
+                onOpenUpdates = { navController.navigateToMoreBranch(AppRoutes.MORE_UPDATES) },
+                onOpenDataBackup = { navController.navigateToMoreBranch(AppRoutes.MORE_DATA_BACKUP) },
+                onOpenSources = { navController.navigateToMoreBranch(AppRoutes.MORE_SOURCES) },
+                onOpenDownloadQueue = { navController.navigateToMoreBranch(AppRoutes.MORE_DOWNLOAD_QUEUE) },
+                onOpenStats = { navController.navigateToMoreBranch(AppRoutes.MORE_STATS) },
+                onOpenSettings = { navController.navigateToMoreBranch(AppRoutes.MORE_SETTINGS) },
+                onOpenAbout = { navController.navigateToMoreBranch(AppRoutes.MORE_ABOUT) },
+                onOpenHelp = { uriHandler.openUri(PAPERREADER_HELP_URL) },
+            )
         }
         composable(AppRoutes.MORE_APPEARANCE) {
             AppearanceScreen(
@@ -187,6 +247,16 @@ internal fun AppNavHost(
                 communityThemeIssues = themeCatalog.issues,
                 onThemeChange = onThemeChange,
                 onThemeModeChange = onThemeModeChange,
+                selectedLibraryLayout = libraryLayout,
+                onLibraryLayoutChange = onLibraryLayoutChange,
+                selectedDateFormat = dateFormat,
+                onDateFormatChange = onDateFormatChange,
+                relativeTimeEnabled = relativeTimeEnabled,
+                onRelativeTimeChange = onRelativeTimeChange,
+                tabletUiMode = tabletUiMode,
+                onTabletUiModeChange = onTabletUiModeChange,
+                showImagesInDescription = showImagesInDescription,
+                onShowImagesInDescriptionChange = onShowImagesInDescriptionChange,
                 onBack = navController::popBackStack,
             )
         }
@@ -194,6 +264,55 @@ internal fun AppNavHost(
         composable(AppRoutes.MORE_READING_IMPORTS) { ReadingImportsScreen(localPdfImport, onRequestLocalPdfImport, onConfirmLocalPdfImport, onDismissLocalPdfImport, { navController.navigate(AppRoutes.detail(it)) }, navController::popBackStack) }
         composable(AppRoutes.MORE_UPDATES) { UpdatesNotificationsScreen(automaticRefreshEnabled, notificationsAvailable, onAutomaticRefreshChange, onOpenNotificationSettings, navController::popBackStack) }
         composable(AppRoutes.MORE_DATA_BACKUP) { DataBackupScreen(metadataBackup, onRequestBackupExport, onRequestBackupImport, onConfirmBackupRestore, onDismissBackupState, navController::popBackStack) }
+        composable(AppRoutes.MORE_DOWNLOAD_QUEUE) {
+            UpdatesScreen(
+                tasks = tasks,
+                library = library,
+                providers = providers,
+                savedSearches = LoadState.Ready(emptyList()),
+                actions = downloadActions,
+                onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
+                onCancel = onCancelDownloadTask,
+                onRetry = onRetryDownloadTask,
+                onRemove = onRemoveDownloadTask,
+                screenTitleRes = R.string.download_queue_title,
+                showSavedSearches = false,
+            )
+        }
+        composable(AppRoutes.MORE_STATS) {
+            StatsScreen(
+                library = library,
+                history = history,
+                collections = collections,
+                tasks = tasks,
+                savedSearches = savedSearches,
+                onBack = navController::popBackStack,
+            )
+        }
+        composable(AppRoutes.MORE_SETTINGS) {
+            SettingsScreen(
+                onOpenAppearance = { navController.navigateToMoreChild(AppRoutes.MORE_SETTINGS, AppRoutes.MORE_APPEARANCE) },
+                onOpenLibrary = { navController.navigateToMoreChild(AppRoutes.MORE_SETTINGS, AppRoutes.MORE_LIBRARY_SETTINGS) },
+                onOpenReader = { navController.navigateToMoreChild(AppRoutes.MORE_SETTINGS, AppRoutes.MORE_READER_SETTINGS) },
+                onOpenDownloads = { navController.navigateToMoreChild(AppRoutes.MORE_SETTINGS, AppRoutes.MORE_DOWNLOAD_QUEUE) },
+                onOpenUpdates = { navController.navigateToMoreChild(AppRoutes.MORE_SETTINGS, AppRoutes.MORE_UPDATES) },
+                onOpenDataBackup = { navController.navigateToMoreChild(AppRoutes.MORE_SETTINGS, AppRoutes.MORE_DATA_BACKUP) },
+                onOpenSources = { navController.navigateToMoreChild(AppRoutes.MORE_SETTINGS, AppRoutes.MORE_SOURCES) },
+                onOpenAbout = { navController.navigateToMoreChild(AppRoutes.MORE_SETTINGS, AppRoutes.MORE_ABOUT) },
+                onBack = navController::popBackStack,
+            )
+        }
+        composable(AppRoutes.MORE_LIBRARY_SETTINGS) {
+            LibrarySettingsScreen(
+                selectedLayout = libraryLayout,
+                onLayoutChange = onLibraryLayoutChange,
+                onOpenCollections = { navController.navigateToMoreChild(AppRoutes.MORE_LIBRARY_SETTINGS, AppRoutes.MORE_COLLECTIONS) },
+                onBack = navController::popBackStack,
+            )
+        }
+        composable(AppRoutes.MORE_READER_SETTINGS) {
+            ReaderSettingsScreen(onBack = navController::popBackStack)
+        }
         composable(AppRoutes.MORE_SOURCES) {
             SourcesScreen(
                 providers = providers,
@@ -230,6 +349,7 @@ internal fun AppNavHost(
                 downloadTasks = (tasks as? LoadState.Ready)?.value
                     ?.filter { it.workId?.value == workId }
                     .orEmpty(),
+                showImagesInDescription = showImagesInDescription,
                 requestingManifestations = downloadActions.requestingManifestations,
                 failedManifestations = downloadActions.failedManifestations,
                 onBack = navController::popBackStack,
@@ -248,3 +368,5 @@ internal fun AppNavHost(
         }
     }
 }
+
+private const val PAPERREADER_HELP_URL = "https://github.com/ImAno177/PaperReader#readme"

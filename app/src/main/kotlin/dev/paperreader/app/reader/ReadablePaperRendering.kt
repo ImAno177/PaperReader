@@ -222,6 +222,7 @@ internal fun renderReadablePaperHtml(
     palette: ReadablePaperPalette,
     dark: Boolean,
     layout: ReadablePaperLayout = ReadablePaperLayout(),
+    showImages: Boolean = true,
     rewriteCitationLinks: Boolean = true,
     exportMetadata: ReadablePaperExportMetadata? = null,
 ): String {
@@ -363,7 +364,7 @@ internal fun renderReadablePaperHtml(
             .ltx_title_abstract { margin-top: 0; }
             figure { margin: 30px 0; }
             img {
-              display: block;
+              display: ${if (showImages) "block" else "none"};
               max-width: 100%;
               height: auto;
               margin: 0 auto;

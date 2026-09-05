@@ -5,6 +5,14 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+### Added
+
+- More now groups download queue, reading stats, searchable settings, help, and existing data
+  management in one Mihon-inspired hub while retaining PaperReader's neobrutalist surfaces.
+- Appearance now controls library layout, large-screen navigation, date/relative timestamps, and
+  figure visibility in mobile papers. Reader settings expose persistent text size, spacing, and
+  margin defaults.
+
 ## [0.1.9] - 2026-08-25
 
 ### Fixed

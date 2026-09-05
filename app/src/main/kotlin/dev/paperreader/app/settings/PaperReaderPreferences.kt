@@ -7,7 +7,9 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import dev.paperreader.app.ui.TabletUiMode
 import dev.paperreader.app.ui.model.LibraryLayout
+import dev.paperreader.app.ui.model.PaperDateFormat
 import dev.paperreader.app.ui.theme.PaperThemeMode
 import dev.paperreader.app.ui.theme.PaperThemePreset
 import java.io.IOException
@@ -35,6 +37,22 @@ class PaperReaderPreferences(context: Context) {
 
     val libraryLayout: Flow<LibraryLayout> = preferences.map { values ->
         LibraryLayout.fromStorageKey(values[LIBRARY_LAYOUT_KEY])
+    }
+
+    val dateFormat: Flow<PaperDateFormat> = preferences.map { values ->
+        PaperDateFormat.fromStorageKey(values[DATE_FORMAT_KEY])
+    }
+
+    val relativeTime: Flow<Boolean> = preferences.map { values ->
+        values[RELATIVE_TIME_KEY] ?: false
+    }
+
+    val tabletUiMode: Flow<TabletUiMode> = preferences.map { values ->
+        TabletUiMode.fromStorageKey(values[TABLET_UI_MODE_KEY])
+    }
+
+    val showImagesInDescription: Flow<Boolean> = preferences.map { values ->
+        values[SHOW_IMAGES_IN_DESCRIPTION_KEY] ?: true
     }
 
     val automaticSavedSearchRefreshEnabled: Flow<Boolean> = preferences.map { values ->
@@ -76,6 +94,22 @@ class PaperReaderPreferences(context: Context) {
         dataStore.edit { values -> values[LIBRARY_LAYOUT_KEY] = layout.storageKey }
     }
 
+    suspend fun setDateFormat(format: PaperDateFormat) {
+        dataStore.edit { values -> values[DATE_FORMAT_KEY] = format.storageKey }
+    }
+
+    suspend fun setRelativeTime(enabled: Boolean) {
+        dataStore.edit { values -> values[RELATIVE_TIME_KEY] = enabled }
+    }
+
+    suspend fun setTabletUiMode(mode: TabletUiMode) {
+        dataStore.edit { values -> values[TABLET_UI_MODE_KEY] = mode.storageKey }
+    }
+
+    suspend fun setShowImagesInDescription(enabled: Boolean) {
+        dataStore.edit { values -> values[SHOW_IMAGES_IN_DESCRIPTION_KEY] = enabled }
+    }
+
     suspend fun setAutomaticSavedSearchRefreshEnabled(enabled: Boolean) {
         dataStore.edit { values -> values[AUTOMATIC_SAVED_SEARCH_REFRESH_KEY] = enabled }
     }
@@ -108,6 +142,10 @@ class PaperReaderPreferences(context: Context) {
         val THEME_KEY = stringPreferencesKey("theme_preset")
         val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
         val LIBRARY_LAYOUT_KEY = stringPreferencesKey("library_layout")
+        val DATE_FORMAT_KEY = stringPreferencesKey("date_format")
+        val RELATIVE_TIME_KEY = booleanPreferencesKey("relative_time")
+        val TABLET_UI_MODE_KEY = stringPreferencesKey("tablet_ui_mode")
+        val SHOW_IMAGES_IN_DESCRIPTION_KEY = booleanPreferencesKey("show_images_in_description")
         val AUTOMATIC_SAVED_SEARCH_REFRESH_KEY = booleanPreferencesKey("automatic_saved_search_refresh")
         val DISABLED_PROVIDER_IDS_KEY = stringSetPreferencesKey("disabled_provider_ids")
         val RECENT_SEARCH_QUERIES_KEY = stringPreferencesKey("recent_search_queries")

@@ -41,7 +41,9 @@ import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
 import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.model.ReadingHistoryUi
+import dev.paperreader.app.ui.model.PaperDateFormat
 import dev.paperreader.app.ui.model.toEnglishDisplayDateTime
+import dev.paperreader.app.ui.model.toEnglishRelativeTime
 import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
@@ -52,6 +54,8 @@ fun HistoryScreen(
     state: LoadState<List<ReadingHistoryUi>>,
     onOpenPaper: (String) -> Unit,
     onRemove: (String) -> Unit,
+    dateFormat: PaperDateFormat = PaperDateFormat.DEFAULT,
+    relativeTimeEnabled: Boolean = false,
 ) {
     var pendingRemovalId by rememberSaveable { mutableStateOf<String?>(null) }
     val pendingRemoval = (state as? LoadState.Ready)
@@ -94,7 +98,13 @@ fun HistoryScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(state.value, key = ReadingHistoryUi::workId) { entry ->
-                        HistoryRow(entry, onOpenPaper, onRemove = { pendingRemovalId = it })
+                        HistoryRow(
+                            entry = entry,
+                            onOpenPaper = onOpenPaper,
+                            onRemove = { pendingRemovalId = it },
+                            dateFormat = dateFormat,
+                            relativeTimeEnabled = relativeTimeEnabled,
+                        )
                     }
                 }
             }
@@ -127,6 +137,8 @@ private fun HistoryRow(
     entry: ReadingHistoryUi,
     onOpenPaper: (String) -> Unit,
     onRemove: (String) -> Unit,
+    dateFormat: PaperDateFormat,
+    relativeTimeEnabled: Boolean,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -139,7 +151,14 @@ private fun HistoryRow(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(entry.title, style = MaterialTheme.typography.titleLarge, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                Text(entry.lastReadAt.toEnglishDisplayDateTime(), color = PaperTheme.tokens.inkMuted)
+                Text(
+                    text = if (relativeTimeEnabled) {
+                        entry.lastReadAt.toEnglishRelativeTime()
+                    } else {
+                        entry.lastReadAt.toEnglishDisplayDateTime(dateFormat)
+                    },
+                    color = PaperTheme.tokens.inkMuted,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PaperLabel(
                         pluralStringResource(

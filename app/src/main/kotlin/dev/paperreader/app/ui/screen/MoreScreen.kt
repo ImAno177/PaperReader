@@ -1,47 +1,34 @@
 package dev.paperreader.app.ui.screen
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.LoadState
 import dev.paperreader.app.ui.components.PaperAppBarTitle
+import dev.paperreader.app.ui.components.PaperPreferenceRow
 import dev.paperreader.app.ui.components.PaperSurface
 import dev.paperreader.app.ui.model.PaperCollectionUi
+import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.MetadataBackupUiState
 import dev.paperreader.app.ui.model.LocalPdfImportUiState
 import dev.paperreader.app.ui.theme.PaperTheme
-import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperThemePreset
 import dev.paperreader.logic.provider.ProviderManagerState
+import dev.paperreader.logic.task.PaperTask
+import dev.paperreader.logic.task.TaskState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +48,12 @@ fun MoreScreen(
     onOpenDataBackup: () -> Unit = {},
     onOpenSources: () -> Unit = {},
     onOpenAbout: () -> Unit = {},
+    onOpenDownloadQueue: () -> Unit = {},
+    onOpenStats: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    onOpenHelp: () -> Unit = {},
+    library: LoadState<List<PaperUi>> = LoadState.Loading,
+    tasks: LoadState<List<PaperTask>> = LoadState.Loading,
 ) {
     Scaffold(
         topBar = {
@@ -78,111 +71,84 @@ fun MoreScreen(
         ) {
             item(key = "more-hub") {
                 PaperSurface(contentPadding = PaddingValues(0.dp)) {
-                    MoreHubRow(
+                    PaperPreferenceRow(
                         title = stringResource(R.string.appearance_title),
                         supportingText = selectedThemeName ?: themeName(selectedPreset),
                         icon = PaperIconKey.PALETTE,
                         onClick = onOpenAppearance,
                     )
                     MoreHubDivider()
-                    MoreHubRow(
+                    PaperPreferenceRow(
                         title = stringResource(R.string.collections_title),
                         supportingText = collectionsHubSummary(collections),
                         icon = PaperIconKey.FOLDER,
                         onClick = onOpenCollections,
                     )
                     MoreHubDivider()
-                    MoreHubRow(
+                    PaperPreferenceRow(
                         title = stringResource(R.string.local_pdf_import_title),
                         supportingText = localPdfHubSummary(localPdfImportState),
                         icon = PaperIconKey.PDF,
                         onClick = onOpenReadingImports,
                     )
                     MoreHubDivider()
-                    MoreHubRow(
+                    PaperPreferenceRow(
                         title = stringResource(R.string.updates_and_notifications_title),
                         supportingText = updatesHubSummary(automaticRefreshEnabled, notificationsAvailable),
                         icon = PaperIconKey.NOTIFICATIONS_ON,
                         onClick = onOpenUpdates,
                     )
                     MoreHubDivider()
-                    MoreHubRow(
+                    PaperPreferenceRow(
                         title = stringResource(R.string.data_and_backup),
                         supportingText = backupHubSummary(backupState),
                         icon = PaperIconKey.DOWNLOAD,
                         onClick = onOpenDataBackup,
                     )
                     MoreHubDivider()
-                    MoreHubRow(
+                    PaperPreferenceRow(
                         title = stringResource(R.string.sources_title),
                         supportingText = sourcesHubSummary(providers),
                         icon = PaperIconKey.PUBLIC,
                         onClick = onOpenSources,
                     )
                     MoreHubDivider()
-                    MoreHubRow(
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.download_queue_title),
+                        supportingText = downloadQueueHubSummary(tasks),
+                        icon = PaperIconKey.DOWNLOAD,
+                        onClick = onOpenDownloadQueue,
+                    )
+                    MoreHubDivider()
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.stats_title),
+                        supportingText = statsHubSummary(library),
+                        icon = PaperIconKey.UPDATES,
+                        onClick = onOpenStats,
+                    )
+                    MoreHubDivider()
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.settings_title),
+                        supportingText = stringResource(R.string.settings_summary),
+                        icon = PaperIconKey.INFO,
+                        onClick = onOpenSettings,
+                    )
+                    MoreHubDivider()
+                    PaperPreferenceRow(
                         title = stringResource(R.string.about_title),
                         icon = PaperIconKey.INFO,
                         onClick = onOpenAbout,
                     )
+                    MoreHubDivider()
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.help_title),
+                        supportingText = stringResource(R.string.help_summary),
+                        icon = PaperIconKey.INFO,
+                        onClick = onOpenHelp,
+                    )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun MoreHubRow(
-    title: String,
-    supportingText: String? = null,
-    icon: PaperIconKey,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Surface(
-            modifier = Modifier.size(36.dp),
-            shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
-            color = PaperTheme.tokens.primary,
-            contentColor = PaperTheme.tokens.onPrimary,
-            border = BorderStroke(1.dp, PaperTheme.tokens.border),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                PaperIcon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
-            }
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(1.dp),
-        ) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            supportingText?.takeIf(String::isNotBlank)?.let { summary ->
-                Text(
-                    summary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PaperTheme.tokens.inkMuted,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        PaperIcon(
-            PaperIconKey.FORWARD,
-            contentDescription = null,
-            tint = PaperTheme.tokens.inkMuted,
-        )
     }
 }
 
@@ -192,6 +158,29 @@ private fun MoreHubDivider() {
         thickness = 1.dp,
         color = PaperTheme.tokens.border.copy(alpha = 0.24f),
     )
+}
+
+@Composable
+private fun statsHubSummary(library: LoadState<List<PaperUi>>): String? = when (library) {
+    LoadState.Loading -> stringResource(R.string.stats_loading)
+    LoadState.Failed -> stringResource(R.string.stats_unavailable)
+    is LoadState.Ready -> pluralStringResource(R.plurals.saved_papers_count, library.value.size, library.value.size)
+}
+
+@Composable
+private fun downloadQueueHubSummary(tasks: LoadState<List<PaperTask>>): String? = when (tasks) {
+    LoadState.Loading -> stringResource(R.string.download_queue_loading)
+    LoadState.Failed -> stringResource(R.string.download_queue_unavailable)
+    is LoadState.Ready -> {
+        val active = tasks.value.count { it.state == TaskState.QUEUED || it.state == TaskState.RUNNING }
+        val failed = tasks.value.count { it.state == TaskState.FAILED }
+        when {
+            active > 0 && failed > 0 -> stringResource(R.string.download_queue_active_and_failed, active, failed)
+            active > 0 -> pluralStringResource(R.plurals.download_queue_pending, active, active)
+            failed > 0 -> pluralStringResource(R.plurals.download_queue_failed, failed, failed)
+            else -> stringResource(R.string.download_queue_empty_title)
+        }
+    }
 }
 
 @Composable

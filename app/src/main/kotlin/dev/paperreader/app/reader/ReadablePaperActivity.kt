@@ -365,6 +365,7 @@ class ReadablePaperActivity : AppCompatActivity() {
                 palette = palette,
                 dark = dark,
                 layout = layout,
+                showImages = readerArgs.showImagesInDescription,
             )
         }
         webView.loadDataWithBaseURL(
@@ -563,6 +564,16 @@ class ReadablePaperActivity : AppCompatActivity() {
             themePreset: PaperThemePreset,
             themeKey: String = themePreset.storageKey,
             themeMode: PaperThemeMode = PaperThemeMode.SYSTEM,
-        ): Intent = createReadablePaperIntent(context, workId, manifestationId, title, themePreset, themeKey, themeMode)
+            showImagesInDescription: Boolean = true,
+        ): Intent = createReadablePaperIntent(
+            context = context,
+            workId = workId,
+            manifestationId = manifestationId,
+            title = title,
+            themePreset = themePreset,
+            themeKey = themeKey,
+            themeMode = themeMode,
+            showImagesInDescription = showImagesInDescription,
+        )
     }
 }

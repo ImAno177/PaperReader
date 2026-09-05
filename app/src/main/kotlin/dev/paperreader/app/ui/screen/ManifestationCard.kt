@@ -66,6 +66,7 @@ internal fun MobileReadAction(
     themeKey: String,
     themeMode: PaperThemeMode,
     manifestationId: String,
+    showImagesInDescription: Boolean = true,
 ) {
     val context = LocalContext.current
     PaperPrimaryButton(
@@ -78,6 +79,7 @@ internal fun MobileReadAction(
                 themePreset = themePreset,
                 themeKey = themeKey,
                 themeMode = themeMode,
+                showImagesInDescription = showImagesInDescription,
             )
         },
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
@@ -98,6 +100,7 @@ internal fun ManifestationCard(
     requesting: Boolean,
     requestFailed: Boolean,
     showMobileReadAction: Boolean = true,
+    showImagesInDescription: Boolean = true,
     onRequestDownload: () -> Unit,
     onGetDownloadedPaper: suspend () -> DownloadedPaper?,
     onLoadReadablePaper: suspend (String?) -> ReadablePaperResult,
@@ -304,6 +307,7 @@ internal fun ManifestationCard(
                         themeKey = themeKey,
                         themeMode = themeMode,
                         manifestationId = manifestation.id,
+                        showImagesInDescription = showImagesInDescription,
                     )
                 }
                 if (manifestation.localCopy != null) {
@@ -503,6 +507,7 @@ private fun openReadablePaper(
     themePreset: PaperThemePreset,
     themeKey: String,
     themeMode: PaperThemeMode,
+    showImagesInDescription: Boolean,
 ) {
     context.startActivity(
         ReadablePaperActivity.createIntent(
@@ -513,6 +518,7 @@ private fun openReadablePaper(
             themePreset = themePreset,
             themeKey = themeKey,
             themeMode = themeMode,
+            showImagesInDescription = showImagesInDescription,
         ),
     )
 }

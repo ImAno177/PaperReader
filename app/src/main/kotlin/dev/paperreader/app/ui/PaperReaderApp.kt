@@ -46,6 +46,7 @@ import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.model.MetadataBackupUiState
 import dev.paperreader.app.ui.model.LocalPdfImportUiState
 import dev.paperreader.app.ui.model.LibraryLayout
+import dev.paperreader.app.ui.model.PaperDateFormat
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.theme.PaperReaderTheme
 import dev.paperreader.app.ui.theme.PaperTheme
@@ -164,6 +165,10 @@ private fun PaperReaderContent(
         .collectAsStateWithLifecycle(false)
     val disabledProviderIds by preferences.disabledProviderIds.collectAsStateWithLifecycle(emptySet())
     val libraryLayout by preferences.libraryLayout.collectAsStateWithLifecycle(LibraryLayout.LIST)
+    val dateFormat by preferences.dateFormat.collectAsStateWithLifecycle(PaperDateFormat.DEFAULT)
+    val relativeTimeEnabled by preferences.relativeTime.collectAsStateWithLifecycle(false)
+    val tabletUiMode by preferences.tabletUiMode.collectAsStateWithLifecycle(TabletUiMode.AUTOMATIC)
+    val showImagesInDescription by preferences.showImagesInDescription.collectAsStateWithLifecycle(true)
     val notificationPublisher = remember(context) { SavedSearchNotificationPublisher(context) }
     val scope = rememberCoroutineScope()
     var notificationsAvailable by remember { mutableStateOf(notificationPublisher.canPost()) }
@@ -270,6 +275,10 @@ private fun PaperReaderContent(
         themeKey = themeKey,
         themeMode = themeMode,
         libraryLayout = libraryLayout,
+        dateFormat = dateFormat,
+        relativeTimeEnabled = relativeTimeEnabled,
+        tabletUiMode = tabletUiMode,
+        showImagesInDescription = showImagesInDescription,
         themeCatalog = themeCatalog,
         onSearch = viewModel::search,
         onClearSearch = viewModel::clearSearch,
@@ -312,6 +321,10 @@ private fun PaperReaderContent(
         onThemeChange = { next -> scope.launch { preferences.setThemeKey(next) } },
         onThemeModeChange = { next -> scope.launch { preferences.setThemeMode(next) } },
         onLibraryLayoutChange = { next -> scope.launch { preferences.setLibraryLayout(next) } },
+        onDateFormatChange = { next -> scope.launch { preferences.setDateFormat(next) } },
+        onRelativeTimeChange = { next -> scope.launch { preferences.setRelativeTime(next) } },
+        onTabletUiModeChange = { next -> scope.launch { preferences.setTabletUiMode(next) } },
+        onShowImagesInDescriptionChange = { next -> scope.launch { preferences.setShowImagesInDescription(next) } },
         automaticRefreshEnabled = automaticRefreshEnabled,
         onAutomaticRefreshChange = { enabled ->
             val changed = savedSearchRefreshScheduler.setEnabled(enabled)
@@ -361,6 +374,10 @@ private fun PaperReaderNavigation(
     themeKey: String,
     themeMode: PaperThemeMode,
     libraryLayout: LibraryLayout,
+    dateFormat: PaperDateFormat,
+    relativeTimeEnabled: Boolean,
+    tabletUiMode: TabletUiMode,
+    showImagesInDescription: Boolean,
     themeCatalog: CommunityThemeCatalog,
     onSearch: (String) -> Unit,
     onClearSearch: () -> Unit,
@@ -395,6 +412,10 @@ private fun PaperReaderNavigation(
     onThemeChange: (String) -> Unit,
     onThemeModeChange: (PaperThemeMode) -> Unit,
     onLibraryLayoutChange: (LibraryLayout) -> Unit,
+    onDateFormatChange: (PaperDateFormat) -> Unit,
+    onRelativeTimeChange: (Boolean) -> Unit,
+    onTabletUiModeChange: (TabletUiMode) -> Unit,
+    onShowImagesInDescriptionChange: (Boolean) -> Unit,
     automaticRefreshEnabled: Boolean,
     onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
     onProviderEnabledChange: (String, Boolean) -> Unit,
@@ -478,6 +499,10 @@ private fun PaperReaderNavigation(
             themeKey = themeKey,
             themeMode = themeMode,
             libraryLayout = libraryLayout,
+            dateFormat = dateFormat,
+            relativeTimeEnabled = relativeTimeEnabled,
+            tabletUiMode = tabletUiMode,
+            showImagesInDescription = showImagesInDescription,
             themeCatalog = themeCatalog,
             onSearch = onSearch,
             onClearSearch = onClearSearch,
@@ -512,6 +537,10 @@ private fun PaperReaderNavigation(
             onThemeChange = onThemeChange,
             onThemeModeChange = onThemeModeChange,
             onLibraryLayoutChange = onLibraryLayoutChange,
+            onDateFormatChange = onDateFormatChange,
+            onRelativeTimeChange = onRelativeTimeChange,
+            onTabletUiModeChange = onTabletUiModeChange,
+            onShowImagesInDescriptionChange = onShowImagesInDescriptionChange,
             automaticRefreshEnabled = automaticRefreshEnabled,
             onAutomaticRefreshChange = onAutomaticRefreshChange,
             onProviderEnabledChange = onProviderEnabledChange,
@@ -523,6 +552,7 @@ private fun PaperReaderNavigation(
         AdaptiveAppShell(
             destinations = destinations,
             currentRoute = currentRoute,
+            tabletUiMode = tabletUiMode,
             onNavigate = { destination ->
                 if (navController.currentDestination?.route != destination.route) {
                     navController.navigate(destination.route) {
@@ -550,6 +580,10 @@ private fun PaperReaderNavigation(
                 themeKey = themeKey,
                 themeMode = themeMode,
                 libraryLayout = libraryLayout,
+                dateFormat = dateFormat,
+                relativeTimeEnabled = relativeTimeEnabled,
+                tabletUiMode = tabletUiMode,
+                showImagesInDescription = showImagesInDescription,
                 themeCatalog = themeCatalog,
                 onSearch = onSearch,
                 onClearSearch = onClearSearch,
@@ -584,6 +618,10 @@ private fun PaperReaderNavigation(
                 onThemeChange = onThemeChange,
                 onThemeModeChange = onThemeModeChange,
                 onLibraryLayoutChange = onLibraryLayoutChange,
+                onDateFormatChange = onDateFormatChange,
+                onRelativeTimeChange = onRelativeTimeChange,
+                onTabletUiModeChange = onTabletUiModeChange,
+                onShowImagesInDescriptionChange = onShowImagesInDescriptionChange,
                 automaticRefreshEnabled = automaticRefreshEnabled,
                 onAutomaticRefreshChange = onAutomaticRefreshChange,
                 onProviderEnabledChange = onProviderEnabledChange,

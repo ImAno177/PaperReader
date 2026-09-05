@@ -76,6 +76,62 @@ fun PaperAppBarTitle(text: String) {
 }
 
 @Composable
+fun PaperPreferenceRow(
+    title: String,
+    supportingText: String? = null,
+    icon: PaperIconKey,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            modifier = Modifier.size(36.dp),
+            shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
+            color = PaperTheme.tokens.primary,
+            contentColor = PaperTheme.tokens.onPrimary,
+            border = BorderStroke(1.dp, PaperTheme.tokens.border),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                PaperIcon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+            }
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            supportingText?.takeIf(String::isNotBlank)?.let { summary ->
+                Text(
+                    summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PaperTheme.tokens.inkMuted,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        PaperIcon(
+            PaperIconKey.FORWARD,
+            contentDescription = null,
+            tint = PaperTheme.tokens.inkMuted,
+        )
+    }
+}
+
+@Composable
 fun PaperPrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,

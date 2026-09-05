@@ -48,8 +48,10 @@ import dev.paperreader.app.ui.components.PaperSurface
 import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.components.StatusBadge
 import dev.paperreader.app.ui.model.PaperUi
+import dev.paperreader.app.ui.model.PaperDateFormat
 import dev.paperreader.app.ui.model.displayProviderName
 import dev.paperreader.app.ui.model.toEnglishDisplayDateTime
+import dev.paperreader.app.ui.model.toEnglishRelativeTime
 import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
@@ -78,6 +80,10 @@ fun UpdatesScreen(
     onCancel: (String) -> Unit = {},
     onRetry: (String) -> Unit = {},
     onRemove: (String) -> Unit = {},
+    screenTitleRes: Int = R.string.updates_title,
+    showSavedSearches: Boolean = true,
+    dateFormat: PaperDateFormat = PaperDateFormat.DEFAULT,
+    relativeTimeEnabled: Boolean = false,
 ) {
     val paperTitles = (library as? LoadState.Ready)
         ?.value
@@ -90,7 +96,7 @@ fun UpdatesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { PaperAppBarTitle(stringResource(R.string.updates_title)) },
+                title = { PaperAppBarTitle(stringResource(screenTitleRes)) },
                 colors = topBarColors(),
             )
         },
@@ -101,10 +107,11 @@ fun UpdatesScreen(
             contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                PaperSectionHeader(title = stringResource(R.string.saved_searches_title))
-            }
-            when (savedSearches) {
+            if (showSavedSearches) {
+                item {
+                    PaperSectionHeader(title = stringResource(R.string.saved_searches_title))
+                }
+                when (savedSearches) {
                 LoadState.Loading -> item {
                     PaperStatePanel(
                         title = stringResource(R.string.saved_searches_loading),
@@ -142,6 +149,8 @@ fun UpdatesScreen(
                                 actionFailed = feed.search.id.value in savedSearchActions.failedSearchActionIds,
                                 onRefresh = { onRefreshSearch(feed.search.id.value) },
                                 onDelete = { pendingDeleteSearch = feed.search.id.value },
+                                dateFormat = dateFormat,
+                                relativeTimeEnabled = relativeTimeEnabled,
                             )
                         }
                         if (feed.hits.isEmpty()) {
@@ -178,10 +187,13 @@ fun UpdatesScreen(
                                     onOpenPaper = onOpenPaper,
                                     onSave = { onSaveHit(hit.id.value) },
                                     onMarkRead = { onMarkHitRead(hit.id.value) },
+                                    dateFormat = dateFormat,
+                                    relativeTimeEnabled = relativeTimeEnabled,
                                 )
                             }
                         }
                     }
+                }
                 }
             }
             item {
@@ -190,7 +202,7 @@ fun UpdatesScreen(
             when (tasks) {
                 LoadState.Loading -> item {
                     PaperStatePanel(
-                        title = stringResource(R.string.updates_title),
+                        title = stringResource(screenTitleRes),
                         loading = true,
                         compact = true,
                     )
@@ -262,6 +274,8 @@ private fun SavedSearchHeader(
     actionFailed: Boolean,
     onRefresh: () -> Unit,
     onDelete: () -> Unit,
+    dateFormat: PaperDateFormat,
+    relativeTimeEnabled: Boolean,
 ) {
     val providerNames = feed.search.sources.joinToString { source ->
         providers.installed.firstOrNull { it.descriptor.id == source.providerId }
@@ -299,7 +313,10 @@ private fun SavedSearchHeader(
         Spacer(Modifier.height(8.dp))
         PaperLabel(
             feed.search.lastCheckedAt?.let { checkedAt ->
-                stringResource(R.string.saved_search_last_checked, checkedAt.toEnglishDisplayDateTime())
+                stringResource(
+                    R.string.saved_search_last_checked,
+                    checkedAt.toPaperTimestamp(dateFormat, relativeTimeEnabled),
+                )
             } ?: stringResource(R.string.saved_search_never_checked),
         )
         feed.search.sources.forEach { source ->
@@ -314,6 +331,8 @@ private fun SavedSearchHeader(
                             ?: source.providerId.displayProviderName(),
                         kind = failure.kind,
                         retryAfter = failure.retryAfter,
+                        dateFormat = dateFormat,
+                        relativeTimeEnabled = relativeTimeEnabled,
                     ),
                     color = PaperTheme.tokens.danger,
                     style = MaterialTheme.typography.bodyMedium,
@@ -362,6 +381,8 @@ private fun SavedSearchHitRow(
     onOpenPaper: (String) -> Unit,
     onSave: () -> Unit,
     onMarkRead: () -> Unit,
+    dateFormat: PaperDateFormat,
+    relativeTimeEnabled: Boolean,
 ) {
     val paper = hit.paper
     val workId = hit.linkedWorkId?.value ?: savedWorkId
@@ -377,7 +398,7 @@ private fun SavedSearchHitRow(
             }
         }
         Spacer(Modifier.height(5.dp))
-        PaperLabel((paper.updatedAt ?: hit.firstSeenAt).toEnglishDisplayDateTime())
+        PaperLabel((paper.updatedAt ?: hit.firstSeenAt).toPaperTimestamp(dateFormat, relativeTimeEnabled))
         Spacer(Modifier.height(8.dp))
         Text(
             text = paper.title,
@@ -445,13 +466,28 @@ private fun savedSearchFailureText(
     providerName: String,
     kind: SavedSearchFailureKind,
     retryAfter: java.time.Instant?,
+    dateFormat: PaperDateFormat,
+    relativeTimeEnabled: Boolean,
 ): String = when (kind) {
     SavedSearchFailureKind.RATE_LIMITED -> retryAfter?.let {
-        stringResource(R.string.saved_search_rate_limited_until, providerName, it.toEnglishDisplayDateTime())
+        stringResource(
+            R.string.saved_search_rate_limited_until,
+            providerName,
+            it.toPaperTimestamp(dateFormat, relativeTimeEnabled),
+        )
     } ?: stringResource(R.string.provider_rate_limited, providerName)
 
     SavedSearchFailureKind.UNAVAILABLE -> stringResource(R.string.provider_unavailable, providerName)
     SavedSearchFailureKind.INVALID_RESPONSE -> stringResource(R.string.provider_invalid_response, providerName)
+}
+
+private fun java.time.Instant.toPaperTimestamp(
+    dateFormat: PaperDateFormat,
+    relativeTimeEnabled: Boolean,
+): String = if (relativeTimeEnabled) {
+    toEnglishRelativeTime()
+} else {
+    toEnglishDisplayDateTime(dateFormat)
 }
 
 @Composable

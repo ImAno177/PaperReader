@@ -9,7 +9,7 @@ apply(from = rootProject.file("gradle/jacoco-android.gradle.kts"))
 
 android {
     namespace = "dev.paperreader.logic"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 28

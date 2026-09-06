@@ -13,7 +13,7 @@ version = "0.1.0"
 
 android {
     namespace = "dev.paperreader.extensions.api"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 28

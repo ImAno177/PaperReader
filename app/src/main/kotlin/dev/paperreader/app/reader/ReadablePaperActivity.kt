@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
+import android.webkit.WebResourceResponse
 import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.ImageButton
@@ -241,6 +242,15 @@ class ReadablePaperActivity : AppCompatActivity() {
             isPageLoaded = { documentLoaded },
             annotations = annotationController::annotations,
             onNavigation = ::handleNavigation,
+            onLocalAssetRequest = { uri ->
+                val document = currentDocument ?: return@configureReadablePaperWebView null
+                val assetId = readableAssetIdFromUri(uri) ?: return@configureReadablePaperWebView null
+                (application as PaperReaderApplication).logic
+                    .openReadablePaperAsset(document, assetId)
+                    ?.let { content ->
+                        WebResourceResponse(content.mediaType, null, content.inputStream)
+                    }
+            },
             onPageReady = ::finishReadablePageLoad,
             onProgressionChanged = { progression ->
                 updateProgress(progression)

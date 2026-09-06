@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import dev.paperreader.app.R
 import dev.paperreader.app.reader.ReadablePaperHtmlFileGateway
 import dev.paperreader.app.reader.readablePaperHtmlFileName
-import dev.paperreader.app.reader.renderReadablePaperExportHtml
+import dev.paperreader.app.reader.writeReadablePaperExportHtml
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
@@ -38,6 +38,7 @@ import kotlinx.coroutines.withContext
 internal fun ReadableHtmlDownloadAction(
     manifestationId: String,
     onLoadReadablePaper: suspend (String?) -> ReadablePaperResult,
+    onReadReadableAsset: suspend (ReadablePaperDocument, String) -> ByteArray? = { _, _ -> null },
     onError: (Int?) -> Unit,
 ) {
     val context = LocalContext.current
@@ -60,9 +61,18 @@ internal fun ReadableHtmlDownloadAction(
         writing = true
         scope.launch {
             try {
-                val html = withContext(Dispatchers.Default) { renderReadablePaperExportHtml(document) }
                 withContext(Dispatchers.IO) {
-                    ReadablePaperHtmlFileGateway(context.contentResolver).write(destination, html)
+                    ReadablePaperHtmlFileGateway(context.contentResolver).write(destination) { output ->
+                        writeReadablePaperExportHtml(
+                            document = document,
+                            readAsset = { asset ->
+                                checkNotNull(onReadReadableAsset(document, asset.id)) {
+                                    "Readable asset bytes are missing: ${asset.id}"
+                                }
+                            },
+                            output = output,
+                        )
+                    }
                 }
                 Toast.makeText(
                     context,

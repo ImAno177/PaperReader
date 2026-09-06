@@ -34,6 +34,16 @@ without wiping it:
 The isolated app suffix avoids replacing a production-signed installation. Connected XML results are
 kept under each module's `build/outputs/androidTest-results/connected` directory.
 
+For readable-paper asset changes, the local audit must also confirm that the fresh APK can open
+Attention, CGP-Tuning, LoRA, Llama, ResNet, and InstructGPT, including figure captions, reader back,
+find, contents, cache reopen, offline reopen, and one self-contained HTML export. Inspect local
+app-private evidence for separate body/asset files and SHA-256-validated asset counts. A paper's
+image count is not capped; record any per-asset, SVG-complexity, cache-quota, or network failure as
+an explicit warning. Include a large image-heavy paper and a self-contained SVG with embedded raster
+data in the asset audit, and confirm transient 429/unavailable responses use bounded retries before
+being reported. Do not add or modify test sources for this audit, and do not use GitHub as the test
+runner.
+
 ## Coverage
 
 Generate unit and merged reports after the relevant tests:

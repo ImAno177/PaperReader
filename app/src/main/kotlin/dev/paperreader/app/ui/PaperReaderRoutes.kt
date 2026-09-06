@@ -23,6 +23,7 @@ import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.ReadingStatus
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.provider.ProviderManagerState
+import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.reader.ReadablePaperResult
 import dev.paperreader.logic.domain.repository.*
 import dev.paperreader.logic.task.*
@@ -72,6 +73,7 @@ internal fun AppNavHost(
     onRequestDownload: (String, String) -> Unit,
     onGetDownloadedPaper: suspend (String) -> DownloadedPaper?,
     onLoadReadablePaper: suspend (String, String, String?) -> ReadablePaperResult,
+    onReadReadableAsset: suspend (ReadablePaperDocument, String) -> ByteArray?,
     onDeleteDownload: suspend (String, String) -> DeleteDownloadResult,
     onCancelDownloadTask: (String) -> Unit,
     onRetryDownloadTask: (String) -> Unit,
@@ -361,6 +363,7 @@ internal fun AppNavHost(
                 onLoadReadablePaper = { manifestationId, retainDocumentSha256 ->
                     onLoadReadablePaper(workId, manifestationId, retainDocumentSha256)
                 },
+                onReadReadableAsset = onReadReadableAsset,
                 onDeleteDownload = { onDeleteDownload(workId, it) },
                 onRemove = { onRemovePaper(workId) },
                 onSetCollections = { onSetPaperCollections(workId, it) },

@@ -28,6 +28,8 @@ import dev.paperreader.logic.network.PdfDownloader
 import dev.paperreader.logic.network.ArxivReadableResourceFetcher
 import dev.paperreader.logic.reader.ArxivReadablePaperLoader
 import dev.paperreader.logic.reader.ReadablePaperCache
+import dev.paperreader.logic.reader.ReadablePaperAssetContent
+import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.plugin.ExtensionStoreRegistry
 import dev.paperreader.logic.plugin.SourceExtensionCoordinator
 import dev.paperreader.logic.plugin.TrustedSourceExtension
@@ -62,11 +64,18 @@ class PaperReaderLogic private constructor(
     val extensionStores: ExtensionStoreRegistry,
     private val sourceExtensionCoordinator: SourceExtensionCoordinator,
     private val reconcileReadableArtifactStore: suspend () -> Unit,
+    private val openReadableAsset: (ReadablePaperDocument, String) -> ReadablePaperAssetContent?,
     private val database: LibraryDatabase,
 ) : Closeable {
     suspend fun reconcileSourceExtensions() = sourceExtensionCoordinator.reconcile()
 
     suspend fun reconcileReadableArtifacts() = reconcileReadableArtifactStore()
+
+    /** Opens a verified local figure stream without exposing the app-private storage path. */
+    fun openReadablePaperAsset(
+        document: ReadablePaperDocument,
+        assetId: String,
+    ): ReadablePaperAssetContent? = openReadableAsset(document, assetId)
 
     fun setDisabledProviderIds(providerIds: Set<String>) = providers.setDisabledProviderIds(providerIds)
 
@@ -166,6 +175,7 @@ class PaperReaderLogic private constructor(
                     val manifestations = library.library.first().flatMap { it.manifestations }
                     readablePaperLoader.reconcileArtifacts(manifestations)
                 },
+                openReadableAsset = readablePaperLoader::openAsset,
                 database = database,
             )
         }

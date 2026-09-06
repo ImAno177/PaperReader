@@ -1,11 +1,12 @@
 package dev.paperreader.logic.reader
 
 import dev.paperreader.logic.domain.PaperManifestation
+import java.io.InputStream
 import java.time.Instant
 import org.jsoup.nodes.Document
 
 /** Version of the arXiv HTML sanitization contract embedded in cached/exported documents. */
-const val ARXIV_READABLE_SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-13"
+const val ARXIV_READABLE_SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-15"
 
 data class ReadablePaperDocument(
     /** A sanitized fragment. Presentation and the CSP remain owned by the UI renderer. */
@@ -23,6 +24,29 @@ data class ReadablePaperDocument(
     val keptForOffline: Boolean = false,
     val sections: List<ReadablePaperSection>,
     val warnings: Set<ReadablePaperWarning>,
+    /** Opaque metadata for locally cached figure assets; no filesystem path is exposed. */
+    val assetGroupKey: String? = null,
+    val assets: List<ReadablePaperAsset> = emptyList(),
+)
+
+data class ReadablePaperAsset(
+    val id: String,
+    val mediaType: String,
+    val sha256: String,
+    val byteLength: Long,
+) {
+    init {
+        require(id.matches(READABLE_ASSET_ID))
+        require(mediaType in SAFE_READABLE_ASSET_MEDIA_TYPES)
+        require(sha256.matches(READABLE_SHA256))
+        require(byteLength in 1..MAXIMUM_READABLE_ASSET_BYTES)
+    }
+}
+
+/** A verified app-private asset stream used by the local WebView/export boundary. */
+data class ReadablePaperAssetContent(
+    val mediaType: String,
+    val inputStream: InputStream,
 )
 
 data class ReadablePaperSection(
@@ -70,6 +94,16 @@ internal data class ReadableRemoteResource(
     val mediaType: String,
 )
 
+internal data class ReadablePaperAssetReference(
+    val id: String,
+    val sourceUrl: String,
+) {
+    init {
+        require(id.matches(READABLE_ASSET_ID))
+        require(sourceUrl.isNotBlank())
+    }
+}
+
 internal sealed interface ReadableRemoteResult {
     data class Success(val resource: ReadableRemoteResource) : ReadableRemoteResult
     data object NotFound : ReadableRemoteResult
@@ -105,3 +139,16 @@ internal fun interface ReadablePaperLoader {
     /** Retains a document that this loader has already verified without loading it again. */
     suspend fun retain(document: ReadablePaperDocument): Boolean = false
 }
+
+internal val SAFE_READABLE_ASSET_MEDIA_TYPES = setOf(
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "image/gif",
+    "image/svg+xml",
+)
+
+internal const val MAXIMUM_READABLE_ASSET_BYTES = 8L * 1024L * 1024L
+
+internal val READABLE_ASSET_ID = Regex("[0-9a-f]{64}")
+internal val READABLE_SHA256 = Regex("[0-9a-f]{64}")

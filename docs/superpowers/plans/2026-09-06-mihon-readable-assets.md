@@ -25,11 +25,13 @@
 ### Task 1: Record the approved design and baseline
 
 **Files:**
+
 - Create: `docs/superpowers/specs/2026-09-06-mihon-readable-assets-design.md`
 - Create: `docs/superpowers/plans/2026-09-06-mihon-readable-assets.md`
 - Read: `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/TESTING.md`
 
 **Interfaces:**
+
 - Consumes: the approved Mihon-style architecture and the current clean feature branch.
 - Produces: committed design/plan documents and a clean baseline for implementation.
 
@@ -50,12 +52,14 @@
 ### Task 2: Add file-backed asset contracts and cache
 
 **Files:**
+
 - Modify: `logic/src/main/kotlin/dev/paperreader/logic/reader/ReadablePaperContract.kt`
 - Modify: `logic/src/main/kotlin/dev/paperreader/logic/reader/ReadablePaperCache.kt`
 - Create: `logic/src/main/kotlin/dev/paperreader/logic/reader/ReadablePaperAssetCache.kt`
 - Read: `logic/src/main/kotlin/dev/paperreader/logic/reader/ArxivReadablePaperLoader.kt`
 
 **Interfaces:**
+
 - Consumes: existing readable cache keys, document metadata, and offline-retention contract.
 - Produces: `ReadablePaperAsset`, `ReadablePaperAssetContent`, cached asset metadata, atomic asset write/open/retain/remove operations.
 
@@ -78,12 +82,14 @@
 ### Task 3: Split sanitization from asset materialization
 
 **Files:**
+
 - Modify: `logic/src/main/kotlin/dev/paperreader/logic/reader/ArxivHtmlSanitizer.kt`
 - Modify: `logic/src/main/kotlin/dev/paperreader/logic/reader/ArxivReadablePaperLoader.kt`
 - Modify: `logic/src/main/kotlin/dev/paperreader/logic/network/ArxivReadableResourceFetcher.kt`
 - Modify: `logic/src/main/kotlin/dev/paperreader/logic/reader/ReadablePaperContract.kt`
 
 **Interfaces:**
+
 - Consumes: exact arXiv HTML and safe same-directory figure references.
 - Produces: structure-only sanitized HTML, deterministic asset references, bounded parallel asset materialization, explicit placeholders for failed assets, and no production figure-count warning.
 
@@ -110,6 +116,7 @@
 ### Task 4: Serve local assets in the reader and preserve export
 
 **Files:**
+
 - Modify: `logic/src/main/kotlin/dev/paperreader/logic/PaperReaderLogic.kt`
 - Modify: `app/src/main/kotlin/dev/paperreader/app/reader/ReadablePaperWebViewConfiguration.kt`
 - Modify: `app/src/main/kotlin/dev/paperreader/app/reader/ReadablePaperActivity.kt`
@@ -121,6 +128,7 @@
 - Modify: `app/src/main/kotlin/dev/paperreader/app/ui/screen/ManifestationCard.kt`
 
 **Interfaces:**
+
 - Consumes: document asset metadata and logic-owned validated streams.
 - Produces: local-only WebView asset responses and self-contained export HTML.
 
@@ -147,12 +155,14 @@
 ### Task 5: Update product/architecture documentation and changelog
 
 **Files:**
+
 - Modify: `docs/SPEC.md`
 - Modify: `docs/ARCHITECTURE.md`
 - Modify: `docs/TESTING.md`
 - Modify: `CHANGELOG.md`
 
 **Interfaces:**
+
 - Consumes: the implemented file-backed asset contract and local WebView behavior.
 - Produces: accurate shipped behavior and local verification instructions.
 
@@ -175,11 +185,13 @@
 ### Task 6: Full local build and emulator audit
 
 **Files:**
+
 - Read: `docs/TESTING.md`
 - Artifact: `app/build/outputs/apk/debug/app-debug.apk`
 - Local-only evidence: `%TEMP%/paperreader-mihon-assets-*`, emulator cache/log output
 
 **Interfaces:**
+
 - Consumes: the feature branch and existing emulator `emulator-5554` (`covaigay_api36(AVD) - 16`, API 36).
 - Produces: fresh local evidence for all host gates, cache behavior, offline behavior, and UI stability.
 
@@ -210,10 +222,12 @@
 ### Task 7: Review, merge, and release
 
 **Files:**
+
 - Read: full branch diff, PR checks, release workflow output
 - Modify only if review requires: implementation/docs files above
 
 **Interfaces:**
+
 - Consumes: green local gates and clean feature branch.
 - Produces: reviewed PR, merged main, and a new signed 0.1.x GitHub release.
 

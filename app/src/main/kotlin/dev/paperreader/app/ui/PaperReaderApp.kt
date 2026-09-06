@@ -58,6 +58,7 @@ import dev.paperreader.app.updates.SavedSearchNotificationPublisher
 import dev.paperreader.logic.PaperReaderLogic
 import dev.paperreader.logic.plugin.ExtensionStoreRegistryState
 import dev.paperreader.logic.backup.MAX_METADATA_BACKUP_ARCHIVE_BYTES
+import dev.paperreader.logic.reader.ReadablePaperDocument
 import kotlinx.coroutines.launch
 
 @Composable
@@ -299,6 +300,7 @@ private fun PaperReaderContent(
         onRequestDownload = viewModel::requestDownload,
         onGetDownloadedPaper = viewModel::downloadedPaper,
         onLoadReadablePaper = viewModel::loadReadablePaper,
+        onReadReadableAsset = viewModel::readReadablePaperAsset,
         onDeleteDownload = viewModel::deleteDownload,
         onCancelDownloadTask = viewModel::cancelDownloadTask,
         onRetryDownloadTask = viewModel::retryDownloadTask,
@@ -398,6 +400,7 @@ private fun PaperReaderNavigation(
     onRequestDownload: (String, String) -> Unit,
     onGetDownloadedPaper: suspend (String) -> dev.paperreader.logic.task.DownloadedPaper?,
     onLoadReadablePaper: suspend (String, String, String?) -> dev.paperreader.logic.reader.ReadablePaperResult,
+    onReadReadableAsset: suspend (ReadablePaperDocument, String) -> ByteArray?,
     onDeleteDownload: suspend (String, String) -> dev.paperreader.logic.task.DeleteDownloadResult,
     onCancelDownloadTask: (String) -> Unit,
     onRetryDownloadTask: (String) -> Unit,
@@ -523,6 +526,7 @@ private fun PaperReaderNavigation(
             onRequestDownload = onRequestDownload,
             onGetDownloadedPaper = onGetDownloadedPaper,
             onLoadReadablePaper = onLoadReadablePaper,
+            onReadReadableAsset = onReadReadableAsset,
             onDeleteDownload = onDeleteDownload,
             onCancelDownloadTask = onCancelDownloadTask,
             onRetryDownloadTask = onRetryDownloadTask,
@@ -604,6 +608,7 @@ private fun PaperReaderNavigation(
                 onRequestDownload = onRequestDownload,
                 onGetDownloadedPaper = onGetDownloadedPaper,
                 onLoadReadablePaper = onLoadReadablePaper,
+                onReadReadableAsset = onReadReadableAsset,
                 onDeleteDownload = onDeleteDownload,
                 onCancelDownloadTask = onCancelDownloadTask,
                 onRetryDownloadTask = onRetryDownloadTask,

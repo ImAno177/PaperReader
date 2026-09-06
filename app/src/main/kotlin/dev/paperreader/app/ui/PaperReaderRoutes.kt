@@ -275,6 +275,7 @@ internal fun AppNavHost(
                 onCancel = onCancelDownloadTask,
                 onRetry = onRetryDownloadTask,
                 onRemove = onRemoveDownloadTask,
+                onBack = navController::popBackStack,
                 screenTitleRes = R.string.download_queue_title,
                 showSavedSearches = false,
             )

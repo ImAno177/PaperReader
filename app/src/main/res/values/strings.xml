@@ -135,6 +135,7 @@
     <string name="task_download">PDF download</string>
     <string name="task_extraction">Text extraction</string>
     <string name="task_queued">Queued</string>
+    <string name="task_waiting_to_start">Waiting to start</string>
     <string name="task_running">Running</string>
     <string name="task_succeeded">Completed</string>
     <string name="task_failed">Failed</string>

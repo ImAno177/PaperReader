@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -80,6 +81,7 @@ fun UpdatesScreen(
     onCancel: (String) -> Unit = {},
     onRetry: (String) -> Unit = {},
     onRemove: (String) -> Unit = {},
+    onBack: (() -> Unit)? = null,
     screenTitleRes: Int = R.string.updates_title,
     showSavedSearches: Boolean = true,
     dateFormat: PaperDateFormat = PaperDateFormat.DEFAULT,
@@ -97,6 +99,16 @@ fun UpdatesScreen(
         topBar = {
             TopAppBar(
                 title = { PaperAppBarTitle(stringResource(screenTitleRes)) },
+                navigationIcon = {
+                    onBack?.let { back ->
+                        IconButton(onClick = back, modifier = Modifier.size(48.dp)) {
+                            PaperIcon(
+                                PaperIconKey.BACK,
+                                contentDescription = stringResource(R.string.back),
+                            )
+                        }
+                    }
+                },
                 colors = topBarColors(),
             )
         },
@@ -534,7 +546,29 @@ private fun TaskRow(
                 StatusBadge(taskStateLabel(task.state), color = taskStateColor(task.state))
             }
             if (metadata.isNotEmpty()) PaperLabel(metadata.joinToString(" · "))
-            if (task.state == TaskState.RUNNING) PaperProgress(task.progress.toFloat())
+            when (task.state) {
+                TaskState.QUEUED -> {
+                    Text(
+                        text = stringResource(R.string.task_waiting_to_start),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = PaperTheme.tokens.inkMuted,
+                    )
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = PaperTheme.tokens.ink,
+                        trackColor = PaperTheme.tokens.surfaceMuted,
+                    )
+                }
+
+                TaskState.RUNNING -> PaperProgress(
+                    progress = task.progress.toFloat(),
+                    label = stringResource(R.string.task_running),
+                )
+
+                TaskState.SUCCEEDED,
+                TaskState.FAILED,
+                TaskState.CANCELLED -> Unit
+            }
             if (task.state == TaskState.FAILED) {
                 Text(
                     text = downloadFailureMessage(task.failureCode),

@@ -80,10 +80,16 @@ internal fun interface ReadableResourceFetcher {
     suspend fun fetch(request: ReadableResourceRequest): ReadableRemoteResult
 }
 
+internal enum class ReadableResourceKind {
+    DOCUMENT,
+    ASSET,
+}
+
 internal data class ReadableResourceRequest(
     val url: String,
     val accept: String,
     val maximumBytes: Long,
+    val kind: ReadableResourceKind = ReadableResourceKind.DOCUMENT,
 )
 
 internal fun interface ReadablePaperLoader {
@@ -96,4 +102,3 @@ internal fun interface ReadablePaperLoader {
     /** Retains a document that this loader has already verified without loading it again. */
     suspend fun retain(document: ReadablePaperDocument): Boolean = false
 }
-

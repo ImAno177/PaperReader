@@ -84,8 +84,9 @@ internal class ArxivReadablePaperLoader(
                 fetcher.fetch(
                     ReadableResourceRequest(
                         url = url,
-                        accept = "image/png, image/jpeg, image/webp, image/gif",
+                        accept = "image/png, image/jpeg, image/webp, image/gif, image/svg+xml",
                         maximumBytes = maximumBytes,
+                        kind = ReadableResourceKind.ASSET,
                     ),
                 )
             },
@@ -196,7 +197,7 @@ internal class ArxivReadablePaperLoader(
         private const val ARXIV_PROVIDER_ID = "arxiv"
         private const val ARXIV_HTML_PREFIX = "https://arxiv.org/html/"
         // Versioned contracts prevent older cached output from bypassing fidelity or security fixes.
-        private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-10"
+        private const val SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-13"
         private const val RENDERER_CONTRACT_VERSION = "mobile-html-7"
         private const val MAXIMUM_HTML_BYTES = 4L * 1024L * 1024L
         private val UNVERSIONED_ARXIV_ID = Regex(
@@ -208,4 +209,3 @@ internal class ArxivReadablePaperLoader(
         private val DOCUMENT_SHA256 = Regex("[0-9a-f]{64}")
     }
 }
-

@@ -6,12 +6,23 @@ a pull request.
 
 ## Current verification baseline
 
-- The local host gate passes on the current branch: unit tests, lint, and debug APK assembly for all
-  three modules.
+- The local host gate passes on the feature branch with the configured debug arXiv source:
+  hostUnitTest, hostLint, and :app:assembleDebug.
+- The source gate passes locally with :source-arxiv:testDebugUnitTest,
+  :source-common:testDebugUnitTest, and :source-arxiv:assembleDebug.
+- The emulator smoke audit opened cached HTML for Attention, CGP-Tuning, LoRA, and Llama 2 without a
+  source-process crash. Llama's cache contained 43 assets and LoRA's contained 8; the body and asset
+  files were separate and the body contained no script or event-handler markup.
+- The emulator also exercised the PDF download path for ResNet, Llama 2, and InstructGPT. The queue
+  persisted completed task rows and exposed open/clear actions; the detail screen showed live download
+  percentages while the transfer was running.
 - The Google-to-arXiv handoff parser passes four connected Android tests on the declared API 36
   emulator, including `/html/` URL version parsing and rejection of unrelated VIEW links.
-- Release readiness still requires the full connected suite, live-provider audit, extension install
-  flows, and Play Protect review listed below.
+- The local connected suites pass on `emulator-5554`: 11 extension-api, 43 logic, and 85 app tests
+  (139 total), with 0 failures, 0 errors, and 0 skipped tests. The app suite uses the `.uitest`
+  applicationId suffix so the demo APK remains installed.
+- Release readiness still requires live-provider audit, extension install flows, and Play Protect
+  review listed below.
 
 ## Local gate
 

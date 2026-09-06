@@ -267,19 +267,15 @@ internal fun AppNavHost(
         composable(AppRoutes.MORE_UPDATES) { UpdatesNotificationsScreen(automaticRefreshEnabled, notificationsAvailable, onAutomaticRefreshChange, onOpenNotificationSettings, navController::popBackStack) }
         composable(AppRoutes.MORE_DATA_BACKUP) { DataBackupScreen(metadataBackup, onRequestBackupExport, onRequestBackupImport, onConfirmBackupRestore, onDismissBackupState, navController::popBackStack) }
         composable(AppRoutes.MORE_DOWNLOAD_QUEUE) {
-            UpdatesScreen(
+            DownloadQueueScreen(
                 tasks = tasks,
                 library = library,
-                providers = providers,
-                savedSearches = LoadState.Ready(emptyList()),
                 actions = downloadActions,
                 onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
                 onCancel = onCancelDownloadTask,
                 onRetry = onRetryDownloadTask,
                 onRemove = onRemoveDownloadTask,
                 onBack = navController::popBackStack,
-                screenTitleRes = R.string.download_queue_title,
-                showSavedSearches = false,
             )
         }
         composable(AppRoutes.MORE_STATS) {

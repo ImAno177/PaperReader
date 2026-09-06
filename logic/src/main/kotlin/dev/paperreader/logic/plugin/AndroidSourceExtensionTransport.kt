@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import dev.paperreader.extensions.api.ExtensionFailure
 import dev.paperreader.extensions.api.IPaperSourceCallback
+import dev.paperreader.extensions.api.IPaperReadableDocumentCallback
 import dev.paperreader.extensions.api.IPaperSourceService
 import dev.paperreader.extensions.api.PaperExtensionContract
 import dev.paperreader.extensions.api.SourceExtensionDescriptor
@@ -22,6 +23,10 @@ import dev.paperreader.extensions.api.SourcePaperRecord
 import dev.paperreader.extensions.api.SourcePaperResponse
 import dev.paperreader.extensions.api.SourceSearchPage
 import dev.paperreader.extensions.api.SourceSearchRequest
+import dev.paperreader.extensions.api.SourceGetReadableDocumentRequest
+import dev.paperreader.extensions.api.SourceReadableDocumentChunk
+import dev.paperreader.extensions.api.SourceReadableDocumentMetadata
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
 import java.net.URI
 import kotlin.coroutines.resume
@@ -120,6 +125,20 @@ internal class AndroidSourceExtensionTransport(
             }
         }.record
 
+    override suspend fun getReadableDocument(request: SourceGetReadableDocumentRequest): RemoteReadableDocument =
+        withTimeout(timeoutMillis) {
+            withContext(Dispatchers.IO) { verifyInstalledPackage() }
+            val bound = bind()
+            try {
+                withContext(Dispatchers.IO) {
+                    requireMatchingDescriptor(bound.service)
+                    awaitReadableResponse(request, bound.service)
+                }
+            } finally {
+                bound.close()
+            }
+        }
+
     suspend fun verifyRemoteDescriptor() = withTimeout(timeoutMillis) {
         val bound = bind()
         try {
@@ -187,6 +206,94 @@ internal class AndroidSourceExtensionTransport(
         }
         try {
             invoke(service, callback)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            if (continuation.isActive) continuation.resumeWithException(error)
+        }
+    }
+
+    private suspend fun awaitReadableResponse(
+        request: SourceGetReadableDocumentRequest,
+        service: IPaperSourceService,
+    ): RemoteReadableDocument = suspendCancellableCoroutine { continuation ->
+        val lock = Any()
+        val chunks = sortedMapOf<Int, ByteArray>()
+        var totalBytes = 0L
+        val callback = object : IPaperReadableDocumentCallback.Stub() {
+            override fun onChunk(chunk: Bundle) {
+                if (!continuation.isActive) return
+                val decoded = runCatching { SourceReadableDocumentChunk.fromBundle(chunk) }
+                    .getOrElse {
+                        continuation.resumeWithException(
+                            SourceExtensionProtocolException("Invalid readable document chunk", it),
+                        )
+                        return
+                    }
+                synchronized(lock) {
+                    if (!continuation.isActive) return
+                    if (decoded.requestId != request.requestId || chunks.containsKey(decoded.sequence)) {
+                        continuation.resumeWithException(
+                            SourceExtensionProtocolException("Invalid readable document chunk sequence"),
+                        )
+                        return
+                    }
+                    totalBytes += decoded.bytes.size
+                    if (totalBytes > PaperExtensionContract.MAX_READABLE_DOCUMENT_BYTES) {
+                        continuation.resumeWithException(
+                            SourceExtensionProtocolException("Readable document is too large"),
+                        )
+                        return
+                    }
+                    chunks[decoded.sequence] = decoded.bytes
+                }
+            }
+
+            override fun onComplete(metadata: Bundle) {
+                if (!continuation.isActive) return
+                runCatching {
+                    val decoded = SourceReadableDocumentMetadata.fromBundle(metadata)
+                    require(decoded.requestId == request.requestId) {
+                        "Mismatched readable document metadata request ID"
+                    }
+                    val output = ByteArrayOutputStream(totalBytes.toInt())
+                    synchronized(lock) {
+                        chunks.entries.forEachIndexed { expectedSequence, (sequence, bytes) ->
+                            require(sequence == expectedSequence) { "Readable document chunks are not contiguous" }
+                            output.write(bytes)
+                        }
+                    }
+                    require(output.size() > 0) { "Readable document is empty" }
+                    RemoteReadableDocument(decoded, output.toByteArray())
+                }
+                    .onSuccess(continuation::resume)
+                    .onFailure {
+                        continuation.resumeWithException(
+                            SourceExtensionProtocolException("Invalid readable document", it),
+                        )
+                    }
+            }
+
+            override fun onFailure(failure: Bundle) {
+                if (!continuation.isActive) return
+                runCatching { ExtensionFailure.fromBundle(failure) }
+                    .onSuccess { decoded ->
+                        if (decoded.requestId == request.requestId) {
+                            continuation.resumeWithException(SourceExtensionRequestException(decoded))
+                        } else {
+                            continuation.resumeWithException(SourceExtensionProtocolException("Mismatched failure request ID"))
+                        }
+                    }
+                    .onFailure {
+                        continuation.resumeWithException(SourceExtensionProtocolException("Invalid source failure", it))
+                    }
+            }
+        }
+        continuation.invokeOnCancellation {
+            runCatching { service.cancel(request.requestId) }
+        }
+        try {
+            service.getReadableDocument(request.toBundle(), callback)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {

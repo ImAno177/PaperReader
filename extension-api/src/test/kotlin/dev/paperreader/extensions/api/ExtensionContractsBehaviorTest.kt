@@ -19,7 +19,7 @@ class ExtensionContractsBehaviorTest {
         )
         assertEquals("dev.example.source", descriptor.packageName)
         assertEquals("example.source", descriptor.providerId)
-        assertEquals(3, descriptor.capabilities.size)
+        assertEquals(4, descriptor.capabilities.size)
         assertEquals(3, descriptor.supportedSorts.size)
 
         val request = SourceSearchRequest("req-1", "quantum", 10, "next", SourceSearchSort.NEWEST)

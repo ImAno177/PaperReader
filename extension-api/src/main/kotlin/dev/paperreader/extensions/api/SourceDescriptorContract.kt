@@ -6,6 +6,7 @@ enum class SourceCapability(val wireValue: String) {
     SEARCH("search"),
     DETAILS("details"),
     PDF_LINK("pdf_link"),
+    READABLE_DOCUMENT("readable_document"),
 }
 
 enum class SourceRole(val wireValue: String) {

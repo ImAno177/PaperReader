@@ -2,12 +2,17 @@ package dev.paperreader.app.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,7 +22,9 @@ import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.LoadState
 import dev.paperreader.app.ui.components.PaperAppBarTitle
+import dev.paperreader.app.ui.components.PaperLabel
 import dev.paperreader.app.ui.components.PaperPreferenceRow
+import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperSurface
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.model.PaperUi
@@ -69,8 +76,17 @@ fun MoreScreen(
             contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 32.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            item(key = "more-hub") {
-                PaperSurface(contentPadding = PaddingValues(0.dp)) {
+            item(key = "more-header") {
+                MoreHeader(
+                    library = library,
+                    tasks = tasks,
+                )
+            }
+            item(key = "more-personalize-section") {
+                PaperSectionHeader(title = stringResource(R.string.more_personalize_section))
+            }
+            item(key = "more-personalize") {
+                MorePreferenceGroup {
                     PaperPreferenceRow(
                         title = stringResource(R.string.appearance_title),
                         supportingText = selectedThemeName ?: themeName(selectedPreset),
@@ -84,7 +100,13 @@ fun MoreScreen(
                         icon = PaperIconKey.FOLDER,
                         onClick = onOpenCollections,
                     )
-                    MoreHubDivider()
+                }
+            }
+            item(key = "more-reading-section") {
+                PaperSectionHeader(title = stringResource(R.string.more_reading_section))
+            }
+            item(key = "more-reading") {
+                MorePreferenceGroup {
                     PaperPreferenceRow(
                         title = stringResource(R.string.local_pdf_import_title),
                         supportingText = localPdfHubSummary(localPdfImportState),
@@ -92,6 +114,19 @@ fun MoreScreen(
                         onClick = onOpenReadingImports,
                     )
                     MoreHubDivider()
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.download_queue_title),
+                        supportingText = downloadQueueHubSummary(tasks),
+                        icon = PaperIconKey.DOWNLOAD,
+                        onClick = onOpenDownloadQueue,
+                    )
+                }
+            }
+            item(key = "more-data-section") {
+                PaperSectionHeader(title = stringResource(R.string.more_data_section))
+            }
+            item(key = "more-data") {
+                MorePreferenceGroup {
                     PaperPreferenceRow(
                         title = stringResource(R.string.updates_and_notifications_title),
                         supportingText = updatesHubSummary(automaticRefreshEnabled, notificationsAvailable),
@@ -112,21 +147,26 @@ fun MoreScreen(
                         icon = PaperIconKey.PUBLIC,
                         onClick = onOpenSources,
                     )
-                    MoreHubDivider()
-                    PaperPreferenceRow(
-                        title = stringResource(R.string.download_queue_title),
-                        supportingText = downloadQueueHubSummary(tasks),
-                        icon = PaperIconKey.DOWNLOAD,
-                        onClick = onOpenDownloadQueue,
-                    )
-                    MoreHubDivider()
+                }
+            }
+            item(key = "more-insights-section") {
+                PaperSectionHeader(title = stringResource(R.string.more_insights_section))
+            }
+            item(key = "more-insights") {
+                MorePreferenceGroup {
                     PaperPreferenceRow(
                         title = stringResource(R.string.stats_title),
                         supportingText = statsHubSummary(library),
                         icon = PaperIconKey.UPDATES,
                         onClick = onOpenStats,
                     )
-                    MoreHubDivider()
+                }
+            }
+            item(key = "more-about-section") {
+                PaperSectionHeader(title = stringResource(R.string.more_about_section))
+            }
+            item(key = "more-about") {
+                MorePreferenceGroup {
                     PaperPreferenceRow(
                         title = stringResource(R.string.settings_title),
                         supportingText = stringResource(R.string.settings_summary),
@@ -150,6 +190,52 @@ fun MoreScreen(
             }
         }
     }
+}
+
+@Composable
+private fun MoreHeader(
+    library: LoadState<List<PaperUi>>,
+    tasks: LoadState<List<PaperTask>>,
+) {
+    val savedCount = (library as? LoadState.Ready)?.value?.size
+    val activeCount = (tasks as? LoadState.Ready)?.value?.count {
+        it.state == TaskState.QUEUED || it.state == TaskState.RUNNING
+    }
+    PaperSurface(contentPadding = PaddingValues(16.dp)) {
+        Text(
+            text = stringResource(R.string.more_header_title),
+            style = MaterialTheme.typography.headlineSmall,
+            color = PaperTheme.tokens.ink,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.more_header_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = PaperTheme.tokens.inkMuted,
+        )
+        if (savedCount != null || activeCount != null) {
+            Row(
+                modifier = Modifier.padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                savedCount?.let {
+                    PaperLabel(
+                        pluralStringResource(R.plurals.saved_papers_count, it, it),
+                    )
+                }
+                activeCount?.takeIf { it > 0 }?.let {
+                    PaperLabel(
+                        pluralStringResource(R.plurals.download_queue_pending, it, it),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MorePreferenceGroup(content: @Composable () -> Unit) {
+    PaperSurface(contentPadding = PaddingValues(0.dp)) { content() }
 }
 
 @Composable

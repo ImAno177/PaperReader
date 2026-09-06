@@ -189,6 +189,7 @@ fun LibraryScreen(
             } else {
                 Column(modifier = Modifier.fillMaxSize().padding(padding)) {
                     LibraryControls(
+                        papers = papers,
                         searchVisible = searchVisible,
                         query = query,
                         onQueryChange = { query = it },
@@ -232,6 +233,7 @@ fun LibraryScreen(
 
 @Composable
 private fun LibraryControls(
+    papers: List<PaperUi>,
     searchVisible: Boolean,
     query: String,
     onQueryChange: (String) -> Unit,
@@ -269,7 +271,11 @@ private fun LibraryControls(
         ) {
             items(LibraryStatusFilter.entries, key = { it.name }) { option ->
                 LibraryStatusButton(
-                    text = libraryStatusFilterLabel(option),
+                    text = stringResource(
+                        R.string.library_filter_with_count,
+                        libraryStatusFilterLabel(option),
+                        papers.count { it.matchesStatusFilter(option) },
+                    ),
                     selected = option == statusFilter,
                     onClick = { onStatusFilterChange(option) },
                 )
@@ -310,6 +316,14 @@ private fun LibraryControls(
             }
         }
     }
+}
+
+private fun PaperUi.matchesStatusFilter(filter: LibraryStatusFilter): Boolean = when (filter) {
+    LibraryStatusFilter.ALL -> true
+    LibraryStatusFilter.UNREAD -> status == dev.paperreader.logic.domain.ReadingStatus.UNREAD
+    LibraryStatusFilter.READING -> status == dev.paperreader.logic.domain.ReadingStatus.READING
+    LibraryStatusFilter.FINISHED -> status == dev.paperreader.logic.domain.ReadingStatus.FINISHED
+    LibraryStatusFilter.ANNOTATED -> annotationCount > 0
 }
 
 @Composable

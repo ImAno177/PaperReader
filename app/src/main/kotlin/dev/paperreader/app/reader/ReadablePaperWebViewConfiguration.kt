@@ -21,6 +21,8 @@ internal fun configureReadablePaperWebView(
     onLocalAssetRequest: (Uri) -> WebResourceResponse?,
     onPageReady: () -> Unit,
     onProgressionChanged: (Double) -> Unit,
+    onReaderScroll: (scrollingTowardTop: Boolean) -> Unit,
+    onReaderInteraction: () -> Unit,
     onHighlightSelectionRequested: () -> Unit,
 ) {
     webView.setBackgroundColor(backgroundColor)
@@ -79,6 +81,8 @@ internal fun configureReadablePaperWebView(
         }
     }
     webView.onProgressionChanged = onProgressionChanged
+    webView.onReaderScroll = onReaderScroll
+    webView.onReaderInteraction = onReaderInteraction
     webView.onHighlightSelectionRequested = onHighlightSelectionRequested
 }
 

@@ -148,6 +148,12 @@ hash-checked cache group. The current referenced-asset path has no image-count l
 SVG complexity, and global asset-cache quotas are the safety bounds. The older inline compatibility
 path remains a separate bounded path for legacy callers. The result is rendered in a non-exported, network-blocked
 WebView with a deny-by-default CSP, which serves only validated local asset streams.
+For plugin-backed documents, the trusted source declares `readable_document` and owns exact-version
+structural parsing and sanitization. The host requests the neutral document record through
+`getReadableDocument`, receives a request-correlated sequence of bounded Binder chunks, verifies the
+document hash and metadata, then runs a final deny-by-default safety gate before rendering. Asset
+references are materialized by the independent host asset lane and never become network requests in
+the WebView.
 Transient 429/unavailable asset responses use bounded retry and backoff; persistent failures become
 caption-preserving placeholders. The manifest has a bounded 256 KiB metadata budget rather than a
 figure-count limit. SVG sanitization permits only embedded raster data images in addition to the

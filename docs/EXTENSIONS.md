@@ -52,7 +52,7 @@ and kind `source`. The descriptor contains:
 
 - a stable provider ID and display name;
 - a minimum request interval;
-- capabilities such as `search`, `details`, and `pdf_link`;
+- capabilities such as `search`, `details`, `pdf_link`, and `readable_document`;
 - roles such as `search_engine`, `content_source`, and `metadata_engine`;
 - supported exact identifiers: DOI, arXiv, PMID, and PMCID;
 - supported search sorts: relevance, newest, and oldest.
@@ -60,6 +60,21 @@ and kind `source`. The descriptor contains:
 Requests are asynchronous, bounded, and cancellable. Responses use neutral extension records rather
 than host database or domain objects. A source preserves provider record IDs and provenance, validates
 URLs, limits responses to 50 records per page, and reports rate limiting through `retryAfterMillis`.
+
+### Readable document capability
+
+`readable_document` is an opt-in source capability for an exact provider manifestation. The host calls
+`IPaperSourceService.getReadableDocument()` with a provider record ID and version. The source returns
+sanitized document metadata and delivers the UTF-8 body through
+`IPaperReadableDocumentCallback` in request-correlated, ordered chunks of at most 384 KiB. The full
+document is capped at 4 MiB; hashes, source URL, version, sections, warnings, and asset references
+are validated on both sides of the boundary.
+
+The source owns structural HTML parsing and provider-specific cleanup. The host owns the final safety
+gate, app-private cache publication, and the separate asset lane. For the arXiv source, the provider
+returns opaque `paperreader-asset://` references while the host independently fetches only validated
+same-document HTTPS assets. Missing assets preserve their captions as warnings; the contract does not
+impose an arbitrary figure-count limit.
 
 Official provider roles are intentionally separate:
 
@@ -97,6 +112,11 @@ properties use the `paperReaderDevSource*` prefix, including package, service, p
 name, signer SHA-256, version code, minimum request interval, capabilities, roles, identifier types,
 and supported sorts. Theme properties use the `paperReaderDevTheme*` prefix, including package,
 service, display name, theme ID, signer SHA-256, and version code.
+
+For the local arXiv readable-document path, include `readable_document` in the comma-separated
+capability property and use the same debug certificate digest for the host and source APK. The signed
+release registry is updated separately; a local debug capability does not silently change the
+published catalog.
 
 All signer values must be 64 hexadecimal characters. Do not commit keys, passwords, API credentials,
 or private signing material. A missing or invalid signer configuration must fail closed.

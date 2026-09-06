@@ -180,14 +180,20 @@ when available. It never describes an unsupported conversion as complete.
 ### arXiv HTML
 
 For an arXiv manifestation, resolve the exact `/html/{id}vN` document. Fetch only trusted arXiv hosts
-with byte/time/count limits. Sanitize before storage; remove executable markup and unsafe URLs while
-retaining headings, paragraphs, lists, tables, citations, MathML, and bounded same-document figures.
-Raster assets and self-contained, strictly allowlisted SVG assets are embedded as data images so the
-offline renderer never needs a network request.
-Store an app-private artifact with sanitizer version and SHA-256.
+with byte/time/concurrency limits. Sanitize before storage; remove executable markup and unsafe URLs
+while retaining headings, paragraphs, lists, tables, citations, MathML, and same-document figures.
+The document lane stores opaque asset references; a separate bounded asset lane validates and stores
+each raster or strictly allowlisted SVG file independently. There is no image-count limit. Per-asset
+byte limits, SVG complexity checks, and a global asset-cache quota remain safety controls, while the
+offline renderer serves only validated local assets and never needs a network request.
+Transient asset throttling or availability failures are retried with bounded backoff before a
+caption-preserving unavailable-figure warning is published. Asset metadata is stored in a bounded
+manifest (currently 256 KiB); this bounds metadata size without imposing a figure-count cap. Strictly
+sanitized SVG may retain embedded raster data images, but no scripts or external references.
+Store the body and asset metadata app-privately with sanitizer version and SHA-256 integrity checks.
 
 After a successful load, retain the matching SHA-256-verified app-private artifact before opening the
-optional export picker. Export then writes a separate shareable copy to the user-selected document
+optional export picker. Export then streams a separate shareable copy to the user-selected document
 location. Retention is cache-only and never fetches a potentially different source revision. The
 retained pool is capped at 120 MiB; a new retention request is rejected rather than evicting an
 existing retained paper. The UI reports when only the external file was saved. Read never renders

@@ -50,6 +50,7 @@ import dev.paperreader.logic.domain.ManifestationId
 import dev.paperreader.logic.domain.LOCAL_PDF_SOURCE_ID
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.reader.ReadablePaperResult
+import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.task.DeleteDownloadResult
 import dev.paperreader.logic.task.DownloadedPaper
 import dev.paperreader.logic.task.PaperTask
@@ -104,6 +105,7 @@ internal fun ManifestationCard(
     onRequestDownload: () -> Unit,
     onGetDownloadedPaper: suspend () -> DownloadedPaper?,
     onLoadReadablePaper: suspend (String?) -> ReadablePaperResult,
+    onReadReadableAsset: suspend (ReadablePaperDocument, String) -> ByteArray?,
     onDeleteDownload: suspend () -> DeleteDownloadResult,
 ) {
     val uriHandler = LocalUriHandler.current
@@ -364,6 +366,7 @@ internal fun ManifestationCard(
                     ReadableHtmlDownloadAction(
                         manifestationId = manifestation.id,
                         onLoadReadablePaper = onLoadReadablePaper,
+                        onReadReadableAsset = onReadReadableAsset,
                         onError = { actionErrorRes = it },
                     )
                 }

@@ -13,6 +13,7 @@ import dev.paperreader.app.R
 
 internal const val LOCAL_RENDERER_HOST = "appassets.androidplatform.net"
 internal const val LOCAL_RENDERER_PATH = "/readable/"
+internal const val READABLE_ASSET_PATH_PREFIX = "/readable/assets/"
 internal const val READABLE_ANNOTATION_PATH_PREFIX = "/annotation/"
 internal const val CITATION_SCHEME = "paperreader-citation"
 private const val FIND_DEBOUNCE_MILLIS = 150L

@@ -16,6 +16,8 @@ internal data class CachedReadablePaper(
     val sections: List<ReadablePaperSection>,
     val warnings: Set<ReadablePaperWarning>,
     val keptForOffline: Boolean = false,
+    val assetGroupKey: String? = null,
+    val assets: List<ReadablePaperAsset> = emptyList(),
 ) {
     fun toDocument(
         title: String,
@@ -37,6 +39,8 @@ internal data class CachedReadablePaper(
         keptForOffline = keptForOffline,
         sections = sections,
         warnings = warnings,
+        assetGroupKey = assetGroupKey,
+        assets = assets,
     )
 }
 
@@ -46,6 +50,12 @@ internal class ReadablePaperCache(
     private val maximumTotalCacheBytes: Long = 160L * 1024L * 1024L,
     private val maximumRetainedBytes: Long = maximumTotalCacheBytes * 3L / 4L,
 ) {
+    internal val assetCache = ReadablePaperAssetCache(
+        directory = directory.resolveSibling(
+            "${directory.fileName?.toString() ?: "readable-cache"}-assets",
+        ),
+    )
+
     init {
         require(maximumCachedBodyBytes > 0)
         require(maximumTotalCacheBytes > maximumCachedBodyBytes)
@@ -89,6 +99,10 @@ internal class ReadablePaperCache(
             }
             val sourceSha = values.getValue("source_sha256")
             if (!sourceSha.matches(SHA256_PATTERN)) return@runCatching null
+            val assetGroupKey = values["asset_group"]
+                ?.takeIf { it.matches(READABLE_SHA256) }
+            val assets = decodeAssets(values["assets"].orEmpty())
+            if (assets.isNotEmpty() && assetGroupKey != key) return@runCatching null
             CachedReadablePaper(
                 bodyHtml = body,
                 sourceUrl = decode(values.getValue("source_url")),
@@ -99,13 +113,19 @@ internal class ReadablePaperCache(
                     ?.takeIf(String::isNotBlank)
                     ?.let(::decode)
                     ?.takeIf(String::isNotBlank),
+                assetGroupKey = assetGroupKey,
+                assets = assets,
                 sections = decodeSections(values["sections"].orEmpty()),
                 warnings = decode(values["warnings"].orEmpty())
                     .lineSequence()
                     .filter(String::isNotBlank)
                     .mapNotNull { runCatching { ReadablePaperWarning.valueOf(it) }.getOrNull() }
                     .toSet(),
-                keptForOffline = hasValidOfflineMarker(key),
+                keptForOffline = hasValidOfflineMarker(key) &&
+                    assetCache.isKeptForOffline(
+                        groupKey = assetGroupKey.orEmpty(),
+                        assets = assets,
+                    ),
             )
         }.getOrNull()
         if (record == null) {
@@ -140,6 +160,7 @@ internal class ReadablePaperCache(
         if (!key.matches(SHA256_PATTERN) || !verified.documentSha256.matches(SHA256_PATTERN)) return false
         if (!matchesVerifiedEntry(key, verified)) return false
         if (verified.keptForOffline) return true
+        if (!assetCache.keepForOffline(verified.assetGroupKey ?: key, verified.assets)) return false
         return keepVerifiedForOffline(key)
     }
 
@@ -156,9 +177,12 @@ internal class ReadablePaperCache(
             val separator = line.indexOf('=')
             if (separator <= 0) null else line.substring(0, separator) to line.substring(separator + 1)
         }.toMap()
+        if (verified.assets.isNotEmpty() && verified.assetGroupKey != key) return@runCatching false
         values["document_sha256"] == verified.documentSha256 &&
             values["source_sha256"] == verified.sourceSha256 &&
             values["source_url"]?.let(::decode) == verified.sourceUrl &&
+            values["asset_group"].orEmpty() == verified.assetGroupKey.orEmpty() &&
+            decodeAssets(values["assets"].orEmpty()) == verified.assets &&
             Files.size(bodyPath) == verified.bodyHtml.toByteArray(Charsets.UTF_8).size.toLong()
     }.getOrDefault(false)
 
@@ -221,6 +245,7 @@ internal class ReadablePaperCache(
     @Synchronized
     fun write(key: String, record: CachedReadablePaper) {
         require(key.matches(SHA256_PATTERN))
+        require(record.assets.isEmpty() || record.assetGroupKey == key)
         val bodyBytes = record.bodyHtml.toByteArray(Charsets.UTF_8)
         require(bodyBytes.size <= maximumCachedBodyBytes)
         val manifest = listOf(
@@ -230,6 +255,8 @@ internal class ReadablePaperCache(
             "document_sha256=${record.documentSha256}",
             "retrieved_at=${record.retrievedAt}",
             "source_license=${record.sourceLicense?.let(::encode).orEmpty()}",
+            "asset_group=${record.assetGroupKey.orEmpty()}",
+            "assets=${encodeAssets(record.assets)}",
             "sections=${encodeSections(record.sections)}",
             "warnings=${encode(record.warnings.sortedBy { it.name }.joinToString("\n") { it.name })}",
         ).joinToString("\n", postfix = "\n")
@@ -377,6 +404,7 @@ internal class ReadablePaperCache(
                 complete = false
             }
         }
+        if (!assetCache.removeGroup(key)) complete = false
         return complete
     }
 
@@ -390,7 +418,9 @@ internal class ReadablePaperCache(
     companion object {
         private const val CACHE_HEADER = "PAPERREADER-READABLE-CACHE-2"
         private const val OFFLINE_HEADER = "PAPERREADER-READABLE-OFFLINE-1\n"
-        private const val MAXIMUM_MANIFEST_BYTES = 16L * 1024L
+        // Asset metadata scales with the paper's figures; keep a bounded manifest without
+        // imposing an arbitrary figure-count cap on otherwise valid papers.
+        private const val MAXIMUM_MANIFEST_BYTES = 256L * 1024L
         private const val MAXIMUM_OFFLINE_MARKER_BYTES = 64L
         private const val BODY_SUFFIX = ".body.html"
         private const val MANIFEST_SUFFIX = ".manifest"
@@ -422,6 +452,36 @@ internal class ReadablePaperCache(
                 "${encode(section.anchor)}\t${encode(section.title)}\t${section.level}"
             },
         )
+
+        private fun encodeAssets(assets: List<ReadablePaperAsset>): String = encode(
+            assets.joinToString("\n") { asset ->
+                listOf(
+                    asset.id,
+                    asset.mediaType,
+                    asset.sha256,
+                    asset.byteLength.toString(),
+                ).joinToString("\t")
+            },
+        )
+
+        private fun decodeAssets(value: String): List<ReadablePaperAsset> = runCatching {
+            decode(value).lineSequence()
+                .filter(String::isNotBlank)
+                .mapNotNull { line ->
+                    val parts = line.split('\t')
+                    if (parts.size != 4) return@mapNotNull null
+                    runCatching {
+                        ReadablePaperAsset(
+                            id = parts[0],
+                            mediaType = parts[1],
+                            sha256 = parts[2],
+                            byteLength = parts[3].toLong(),
+                        )
+                    }.getOrNull()
+                }
+                .distinctBy(ReadablePaperAsset::id)
+                .toList()
+        }.getOrDefault(emptyList())
 
         private fun decodeSections(value: String): List<ReadablePaperSection> = runCatching {
             decode(value).lineSequence().filter(String::isNotBlank).mapNotNull { line ->

@@ -5,6 +5,21 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+### Changed
+
+- Readable arXiv papers now fetch HTML and figures through separate bounded lanes. Figures are
+  stored as independently validated app-private assets, served locally to the offline reader, and
+  inlined only when exporting HTML. Transient asset throttling is retried with bounded backoff. The
+  former image-count circuit breaker is removed; per-asset, SVG-complexity, metadata-manifest, and
+  cache-byte limits remain.
+
+### Fixed
+
+- Image-heavy papers such as CGP-Tuning, Attention, LoRA, Llama, ResNet, and InstructGPT no longer
+  lose valid figures because the HTML body was inflated by base64 embedding or an arbitrary count
+  limit. Strictly sanitized SVG figures may retain embedded raster data images. Missing assets now
+  preserve captions and surface an explicit unavailable-figure warning.
+
 ## [0.1.10] - 2026-09-06
 
 ### Added

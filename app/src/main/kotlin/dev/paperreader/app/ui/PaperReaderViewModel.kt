@@ -28,6 +28,7 @@ import dev.paperreader.logic.domain.repository.DeleteCollectionResult
 import dev.paperreader.logic.domain.repository.RenameCollectionResult
 import dev.paperreader.logic.domain.repository.SetPaperCollectionsResult
 import dev.paperreader.logic.reader.ReadablePaperResult
+import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.backup.MetadataBackupExport
 import dev.paperreader.logic.plugin.ExtensionStorePreview
 import dev.paperreader.logic.task.PaperTask
@@ -40,6 +41,7 @@ import dev.paperreader.logic.task.RetryDownloadResult
 import dev.paperreader.logic.task.TaskId
 import dev.paperreader.logic.task.TaskState
 import java.util.concurrent.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -50,6 +52,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 sealed interface LoadState<out T> {
     data object Loading : LoadState<Nothing>
@@ -369,6 +372,13 @@ class PaperReaderViewModel internal constructor(
             ManifestationId(manifestationId),
             retainDocumentSha256,
         )
+
+    suspend fun readReadablePaperAsset(
+        document: ReadablePaperDocument,
+        assetId: String,
+    ): ByteArray? = withContext(Dispatchers.IO) {
+        logic.openReadablePaperAsset(document, assetId)?.inputStream?.use { it.readBytes() }
+    }
 
     suspend fun deleteDownload(workId: String, manifestationId: String): DeleteDownloadResult =
         logic.downloads.deleteDownload(WorkId(workId), ManifestationId(manifestationId))

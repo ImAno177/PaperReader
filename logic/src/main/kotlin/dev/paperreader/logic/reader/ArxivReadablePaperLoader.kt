@@ -2,11 +2,13 @@ package dev.paperreader.logic.reader
 
 import dev.paperreader.logic.domain.PaperManifestation
 import java.io.IOException
-import java.nio.file.Path
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import org.jsoup.nodes.Document
 
 internal class ArxivReadablePaperLoader(
     private val fetcher: ReadableResourceFetcher,
@@ -29,7 +31,12 @@ internal class ArxivReadablePaperLoader(
             ?: return ReadablePaperResult.Unavailable(ReadablePaperFailure.UNVERSIONED_SOURCE)
         val sourceUrl = sourceUrl(versionedId)
         val cacheKey = cacheKey(sourceUrl)
-        cache.readForLoad(cacheKey)?.let { cached ->
+        val cached = cache.readForLoad(cacheKey)
+        if (
+            cached != null &&
+            cache.assetCache.allPresent(cached.assetGroupKey, cached.assets) &&
+            bodyReferencesKnownAssets(cached.bodyHtml, cached.assets)
+        ) {
             if (retainDocumentSha256 != null && cached.documentSha256 != retainDocumentSha256) {
                 return unavailable(ReadablePaperFailure.INVALID_RESPONSE)
             }
@@ -44,6 +51,9 @@ internal class ArxivReadablePaperLoader(
                     servedFromCache = true,
                 ),
             )
+        }
+        if (cached != null) {
+            runCatching { cache.removeBySourceUrl(sourceUrl) }
         }
         try {
             cache.removeBySourceUrl(sourceUrl, exceptKey = cacheKey)
@@ -77,34 +87,35 @@ internal class ArxivReadablePaperLoader(
             return unavailable(ReadablePaperFailure.INVALID_RESPONSE)
         }
         val rawHtml = page.bytes.toString(Charsets.UTF_8)
-        val sanitized = sanitizer.sanitize(
+        val sanitized = sanitizer.sanitizeForReader(
             rawHtml = rawHtml,
             sourceUrl = sourceUrl,
-            fetchAsset = { url, maximumBytes ->
-                fetcher.fetch(
-                    ReadableResourceRequest(
-                        url = url,
-                        accept = "image/png, image/jpeg, image/webp, image/gif, image/svg+xml",
-                        maximumBytes = maximumBytes,
-                        kind = ReadableResourceKind.ASSET,
-                    ),
-                )
-            },
         ) ?: return unavailable(ReadablePaperFailure.INVALID_RESPONSE)
+        val materialized = materializeAssets(cacheKey, sanitized.assets)
+        val warnings = sanitized.warnings.toMutableSet()
+        if (materialized.unavailableIds.isNotEmpty()) warnings += ReadablePaperWarning.FIGURE_UNAVAILABLE
+        val bodyHtml = sanitizer.replaceUnavailableAssetReferences(
+            bodyHtml = sanitized.bodyHtml,
+            unavailableIds = materialized.unavailableIds,
+        )
         val retrievedAt = now()
         val record = CachedReadablePaper(
-            bodyHtml = sanitized.bodyHtml,
+            bodyHtml = bodyHtml,
             sourceUrl = sourceUrl,
             sourceSha256 = sha256(page.bytes),
-            documentSha256 = sha256(sanitized.bodyHtml.toByteArray(Charsets.UTF_8)),
+            documentSha256 = sha256(bodyHtml.toByteArray(Charsets.UTF_8)),
             retrievedAt = retrievedAt,
             sourceLicense = sanitized.sourceLicense,
             sections = sanitized.sections,
-            warnings = sanitized.warnings,
+            warnings = warnings,
+            assetGroupKey = cacheKey.takeIf { materialized.assets.isNotEmpty() },
+            assets = materialized.assets,
         )
         try {
             cache.write(cacheKey, record)
         } catch (_: IOException) {
+            // The verified document remains readable even when app-private storage is unavailable.
+        } catch (_: IllegalArgumentException) {
             // The verified document remains readable even when app-private storage is unavailable.
         }
         return ReadablePaperResult.Ready(
@@ -135,6 +146,8 @@ internal class ArxivReadablePaperLoader(
             sourceLicense = document.license,
             sections = document.sections,
             warnings = document.warnings,
+            assetGroupKey = document.assetGroupKey,
+            assets = document.assets,
         )
         return cache.keepForOffline(
             key = cacheKey(sourceUrl(versionedId)),
@@ -149,6 +162,12 @@ internal class ArxivReadablePaperLoader(
             cache.removeBySourceUrl(sourceUrl(versionedId))
         }
     }
+
+    fun openAsset(document: ReadablePaperDocument, assetId: String): ReadablePaperAssetContent? {
+        val asset = document.assets.firstOrNull { it.id == assetId } ?: return null
+        return cache.assetCache.open(document.assetGroupKey, asset)
+    }
+
     suspend fun reconcileArtifacts(manifestations: Collection<PaperManifestation>) {
         val sourceUrls = manifestations.asSequence()
             .filter { it.sourceProvider.equals(ARXIV_PROVIDER_ID, ignoreCase = true) }
@@ -168,8 +187,86 @@ internal class ArxivReadablePaperLoader(
                     // Contract cleanup is opportunistic; the next start retries it.
                 }
             }
+            cache.assetCache.removeGroupsNotIn(sourceUrls.map(::cacheKey).toSet())
         }
     }
+
+    private suspend fun materializeAssets(
+        assetGroupKey: String,
+        references: List<ReadablePaperAssetReference>,
+    ): MaterializedAssets = coroutineScope {
+        val assets = mutableListOf<ReadablePaperAsset>()
+        val unavailableIds = linkedSetOf<String>()
+        references.chunked(MAXIMUM_CONCURRENT_ASSET_REQUESTS).forEach { batch ->
+            val fetched = batch.map { reference ->
+                async { reference to fetchAsset(reference) }
+            }.awaitAll()
+            fetched.forEach { (reference, result) ->
+                val safe = (result as? ReadableRemoteResult.Success)
+                    ?.resource
+                    ?.let(sanitizer::sanitizeAsset)
+                if (safe == null) {
+                    unavailableIds += reference.id
+                    cache.assetCache.remove(assetGroupKey, reference.id)
+                    return@forEach
+                }
+                val asset = ReadablePaperAsset(
+                    id = reference.id,
+                    mediaType = safe.mediaType,
+                    sha256 = sha256(safe.bytes),
+                    byteLength = safe.bytes.size.toLong(),
+                )
+                try {
+                    cache.assetCache.write(assetGroupKey, asset, safe.bytes)
+                    assets += asset
+                } catch (_: IOException) {
+                    unavailableIds += reference.id
+                    cache.assetCache.remove(assetGroupKey, reference.id)
+                }
+            }
+        }
+        MaterializedAssets(assets, unavailableIds)
+    }
+
+    private suspend fun fetchAsset(reference: ReadablePaperAssetReference): ReadableRemoteResult {
+        val request = ReadableResourceRequest(
+            url = reference.sourceUrl,
+            accept = "image/png, image/jpeg, image/webp, image/gif, image/svg+xml",
+            maximumBytes = MAXIMUM_ASSET_BYTES,
+            kind = ReadableResourceKind.ASSET,
+        )
+        var retries = 0
+        while (true) {
+            when (val result = fetcher.fetch(request)) {
+                is ReadableRemoteResult.RateLimited -> {
+                    if (retries >= MAXIMUM_ASSET_RETRIES) return result
+                    delay(
+                        (result.retryAfterMillis ?: ASSET_RETRY_BACKOFF_MILLIS)
+                            .coerceIn(ASSET_RETRY_BACKOFF_MILLIS, MAXIMUM_ASSET_RETRY_DELAY_MILLIS),
+                    )
+                }
+                ReadableRemoteResult.Unavailable -> {
+                    if (retries >= MAXIMUM_ASSET_RETRIES) return result
+                    delay(
+                        (ASSET_RETRY_BACKOFF_MILLIS shl retries)
+                            .coerceAtMost(MAXIMUM_ASSET_RETRY_DELAY_MILLIS),
+                    )
+                }
+                else -> return result
+            }
+            retries += 1
+        }
+    }
+
+    private fun bodyReferencesKnownAssets(bodyHtml: String, assets: List<ReadablePaperAsset>): Boolean {
+        val known = assets.mapTo(hashSetOf(), ReadablePaperAsset::id)
+        return ASSET_REFERENCE.findAll(bodyHtml).all { match -> match.groupValues[1] in known }
+    }
+
+    private data class MaterializedAssets(
+        val assets: List<ReadablePaperAsset>,
+        val unavailableIds: Set<String>,
+    )
     private fun cacheKey(sourceUrl: String): String = ReadablePaperCache.keyFor(
         sourceUrl = sourceUrl,
         sanitizerPolicyVersion = ARXIV_READABLE_SANITIZER_POLICY_VERSION,
@@ -197,8 +294,13 @@ internal class ArxivReadablePaperLoader(
         private const val ARXIV_PROVIDER_ID = "arxiv"
         private const val ARXIV_HTML_PREFIX = "https://arxiv.org/html/"
         // Versioned contracts prevent older cached output from bypassing fidelity or security fixes.
-        private const val RENDERER_CONTRACT_VERSION = "mobile-html-7"
+        private const val RENDERER_CONTRACT_VERSION = "mobile-html-8"
         private const val MAXIMUM_HTML_BYTES = 4L * 1024L * 1024L
+        private const val MAXIMUM_ASSET_BYTES = MAXIMUM_READABLE_ASSET_BYTES
+        private const val MAXIMUM_CONCURRENT_ASSET_REQUESTS = 4
+        private const val MAXIMUM_ASSET_RETRIES = 3
+        private const val ASSET_RETRY_BACKOFF_MILLIS = 3_000L
+        private const val MAXIMUM_ASSET_RETRY_DELAY_MILLIS = 30_000L
         private val UNVERSIONED_ARXIV_ID = Regex(
             "(?:[0-9]{4}\\.[0-9]{4,5}|[A-Za-z][A-Za-z0-9.-]*/[0-9]{7})",
         )
@@ -206,5 +308,6 @@ internal class ArxivReadablePaperLoader(
             "(?:[0-9]{4}\\.[0-9]{4,5}|[A-Za-z][A-Za-z0-9.-]*/[0-9]{7})v[1-9][0-9]*",
         )
         private val DOCUMENT_SHA256 = Regex("[0-9a-f]{64}")
+        private val ASSET_REFERENCE = Regex("paperreader-asset://([0-9a-f]{64})")
     }
 }

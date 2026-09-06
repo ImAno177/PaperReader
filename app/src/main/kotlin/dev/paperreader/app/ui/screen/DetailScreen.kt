@@ -67,6 +67,7 @@ import dev.paperreader.logic.domain.ReadingStatus
 import dev.paperreader.logic.domain.repository.RemovePaperResult
 import dev.paperreader.logic.domain.repository.SetPaperCollectionsResult
 import dev.paperreader.logic.reader.ReadablePaperFailure
+import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.reader.ReadablePaperResult
 import dev.paperreader.logic.task.DeleteDownloadResult
 import dev.paperreader.logic.task.DownloadedPaper
@@ -95,6 +96,7 @@ fun DetailScreen(
     onLoadReadablePaper: suspend (String, String?) -> ReadablePaperResult = { _, _ ->
         ReadablePaperResult.Unavailable(ReadablePaperFailure.OFFLINE_OR_UNAVAILABLE)
     },
+    onReadReadableAsset: suspend (ReadablePaperDocument, String) -> ByteArray? = { _, _ -> null },
     onDeleteDownload: suspend (String) -> DeleteDownloadResult = { DeleteDownloadResult.NotFound },
     onRemove: suspend () -> RemovePaperResult,
     onSetCollections: suspend (Set<Long>) -> SetPaperCollectionsResult = {
@@ -207,6 +209,7 @@ fun DetailScreen(
                     onRequestDownload = onRequestDownload,
                     onGetDownloadedPaper = onGetDownloadedPaper,
                     onLoadReadablePaper = onLoadReadablePaper,
+                    onReadReadableAsset = onReadReadableAsset,
                     onDeleteDownload = onDeleteDownload,
                 )
             }
@@ -308,6 +311,7 @@ private fun PaperDetailContent(
     onRequestDownload: (String) -> Unit,
     onGetDownloadedPaper: suspend (String) -> DownloadedPaper?,
     onLoadReadablePaper: suspend (String, String?) -> ReadablePaperResult,
+    onReadReadableAsset: suspend (ReadablePaperDocument, String) -> ByteArray?,
     onDeleteDownload: suspend (String) -> DeleteDownloadResult,
 ) {
     var abstractExpanded by rememberSaveable(paper.id) { mutableStateOf(false) }
@@ -409,6 +413,7 @@ private fun PaperDetailContent(
                     onLoadReadablePaper = { retainDocumentSha256 ->
                         onLoadReadablePaper(manifestation.id, retainDocumentSha256)
                     },
+                    onReadReadableAsset = onReadReadableAsset,
                     onDeleteDownload = { onDeleteDownload(manifestation.id) },
                 )
             }

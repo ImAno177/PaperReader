@@ -55,6 +55,16 @@ private val BIBLIOGRAPHY_HREF = Regex(
     """href\s*=\s*(["'])#(bib\.[A-Za-z0-9._:-]{1,150})\1""",
     RegexOption.IGNORE_CASE,
 )
+private val READABLE_ASSET_SOURCE = Regex(
+    """(src\s*=\s*["'])paperreader-asset://([0-9a-f]{64})(["'])""",
+    RegexOption.IGNORE_CASE,
+)
+private val SAFE_READER_ASSET_ID = Regex("[0-9a-f]{64}")
+
+internal fun readableLocalAssetUrl(assetId: String): String {
+    require(assetId.matches(SAFE_READER_ASSET_ID))
+    return "https://$LOCAL_RENDERER_HOST$READABLE_ASSET_PATH_PREFIX$assetId"
+}
 
 internal fun nextReadableTextZoom(current: Int, increase: Boolean): Int = if (increase) {
     READABLE_TEXT_ZOOM_LEVELS.firstOrNull { it > current } ?: READABLE_TEXT_ZOOM_LEVELS.last()
@@ -225,6 +235,7 @@ internal fun renderReadablePaperHtml(
     showImages: Boolean = true,
     rewriteCitationLinks: Boolean = true,
     exportMetadata: ReadablePaperExportMetadata? = null,
+    assetUrlForId: (String) -> String = ::readableLocalAssetUrl,
 ): String {
     listOf(
         palette.background,
@@ -235,11 +246,12 @@ internal fun renderReadablePaperHtml(
         palette.link,
         palette.selection,
     ).forEach { require(it.matches(Regex("#[0-9A-Fa-f]{6}"))) }
-    val rendererBodyHtml = if (rewriteCitationLinks) {
+    val citationBodyHtml = if (rewriteCitationLinks) {
         rewriteBibliographyLinks(sanitizedBodyHtml)
     } else {
         sanitizedBodyHtml
     }
+    val rendererBodyHtml = rewriteReadableAssetSources(citationBodyHtml, assetUrlForId)
     val exportHeadMetadata = exportMetadata?.toHeadMetadata().orEmpty()
     val exportProvenance = exportMetadata?.toProvenanceMarkup().orEmpty()
     return """
@@ -248,7 +260,7 @@ internal fun renderReadablePaperHtml(
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
+          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https://appassets.androidplatform.net; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'">
           $exportHeadMetadata
           <style>
             :root {
@@ -480,5 +492,13 @@ internal fun rewriteBibliographyLinks(sanitizedBodyHtml: String): String =
         val quote = match.groupValues[1]
         "href=$quote$CITATION_SCHEME://anchor/${match.groupValues[2]}$quote"
     }
+
+internal fun rewriteReadableAssetSources(
+    sanitizedBodyHtml: String,
+    assetUrlForId: (String) -> String,
+): String = READABLE_ASSET_SOURCE.replace(sanitizedBodyHtml) { match ->
+    val assetId = match.groupValues[2].lowercase()
+    "${match.groupValues[1]}${assetUrlForId(assetId)}${match.groupValues[3]}"
+}
 
 internal val SAFE_READER_ELEMENT_ID = Regex("[A-Za-z0-9._:-]{1,160}")

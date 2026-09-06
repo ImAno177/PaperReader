@@ -4,6 +4,9 @@ import dev.paperreader.logic.domain.PaperManifestation
 import java.time.Instant
 import org.jsoup.nodes.Document
 
+/** Version of the arXiv HTML sanitization contract embedded in cached/exported documents. */
+const val ARXIV_READABLE_SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-13"
+
 data class ReadablePaperDocument(
     /** A sanitized fragment. Presentation and the CSP remain owned by the UI renderer. */
     val bodyHtml: String,

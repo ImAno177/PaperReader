@@ -39,6 +39,9 @@ internal class ArxivReadableResourceFetcher(
 
     override suspend fun fetch(request: ReadableResourceRequest): ReadableRemoteResult = when (request.kind) {
         ReadableResourceKind.DOCUMENT -> requestGate.execute { fetchWithoutRateGate(request) }
+        // Figure assets use a separate, bounded lane so one HTML document cannot serialize every
+        // asset behind the document/API gate. The semaphore still caps simultaneous arXiv asset
+        // connections and keeps cancellation tied to the caller's fetch.
         ReadableResourceKind.ASSET -> assetPermits.withPermit { fetchWithoutRateGate(request) }
     }
 

@@ -25,11 +25,13 @@
 ### Task 1: Preserve image-regression evidence
 
 **Files:**
+
 - Read: `logic/src/main/kotlin/dev/paperreader/logic/reader/ArxivHtmlSanitizer.kt`
 - Read: `logic/src/main/kotlin/dev/paperreader/logic/reader/ArxivReadablePaperLoader.kt`
 - Read-only local artifacts: `D:/research-new/paperreader-*.body.html`
 
 **Interfaces:**
+
 - Consumes: the current emulator APK and exact-version arXiv HTML pages.
 - Produces: a local evidence table for Attention, LoRA, ResNet, InstructGPT, Llama 2, and the already checked CGP-Tuning paper.
 
@@ -50,11 +52,13 @@
 ### Task 2: Enable native two-finger reader zoom
 
 **Files:**
+
 - Modify: `app/src/main/kotlin/dev/paperreader/app/reader/ReadablePaperWebViewConfiguration.kt`
 - Read: `app/src/main/kotlin/dev/paperreader/app/reader/ReadablePaperWebView.kt`
 - Read: `app/src/main/kotlin/dev/paperreader/app/reader/ReadablePaperRendering.kt`
 
 **Interfaces:**
+
 - Consumes: the existing `configureReadablePaperWebView` setup and `meta viewport` renderer output.
 - Produces: a readable-paper WebView configured with pinch zoom enabled, legacy zoom buttons hidden, and the existing text-zoom preference preserved.
 
@@ -75,11 +79,13 @@
 ### Task 3: Run the complete local verification gate
 
 **Files:**
+
 - Read: `docs/TESTING.md`
 - Read: `.github/workflows/android-ci.yml`
 - Artifact: `app/build/outputs/apk/debug/app-debug.apk`
 
 **Interfaces:**
+
 - Consumes: the zoom-enabled source tree and local Android SDK/emulator.
 - Produces: passing local build/lint/unit/connected-test results and a manually installed APK with reader zoom smoke evidence.
 
@@ -108,11 +114,13 @@
 ### Task 4: Validate compileSdk 37 and review PR #48
 
 **Files:**
+
 - Modify only if required by local/CI evidence: `app/build.gradle.kts`
 - Review: `build.gradle.kts`, `gradle/wrapper/gradle-wrapper.properties`, `app/build.gradle.kts`, `logic/build.gradle.kts`
 - Review: GitHub PR `#48`
 
 **Interfaces:**
+
 - Consumes: the current main branch, Dependabot PR #48, and installed `platforms;android-37.0`.
 - Produces: a locally verified compileSdk 37/toolchain combination and a documented decision to merge or hold PR #48.
 
@@ -137,10 +145,12 @@
 ### Task 5: Commit, PR review, merge, and release `v0.1.10`
 
 **Files:**
+
 - Modify: `CHANGELOG.md`
 - Review: all files included in the feature PR and the release diff
 
 **Interfaces:**
+
 - Consumes: green local verification, clean commit history, authenticated `gh`, and a green GitHub workflow.
 - Produces: a reviewed/merged PR, merged PR #48, and GitHub release `v0.1.10` with the signed APK/SBOM artifacts.
 

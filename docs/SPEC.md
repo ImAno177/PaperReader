@@ -183,9 +183,10 @@ For an arXiv manifestation, resolve the exact `/html/{id}vN` document. Fetch onl
 with byte/time/concurrency limits. Sanitize before storage; remove executable markup and unsafe URLs
 while retaining headings, paragraphs, lists, tables, citations, MathML, and same-document figures.
 The document lane stores opaque asset references; a separate bounded asset lane validates and stores
-each raster or strictly allowlisted SVG file independently. There is no image-count limit. Per-asset
-byte limits, SVG complexity checks, and a global asset-cache quota remain safety controls, while the
-offline renderer serves only validated local assets and never needs a network request.
+each raster or strictly allowlisted SVG file independently. The current referenced-asset path has no
+image-count limit. Per-asset byte limits, SVG complexity checks, and a global asset-cache quota remain
+safety controls, while the offline renderer serves only validated local assets and never needs a
+network request.
 Transient asset throttling or availability failures are retried with bounded backoff before a
 caption-preserving unavailable-figure warning is published. Asset metadata is stored in a bounded
 manifest (currently 256 KiB); this bounds metadata size without imposing a figure-count cap. Strictly
@@ -330,7 +331,7 @@ APK, placeholder reader, or passing screenshot alone does not satisfy this contr
 
 - [Android Compose SearchBar guidance](https://developer.android.com/develop/ui/compose/components/search-bar)
 - [arXiv API user manual](https://info.arxiv.org/help/api/user-manual.html)
-- [arXiv HTML availability](https://info.arxiv.org/about/reports/2023_arxiv_annual_report.html)
+- [arXiv HTML availability](https://info.arxiv.org/about/reports/2023_arXiv_annual_report.pdf)
 - [Semantic Scholar Academic Graph API](https://api.semanticscholar.org/api-docs/graph)
 - [Crossref REST API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)
 - [Europe PMC REST API](https://europepmc.org/RestfulWebService)

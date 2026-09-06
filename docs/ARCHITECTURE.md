@@ -144,8 +144,9 @@ Readable content uses this order:
 Remote HTML is fetched with byte/time/host limits, while same-document assets use a separate bounded
 concurrent asset lane. The document lane stores sanitized HTML with opaque asset IDs; the asset lane
 validates and stores each raster or strictly allowlisted self-contained SVG file independently in a
-hash-checked cache group. There is no image-count limit: per-asset bytes, SVG complexity, and global
-asset-cache quotas are the safety bounds. The result is rendered in a non-exported, network-blocked
+hash-checked cache group. The current referenced-asset path has no image-count limit: per-asset bytes,
+SVG complexity, and global asset-cache quotas are the safety bounds. The older inline compatibility
+path remains a separate bounded path for legacy callers. The result is rendered in a non-exported, network-blocked
 WebView with a deny-by-default CSP, which serves only validated local asset streams.
 Transient 429/unavailable asset responses use bounded retry and backoff; persistent failures become
 caption-preserving placeholders. The manifest has a bounded 256 KiB metadata budget rather than a
@@ -174,8 +175,8 @@ The app creates one process-scoped instance:
 val logic = PaperReaderLogic.open(
     context = applicationContext,
     configuration = PaperReaderConfiguration(
-        userAgent = "PaperReader/<version> (Android; <project-url>)",
-        contactEmail = "<api-contact>",
+        userAgent = "PaperReader/0.1 (Android; +https://github.com/ImAno177/PaperReader)",
+        contactEmail = null,
     ),
     builtInProviders = emptyList(),
 )

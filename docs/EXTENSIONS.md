@@ -1,93 +1,123 @@
 # Extension SDK
 
 Status: implemented host contract. PaperReader extensions are separate Android applications. They
-communicate with the host through the versioned `dev.paperreader:extension-api` AIDL contract and run
-under a different Linux UID. The host never loads third-party code into its process.
+communicate with the host through versioned `dev.paperreader:extension-api` AIDL and run under a
+different Linux UID. The host never loads third-party code into its own process.
 
-## Current extension types
+## Scope and repositories
 
-| Type | Current role | Install boundary |
+PaperReader supports two extension kinds:
+
+| Kind | Supplies | Host-owned boundary |
 | --- | --- | --- |
-| Source | Search, exact lookup, metadata, and paper manifestations | Signed APK, bounded Binder calls, Android PackageInstaller confirmation |
-| Theme | Declarative palettes, typography, shapes, decorations, and semantic icons | Signed APK, validated descriptor and icon paths, host-owned rendering |
+| Source | Search, exact lookup, metadata, and paper manifestations | Signed APK, bounded Binder calls, and Android `PackageInstaller` confirmation |
+| Theme | Declarative palettes, typography, shapes, decorations, and semantic icons | Validation and host-owned rendering |
 
-The official source repository currently publishes Semantic Scholar, Crossref, arXiv, and Europe PMC
-packages. The host keeps provider implementations outside this repository.
+The host keeps provider implementations outside the app repository. The current repositories are:
 
-Reference repositories:
+- [PaperReader-sources](https://github.com/ImAno177/PaperReader-sources), the official Semantic
+  Scholar, Crossref, arXiv, and Europe PMC source APKs plus the signed registry.
+- [PaperReader source extension sample](https://github.com/ImAno177/PaperReader-source-sample), an
+  exact-DOI Crossref example.
+- [PaperReader theme extension sample](https://github.com/ImAno177/PaperReader-theme-sample), a
+  declarative light/dark theme and complete semantic icon set.
 
-- [Official source extensions](https://github.com/ImAno177/PaperReader-sources) - independently
-  released Semantic Scholar, Crossref, arXiv, and Europe PMC APKs plus the signed official registry.
-- [Theme extension sample](https://github.com/ImAno177/PaperReader-theme-sample) - a complete
-  declarative light/dark theme and semantic icon set.
+## Build against the local API
 
-## Build against the SDK
+The SDK is not published to Maven yet. Extension repositories use a composite build and substitute
+`dev.paperreader:extension-api:0.1.0` with the local `:extension-api` project.
 
-Until the SDK is published to Maven, use a composite build. Clone PaperReader into the extension
-repository as `PaperReader`, or pass its path:
+Place a PaperReader checkout in a directory named `PaperReader` under the extension repository, or
+pass its path from an extension repository:
 
-```bash
-./gradlew :app:assembleDebug -PpaperReaderSdkPath=/path/to/PaperReader
+```powershell
+.\gradlew.bat :app:assembleDebug
 ```
 
-The extension build substitutes `dev.paperreader:extension-api:0.1.0` with the local
-`:extension-api` project. The current API requires Android 9 or newer and JVM target 17.
+For a checkout at another location, set `PAPERREADER_SDK_PATH` to its absolute path:
+
+```powershell
+.\gradlew.bat :app:assembleDebug `
+  -PpaperReaderSdkPath=$env:PAPERREADER_SDK_PATH
+```
+
+The current contract requires Android 9 (API 28) or newer and JVM target 17. The official source
+repository uses JDK 21 and Android SDK Platform 36 with Build-Tools 36.1.0 in CI.
 
 ## Source extensions
 
-A source APK exports exactly one service for
-`dev.paperreader.extensions.api.action.PAPER_SOURCE`. Its manifest metadata declares API version `1`
-and kind `source`. The descriptor declares:
+A source APK exports one service for
+`dev.paperreader.extensions.api.action.PAPER_SOURCE`. Its manifest metadata declares API version 1
+and kind `source`. The descriptor contains:
 
-- stable provider ID and display name;
-- minimum request interval;
-- capabilities (`search`, `details`);
-- roles (`search_engine`, `content_source`, `metadata_engine`);
-- accepted exact identifier types (`doi`, `arxiv`, `pmid`, `pmcid`);
-- supported search sorts.
+- a stable provider ID and display name;
+- a minimum request interval;
+- capabilities such as `search`, `details`, and `pdf_link`;
+- roles such as `search_engine`, `content_source`, and `metadata_engine`;
+- supported exact identifiers: DOI, arXiv, PMID, and PMCID;
+- supported search sorts: relevance, newest, and oldest.
 
-Search/detail requests are asynchronous, bounded, and cancellable. Responses use neutral extension
-records instead of host database/domain types. A source preserves provider record IDs and provenance,
-validates URLs, limits responses to 50 records per page, and reports rate limiting through
-`retryAfterMillis`.
+Requests are asynchronous, bounded, and cancellable. Responses use neutral extension records rather
+than host database or domain objects. A source preserves provider record IDs and provenance, validates
+URLs, limits responses to 50 records per page, and reports rate limiting through `retryAfterMillis`.
 
-Each official provider owns one upstream API only. The canonical provider roles and host routing
-policy live in the [`Provider model`](SPEC.md#provider-model); this document owns only the extension
-wire, packaging, and trust contract.
+Official provider roles are intentionally separate:
+
+| Provider | Role | Routing rule |
+| --- | --- | --- |
+| Semantic Scholar | Search engine | Preferred free-text discovery and citation observations |
+| Crossref | Metadata engine | Exact normalized DOI enrichment only |
+| arXiv | Content source | Phrase-aware discovery, exact ID/version lookup, and manifestations |
+| Europe PMC | Content source | Biomedical discovery, identifier lookup, and licensed manifestations |
+
+The complete provider routing policy lives in [`SPEC.md`](SPEC.md). This file describes the extension
+wire, packaging, and trust boundary.
 
 ## Theme extensions
 
-A theme APK exports exactly one service for
-`dev.paperreader.extensions.api.action.PAPER_THEME`. Its manifest metadata declares API version `1`
+A theme APK exports one service for
+`dev.paperreader.extensions.api.action.PAPER_THEME`. Its manifest metadata declares API version 1
 and kind `theme`.
 
-A theme is complete declarative data:
+A theme supplies complete declarative data:
 
 - light and dark semantic color palettes;
 - title, body, and label font families;
 - corner, border, shadow, and decoration tokens;
 - every `ThemeSemanticIcon` as bounded ASCII path data.
 
-Icon paths use a `2400 × 2400` viewport and are limited to 64 KiB each. The host parses and renders
-them. Extensions cannot inject Compose code, layouts, arbitrary resources, JavaScript, or file paths.
-Missing, oversized, or malformed icons reject the whole theme.
+The current sample uses a `2400 x 2400` icon viewport and a 64 KiB per-icon limit. The host parses and
+renders the paths. An extension cannot inject Compose code, layouts, arbitrary resources, JavaScript,
+or host file paths. Missing, oversized, or malformed icons reject the whole theme.
 
-## Runtime trust
+## Local host development
 
-Before binding, PaperReader verifies the exact package and exported service, version range,
+The host can describe a local source or theme to a debug build through Gradle properties. Source
+properties use the `paperReaderDevSource*` prefix, including package, service, provider ID, display
+name, signer SHA-256, version code, minimum request interval, capabilities, roles, identifier types,
+and supported sorts. Theme properties use the `paperReaderDevTheme*` prefix, including package,
+service, display name, theme ID, signer SHA-256, and version code.
+
+All signer values must be 64 hexadecimal characters. Do not commit keys, passwords, API credentials,
+or private signing material. A missing or invalid signer configuration must fail closed.
+
+## Trust and data boundary
+
+Before binding, PaperReader verifies the exact package and exported service, version range, signing
 certificate SHA-256, API metadata, extension kind, descriptor, and separate UID. Services also verify
 the PaperReader package and signing certificate on every Binder entry point.
 
-The host uses explicit Binder intents, bounded parcels/file descriptors, request timeouts,
+The host uses explicit Binder intents, bounded parcels and file descriptors, request timeouts,
 cancellation propagation, and strict decoders. It never sends an extension its Room database,
 private-storage root, arbitrary host path, global credential, or unrestricted intent.
 
-For local testing, provide the `paperReaderDevSource*` or `paperReaderDevTheme*` Gradle properties in
-`app/build.gradle.kts`. Do not commit keys, passwords, API credentials, or private-key material.
+The host never loads third-party DEX, JAR, or JavaScript. Source and theme packages cannot corrupt
+the Library by failing inside their own process.
 
 ## Signed stores
 
-The envelope contains Base64 exact UTF-8 index bytes and an Ed25519 signature over those bytes:
+The store envelope contains Base64-encoded exact UTF-8 index bytes and an Ed25519 signature over those
+bytes:
 
 ```json
 {
@@ -96,58 +126,54 @@ The envelope contains Base64 exact UTF-8 index bytes and an Ed25519 signature ov
 }
 ```
 
-The decoded index uses schema version 1. Increment `sequence` whenever any signed content changes.
-PaperReader rejects rollback, same-sequence equivocation, duplicate packages, unknown fields/values,
+The decoded index uses schema version 1. Increment `sequence` whenever signed content changes. The
+host rejects rollback, same-sequence equivocation, duplicate packages, unknown fields or values,
 oversized data, non-HTTPS URLs, incompatible API ranges, and indexes beyond the clock-skew allowance.
-The complete tracked example in [`docs/examples/extension-index.json`](examples/extension-index.json)
-is the canonical documentation fixture for index fields; the runtime decoder remains authoritative.
+The tracked [extension index fixture](examples/extension-index.json) documents the fields; the
+runtime decoder remains authoritative.
 
-`apkSha256` and `apkSizeBytes` are required together for every newly published installable release. They
-bind the signed registry to exact APK bytes. A legacy schema-v1 entry missing both fields remains visible
-from a last-known-good catalog but is catalog-only: the host must not offer or perform installation.
-`minimumVersionCode` revokes vulnerable older builds. Theme entries use `"kind": "theme"` and
-`"themeIds"`; source-only fields are forbidden.
+`apkSha256` and `apkSizeBytes` are required together for every newly published installable release.
+They bind the signed catalog to exact APK bytes. A legacy entry missing both values may remain visible
+from a last-known-good catalog, but it is catalog-only and cannot be installed. `minimumVersionCode`
+can revoke vulnerable older builds. Theme entries use `kind: theme` and `themeIds`; source-only
+fields are not accepted on theme entries.
 
 ## Install and update lifecycle
 
-The official store URL, store ID, and Ed25519 public key are pinned in the host. User-managed stores
-require the user to verify a displayed public-key SHA-256 fingerprint through an independent channel.
+The official store URL, store ID, and Ed25519 public key are pinned in the host. A user-managed store
+requires an independent confirmation of its displayed public-key SHA-256 fingerprint.
 
-PaperReader uses these states:
+The visible lifecycle states are:
 
 - available;
 - installed;
 - update available;
-- pending/downloading;
+- pending or downloading;
 - awaiting Android confirmation;
-- installing/installed;
-- cancelled/failed;
+- installing or installed;
+- cancelled or failed;
 - untrusted;
-- orphaned (installed package no longer in any trusted store).
+- orphaned, when an installed package is no longer in a trusted store.
 
-On cold start, manual refresh, and constrained periodic work, the host independently refreshes every
-trusted store, preserves each last verified index when one store fails, and compares
-package/version/API/signer information. It may notify about compatible source or theme updates, but
-never installs one automatically.
+On cold start, manual refresh, and constrained periodic work, the host refreshes each trusted store
+independently. If one store fails, its last verified index remains available while the host compares
+package, version, API, and signer information for the other stores. Updates are never installed
+automatically.
 
-After the user chooses Install or Update, the host downloads into a bounded app-private cache,
-enforces the signed size during streaming, verifies SHA-256, and preflights package name, versionCode,
-signer, service class, kind, and API compatibility. Source and theme APKs use this same verified queue;
-the host never delegates a theme download to a browser. Only then does it create an Android
-`PackageInstaller` session. Android presents the final consent surface. Pending downloads and open
-sessions can be cancelled, and package add/replace/remove broadcasts trigger a complete source/theme
-rescan and state reconciliation. Installer-result callbacks are accepted only for the exact active
-PackageInstaller session; a package broadcast never substitutes for signed trust reconciliation.
-The host persists the session ID and expected version before commit, validates restored sessions
-against Android after process recreation, and routes update notifications directly to Sources.
+After the user chooses `Install` or `Update`, the host downloads the APK into bounded app-private
+staging, enforces the signed size while streaming, verifies SHA-256, and preflights package name,
+version code, signer, service class, extension kind, and API compatibility. Source and theme APKs use
+the same verified queue. Only then does the host create an Android `PackageInstaller` session.
 
-The queue, state machine, and package-broadcast reconciliation stay inside the host trust boundary.
-Third-party code never enters the host process, and PaperReader verifies artifact hash and size before
-installation.
+Android presents the final consent surface. Pending downloads and open sessions can be cancelled.
+Installer callbacks are accepted only for the exact active session. Package add, replace, and remove
+broadcasts trigger a complete source and theme rescan, followed by trust reconciliation. The host
+persists the session ID and expected version before commit and validates restored sessions after
+process recreation.
 
-## Signing an index
+## Sign an index
 
-Create an Ed25519 key and keep the private key outside Git:
+Keep the Ed25519 private key outside Git and sign the exact index bytes with the repository tool:
 
 ```bash
 openssl genpkey -algorithm ED25519 -out extension-store-private.pem
@@ -157,5 +183,21 @@ python tools/sign_extension_index.py \
   --output extension-index.signed.json
 ```
 
-Publish the Base64 raw public key and its SHA-256 fingerprint. Store refresh preserves the last
-verified index when network, signature, schema, rollback, or equivocation checks fail.
+Publish the Base64 raw public key and its SHA-256 fingerprint through the trusted distribution path.
+Store refresh keeps the last verified index when network, signature, schema, rollback, or equivocation
+checks fail.
+
+## Verification checklist
+
+Before proposing an extension change:
+
+1. Run the extension repository's unit tests, lint, and APK build locally.
+2. Use recorded fixtures for provider parsing and routing. Live API calls are manual diagnostics, not
+   deterministic test assertions.
+3. Confirm cancellation, response-size limits, rate gating, caller verification, and separate-process
+   behavior remain intact.
+4. For a release, verify the APK signature, registry digest, exact byte size, API range, package, and
+   service descriptor before publishing.
+
+The host-side module boundary and release evidence are documented in
+[`ARCHITECTURE.md`](ARCHITECTURE.md) and [`TESTING.md`](TESTING.md).

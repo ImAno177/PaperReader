@@ -15,7 +15,7 @@ a pull request.
 
 ## Local gate
 
-Run the host gate with the Gradle wrapper, JDK 21, and Android SDK 36/36.1:
+Run the host gate with the Gradle wrapper, JDK 21, Android SDK Platform 37.0, and Build-Tools 36.1.0:
 
 ```powershell
 .\gradlew.bat hostUnitTest hostLint :app:assembleDebug
@@ -120,7 +120,7 @@ report-only until their Android framework seams can be measured deterministicall
 Tests use local fixtures and MockWebServer for provider/network behavior. Live provider APIs and
 Play Protect are release smoke checks, never deterministic unit-test dependencies.
 
-## Release smoke record (2026-08-14)
+## Historical release smoke record (2026-08-14)
 
 The signed [v0.1.3 release](https://github.com/ImAno177/PaperReader/releases/tag/v0.1.3) was exercised
 on `emulator-5554` (`covaigay_api36(AVD) - 16`, API 36) with the official source extensions installed.

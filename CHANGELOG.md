@@ -5,6 +5,8 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-09-06
+
 ### Added
 
 - More now groups download queue, reading stats, searchable settings, help, and existing data
@@ -223,7 +225,8 @@ current branch. Released sections correspond to Git tags.
 
 - The separate-extension model and the first signed source-update contract.
 
-[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.1.10...HEAD
+[0.1.10]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.10
 [0.1.9]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.9
 [0.1.8]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.8
 [0.1.6]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.6

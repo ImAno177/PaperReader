@@ -5,6 +5,8 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-09-06
+
 ### Changed
 
 - Readable arXiv papers now fetch HTML and figures through separate bounded lanes. Figures are

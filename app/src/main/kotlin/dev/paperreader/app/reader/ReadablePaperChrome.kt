@@ -122,12 +122,9 @@ internal fun setReadableReaderChromeVisible(
     val views = listOf(toolbar, provenance)
     if (!visible) {
         views.forEach { view ->
-            if (view === provenance && !showProvenance) return@forEach
             view.animate().withEndAction(null).cancel()
             if (!animate || !ValueAnimator.areAnimatorsEnabled()) {
-                view.visibility = View.GONE
-                view.alpha = 1f
-                view.translationY = 0f
+                collapseReaderChromeView(view)
             } else {
                 view.animate()
                     .alpha(0f)
@@ -135,9 +132,7 @@ internal fun setReadableReaderChromeVisible(
                     .setDuration(READER_CHROME_MOTION_MILLIS)
                     .setInterpolator(DecelerateInterpolator())
                     .withEndAction {
-                        view.visibility = View.GONE
-                        view.alpha = 1f
-                        view.translationY = 0f
+                        collapseReaderChromeView(view)
                     }
                     .start()
             }
@@ -147,11 +142,13 @@ internal fun setReadableReaderChromeVisible(
 
     views.forEach { view ->
         if (view === provenance && !showProvenance) {
-            view.visibility = View.GONE
+            view.animate().withEndAction(null).cancel()
+            collapseReaderChromeView(view)
             return@forEach
         }
         view.animate().withEndAction(null).cancel()
         view.visibility = View.VISIBLE
+        view.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
         if (!animate || !ValueAnimator.areAnimatorsEnabled()) {
             view.alpha = 1f
             view.translationY = 0f
@@ -168,6 +165,12 @@ internal fun setReadableReaderChromeVisible(
     }
 }
 
+private fun collapseReaderChromeView(view: View) {
+    view.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+    view.alpha = 0f
+    view.translationY = -view.height.coerceAtLeast(48).toFloat()
+}
+
 internal fun TextView.configureReadableProvenance(icon: android.graphics.drawable.Drawable, color: Int) {
     setCompoundDrawablesRelativeWithIntrinsicBounds(
         icon.mutate().apply { setTint(color) },
@@ -182,7 +185,10 @@ internal fun TextView.configureReadableProvenance(icon: android.graphics.drawabl
 internal fun TextView.showReadableProvenance(value: String) {
     text = value
     setReadableProvenanceExpanded(false)
+    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
     visibility = View.VISIBLE
+    alpha = 1f
+    translationY = 0f
 }
 
 internal fun Context.readableProvenanceText(document: ReadablePaperDocument): String = buildList {

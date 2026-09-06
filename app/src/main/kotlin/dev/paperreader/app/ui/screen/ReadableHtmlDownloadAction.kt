@@ -45,6 +45,7 @@ internal fun ReadableHtmlDownloadAction(
     var preparing by remember(manifestationId) { mutableStateOf(false) }
     var selectingDestination by remember(manifestationId) { mutableStateOf(false) }
     var writing by remember(manifestationId) { mutableStateOf(false) }
+    var offlineRetained by remember(manifestationId) { mutableStateOf(false) }
     var pendingDocument by remember(manifestationId) { mutableStateOf<ReadablePaperDocument?>(null) }
     val createDocument = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/html"),
@@ -63,23 +64,9 @@ internal fun ReadableHtmlDownloadAction(
                 withContext(Dispatchers.IO) {
                     ReadablePaperHtmlFileGateway(context.contentResolver).write(destination, html)
                 }
-                val retained = try {
-                    withContext(Dispatchers.IO) {
-                        (onLoadReadablePaper(document.documentSha256) as? ReadablePaperResult.Ready)
-                            ?.document
-                            ?.let { retainedDocument ->
-                                retainedDocument.documentSha256 == document.documentSha256 &&
-                                    retainedDocument.keptForOffline
-                            } == true
-                    }
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) {
-                    false
-                }
                 Toast.makeText(
                     context,
-                    if (retained) {
+                    if (offlineRetained) {
                         R.string.readable_reader_html_saved_offline
                     } else {
                         R.string.readable_reader_html_saved_external_only
@@ -106,6 +93,20 @@ internal fun ReadableHtmlDownloadAction(
                 try {
                     when (val result = withContext(Dispatchers.IO) { onLoadReadablePaper(null) }) {
                         is ReadablePaperResult.Ready -> {
+                            offlineRetained = try {
+                                withContext(Dispatchers.IO) {
+                                    (onLoadReadablePaper(result.document.documentSha256) as? ReadablePaperResult.Ready)
+                                        ?.document
+                                        ?.let { retainedDocument ->
+                                            retainedDocument.documentSha256 == result.document.documentSha256 &&
+                                                retainedDocument.keptForOffline
+                                        } == true
+                                }
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (_: Exception) {
+                                false
+                            }
                             pendingDocument = result.document
                             selectingDestination = true
                             createDocument.launch(readablePaperHtmlFileName(result.document))

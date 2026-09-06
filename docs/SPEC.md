@@ -182,13 +182,16 @@ when available. It never describes an unsupported conversion as complete.
 For an arXiv manifestation, resolve the exact `/html/{id}vN` document. Fetch only trusted arXiv hosts
 with byte/time/count limits. Sanitize before storage; remove executable markup and unsafe URLs while
 retaining headings, paragraphs, lists, tables, citations, MathML, and bounded same-document figures.
+Raster assets and self-contained, strictly allowlisted SVG assets are embedded as data images so the
+offline renderer never needs a network request.
 Store an app-private artifact with sanitizer version and SHA-256.
 
-Exporting readable HTML first writes a shareable copy to the user-selected document location, then
-attempts to protect the matching SHA-256-verified app-private artifact from ordinary cache eviction.
-Retention is cache-only and never fetches a potentially different source revision. The retained pool
-is capped at 120 MiB; a new retention request is rejected rather than evicting an existing retained
-paper. The UI reports when only the external file was saved. Read never renders that mutable copy.
+After a successful load, retain the matching SHA-256-verified app-private artifact before opening the
+optional export picker. Export then writes a separate shareable copy to the user-selected document
+location. Retention is cache-only and never fetches a potentially different source revision. The
+retained pool is capped at 120 MiB; a new retention request is rejected rather than evicting an
+existing retained paper. The UI reports when only the external file was saved. Read never renders
+that mutable copy.
 
 The renderer is a non-exported, network-blocked WebView with a deny-by-default CSP. JavaScript is off
 except for short, app-owned commands required for bounded find, selection, and anchor navigation,

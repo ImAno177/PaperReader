@@ -37,9 +37,10 @@ internal fun configureReadablePaperWebView(
         mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         cacheMode = WebSettings.LOAD_NO_CACHE
         setSupportMultipleWindows(false)
-        builtInZoomControls = false
+        // Keep the legacy +/- controls hidden while allowing WebView's native two-finger pinch.
+        builtInZoomControls = true
         displayZoomControls = false
-        setSupportZoom(false)
+        setSupportZoom(true)
         loadsImagesAutomatically = true
         mediaPlaybackRequiresUserGesture = true
         saveFormData = false

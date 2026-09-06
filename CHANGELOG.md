@@ -13,6 +13,16 @@ current branch. Released sections correspond to Git tags.
   figure visibility in mobile papers. Reader settings expose persistent text size, spacing, and
   margin defaults.
 
+### Changed
+
+- Readable HTML retains the verified app-private artifact before opening the optional export picker,
+  downloads HTML and same-document assets through separate bounded lanes, embeds validated SVG and
+  raster figures with lazy decoding, and degrades oversized or excess figures to labeled placeholders
+  instead of risking a WebView memory crash. The reader still opens only the app-private artifact;
+  exported HTML remains a separate shareable copy.
+- Readable-paper reading supports native two-finger pinch zoom while keeping the existing text-size
+  preference and hiding legacy on-screen zoom controls.
+
 ## [0.1.9] - 2026-08-25
 
 ### Fixed

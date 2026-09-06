@@ -3,11 +3,14 @@ package dev.paperreader.logic.network
 import dev.paperreader.logic.reader.ReadableRemoteResource
 import dev.paperreader.logic.reader.ReadableRemoteResult
 import dev.paperreader.logic.reader.ReadableResourceFetcher
+import dev.paperreader.logic.reader.ReadableResourceKind
 import dev.paperreader.logic.reader.ReadableResourceRequest
 import java.io.IOException
 import java.net.URI
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -21,30 +24,41 @@ internal class ArxivReadableResourceFetcher(
     minimumRequestIntervalMillis: Long = DEFAULT_REQUEST_INTERVAL_MILLIS,
     private val allowedHost: String = "arxiv.org",
     private val allowedScheme: String = "https",
+    maximumConcurrentAssets: Int = DEFAULT_MAXIMUM_CONCURRENT_ASSETS,
 ) : ReadableResourceFetcher {
     private val requestGate = ProviderRequestGate(minimumRequestIntervalMillis)
+    private val assetPermits = Semaphore(maximumConcurrentAssets)
 
     init {
         require(userAgent.isNotBlank())
         require(minimumRequestIntervalMillis >= 0)
         require(allowedHost.isNotBlank())
         require(allowedScheme in setOf("http", "https"))
+        require(maximumConcurrentAssets > 0)
     }
 
-    override suspend fun fetch(request: ReadableResourceRequest): ReadableRemoteResult = requestGate.execute {
+    override suspend fun fetch(request: ReadableResourceRequest): ReadableRemoteResult = when (request.kind) {
+        ReadableResourceKind.DOCUMENT -> requestGate.execute { fetchWithoutRateGate(request) }
+        // Figure assets use a separate, bounded lane so one HTML document cannot serialize every
+        // asset behind the document/API gate. The semaphore still caps simultaneous arXiv asset
+        // connections and keeps cancellation tied to the caller's fetch.
+        ReadableResourceKind.ASSET -> assetPermits.withPermit { fetchWithoutRateGate(request) }
+    }
+
+    private suspend fun fetchWithoutRateGate(request: ReadableResourceRequest): ReadableRemoteResult {
         val requestedUri = runCatching { URI(request.url) }.getOrNull()
-            ?: return@execute ReadableRemoteResult.Invalid
-        if (!requestedUri.isAllowed()) return@execute ReadableRemoteResult.Invalid
+            ?: return ReadableRemoteResult.Invalid
+        if (!requestedUri.isAllowed()) return ReadableRemoteResult.Invalid
         val httpRequest = Request.Builder()
             .url(request.url)
             .header("Accept", request.accept)
             .header("User-Agent", userAgent)
             .apply { if (!contactEmail.isNullOrBlank()) header("From", contactEmail) }
             .build()
-        try {
+        return try {
             client.newCall(httpRequest).awaitReadable().use { response ->
                 val finalUri = response.request.url.toUri()
-                if (!finalUri.isAllowed()) return@execute ReadableRemoteResult.Invalid
+                if (!finalUri.isAllowed()) return ReadableRemoteResult.Invalid
                 when {
                     response.code == 404 || response.code == 410 -> ReadableRemoteResult.NotFound
                     response.code == 429 -> ReadableRemoteResult.RateLimited(
@@ -85,8 +99,9 @@ internal class ArxivReadableResourceFetcher(
             (port == -1 || allowedScheme == "http") && fragment == null
 
     companion object {
-        /** One connection at a time with arXiv's documented three-second request interval. */
+        /** Document requests use arXiv's documented three-second interval. */
         private const val DEFAULT_REQUEST_INTERVAL_MILLIS = 3_000L
+        private const val DEFAULT_MAXIMUM_CONCURRENT_ASSETS = 4
     }
 }
 

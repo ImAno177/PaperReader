@@ -226,26 +226,6 @@ internal fun ManifestationCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    StatusBadge(
-                        text = manifestation.license ?: stringResource(
-                            if (supportsMobileReading) {
-                                R.string.license_available_in_mobile_source
-                            } else {
-                                R.string.license_unknown
-                            },
-                        ),
-                        color = when {
-                            manifestation.license != null -> PaperTheme.tokens.success
-                            supportsMobileReading -> PaperTheme.tokens.primary
-                            else -> PaperTheme.tokens.warning
-                        },
-                    )
-                    if (supportsMobileReading) {
-                        StatusBadge(
-                            text = stringResource(R.string.mobile_reading_available),
-                            color = PaperTheme.tokens.primary,
-                        )
-                    }
                     manifestation.localCopy?.let { localCopy ->
                         StatusBadge(
                             text = stringResource(
@@ -255,6 +235,22 @@ internal fun ManifestationCard(
                             color = PaperTheme.tokens.success,
                         )
                     }
+                }
+                when (val license = manifestation.license?.takeIf(String::isNotBlank)) {
+                    null -> if (supportsMobileReading) {
+                        Text(
+                            text = stringResource(R.string.license_available_in_mobile_source),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = PaperTheme.tokens.inkMuted,
+                        )
+                    }
+                    else -> Text(
+                        text = stringResource(R.string.license_label, license),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = PaperTheme.tokens.inkMuted,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }

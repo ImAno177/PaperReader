@@ -36,7 +36,14 @@ internal interface SourceExtensionTransport {
     suspend fun search(request: SourceSearchRequest): SourceSearchPage
 
     suspend fun getPaper(request: SourceGetPaperRequest): SourcePaperRecord?
+
+    suspend fun getReadableDocument(request: dev.paperreader.extensions.api.SourceGetReadableDocumentRequest): RemoteReadableDocument
 }
+
+internal data class RemoteReadableDocument(
+    val metadata: dev.paperreader.extensions.api.SourceReadableDocumentMetadata,
+    val body: ByteArray,
+)
 
 internal class CommunitySourceProvider(
     private val transport: SourceExtensionTransport,
@@ -52,6 +59,9 @@ internal class CommunitySourceProvider(
             }
             if (dev.paperreader.extensions.api.SourceCapability.DETAILS in transport.descriptor.capabilities) {
                 add(ProviderCapability.METADATA_RESOLUTION)
+            }
+            if (dev.paperreader.extensions.api.SourceCapability.READABLE_DOCUMENT in transport.descriptor.capabilities) {
+                add(ProviderCapability.READABLE_DOCUMENT)
             }
         },
         identifierLookupTypes = transport.descriptor.identifierLookupTypes.mapTo(linkedSetOf()) {

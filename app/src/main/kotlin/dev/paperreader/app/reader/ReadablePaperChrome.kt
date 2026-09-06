@@ -111,6 +111,63 @@ internal fun MaterialButton.hideReadableCitationReturn(animateExit: Boolean = fa
     }
 }
 
+/** Hides reader chrome while the document is moving and restores it on a tap/upward scroll. */
+internal fun setReadableReaderChromeVisible(
+    toolbar: Toolbar,
+    provenance: TextView,
+    visible: Boolean,
+    showProvenance: Boolean,
+    animate: Boolean = true,
+) {
+    val views = listOf(toolbar, provenance)
+    if (!visible) {
+        views.forEach { view ->
+            if (view === provenance && !showProvenance) return@forEach
+            view.animate().withEndAction(null).cancel()
+            if (!animate || !ValueAnimator.areAnimatorsEnabled()) {
+                view.visibility = View.GONE
+                view.alpha = 1f
+                view.translationY = 0f
+            } else {
+                view.animate()
+                    .alpha(0f)
+                    .translationY(-view.height.coerceAtLeast(48).toFloat())
+                    .setDuration(READER_CHROME_MOTION_MILLIS)
+                    .setInterpolator(DecelerateInterpolator())
+                    .withEndAction {
+                        view.visibility = View.GONE
+                        view.alpha = 1f
+                        view.translationY = 0f
+                    }
+                    .start()
+            }
+        }
+        return
+    }
+
+    views.forEach { view ->
+        if (view === provenance && !showProvenance) {
+            view.visibility = View.GONE
+            return@forEach
+        }
+        view.animate().withEndAction(null).cancel()
+        view.visibility = View.VISIBLE
+        if (!animate || !ValueAnimator.areAnimatorsEnabled()) {
+            view.alpha = 1f
+            view.translationY = 0f
+        } else {
+            view.alpha = 0f
+            view.translationY = -view.height.coerceAtLeast(48).toFloat()
+            view.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(READER_CHROME_MOTION_MILLIS)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        }
+    }
+}
+
 internal fun TextView.configureReadableProvenance(icon: android.graphics.drawable.Drawable, color: Int) {
     setCompoundDrawablesRelativeWithIntrinsicBounds(
         icon.mutate().apply { setTint(color) },
@@ -409,3 +466,4 @@ private fun AppCompatActivity.showOriginalUnavailable() {
 }
 
 private const val CITATION_RETURN_MOTION_MILLIS = 160L
+private const val READER_CHROME_MOTION_MILLIS = 220L

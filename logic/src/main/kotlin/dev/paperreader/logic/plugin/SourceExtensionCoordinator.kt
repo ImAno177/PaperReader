@@ -23,6 +23,11 @@ internal class SourceExtensionCoordinator(
 ) {
     private val applicationContext = context.applicationContext
     private val reconcileMutex = Mutex()
+    @Volatile
+    private var readableTransports: Map<String, SourceExtensionTransport> = emptyMap()
+
+    fun readableTransport(providerId: String): SourceExtensionTransport? =
+        readableTransports[providerId]
 
     suspend fun reconcile() = withContext(Dispatchers.IO) {
         reconcileMutex.withLock { reconcileNow() }
@@ -30,8 +35,10 @@ internal class SourceExtensionCoordinator(
 
     private suspend fun reconcileNow() {
         providers.unregisterByOrigin(ProviderOrigin.COMMUNITY_PLUGIN)
+        readableTransports = emptyMap()
         val available = mutableListOf<AvailableProviderPlugin>()
         val untrusted = mutableListOf<UntrustedProviderPlugin>()
+        val verifiedReadableTransports = mutableMapOf<String, SourceExtensionTransport>()
         val trustedExtensions = trustedExtensions()
         trustedExtensions.forEach { trusted ->
             if (!isInstalled(trusted.packageName)) {
@@ -52,6 +59,9 @@ internal class SourceExtensionCoordinator(
                     packageName = trusted.packageName,
                     versionCode = installedVersion,
                 )
+                if (dev.paperreader.extensions.api.SourceCapability.READABLE_DOCUMENT in trusted.capabilities) {
+                    verifiedReadableTransports[trusted.providerId] = transport
+                }
                 if (installedVersion < trusted.versionCode) {
                     available += trusted.available(installedVersion)
                 }
@@ -79,6 +89,7 @@ internal class SourceExtensionCoordinator(
         providers.updateAvailable(available)
         providers.updateUntrusted(untrusted)
         providers.updateOrphaned(findOrphanedPackages(trustedExtensions.mapTo(hashSetOf(), TrustedSourceExtension::packageName)))
+        readableTransports = verifiedReadableTransports.toMap()
     }
 
     @Suppress("DEPRECATION")

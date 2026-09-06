@@ -4,6 +4,7 @@ import dev.paperreader.extensions.api.ExtensionFailure
 import dev.paperreader.extensions.api.ExtensionFailureCode
 import dev.paperreader.extensions.api.SourceExtensionDescriptor
 import dev.paperreader.extensions.api.SourceGetPaperRequest
+import dev.paperreader.extensions.api.SourceGetReadableDocumentRequest
 import dev.paperreader.extensions.api.SourceManifestation
 import dev.paperreader.extensions.api.SourcePaperRecord
 import dev.paperreader.extensions.api.SourceSearchPage
@@ -141,7 +142,14 @@ class CommunitySourceProviderTest {
 
         val provider = CommunitySourceProvider(FakeTransport(descriptor = descriptor))
 
-        assertEquals(setOf(ProviderCapability.DISCOVERY, ProviderCapability.METADATA_RESOLUTION), provider.descriptor.capabilities)
+        assertEquals(
+            setOf(
+                ProviderCapability.DISCOVERY,
+                ProviderCapability.METADATA_RESOLUTION,
+                ProviderCapability.READABLE_DOCUMENT,
+            ),
+            provider.descriptor.capabilities,
+        )
         assertEquals(ProviderRole.entries.toSet(), provider.descriptor.roles)
         assertEquals(
             setOf(IdentifierType.DOI, IdentifierType.ARXIV, IdentifierType.PMID, IdentifierType.PMCID),
@@ -251,5 +259,9 @@ class CommunitySourceProviderTest {
         }
 
         override suspend fun getPaper(request: SourceGetPaperRequest): SourcePaperRecord? = page?.records?.firstOrNull()
+
+        override suspend fun getReadableDocument(request: SourceGetReadableDocumentRequest): RemoteReadableDocument {
+            throw UnsupportedOperationException("Readable documents are not part of this fake transport")
+        }
     }
 }

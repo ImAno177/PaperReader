@@ -67,8 +67,15 @@ internal fun LibraryListPaperCard(
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(4.dp))
+            val authorText = paper.authors.take(2).joinToString().ifBlank {
+                stringResource(R.string.unknown_authors)
+            }
             Text(
-                text = paper.authors.joinToString().ifBlank { stringResource(R.string.unknown_authors) },
+                text = if (paper.authors.size > 2) {
+                    stringResource(R.string.authors_and_more, authorText, paper.authors.size - 2)
+                } else {
+                    authorText
+                },
                 color = PaperTheme.tokens.inkMuted,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

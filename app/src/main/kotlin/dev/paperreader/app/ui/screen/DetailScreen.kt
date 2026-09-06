@@ -64,6 +64,7 @@ import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.logic.domain.ReadingStatus
+import dev.paperreader.logic.domain.IdentifierType
 import dev.paperreader.logic.domain.repository.RemovePaperResult
 import dev.paperreader.logic.domain.repository.SetPaperCollectionsResult
 import dev.paperreader.logic.reader.ReadablePaperFailure
@@ -337,7 +338,12 @@ private fun PaperDetailContent(
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = paper.authors.joinToString().ifBlank { stringResource(R.string.unknown_authors) },
+                text = paper.authors.take(2).joinToString().ifBlank { stringResource(R.string.unknown_authors) } +
+                    if (paper.authors.size > 2) {
+                        stringResource(R.string.authors_and_more_suffix, paper.authors.size - 2)
+                    } else {
+                        ""
+                    },
                 style = MaterialTheme.typography.bodyLarge,
                 color = PaperTheme.tokens.inkMuted,
             )
@@ -422,10 +428,26 @@ private fun PaperDetailContent(
             item { PaperSectionHeader(stringResource(R.string.identifiers_title)) }
             item {
                 PaperSurface(contentPadding = PaddingValues(12.dp)) {
-                    Text(
-                        paper.identifiers.joinToString(separator = "\n") { it.displayValue() },
-                        style = MaterialTheme.typography.labelLarge,
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        paper.identifiers.forEach { identifier ->
+                            if (identifier.type == IdentifierType.DOI) {
+                                Text(
+                                    text = stringResource(R.string.doi_label),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = PaperTheme.tokens.inkMuted,
+                                )
+                                Text(
+                                    text = identifier.value,
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                            } else {
+                                Text(
+                                    text = identifier.displayValue(),
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

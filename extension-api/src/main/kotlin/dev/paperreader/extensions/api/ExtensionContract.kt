@@ -23,6 +23,9 @@ object PaperExtensionContract {
     const val MAX_AUTHORS: Int = 100
     const val MAX_SUBJECTS: Int = 100
     const val MAX_REQUEST_ID_CHARACTERS: Int = 64
+    /** Each readable-document Binder chunk stays below the transaction safety ceiling. */
+    const val MAX_READABLE_DOCUMENT_CHUNK_BYTES: Int = 384 * 1024
+    const val MAX_READABLE_DOCUMENT_BYTES: Long = 4L * 1024L * 1024L
 
     const val META_API_VERSION: String =
         "dev.paperreader.extensions.API_VERSION"
@@ -130,6 +133,23 @@ internal object Keys {
     const val ROLES = "roles"
     const val IDENTIFIER_TYPES = "identifier_types"
     const val SUPPORTED_SORTS = "supported_sorts"
+    const val READABLE_PROVIDER_RECORD_ID = "readable_provider_record_id"
+    const val READABLE_VERSION = "readable_version"
+    const val READABLE_TITLE = "readable_title"
+    const val READABLE_SOURCE_URL = "readable_source_url"
+    const val READABLE_SOURCE_VERSION = "readable_source_version"
+    const val READABLE_SOURCE_SHA256 = "readable_source_sha256"
+    const val READABLE_DOCUMENT_SHA256 = "readable_document_sha256"
+    const val READABLE_SECTIONS = "readable_sections"
+    const val READABLE_WARNINGS = "readable_warnings"
+    const val READABLE_ASSETS = "readable_assets"
+    const val READABLE_SECTION_ANCHOR = "readable_section_anchor"
+    const val READABLE_SECTION_LEVEL = "readable_section_level"
+    const val READABLE_ASSET_ID = "readable_asset_id"
+    const val READABLE_ASSET_URL = "readable_asset_url"
+    const val READABLE_ASSET_MEDIA_TYPE = "readable_asset_media_type"
+    const val READABLE_CHUNK_SEQUENCE = "readable_chunk_sequence"
+    const val READABLE_CHUNK_BYTES = "readable_chunk_bytes"
     const val MANIFESTATIONS = "manifestations"
     const val TYPE = "type"
     const val VERSION = "version"

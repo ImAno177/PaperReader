@@ -7,10 +7,13 @@ import android.view.ActionMode
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.webkit.WebView
 import dev.paperreader.app.R
 import dev.paperreader.logic.domain.Annotation
 import kotlin.math.roundToInt
+import kotlin.math.abs
 import org.json.JSONObject
 
 internal class ReadablePaperWebView @JvmOverloads constructor(
@@ -18,13 +21,42 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
 ) : WebView(context, attrs) {
     var onProgressionChanged: ((Double) -> Unit)? = null
+    var onReaderScroll: ((scrollingTowardTop: Boolean) -> Unit)? = null
+    var onReaderInteraction: (() -> Unit)? = null
     var onHighlightSelectionRequested: (() -> Unit)? = null
     private var appCommandSerial = 0
     private var appCommandTimeout: Runnable? = null
+    private var lastScrollTop = 0
+    private var touchDownX = 0f
+    private var touchDownY = 0f
 
     override fun onScrollChanged(left: Int, top: Int, oldLeft: Int, oldTop: Int) {
         super.onScrollChanged(left, top, oldLeft, oldTop)
         onProgressionChanged?.invoke(currentProgression())
+        val delta = top - lastScrollTop
+        if (abs(delta) >= SCROLL_DIRECTION_THRESHOLD_PX) {
+            onReaderScroll?.invoke(delta < 0)
+            lastScrollTop = top
+        }
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                touchDownX = event.x
+                touchDownY = event.y
+            }
+            MotionEvent.ACTION_UP -> {
+                val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+                if (
+                    abs(event.x - touchDownX) <= touchSlop &&
+                    abs(event.y - touchDownY) <= touchSlop
+                ) {
+                    onReaderInteraction?.invoke()
+                }
+            }
+        }
+        return super.onTouchEvent(event)
     }
 
     override fun startActionMode(callback: ActionMode.Callback): ActionMode? =
@@ -149,6 +181,7 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
 
     companion object {
         private const val APP_COMMAND_TIMEOUT_MILLIS = 1_500L
+        private const val SCROLL_DIRECTION_THRESHOLD_PX = 8
         private const val HIGHLIGHT_SELECTION_ACTION_ID = 0x50525801
         private const val HIGHLIGHT_SELECTION_ACTION_ORDER = 80
     }

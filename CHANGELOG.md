@@ -5,6 +5,21 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+### Added
+
+- A dedicated More hub with grouped settings and a focused Download queue showing aggregate and
+  per-task progress, retry/cancel/remove actions, completed work, and a visible back action.
+- A versioned readable_document extension capability. The arXiv source now owns structural HTML
+  sanitization while the host receives bounded Binder chunks and materializes same-document assets
+  through a separate lane.
+
+### Changed
+
+- Library filters expose counts; list cards summarize authors; Paper Detail labels DOI and license
+  values explicitly; redundant manifestation badges are reduced to the useful local-file state.
+- The readable reader hides chrome during downward scrolling and restores it on upward scrolling or
+  interaction, while preserving native search, contents, provenance, and Back controls.
+
 ## [0.1.11] - 2026-09-06
 
 ### Changed

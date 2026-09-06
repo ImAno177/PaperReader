@@ -13,6 +13,7 @@ Status: pre-1.0. PaperReader supports Android 9 (API 28) and newer.
 - [Built with](#built-with)
 - [Getting started](#getting-started)
 - [Usage](#usage)
+- [Local emulator audit](#local-emulator-audit)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [Security](#security)
@@ -54,6 +55,22 @@ data while the host owns rendering and trust decisions.
   <img src="docs/screenshots/discover.png" width="30%" alt="PaperReader discovery results" />
   <img src="docs/screenshots/mobile-reader.png" width="30%" alt="PaperReader mobile paper reader" />
 </p>
+
+## Local emulator audit
+
+These captures are from the local API 36 emulator (`emulator-5554`) after the readable-document
+and Download queue smoke run on 2026-09-07. They are evidence of the visible runtime states, not
+mockups; the detailed results and limits are recorded in `docs/TESTING.md`.
+
+<p align="center">
+  <img src="docs/screenshots/emulator-library.png" width="23%" alt="PaperReader emulator Library with saved papers and status counts" />
+  <img src="docs/screenshots/emulator-more.png" width="23%" alt="PaperReader emulator More hub with grouped settings" />
+  <img src="docs/screenshots/emulator-download-queue.png" width="23%" alt="PaperReader emulator Download queue with completed task rows" />
+  <img src="docs/screenshots/emulator-reader-cgp.png" width="23%" alt="PaperReader emulator readable CGP-Tuning paper" />
+</p>
+
+The same local run captured the search result, a live PDF download percentage, and the Attention
+reader in `docs/screenshots/`. The screenshots do not contain credentials or uploaded paper files.
 
 ## Built with
 

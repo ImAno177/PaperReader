@@ -52,6 +52,7 @@ rather than one long page:
 - Updates & notifications
 - Data & backup
 - Sources & extensions
+- Download queue
 - About
 
 Root titles are large, left aligned, and near the top safe area. They have no decorative divider.
@@ -69,6 +70,13 @@ accessible violet accent in light and dark modes; sun yellow is reserved for the
 action, and small state accents. Library grid cards keep titles to one line, omit authors, and use
 one compact state row instead of
 reserving empty rows for status, annotations, and progress.
+Library list cards show at most two authors with a compact remainder count. Reading-status filters
+show their current counts, while Paper Detail keeps DOI and license labels explicit without turning
+every metadata value into a status badge.
+
+The Download queue is a focused branch with a predictable back action. It groups queued/running,
+failed/cancelled, and succeeded work; shows an aggregate active-progress indicator plus each task's
+own progress/state; and exposes open, cancel, retry, and remove actions according to task state.
 
 ## Domain model
 
@@ -199,6 +207,8 @@ location. Retention is cache-only and never fetches a potentially different sour
 retained pool is capped at 120 MiB; a new retention request is rejected rather than evicting an
 existing retained paper. The UI reports when only the external file was saved. Read never renders
 that mutable copy.
+Reader chrome hides on a downward document scroll and returns on an upward scroll or tap, while
+find, contents, source, and system Back remain reachable through the reader's native actions.
 
 The renderer is a non-exported, network-blocked WebView with a deny-by-default CSP. JavaScript is off
 except for short, app-owned commands required for bounded find, selection, and anchor navigation,

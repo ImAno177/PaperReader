@@ -26,7 +26,7 @@ import dev.paperreader.logic.task.TaskCoordinator
 import dev.paperreader.logic.task.PaperDownloadCoordinator
 import dev.paperreader.logic.network.PdfDownloader
 import dev.paperreader.logic.network.ArxivReadableResourceFetcher
-import dev.paperreader.logic.reader.ArxivReadablePaperLoader
+import dev.paperreader.logic.reader.PluginReadablePaperLoader
 import dev.paperreader.logic.reader.ReadablePaperCache
 import dev.paperreader.logic.reader.ReadablePaperAssetContent
 import dev.paperreader.logic.reader.ReadablePaperDocument
@@ -142,7 +142,8 @@ class PaperReaderLogic private constructor(
                 maximumBytes = configuration.maximumPdfBytes,
             )
             val savedSearches = RoomSavedSearchRepository(database)
-            val readablePaperLoader = ArxivReadablePaperLoader(
+            val readablePaperLoader = PluginReadablePaperLoader(
+                transportForProvider = sourceExtensionCoordinator::readableTransport,
                 fetcher = ArxivReadableResourceFetcher(
                     client = OkHttpClient(),
                     userAgent = configuration.userAgent,

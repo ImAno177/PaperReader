@@ -65,6 +65,8 @@ class ReadablePaperActivity : AppCompatActivity() {
     private var documentLoaded = false
     private var restorationReady = false
     private var readerResumed = false
+    private var readerChromeVisible = true
+    private var provenanceAvailable = false
     private var readerLayout = DEFAULT_READER_LAYOUT
     private var displayedProgressPercent = -1
     private var communityTheme: CommunityPaperTheme? = null
@@ -155,6 +157,8 @@ class ReadablePaperActivity : AppCompatActivity() {
         if (::webView.isInitialized) {
             webView.cancelAppOwnedCommand()
             webView.onProgressionChanged = null
+            webView.onReaderScroll = null
+            webView.onReaderInteraction = null
             webView.onHighlightSelectionRequested = null
             webView.webViewClient = WebViewClient()
             webView.stopLoading()
@@ -256,6 +260,11 @@ class ReadablePaperActivity : AppCompatActivity() {
                 updateProgress(progression)
                 if (restorationReady) scheduleProgressSave(progression)
             },
+            onReaderScroll = { towardTop ->
+                if (!documentLoaded || findController.isVisible) return@configureReadablePaperWebView
+                if (towardTop) showReaderChrome() else hideReaderChrome()
+            },
+            onReaderInteraction = ::showReaderChrome,
             onHighlightSelectionRequested = annotationController::captureSelection,
         )
     }
@@ -295,6 +304,15 @@ class ReadablePaperActivity : AppCompatActivity() {
         documentLoaded = false
         restorationReady = false
         currentDocument = null
+        readerChromeVisible = true
+        provenanceAvailable = false
+        setReadableReaderChromeVisible(
+            toolbar = toolbar,
+            provenance = provenance,
+            visible = true,
+            showProvenance = false,
+            animate = false,
+        )
         findController.hide(clearQuery = true)
         clearCitationReturn()
         webView.visibility = View.INVISIBLE
@@ -342,6 +360,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         )
         annotationController.updateMenu()
         provenance.showReadableProvenance(readableProvenanceText(document))
+        provenanceAvailable = true
         loadRenderedDocument(document)
     }
 
@@ -483,6 +502,28 @@ class ReadablePaperActivity : AppCompatActivity() {
         if (percent == displayedProgressPercent) return
         displayedProgressPercent = percent
         toolbar.subtitle = getString(R.string.readable_reader_subtitle_progress, percent)
+    }
+
+    private fun showReaderChrome() {
+        if (readerChromeVisible) return
+        readerChromeVisible = true
+        setReadableReaderChromeVisible(
+            toolbar = toolbar,
+            provenance = provenance,
+            visible = true,
+            showProvenance = provenanceAvailable,
+        )
+    }
+
+    private fun hideReaderChrome() {
+        if (!readerChromeVisible || !documentLoaded) return
+        readerChromeVisible = false
+        setReadableReaderChromeVisible(
+            toolbar = toolbar,
+            provenance = provenance,
+            visible = false,
+            showProvenance = provenanceAvailable,
+        )
     }
 
     private fun returnFromCitation() {

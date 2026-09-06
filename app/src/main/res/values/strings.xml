@@ -35,6 +35,7 @@
     <string name="library_grid_state_count">%1$s · %2$d</string>
     <string name="library_grid_state_description">%1$s, %2$s</string>
     <string name="library_filtered_count">%1$d of %2$d</string>
+    <string name="library_filter_with_count">%1$s (%2$d)</string>
     <string name="library_no_matches_title">No saved papers match</string>
     <string name="library_no_matches_body">Try another search or filter.</string>
 
@@ -132,6 +133,14 @@
     <string name="mark_update_read">Mark read</string>
     <string name="download_queue_title">Download queue</string>
     <string name="download_queue_empty_title">No queued downloads</string>
+    <string name="download_queue_empty_body">Downloads will appear here with live progress as they start.</string>
+    <string name="download_queue_active_section">In progress</string>
+    <string name="download_queue_attention_section">Needs attention</string>
+    <string name="download_queue_completed_section">Completed</string>
+    <string name="download_queue_live_title">Live queue</string>
+    <string name="download_queue_live_summary">%1$d active (%2$d downloading) &#8226; %3$d failed &#8226; %4$d completed</string>
+    <string name="download_queue_progress_description">Queue progress %1$d%%</string>
+    <string name="download_queue_progress_value">%1$d%% of active work</string>
     <string name="task_download">PDF download</string>
     <string name="task_extraction">Text extraction</string>
     <string name="task_queued">Queued</string>
@@ -159,6 +168,13 @@
     <string name="reading_minutes">%1$d min</string>
 
     <string name="more_title">More</string>
+    <string name="more_header_title">PaperReader workspace</string>
+    <string name="more_header_body">Keep your papers, reading tools, and trusted sources close.</string>
+    <string name="more_personalize_section">Personalize</string>
+    <string name="more_reading_section">Reading</string>
+    <string name="more_data_section">Data and sources</string>
+    <string name="more_insights_section">Insights</string>
+    <string name="more_about_section">App information</string>
     <string name="stats_title">Stats</string>
     <string name="settings_title">Settings</string>
     <string name="settings_summary">PaperReader preferences</string>
@@ -166,7 +182,7 @@
     <string name="help_summary">Guides, issues, and project information</string>
     <string name="download_queue_loading">Loading queue</string>
     <string name="download_queue_unavailable">Queue unavailable</string>
-    <string name="download_queue_active_and_failed">%1$d active Â· %2$d failed</string>
+    <string name="download_queue_active_and_failed">%1$d active &#8226; %2$d failed</string>
     <plurals name="download_queue_pending">
         <item quantity="one">%1$d pending</item>
         <item quantity="other">%1$d pending</item>
@@ -174,6 +190,10 @@
     <plurals name="download_queue_failed">
         <item quantity="one">%1$d failed</item>
         <item quantity="other">%1$d failed</item>
+    </plurals>
+    <plurals name="download_queue_total">
+        <item quantity="one">%1$d task</item>
+        <item quantity="other">%1$d tasks</item>
     </plurals>
     <string name="stats_loading">Loading stats</string>
     <string name="stats_unavailable">Stats unavailable</string>
@@ -396,6 +416,8 @@
     <string name="fewer_file_options">Fewer file options</string>
     <string name="manifestations_missing">No manifestation metadata was supplied.</string>
     <string name="identifiers_title">Identifiers</string>
+    <string name="doi_label">DOI</string>
+    <string name="license_label">License: %1$s</string>
     <string name="open_landing_page">Open source page</string>
     <string name="open_pdf_source">Open PDF source</string>
     <string name="read_mobile_version">Read</string>
@@ -534,6 +556,8 @@
     <string name="data_error_title">Could not read local data</string>
     <string name="data_error_body">Close and reopen the app. Your database is left unchanged.</string>
     <string name="unknown_authors">Unknown authors</string>
+    <string name="authors_and_more">%1$s + %2$d more</string>
+    <string name="authors_and_more_suffix"> + %1$d more</string>
     <string name="status_unread">Unread</string>
     <string name="status_reading">Reading</string>
     <string name="status_finished">Finished</string>

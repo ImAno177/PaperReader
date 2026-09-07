@@ -110,7 +110,7 @@ fun PaperPreferenceRow(
             Text(
                 title,
                 style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             supportingText?.takeIf(String::isNotBlank)?.let { summary ->
@@ -118,7 +118,7 @@ fun PaperPreferenceRow(
                     summary,
                     style = MaterialTheme.typography.bodyMedium,
                     color = PaperTheme.tokens.inkMuted,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

@@ -68,7 +68,7 @@ runner.
 The release APK was assembled, installed, and exercised only on the shared API 36 emulator. The
 host gate and source gate both passed locally. The final host debug artifact is
 `PaperReader-debug-final.apk`; its SHA-256 is
-`703E2CBC05E430EA4B57145057740CEE9F11696C703326064EE2C404DAB38589` and its debug signer is
+`9C740DA8944320776735B83E4CA5862C5C93E05D50B71DF5453D98657EF8E487` and its debug signer is
 `0fc18d510fb0a74485d72d00a484a39c90c7af5e66d8527958a18626f81986e1`.
 
 The manual matrix covered:
@@ -80,6 +80,8 @@ The manual matrix covered:
   and the reader's find/contents/Back controls.
 - Attention and CGP-Tuning readable documents with visible figure assets and captions. The broader
   local paper audit also covered LoRA, Llama 2, ResNet, and InstructGPT for HTML/PDF/cache paths.
+- The compact 540×1200 viewport was also checked; More preference titles and summaries ellipsize
+  without splitting words, while the original Neobrutalism visual tokens remain unchanged.
 
 Fresh emulator captures are in `docs/screenshots/release-2026-09-07-*.png`, including the refreshed
 More and Stats surfaces. They are runtime evidence, not mocks. The readable pipeline still has separate HTML/document and same-document asset

@@ -166,6 +166,7 @@ internal fun setReadableReaderChromeVisible(
 }
 
 private fun collapseReaderChromeView(view: View) {
+    view.visibility = View.GONE
     view.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
     view.alpha = 0f
     view.translationY = -view.height.coerceAtLeast(48).toFloat()

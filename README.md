@@ -67,6 +67,7 @@ mockups; the detailed results and limits are recorded in `docs/TESTING.md`.
 <p align="center">
   <img src="docs/screenshots/release-2026-09-07-library.png" width="15%" alt="PaperReader emulator Library with saved papers and status counts" />
   <img src="docs/screenshots/release-2026-09-07-more.png" width="15%" alt="PaperReader emulator More hub with grouped settings" />
+  <img src="docs/screenshots/release-2026-09-07-stats.png" width="15%" alt="PaperReader emulator Stats with reading time and grouped metrics" />
   <img src="docs/screenshots/release-2026-09-07-appearance.png" width="15%" alt="PaperReader emulator Appearance with Neobrutalism and built-in color themes" />
   <img src="docs/screenshots/release-2026-09-07-queue.png" width="15%" alt="PaperReader emulator Download queue with a completed task" />
   <img src="docs/screenshots/release-2026-09-07-reader-attention.png" width="15%" alt="PaperReader emulator readable Attention paper with a figure" />

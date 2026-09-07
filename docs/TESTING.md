@@ -23,6 +23,10 @@ a pull request.
   not reach `DESTROYED` after the share-redelivery UI flow. This is the same harness-only failure
   seen before the importer fix, not a product assertion failure. The app suite uses the `.uitest`
   applicationId suffix so the demo APK remains installed.
+- The UI refresh was exercised on the same emulator: More now presents a compact workspace header,
+  grouped reading actions, and no standalone Stats card; Stats presents a reading-time lead metric
+  followed by compact metric lists. Readable reader restore, real scroll chrome, and TOC anchor
+  navigation were also rechecked; programmatic scroll no longer hides the reader title or Back action.
 - The previously completed local connected baseline remains green for 11 extension-api and 43 logic
   tests. No connected test source or GitHub workflow was added for this release audit.
 - Release readiness still requires live-provider audit, extension install flows, and Play Protect
@@ -69,7 +73,7 @@ host gate and source gate both passed locally. The final host debug artifact is
 
 The manual matrix covered:
 
-- Library, Search, Paper Detail, More, Appearance, Download queue, and predictable branch Back.
+- Library, Search, Paper Detail, More, Stats, Appearance, Download queue, and predictable branch Back.
 - Appearance with the unchanged Neobrutalism preset plus Ocean, Forest, Violet, Rose, and Sunset;
   Light and Dark mode selection remained independent.
 - Attention search with 20 results, detail actions, a live download percentage, queue completion,
@@ -77,8 +81,8 @@ The manual matrix covered:
 - Attention and CGP-Tuning readable documents with visible figure assets and captions. The broader
   local paper audit also covered LoRA, Llama 2, ResNet, and InstructGPT for HTML/PDF/cache paths.
 
-Fresh emulator captures are in `docs/screenshots/release-2026-09-07-*.png`. They are runtime
-evidence, not mocks. The readable pipeline still has separate HTML/document and same-document asset
+Fresh emulator captures are in `docs/screenshots/release-2026-09-07-*.png`, including the refreshed
+More and Stats surfaces. They are runtime evidence, not mocks. The readable pipeline still has separate HTML/document and same-document asset
 lanes and no arbitrary image-count limit; per-asset bytes, SVG complexity, manifest size, retries,
 and cache quotas remain the safety bounds.
 

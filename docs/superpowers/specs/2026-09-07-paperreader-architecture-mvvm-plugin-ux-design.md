@@ -1,7 +1,6 @@
 # PaperReader architecture, plugin, theme, and UX design
 
-Status: Draft for spec review. The high-level design was approved on 2026-09-07; implementation
-remains blocked until this spec is reviewed. This design extends the approved readable-assets
+Status: Approved for implementation on 2026-09-07. This design extends the approved readable-assets
 pipeline in [`2026-09-06-mihon-readable-assets-design.md`](2026-09-06-mihon-readable-assets-design.md).
 
 ## Purpose
@@ -225,7 +224,7 @@ The host replaces the arXiv-specific readable path with a provider-neutral coord
 2. Request the document through the installed source extension when it advertises
    `readable_document`.
 3. Verify request ID, exact version/source URL, body size, UTF-8, source/document hashes, section
-   bounds, warning values, asset IDs, and safe same-origin HTTPS asset URLs.
+   bounds, warning values, asset IDs, and safe same-directory HTTPS asset URLs.
 4. Apply a final deny-by-default structural gate before publication. This is a generic trust gate,
    not an arXiv parser or provider sanitizer.
 5. Fetch assets through an independent generic asset lane, with bounded concurrency, cancellation,
@@ -235,8 +234,9 @@ The host replaces the arXiv-specific readable path with a provider-neutral coord
 7. Publish body and asset metadata atomically enough that incomplete groups are never readable.
 8. Render only app-private validated assets in the network-blocked WebView.
 
-The generic host asset lane may enforce that an asset is HTTPS and same-origin with the verified
-document source URL. It must not contain an `arxiv.org` constant or construct arXiv URLs.
+The generic host asset lane may enforce that an asset is HTTPS and in the trusted same-directory
+scope of the verified document source URL. It must not contain an `arxiv.org` constant or construct
+arXiv URLs.
 
 ### Removal and fallback
 
@@ -267,9 +267,6 @@ The Mihon-inspired preset supplies light and dark Material 3 schemes with explic
 - outline/outline-variant;
 - error/on-error and error container/on-error-container;
 - typography, corner, border, and accessibility-related semantic tokens used by PaperReader.
-
-An optional AMOLED variant may use a black background while retaining non-black surface containers so
-scrolling content remains distinguishable. It is opt-in and must not alter the Neobrutalism default.
 
 The token model is extended only where a real Material 3 role is consumed. Avoid adding arbitrary
 brand colors or a second parallel theme system. Status colors must remain readable in both modes and
@@ -402,7 +399,7 @@ audit covers at least:
 - no arbitrary image-count cap in source and app-private asset metadata;
 - PDF request, live percentage, queue persistence, retry/cancel/remove, and queue back navigation;
 - Library All/Unread/Finished counts, card actions, long-author semantics, Detail DOI actions, More
-  rows, theme switching, light/dark/AMOLED, 130%+ font scale, and reader chrome hide/show.
+  rows, theme switching, light/dark, 130%+ font scale, and reader chrome hide/show.
 
 The audit adds no one-off pixel test files. Screenshots and raw device evidence live outside source
 tests and are copied into documentation only after the final local run.
@@ -469,4 +466,3 @@ The work is complete only when all of the following are true:
 - feature branches have been reviewed, the final approved changes are merged into `main`, and the
   debug APK is copied to the agreed artifacts directory with package/signature/SHA-256 evidence;
 - docs, README, changelog, site, and emulator screenshots describe the merged implementation only.
-

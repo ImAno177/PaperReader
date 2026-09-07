@@ -26,18 +26,14 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
     var onHighlightSelectionRequested: (() -> Unit)? = null
     private var appCommandSerial = 0
     private var appCommandTimeout: Runnable? = null
-    private var lastScrollTop = 0
     private var touchDownX = 0f
     private var touchDownY = 0f
+    private var lastTouchY = 0f
+    private var userScrollGestureStarted = false
 
     override fun onScrollChanged(left: Int, top: Int, oldLeft: Int, oldTop: Int) {
         super.onScrollChanged(left, top, oldLeft, oldTop)
         onProgressionChanged?.invoke(currentProgression())
-        val delta = top - lastScrollTop
-        if (abs(delta) >= SCROLL_DIRECTION_THRESHOLD_PX) {
-            onReaderScroll?.invoke(delta < 0)
-            lastScrollTop = top
-        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -45,15 +41,42 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 touchDownX = event.x
                 touchDownY = event.y
+                lastTouchY = event.y
+                userScrollGestureStarted = false
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val deltaFromDownY = event.y - touchDownY
+                val deltaFromDownX = event.x - touchDownX
+                val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+                if (
+                    !userScrollGestureStarted &&
+                    abs(deltaFromDownY) > touchSlop &&
+                    abs(deltaFromDownY) >= abs(deltaFromDownX)
+                ) {
+                    userScrollGestureStarted = true
+                }
+                if (userScrollGestureStarted) {
+                    val deltaY = event.y - lastTouchY
+                    if (abs(deltaY) >= SCROLL_DIRECTION_THRESHOLD_PX) {
+                        // Finger down moves the document toward the top; finger up moves it down.
+                        onReaderScroll?.invoke(deltaY > 0f)
+                        lastTouchY = event.y
+                    }
+                }
             }
             MotionEvent.ACTION_UP -> {
                 val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
                 if (
+                    !userScrollGestureStarted &&
                     abs(event.x - touchDownX) <= touchSlop &&
                     abs(event.y - touchDownY) <= touchSlop
                 ) {
                     onReaderInteraction?.invoke()
                 }
+                userScrollGestureStarted = false
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                userScrollGestureStarted = false
             }
         }
         return super.onTouchEvent(event)

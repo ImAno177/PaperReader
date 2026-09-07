@@ -300,7 +300,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         )
         findController.hide(clearQuery = true)
         clearCitationReturn()
-        webView.visibility = View.INVISIBLE
+        webView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         errorContainer.visibility = View.GONE
         loading.visibility = View.VISIBLE
         setReadablePaperActionsEnabled(toolbar, source = false, document = false, contents = false)
@@ -348,6 +348,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         if (isDestroyed || currentDocument == null || documentLoaded) return
         loading.visibility = View.GONE
         webView.visibility = View.VISIBLE
+        webView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
         documentLoaded = true
         webView.restoreProgression(pendingRestoreProgression)
         restoredCitationReturnProgression?.let { progression ->
@@ -559,7 +560,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         progressSaveJob?.cancel()
         documentLoaded = false
         restorationReady = false
-        webView.visibility = View.INVISIBLE
+        webView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         loading.visibility = View.VISIBLE
         loadJob?.cancel()
         loadJob = lifecycleScope.launch { loadRenderedDocument(document) }

@@ -73,7 +73,7 @@ runner.
 The release APK was assembled, installed, and exercised only on the shared API 36 emulator. The
 host gate and source gate both passed locally. The final host debug artifact is
 `app/build/outputs/apk/debug/app-debug.apk`; its SHA-256 is
-`C5E1D7F607FBA736F0A91D53FD3F31F000BC5239A5DB955C8F400A4F91C85585`.
+`6DD91CD086B5D5E92E069AC49AD791C45EDE496B56196A7D5A15A69B27C0EAA1`.
 
 The manual matrix covered:
 

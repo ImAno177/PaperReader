@@ -13,8 +13,7 @@
             android:id="@+id/readable_reader_webview"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:importantForAccessibility="yes"
-            android:visibility="invisible" />
+            android:importantForAccessibility="yes" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/readable_reader_citation_return"
@@ -39,10 +38,10 @@
 
         <LinearLayout
             android:id="@+id/readable_reader_loading"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:accessibilityLiveRegion="polite"
+            android:background="?attr/colorSurfaceVariant"
             android:contentDescription="@string/readable_reader_loading"
             android:gravity="center"
             android:importantForAccessibility="yes"
@@ -70,6 +69,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:accessibilityLiveRegion="polite"
+            android:background="?attr/colorSurfaceVariant"
             android:focusable="true"
             android:gravity="center"
             android:importantForAccessibility="yes"

@@ -25,8 +25,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.paperreader.app.R
-import dev.paperreader.app.ui.DownloadActionUiState
-import dev.paperreader.app.ui.LoadState
+import dev.paperreader.app.ui.state.DownloadActionUiState
+import dev.paperreader.app.ui.state.LoadState
 import dev.paperreader.app.ui.components.PaperAppBarTitle
 import dev.paperreader.app.ui.components.PaperLabel
 import dev.paperreader.app.ui.components.PaperSectionHeader

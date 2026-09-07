@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.paperreader.app.R
-import dev.paperreader.app.ui.LoadState
+import dev.paperreader.app.ui.state.LoadState
 import dev.paperreader.app.ui.components.PaperAppBarTitle
 import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperStatePanel

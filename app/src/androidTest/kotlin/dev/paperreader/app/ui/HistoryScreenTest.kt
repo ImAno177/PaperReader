@@ -1,5 +1,6 @@
 package dev.paperreader.app.ui
 
+import dev.paperreader.app.ui.state.LoadState
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription

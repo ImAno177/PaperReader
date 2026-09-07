@@ -1,5 +1,6 @@
 package dev.paperreader.app.ui
 
+import dev.paperreader.app.ui.state.LoadState
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.hasSetTextAction

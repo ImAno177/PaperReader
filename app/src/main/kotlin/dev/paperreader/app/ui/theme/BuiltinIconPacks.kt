@@ -43,6 +43,7 @@ private val MATERIAL_SYMBOL_RESOURCES: Map<PaperIconKey, Int> = mapOf(
 
 internal fun paperIconSet(preset: PaperThemePreset): PaperIconSet = when (preset) {
     PaperThemePreset.NEOBRUTALISM -> PaperIconSet(PaperIconFamily.MATERIAL_SYMBOLS)
+    PaperThemePreset.MIHON -> PaperIconSet(PaperIconFamily.MATERIAL_SYMBOLS)
 }
 
 @DrawableRes

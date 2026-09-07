@@ -12,6 +12,10 @@ class PaperIconSetTest {
             PaperIconFamily.MATERIAL_SYMBOLS,
             paperIconSet(PaperThemePreset.NEOBRUTALISM).family,
         )
+        assertEquals(
+            PaperIconFamily.MATERIAL_SYMBOLS,
+            paperIconSet(PaperThemePreset.MIHON).family,
+        )
     }
 
     @Test

@@ -12,6 +12,7 @@ import android.text.TextUtils
 import android.util.TypedValue
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
 import android.widget.Toast
@@ -147,6 +148,7 @@ internal fun setReadableReaderChromeVisible(
             return@forEach
         }
         view.animate().withEndAction(null).cancel()
+        restoreReaderChromeLayout(view)
         view.visibility = View.VISIBLE
         view.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
         if (!animate || !ValueAnimator.areAnimatorsEnabled()) {
@@ -166,10 +168,22 @@ internal fun setReadableReaderChromeVisible(
 }
 
 private fun collapseReaderChromeView(view: View) {
-    view.visibility = View.GONE
+    view.layoutParams = view.layoutParams.apply {
+        height = 0
+    }
+    view.requestLayout()
     view.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
     view.alpha = 0f
     view.translationY = -view.height.coerceAtLeast(48).toFloat()
+}
+
+private fun restoreReaderChromeLayout(view: View) {
+    if (view.layoutParams.height == 0) {
+        view.layoutParams = view.layoutParams.apply {
+            height = ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        view.requestLayout()
+    }
 }
 
 internal fun TextView.configureReadableProvenance(icon: android.graphics.drawable.Drawable, color: Int) {

@@ -18,11 +18,12 @@ a pull request.
   percentages while the transfer was running.
 - The Google-to-arXiv handoff parser passes four connected Android tests on the declared API 36
   emulator, including `/html/` URL version parsing and rejection of unrelated VIEW links.
-- The latest app connected run on `emulator-5554` executed all 85 app test bodies. The 84 functional
-  assertions passed; one `ActivityScenarioRule.after` teardown still reports that the activity did
-  not reach `DESTROYED` after the share-redelivery UI flow. This is the same harness-only failure
-  seen before the importer fix, not a product assertion failure. The app suite uses the `.uitest`
-  applicationId suffix so the demo APK remains installed.
+- The latest app connected run on `emulator-5554` executed all 85 app test bodies: 83 passed, 2
+  failed, 0 errored, and 0 skipped. One `ActivityScenarioRule.after` teardown still reports that
+  the activity did not reach `DESTROYED` after the share-redelivery UI flow; the share/import/status
+  assertions complete. The other failure is the existing More navigation check attempting to click
+  the off-viewport `Sources` row without scrolling first; the same route opens after a real scroll.
+  The app suite uses the `.uitest` applicationId suffix so the demo APK remains installed.
 - The UI refresh was exercised on the same emulator: More now presents a compact workspace header,
   grouped reading actions, and no standalone Stats card; Stats presents a reading-time lead metric
   followed by compact metric lists. Readable reader restore, real scroll chrome, and TOC anchor
@@ -68,7 +69,7 @@ runner.
 The release APK was assembled, installed, and exercised only on the shared API 36 emulator. The
 host gate and source gate both passed locally. The final host debug artifact is
 `PaperReader-debug-final.apk`; its SHA-256 is
-`3610E50C564BE592BEB8894356B69001DBFD3A48C62B4CDECFF5DF56EAB2F169` and its debug signer is
+`0AE6E0A553E485EEE8FE3EC144A368CBE92768B343906CA15DD7E70935C88B3B` and its debug signer is
 `0fc18d510fb0a74485d72d00a484a39c90c7af5e66d8527958a18626f81986e1`.
 
 The manual matrix covered:
@@ -90,9 +91,12 @@ More and Stats surfaces. They are runtime evidence, not mocks. The readable pipe
 lanes and no arbitrary image-count limit; per-asset bytes, SVG complexity, manifest size, retries,
 and cache quotas remain the safety bounds.
 
-The latest app XML result reports `85` tests, `1` teardown failure, `0` errors, and `0` skipped. The
-failed case is `MainActivityIncomingPdfUiAndroidTest.shareAfterCompletedImportReplacesStatusAndSurfacesReview`
-and fails only during `ActivityScenarioRule.after`; its share/import/status assertions complete.
+The latest app XML result reports `85` tests, `2` failures, `0` errors, and `0` skipped. The failed
+cases are `MainActivityIncomingPdfUiAndroidTest.shareAfterCompletedImportReplacesStatusAndSurfacesReview`,
+which fails only during `ActivityScenarioRule.after`, and
+`MainNavigationAndroidTest.everyMoreBranchHidesPrimaryNavigationAndReturnsToTheHub`, whose `Sources`
+assertion runs before the off-viewport row is scrolled into view. The share/import/status assertions
+complete, and manual scrolling opens the Sources route normally.
 Android API 36 also logs the framework warning for a malformed single-stream `ACTION_SEND` extra;
 the production decoder accepts a single `Uri`, an `ArrayList`, or `ClipData` and handles the flow.
 This limitation is recorded rather than hidden by changing the test or adding a GitHub-only test.

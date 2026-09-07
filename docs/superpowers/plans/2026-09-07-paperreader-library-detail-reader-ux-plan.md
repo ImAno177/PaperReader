@@ -32,11 +32,13 @@
 ## Task 1: Add deterministic academic author and DOI presentation helpers
 
 **Files:**
+
 - Create: `app/src/main/kotlin/dev/paperreader/app/ui/model/AcademicPresentation.kt`
 - Modify: `app/src/main/kotlin/dev/paperreader/app/ui/model/PaperUiModels.kt`
 - Modify: existing presentation unit tests nearest to `PaperUiModels`
 
 **Interfaces:**
+
 - `fun formatAcademicAuthors(authors: List<String>): String` returns `Unknown authors`, one author, `A and B`, or `A et al.` according to the existing English resource policy.
 - `fun PaperUi.doiOrNull(): String?` returns the canonical DOI value without a `doi:` display prefix and rejects blank/invalid values through existing identifier normalization.
 - The full author list remains available separately for semantics/detail.
@@ -75,11 +77,13 @@
 ## Task 2: Simplify Library filters and cards
 
 **Files:**
+
 - Modify: `LibraryScreen.kt`, `LibraryPaperCards.kt`, `LibraryPresentation.kt`
 - Modify: `strings.xml` and `PaperComponents.kt` only when existing resources/components cannot express the state
 - Test: existing Library tests and local adb inspection
 
 **Interfaces:**
+
 - Primary status control exposes `ALL`, `UNREAD`, and `FINISHED` with counts from the same `LibraryUiState` list.
 - `READING` and `ANNOTATED` remain available through secondary filter UI; no capability is deleted.
 - Cards use `formatAcademicAuthors`, compact metadata, one conditional status/progress row, and accessible full-title/full-author semantics.
@@ -120,11 +124,13 @@
 ## Task 3: Simplify More and optimize Paper Detail
 
 **Files:**
+
 - Modify: `MoreScreen.kt`, `PaperComponents.kt`, `DetailScreen.kt`, `ManifestationCard.kt`
 - Modify: `strings.xml`
 - Test: existing Detail/MainNavigation tests and local adb inspection
 
 **Interfaces:**
+
 - More consumes `MoreUiState` from the foundation branch and keeps grouped preference rows with concise summaries.
 - Detail shows DOI near the title/author header and keeps full identifier data below.
 - The redundant attached-image labels are absent from repeated card/header presentation; legal license/provenance remains explicit.
@@ -169,6 +175,7 @@
 ## Task 4: Make reader chrome behavior stateful and smart
 
 **Files:**
+
 - Modify: `app/src/main/kotlin/dev/paperreader/app/reader/ReadablePaperWebView.kt`
 - Modify: `app/src/main/kotlin/dev/paperreader/app/reader/ReadablePaperActivity.kt`
 - Modify: `app/src/main/kotlin/dev/paperreader/app/reader/ReadablePaperChrome.kt`
@@ -176,6 +183,7 @@
 - Test: existing reader/WebView tests and local adb audit
 
 **Interfaces:**
+
 - WebView emits meaningful direction/interaction signals; Activity owns a small chrome state machine.
 - `showReadableReaderChrome`/`hideReadableReaderChrome` remain the only visibility transition entry points.
 - Hidden toolbar/provenance views are removed from accessibility traversal; system Back and essential menu actions remain reachable.

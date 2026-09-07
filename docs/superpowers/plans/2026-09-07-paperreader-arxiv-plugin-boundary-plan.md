@@ -32,12 +32,14 @@
 ## Task 1: Version the readable-document metadata
 
 **Files:**
+
 - Modify: `extension-api/src/main/kotlin/dev/paperreader/extensions/api/SourceReadableContract.kt`
 - Modify: `extension-api/src/main/kotlin/dev/paperreader/extensions/api/ExtensionContract.kt` for
   the readable bundle key
 - Modify: existing extension-api contract tests only if the new field lacks coverage
 
 **Interfaces:**
+
 - Add `contractVersion: String` to `SourceReadableDocumentMetadata` with a bounded ASCII/wire-safe format.
 - `fromBundle` accepts an absent field as the legacy value; `toBundle` always writes the explicit value.
 - Host cache identity consumes this value after verification.
@@ -74,11 +76,13 @@
 ## Task 2: Publish provider-owned arXiv document metadata
 
 **Files:**
+
 - Modify: `source-arxiv/src/main/kotlin/dev/paperreader/extensions/sources/arxiv/ArxivService.kt`
 - Modify: `source-arxiv/src/main/kotlin/dev/paperreader/extensions/sources/arxiv/ArxivReadableDocumentSanitizer.kt`
 - Modify: existing `source-arxiv` fixtures/tests nearest to readable-document assertions
 
 **Interfaces:**
+
 - `ArxivService.getReadableDocumentSource` fetches HTML and passes it only to `ArxivReadableDocumentSanitizer`.
 - The returned `SourceReadableDocumentMetadata` includes the source-owned contract version, source hash, document hash, sections, warnings, and opaque assets.
 
@@ -113,11 +117,13 @@
 ## Task 3: Extract generic host asset validation
 
 **Files:**
+
 - Create/modify: `logic/src/main/kotlin/dev/paperreader/logic/reader/ReadableAssetSanitizer.kt`
 - Modify: `ReadablePaperContract.kt` and `ReadablePaperAssetCache.kt` only where neutral types are required
 - Modify: existing asset-cache tests nearest to validation behavior
 
 **Interfaces:**
+
 - `ReadableAssetSanitizer.sanitize(resource: ReadableRemoteResource): ReadableRemoteResource?` validates raster media types, UTF-8 self-contained SVG, executable markup, and complexity.
 - `ReadableAssetSanitizer.replaceUnavailableAssetReferences(bodyHtml: String, unavailableIds: Set<String>): String` preserves captions.
 - No function in this class constructs or checks `arxiv.org` URLs.
@@ -150,6 +156,7 @@
 ## Task 4: Replace the host plugin loader and wire cache identity
 
 **Files:**
+
 - Create/modify: `logic/src/main/kotlin/dev/paperreader/logic/reader/PluginReadablePaperLoader.kt`
 - Modify: `logic/src/main/kotlin/dev/paperreader/logic/reader/ReadablePaperCache.kt`
 - Modify: `logic/src/main/kotlin/dev/paperreader/logic/PaperReaderLogic.kt`
@@ -158,6 +165,7 @@
 - Delete after reference scan: `logic/src/main/kotlin/dev/paperreader/logic/reader/ArxivHtmlSanitizer.kt`
 
 **Interfaces:**
+
 - `PluginReadablePaperLoader` accepts `(providerId: String) -> SourceExtensionTransport?`, a generic document/asset fetcher, and the existing cache.
 - The cache key includes provider ID, provider record ID, version, readable contract version, and renderer contract version.
 - `removeArtifacts`, `reconcileArtifacts`, and `openAsset` remain available through neutral loader methods used by `PaperReaderLogic`.

@@ -12,12 +12,14 @@ import org.junit.Test
 class ReadablePaperCacheTest {
     @Test
     fun `key is deterministic and changes with every cache contract input`() {
-        val first = ReadablePaperCache.keyFor("https://arxiv.org/html/1", "policy-1", "renderer-1")
+        val first = ReadablePaperCache.keyFor("provider-1", "record-1", "v1", "contract-1", "renderer-1")
 
-        assertEquals(first, ReadablePaperCache.keyFor("https://arxiv.org/html/1", "policy-1", "renderer-1"))
-        assertFalse(first == ReadablePaperCache.keyFor("https://arxiv.org/html/2", "policy-1", "renderer-1"))
-        assertFalse(first == ReadablePaperCache.keyFor("https://arxiv.org/html/1", "policy-2", "renderer-1"))
-        assertFalse(first == ReadablePaperCache.keyFor("https://arxiv.org/html/1", "policy-1", "renderer-2"))
+        assertEquals(first, ReadablePaperCache.keyFor("provider-1", "record-1", "v1", "contract-1", "renderer-1"))
+        assertFalse(first == ReadablePaperCache.keyFor("provider-2", "record-1", "v1", "contract-1", "renderer-1"))
+        assertFalse(first == ReadablePaperCache.keyFor("provider-1", "record-2", "v1", "contract-1", "renderer-1"))
+        assertFalse(first == ReadablePaperCache.keyFor("provider-1", "record-1", "v2", "contract-1", "renderer-1"))
+        assertFalse(first == ReadablePaperCache.keyFor("provider-1", "record-1", "v1", "contract-2", "renderer-1"))
+        assertFalse(first == ReadablePaperCache.keyFor("provider-1", "record-1", "v1", "contract-1", "renderer-2"))
         assertTrue(first.matches(Regex("[0-9a-f]{64}")))
     }
 
@@ -125,7 +127,7 @@ class ReadablePaperCacheTest {
         val read = checkNotNull(cache.read(key))
         val document = read.toDocument(
             title = "Paper",
-            sourceProvider = "arxiv",
+            sourceProvider = "provider-1",
             sourceVersion = "v1",
             license = null,
             servedFromCache = true,
@@ -176,7 +178,7 @@ class ReadablePaperCacheTest {
         val body = "<article>$label</article>"
         return CachedReadablePaper(
             bodyHtml = body,
-            sourceUrl = "https://arxiv.org/html/$label",
+            sourceUrl = "https://example.org/papers/$label",
             sourceSha256 = "a".repeat(64),
             documentSha256 = sha256(body),
             retrievedAt = Instant.parse("2026-08-12T00:00:00Z"),

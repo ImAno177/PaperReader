@@ -26,6 +26,38 @@ import dev.paperreader.app.ui.theme.PaperIconKey
 
 @Composable
 fun SettingsScreen(
+    state: SettingsUiState,
+    onAction: (SettingsAction) -> Unit,
+    onOpenAppearance: () -> Unit,
+    onOpenLibrary: () -> Unit,
+    onOpenReader: () -> Unit,
+    onOpenDownloads: () -> Unit,
+    onOpenUpdates: () -> Unit,
+    onOpenDataBackup: () -> Unit,
+    onOpenSources: () -> Unit,
+    onOpenAbout: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val options = listOf(
+        SettingOption(PaperSettingEntry("appearance", stringResource(R.string.appearance_title), stringResource(R.string.appearance_display_summary)), PaperIconKey.PALETTE, onOpenAppearance),
+        SettingOption(PaperSettingEntry("library", stringResource(R.string.library_settings_title), stringResource(R.string.library_settings_summary)), PaperIconKey.LIBRARY, onOpenLibrary),
+        SettingOption(PaperSettingEntry("reader", stringResource(R.string.reader_settings_title), stringResource(R.string.reader_settings_summary)), PaperIconKey.HISTORY, onOpenReader),
+        SettingOption(PaperSettingEntry("downloads", stringResource(R.string.downloads_settings_title), stringResource(R.string.downloads_settings_summary)), PaperIconKey.DOWNLOAD, onOpenDownloads),
+        SettingOption(PaperSettingEntry("updates", stringResource(R.string.updates_settings_title), stringResource(R.string.updates_settings_summary)), PaperIconKey.UPDATES, onOpenUpdates),
+        SettingOption(PaperSettingEntry("data", stringResource(R.string.data_settings_title), stringResource(R.string.data_settings_summary)), PaperIconKey.DOWNLOAD, onOpenDataBackup),
+        SettingOption(PaperSettingEntry("sources", stringResource(R.string.sources_settings_title), stringResource(R.string.sources_settings_summary)), PaperIconKey.PUBLIC, onOpenSources),
+        SettingOption(PaperSettingEntry("about", stringResource(R.string.about_title), stringResource(R.string.about_description)), PaperIconKey.INFO, onOpenAbout),
+    )
+    SettingsScreenContent(
+        query = state.query,
+        options = options,
+        onQueryChange = { onAction(SettingsAction.SetQuery(it)) },
+        onBack = onBack,
+    )
+}
+
+@Composable
+fun SettingsScreen(
     onOpenAppearance: () -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenReader: () -> Unit,
@@ -47,6 +79,21 @@ fun SettingsScreen(
         SettingOption(PaperSettingEntry("sources", stringResource(R.string.sources_settings_title), stringResource(R.string.sources_settings_summary)), PaperIconKey.PUBLIC, onOpenSources),
         SettingOption(PaperSettingEntry("about", stringResource(R.string.about_title), stringResource(R.string.about_description)), PaperIconKey.INFO, onOpenAbout),
     )
+    SettingsScreenContent(
+        query = query,
+        options = options,
+        onQueryChange = { query = it },
+        onBack = onBack,
+    )
+}
+
+@Composable
+private fun SettingsScreenContent(
+    query: String,
+    options: List<SettingOption>,
+    onQueryChange: (String) -> Unit,
+    onBack: () -> Unit,
+) {
     val visibleOptions = filterPaperSettings(options.map(SettingOption::entry), query)
         .mapNotNull { entry -> options.firstOrNull { it.entry.key == entry.key } }
 
@@ -54,14 +101,14 @@ fun SettingsScreen(
         item {
             OutlinedTextField(
                 value = query,
-                onValueChange = { query = it },
+                onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 label = { Text(stringResource(R.string.settings_search_label)) },
                 leadingIcon = { PaperIcon(PaperIconKey.SEARCH, contentDescription = null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
-                        IconButton(onClick = { query = "" }) {
+                        IconButton(onClick = { onQueryChange("") }) {
                             PaperIcon(PaperIconKey.CLOSE, contentDescription = stringResource(R.string.search_clear))
                         }
                     }

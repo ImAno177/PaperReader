@@ -1,102 +1,75 @@
 package dev.paperreader.app.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import dev.paperreader.app.R
-import dev.paperreader.app.ui.model.*
-import dev.paperreader.app.ui.screen.*
+import dev.paperreader.app.extensions.CommunityThemeCatalog
+import dev.paperreader.app.importer.IncomingPdfRequest
+import dev.paperreader.app.importer.IncomingPaperReferenceRequest
 import dev.paperreader.app.reader.PdfReaderActivity
-import dev.paperreader.app.search.GoogleSearchActivity
-import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.reader.ReadablePaperActivity
+import dev.paperreader.app.search.GoogleSearchActivity
+import dev.paperreader.app.ui.model.LocalPdfImportUiState
+import dev.paperreader.app.ui.model.PaperDateFormat
+import dev.paperreader.app.ui.model.PaperUi
+import dev.paperreader.app.ui.screen.*
+import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.app.ui.theme.PaperThemeMode
+import dev.paperreader.app.ui.theme.PaperThemePreset
+import dev.paperreader.logic.backup.MetadataBackupExport
 import dev.paperreader.logic.domain.ManifestationId
-import dev.paperreader.logic.domain.ReadingStatus
 import dev.paperreader.logic.domain.WorkId
-import dev.paperreader.logic.provider.ProviderManagerState
-import dev.paperreader.logic.reader.ReadablePaperDocument
-import dev.paperreader.logic.reader.ReadablePaperResult
-import dev.paperreader.logic.domain.repository.*
-import dev.paperreader.logic.task.*
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.launch
 
 @Composable
 internal fun AppNavHost(
     navController: NavHostController,
-    library: LoadState<List<PaperUi>>,
-    history: LoadState<List<ReadingHistoryUi>>,
-    collections: LoadState<List<PaperCollectionUi>>,
-    tasks: LoadState<List<PaperTask>>,
-    savedSearches: LoadState<List<dev.paperreader.logic.domain.SavedSearchFeed>>,
-    providers: ProviderManagerState,
-    extensionStores: ExtensionStoreBindings,
-    search: SearchUiState,
-    downloadActions: DownloadActionUiState,
-    savedSearchActions: SavedSearchActionUiState,
-    metadataBackup: MetadataBackupUiState,
-    localPdfImport: LocalPdfImportUiState,
-    preset: dev.paperreader.app.ui.theme.PaperThemePreset,
+    screenViewModelFactory: ScreenViewModelFactory,
+    preset: PaperThemePreset,
     themeKey: String,
-    themeMode: dev.paperreader.app.ui.theme.PaperThemeMode,
-    libraryLayout: LibraryLayout,
+    themeMode: PaperThemeMode,
     dateFormat: PaperDateFormat,
     relativeTimeEnabled: Boolean,
-    tabletUiMode: TabletUiMode,
     showImagesInDescription: Boolean,
-    themeCatalog: dev.paperreader.app.extensions.CommunityThemeCatalog,
-    onSearch: (String) -> Unit,
-    onClearSearch: () -> Unit,
-    onSave: (SearchPaperUi) -> Unit,
-    onSaveSearch: (String) -> Unit,
-    onRefreshSavedSearch: (String) -> Unit,
-    onDeleteSavedSearch: (String) -> Unit,
-    onMarkSavedSearchHitRead: (String) -> Unit,
-    onSaveSavedSearchHit: (String) -> Unit,
-    onRemoveHistory: (String) -> Unit,
-    onReadingStatusChange: (String, ReadingStatus) -> Unit,
-    onRepairSavedPaper: (String) -> Unit,
-    onRemovePaper: suspend (String) -> RemovePaperResult,
-    onCreateCollection: suspend (String) -> CreateCollectionResult,
-    onRenameCollection: suspend (Long, String) -> RenameCollectionResult,
-    onDeleteCollection: suspend (Long) -> DeleteCollectionResult,
-    onSetPaperCollections: suspend (String, Set<Long>) -> SetPaperCollectionsResult,
-    onRequestDownload: (String, String) -> Unit,
-    onGetDownloadedPaper: suspend (String) -> DownloadedPaper?,
-    onLoadReadablePaper: suspend (String, String, String?) -> ReadablePaperResult,
-    onReadReadableAsset: suspend (ReadablePaperDocument, String) -> ByteArray?,
-    onDeleteDownload: suspend (String, String) -> DeleteDownloadResult,
-    onCancelDownloadTask: (String) -> Unit,
-    onRetryDownloadTask: (String) -> Unit,
-    onRemoveDownloadTask: (String) -> Unit,
-    onRequestLocalPdfImport: () -> Unit,
-    onConfirmLocalPdfImport: (String) -> Unit,
-    onDismissLocalPdfImport: () -> Unit,
-    onRequestBackupExport: () -> Unit,
-    onRequestBackupImport: () -> Unit,
-    onConfirmBackupRestore: () -> Unit,
-    onDismissBackupState: () -> Unit,
-    onThemeChange: (String) -> Unit,
-    onThemeModeChange: (dev.paperreader.app.ui.theme.PaperThemeMode) -> Unit,
-    onLibraryLayoutChange: (LibraryLayout) -> Unit,
-    onDateFormatChange: (PaperDateFormat) -> Unit,
-    onRelativeTimeChange: (Boolean) -> Unit,
-    onTabletUiModeChange: (TabletUiMode) -> Unit,
-    onShowImagesInDescriptionChange: (Boolean) -> Unit,
+    themeCatalog: CommunityThemeCatalog,
     automaticRefreshEnabled: Boolean,
-    onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
-    onProviderEnabledChange: (String, Boolean) -> Unit,
     notificationsAvailable: Boolean,
+    onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
     onOpenNotificationSettings: () -> Unit,
+    onRequestLocalPdfImport: ((String) -> Unit) -> Unit,
+    onRequestBackupExport: (RequestBackupExport) -> Unit,
+    onRequestBackupImport: (RequestBackupImport) -> Unit,
+    extensionInstalls: ExtensionInstallBindings,
+    incomingPdfRequest: IncomingPdfRequest?,
+    onIncomingPdfConsumed: (Long) -> Unit,
+    incomingPaperReferenceRequest: IncomingPaperReferenceRequest?,
+    onIncomingPaperReferenceConsumed: (Long) -> Unit,
+    openUpdatesRequestId: Long?,
+    onOpenUpdatesConsumed: (Long) -> Unit,
+    openExtensionsRequestId: Long?,
+    onOpenExtensionsConsumed: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -105,73 +78,133 @@ internal fun AppNavHost(
     val googleCanvasColor = PaperTheme.tokens.canvas.toArgb()
     val googleInkColor = PaperTheme.tokens.ink.toArgb()
     val googleDarkTheme = themeMode.resolveDarkTheme(isSystemInDarkTheme())
-    val readLibraryPaper: (PaperUi) -> Unit = { paper ->
-        val readable = paper.manifestations.firstOrNull {
-            it.source.equals("arxiv", ignoreCase = true)
+    val invalidReferenceMessage = stringResource(R.string.share_reference_invalid)
+    var activeIncomingPdfRequestId by remember { mutableStateOf<Long?>(null) }
+
+    IncomingPaperReferenceEffect(
+        request = incomingPaperReferenceRequest,
+        onNavigateToDiscover = {
+            if (navController.currentDestination?.route != AppRoutes.DISCOVER) {
+                navController.navigate(AppRoutes.DISCOVER) { launchSingleTop = true }
+            }
+        },
+        onSearch = { query ->
+            val entry = navController.getBackStackEntry(AppRoutes.DISCOVER)
+            ViewModelProvider(entry, screenViewModelFactory.discover())
+                .get(DiscoverViewModel::class.java)
+                .onAction(DiscoverAction.Search(query))
+        },
+        onInvalid = {
+            Toast.makeText(context, invalidReferenceMessage, Toast.LENGTH_LONG).show()
+        },
+        onConsumed = onIncomingPaperReferenceConsumed,
+    )
+
+    LaunchedEffect(openUpdatesRequestId) {
+        val requestId = openUpdatesRequestId ?: return@LaunchedEffect
+        if (navController.currentDestination?.route != AppRoutes.UPDATES) {
+            navController.navigate(AppRoutes.UPDATES) { launchSingleTop = true }
         }
-        val localPdf = paper.manifestations.firstOrNull { it.localCopy != null }
-        when {
-            readable != null -> context.startActivity(
-                ReadablePaperActivity.createIntent(
-                    context = context,
-                    workId = WorkId(paper.id),
-                    manifestationId = ManifestationId(readable.id),
-                    title = paper.title,
-                    themePreset = preset,
-                    themeKey = themeKey,
-                    themeMode = themeMode,
-                    showImagesInDescription = showImagesInDescription,
-                ),
+        onOpenUpdatesConsumed(requestId)
+    }
+
+    LaunchedEffect(openExtensionsRequestId) {
+        val requestId = openExtensionsRequestId ?: return@LaunchedEffect
+        if (navController.currentDestination?.route != AppRoutes.MORE_SOURCES) {
+            navController.navigateToMoreBranch(AppRoutes.MORE_SOURCES)
+        }
+        onOpenExtensionsConsumed(requestId)
+    }
+
+    LaunchedEffect(incomingPdfRequest) {
+        val request = incomingPdfRequest ?: return@LaunchedEffect
+        if (activeIncomingPdfRequestId != null) return@LaunchedEffect
+        navController.navigateToMoreBranch(AppRoutes.MORE_READING_IMPORTS)
+        val entry = navController.getBackStackEntry(AppRoutes.MORE)
+        val imports = ViewModelProvider(entry, screenViewModelFactory.readingImports())
+            .get(ReadingImportsViewModel::class.java)
+        if (imports.onAction(ReadingImportsAction.Prepare(request.uri.toString()))) {
+            activeIncomingPdfRequestId = request.id
+        } else {
+            onIncomingPdfConsumed(request.id)
+        }
+    }
+
+    NavHost(navController = navController, startDestination = AppRoutes.LIBRARY, modifier = modifier) {
+        composable(AppRoutes.LIBRARY) {
+            val libraryViewModel: LibraryViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.library() },
             )
-            localPdf != null -> scope.launch {
-                val downloaded = try {
-                    onGetDownloadedPaper(localPdf.id)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) {
-                    null
+            val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
+            val readLibraryPaper: (PaperUi) -> Unit = { paper ->
+                val readable = paper.manifestations.firstOrNull {
+                    it.source.equals("arxiv", ignoreCase = true)
                 }
-                if (downloaded == null) {
-                    navController.navigate(AppRoutes.detail(paper.id))
-                } else {
-                    context.startActivity(
-                        PdfReaderActivity.createIntent(
+                val localPdf = paper.manifestations.firstOrNull { it.localCopy != null }
+                when {
+                    readable != null -> context.startActivity(
+                        ReadablePaperActivity.createIntent(
                             context = context,
-                            downloadedPaper = downloaded,
                             workId = WorkId(paper.id),
+                            manifestationId = ManifestationId(readable.id),
                             title = paper.title,
                             themePreset = preset,
                             themeKey = themeKey,
                             themeMode = themeMode,
+                            showImagesInDescription = showImagesInDescription,
                         ),
                     )
+                    localPdf != null -> scope.launch {
+                        val downloaded = try {
+                            libraryViewModel.downloadedPaper(localPdf.id)
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            null
+                        }
+                        if (downloaded == null) {
+                            navController.navigate(AppRoutes.detail(paper.id))
+                        } else {
+                            context.startActivity(
+                                PdfReaderActivity.createIntent(
+                                    context = context,
+                                    downloadedPaper = downloaded,
+                                    workId = WorkId(paper.id),
+                                    title = paper.title,
+                                    themePreset = preset,
+                                    themeKey = themeKey,
+                                    themeMode = themeMode,
+                                ),
+                            )
+                        }
+                    }
+                    else -> navController.navigate(AppRoutes.detail(paper.id))
                 }
             }
-            else -> navController.navigate(AppRoutes.detail(paper.id))
-        }
-    }
-    NavHost(navController = navController, startDestination = AppRoutes.LIBRARY, modifier = modifier) {
-        composable(AppRoutes.LIBRARY) {
             LibraryScreen(
-                state = library,
-                collections = collections,
-                layout = libraryLayout,
-                onLayoutChange = onLibraryLayoutChange,
+                state = libraryState,
+                onAction = libraryViewModel::onAction,
                 onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
                 onDiscover = { navController.navigate(AppRoutes.DISCOVER) },
                 onReadPaper = readLibraryPaper,
             )
         }
         composable(AppRoutes.DISCOVER) {
+            val discoverViewModel: DiscoverViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.discover() },
+            )
+            val searchState by discoverViewModel.uiState.collectAsStateWithLifecycle()
+            val savedSearches by discoverViewModel.savedSearches.collectAsStateWithLifecycle()
+            val savedSearchActions by discoverViewModel.savedSearchActions.collectAsStateWithLifecycle()
             DiscoverScreen(
-                state = search,
-                onSearch = onSearch,
-                onClear = onClearSearch,
-                onSave = onSave,
+                state = searchState,
+                onSearch = { discoverViewModel.onAction(DiscoverAction.Search(it)) },
+                onClear = { discoverViewModel.onAction(DiscoverAction.ClearSearch) },
+                onSave = { discoverViewModel.onAction(DiscoverAction.Save(it)) },
                 onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
                 savedSearches = savedSearches,
                 savedSearchActions = savedSearchActions,
-                onSaveSearch = onSaveSearch,
+                onSaveSearch = { discoverViewModel.onAction(DiscoverAction.CreateSavedSearch(it)) },
                 onOpenUpdates = { navController.navigate(AppRoutes.UPDATES) { launchSingleTop = true } },
                 onSearchGoogle = { query ->
                     context.startActivity(
@@ -187,46 +220,68 @@ internal fun AppNavHost(
             )
         }
         composable(AppRoutes.UPDATES) {
+            val updatesViewModel: UpdatesViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.updates() },
+            )
+            val updatesState by updatesViewModel.uiState.collectAsStateWithLifecycle()
             UpdatesScreen(
-                tasks = tasks,
-                library = library,
-                providers = providers,
-                savedSearches = savedSearches,
-                savedSearchActions = savedSearchActions,
-                actions = downloadActions,
+                tasks = updatesState.tasks,
+                library = updatesState.library,
+                providers = updatesState.providers,
+                savedSearches = updatesState.savedSearches,
+                savedSearchActions = updatesState.savedSearchActions,
+                actions = updatesState.downloadActions,
                 onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
-                onRefreshSearch = onRefreshSavedSearch,
-                onDeleteSearch = onDeleteSavedSearch,
-                onMarkHitRead = onMarkSavedSearchHitRead,
-                onSaveHit = onSaveSavedSearchHit,
-                onCancel = onCancelDownloadTask,
-                onRetry = onRetryDownloadTask,
-                onRemove = onRemoveDownloadTask,
+                onRefreshSearch = { updatesViewModel.onAction(UpdatesAction.RefreshSearch(it)) },
+                onDeleteSearch = { updatesViewModel.onAction(UpdatesAction.DeleteSearch(it)) },
+                onMarkHitRead = { updatesViewModel.onAction(UpdatesAction.MarkHitRead(it)) },
+                onSaveHit = { updatesViewModel.onAction(UpdatesAction.SaveHit(it)) },
+                onCancel = { updatesViewModel.onAction(UpdatesAction.CancelTask(it)) },
+                onRetry = { updatesViewModel.onAction(UpdatesAction.RetryTask(it)) },
+                onRemove = { updatesViewModel.onAction(UpdatesAction.RemoveTask(it)) },
                 dateFormat = dateFormat,
                 relativeTimeEnabled = relativeTimeEnabled,
             )
         }
         composable(AppRoutes.HISTORY) {
+            val historyViewModel: HistoryViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.history() },
+            )
+            val historyState by historyViewModel.uiState.collectAsStateWithLifecycle()
             HistoryScreen(
-                state = history,
+                state = historyState,
                 onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
-                onRemove = onRemoveHistory,
+                onRemove = { historyViewModel.onAction(HistoryAction.Remove(it)) },
                 dateFormat = dateFormat,
                 relativeTimeEnabled = relativeTimeEnabled,
             )
         }
-        composable(AppRoutes.MORE) {
+        composable(AppRoutes.MORE) { entry ->
+            val moreEntry = remember(entry) { navController.getBackStackEntry(AppRoutes.MORE) }
+            val moreViewModel: MoreViewModel = viewModel(
+                viewModelStoreOwner = moreEntry,
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.more() },
+            )
+            val importsViewModel: ReadingImportsViewModel = viewModel(
+                viewModelStoreOwner = moreEntry,
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.readingImports() },
+            )
+            val backupViewModel: DataBackupViewModel = viewModel(
+                viewModelStoreOwner = moreEntry,
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.dataBackup() },
+            )
+            val moreState by moreViewModel.uiState.collectAsStateWithLifecycle()
+            val importsState by importsViewModel.uiState.collectAsStateWithLifecycle()
+            val backupState by backupViewModel.uiState.collectAsStateWithLifecycle()
+            LaunchedEffect(importsState, backupState, notificationsAvailable) {
+                moreViewModel.onAction(MoreAction.SetLocalPdfImportState(importsState))
+                moreViewModel.onAction(MoreAction.SetBackupState(backupState))
+                moreViewModel.onAction(MoreAction.SetNotificationsAvailable(notificationsAvailable))
+            }
             MoreScreen(
+                state = moreState,
                 selectedPreset = preset,
-                selectedThemeName = themeCatalog.themes.firstOrNull { it.storageKey == themeKey }?.displayName,
-                automaticRefreshEnabled = automaticRefreshEnabled,
-                notificationsAvailable = notificationsAvailable,
-                providers = providers,
-                collections = collections,
-                localPdfImportState = localPdfImport,
-                backupState = metadataBackup,
-                library = library,
-                tasks = tasks,
+                selectedThemeName = themeCatalog.themes.firstOrNull { it.storageKey == moreState.themeKey }?.displayName,
                 onOpenAppearance = { navController.navigateToMoreBranch(AppRoutes.MORE_APPEARANCE) },
                 onOpenCollections = { navController.navigateToMoreBranch(AppRoutes.MORE_COLLECTIONS) },
                 onOpenReadingImports = { navController.navigateToMoreBranch(AppRoutes.MORE_READING_IMPORTS) },
@@ -241,55 +296,146 @@ internal fun AppNavHost(
             )
         }
         composable(AppRoutes.MORE_APPEARANCE) {
+            val appearanceViewModel: AppearanceViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.appearance() },
+            )
+            val appearanceState by appearanceViewModel.uiState.collectAsStateWithLifecycle()
             AppearanceScreen(
-                selectedThemeKey = themeKey,
-                selectedThemeMode = themeMode,
+                selectedThemeKey = appearanceState.themeKey,
+                selectedThemeMode = appearanceState.themeMode,
                 communityThemes = themeCatalog.themes,
                 communityThemesLoading = themeCatalog.loading,
                 communityThemeIssues = themeCatalog.issues,
-                onThemeChange = onThemeChange,
-                onThemeModeChange = onThemeModeChange,
-                selectedLibraryLayout = libraryLayout,
-                onLibraryLayoutChange = onLibraryLayoutChange,
-                selectedDateFormat = dateFormat,
-                onDateFormatChange = onDateFormatChange,
-                relativeTimeEnabled = relativeTimeEnabled,
-                onRelativeTimeChange = onRelativeTimeChange,
-                tabletUiMode = tabletUiMode,
-                onTabletUiModeChange = onTabletUiModeChange,
-                showImagesInDescription = showImagesInDescription,
-                onShowImagesInDescriptionChange = onShowImagesInDescriptionChange,
+                onThemeChange = { appearanceViewModel.onAction(AppearanceAction.SetThemeKey(it)) },
+                onThemeModeChange = { appearanceViewModel.onAction(AppearanceAction.SetThemeMode(it)) },
+                selectedLibraryLayout = appearanceState.libraryLayout,
+                onLibraryLayoutChange = { appearanceViewModel.onAction(AppearanceAction.SetLibraryLayout(it)) },
+                selectedDateFormat = appearanceState.dateFormat,
+                onDateFormatChange = { appearanceViewModel.onAction(AppearanceAction.SetDateFormat(it)) },
+                relativeTimeEnabled = appearanceState.relativeTimeEnabled,
+                onRelativeTimeChange = { appearanceViewModel.onAction(AppearanceAction.SetRelativeTime(it)) },
+                tabletUiMode = appearanceState.tabletUiMode,
+                onTabletUiModeChange = { appearanceViewModel.onAction(AppearanceAction.SetTabletUiMode(it)) },
+                showImagesInDescription = appearanceState.showImagesInDescription,
+                onShowImagesInDescriptionChange = { appearanceViewModel.onAction(AppearanceAction.SetShowImagesInDescription(it)) },
                 onBack = navController::popBackStack,
             )
         }
-        composable(AppRoutes.MORE_COLLECTIONS) { CollectionsScreen(collections, onCreateCollection, onRenameCollection, onDeleteCollection, navController::popBackStack) }
-        composable(AppRoutes.MORE_READING_IMPORTS) { ReadingImportsScreen(localPdfImport, onRequestLocalPdfImport, onConfirmLocalPdfImport, onDismissLocalPdfImport, { navController.navigate(AppRoutes.detail(it)) }, navController::popBackStack) }
-        composable(AppRoutes.MORE_UPDATES) { UpdatesNotificationsScreen(automaticRefreshEnabled, notificationsAvailable, onAutomaticRefreshChange, onOpenNotificationSettings, navController::popBackStack) }
-        composable(AppRoutes.MORE_DATA_BACKUP) { DataBackupScreen(metadataBackup, onRequestBackupExport, onRequestBackupImport, onConfirmBackupRestore, onDismissBackupState, navController::popBackStack) }
+        composable(AppRoutes.MORE_COLLECTIONS) {
+            val collectionsViewModel: CollectionsViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.collections() },
+            )
+            val collectionsState by collectionsViewModel.uiState.collectAsStateWithLifecycle()
+            CollectionsScreen(
+                collections = collectionsState,
+                onCreateCollection = collectionsViewModel::createCollection,
+                onRenameCollection = collectionsViewModel::renameCollection,
+                onDeleteCollection = collectionsViewModel::deleteCollection,
+                onBack = navController::popBackStack,
+            )
+        }
+        composable(AppRoutes.MORE_READING_IMPORTS) { entry ->
+            val moreEntry = remember(entry) { navController.getBackStackEntry(AppRoutes.MORE) }
+            val importsViewModel: ReadingImportsViewModel = viewModel(
+                viewModelStoreOwner = moreEntry,
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.readingImports() },
+            )
+            val importsState by importsViewModel.uiState.collectAsStateWithLifecycle()
+            LaunchedEffect(importsState, activeIncomingPdfRequestId) {
+                val requestId = activeIncomingPdfRequestId
+                if (
+                    requestId != null &&
+                    (importsState is LocalPdfImportUiState.Confirming ||
+                        importsState is LocalPdfImportUiState.Failed)
+                ) {
+                    onIncomingPdfConsumed(requestId)
+                    activeIncomingPdfRequestId = null
+                }
+            }
+            ReadingImportsScreen(
+                state = importsState,
+                onRequestImport = {
+                    onRequestLocalPdfImport {
+                        importsViewModel.onAction(ReadingImportsAction.Prepare(it))
+                    }
+                },
+                onConfirmImport = { importsViewModel.onAction(ReadingImportsAction.Confirm(it)) },
+                onDismissImport = {
+                    importsViewModel.onAction(ReadingImportsAction.Dismiss)
+                    activeIncomingPdfRequestId?.let(onIncomingPdfConsumed)
+                    activeIncomingPdfRequestId = null
+                },
+                onOpenImportedPaper = { navController.navigate(AppRoutes.detail(it)) },
+                onBack = navController::popBackStack,
+            )
+        }
+        composable(AppRoutes.MORE_UPDATES) {
+            UpdatesNotificationsScreen(
+                automaticRefreshEnabled,
+                notificationsAvailable,
+                onAutomaticRefreshChange,
+                onOpenNotificationSettings,
+                navController::popBackStack,
+            )
+        }
+        composable(AppRoutes.MORE_DATA_BACKUP) { entry ->
+            val moreEntry = remember(entry) { navController.getBackStackEntry(AppRoutes.MORE) }
+            val backupViewModel: DataBackupViewModel = viewModel(
+                viewModelStoreOwner = moreEntry,
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.dataBackup() },
+            )
+            val backupState by backupViewModel.uiState.collectAsStateWithLifecycle()
+            DataBackupScreen(
+                state = backupState,
+                onRequestExport = {
+                    onRequestBackupExport { writer -> backupViewModel.createBackup(writer) }
+                },
+                onRequestImport = {
+                    onRequestBackupImport { reader -> backupViewModel.previewRestore(reader) }
+                },
+                onConfirmRestore = { backupViewModel.onAction(DataBackupAction.ConfirmRestore) },
+                onDismissState = { backupViewModel.onAction(DataBackupAction.Dismiss) },
+                onBack = navController::popBackStack,
+            )
+        }
         composable(AppRoutes.MORE_DOWNLOAD_QUEUE) {
+            val queueViewModel: DownloadQueueViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.downloadQueue() },
+            )
+            val queueState by queueViewModel.uiState.collectAsStateWithLifecycle()
             DownloadQueueScreen(
-                tasks = tasks,
-                library = library,
-                actions = downloadActions,
+                tasks = queueState.tasks,
+                library = queueState.library,
+                actions = queueState.actions,
                 onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
-                onCancel = onCancelDownloadTask,
-                onRetry = onRetryDownloadTask,
-                onRemove = onRemoveDownloadTask,
+                onCancel = { queueViewModel.onAction(DownloadQueueAction.Cancel(it)) },
+                onRetry = { queueViewModel.onAction(DownloadQueueAction.Retry(it)) },
+                onRemove = { queueViewModel.onAction(DownloadQueueAction.Remove(it)) },
                 onBack = navController::popBackStack,
             )
         }
         composable(AppRoutes.MORE_STATS) {
+            val statsViewModel: StatsViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.stats() },
+            )
+            val statsState by statsViewModel.uiState.collectAsStateWithLifecycle()
             StatsScreen(
-                library = library,
-                history = history,
-                collections = collections,
-                tasks = tasks,
-                savedSearches = savedSearches,
+                library = statsState.library,
+                history = statsState.history,
+                collections = statsState.collections,
+                tasks = statsState.tasks,
+                savedSearches = statsState.savedSearches,
                 onBack = navController::popBackStack,
             )
         }
         composable(AppRoutes.MORE_SETTINGS) {
+            val settingsViewModel: SettingsViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.settings() },
+            )
+            val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
             SettingsScreen(
+                state = settingsState,
+                onAction = settingsViewModel::onAction,
                 onOpenAppearance = { navController.navigateToMoreChild(AppRoutes.MORE_SETTINGS, AppRoutes.MORE_APPEARANCE) },
                 onOpenLibrary = { navController.navigateToMoreChild(AppRoutes.MORE_SETTINGS, AppRoutes.MORE_LIBRARY_SETTINGS) },
                 onOpenReader = { navController.navigateToMoreChild(AppRoutes.MORE_SETTINGS, AppRoutes.MORE_READER_SETTINGS) },
@@ -302,10 +448,16 @@ internal fun AppNavHost(
             )
         }
         composable(AppRoutes.MORE_LIBRARY_SETTINGS) {
+            val appearanceViewModel: AppearanceViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.appearance() },
+            )
+            val appearanceState by appearanceViewModel.uiState.collectAsStateWithLifecycle()
             LibrarySettingsScreen(
-                selectedLayout = libraryLayout,
-                onLayoutChange = onLibraryLayoutChange,
-                onOpenCollections = { navController.navigateToMoreChild(AppRoutes.MORE_LIBRARY_SETTINGS, AppRoutes.MORE_COLLECTIONS) },
+                selectedLayout = appearanceState.libraryLayout,
+                onLayoutChange = { appearanceViewModel.onAction(AppearanceAction.SetLibraryLayout(it)) },
+                onOpenCollections = {
+                    navController.navigateToMoreChild(AppRoutes.MORE_LIBRARY_SETTINGS, AppRoutes.MORE_COLLECTIONS)
+                },
                 onBack = navController::popBackStack,
             )
         }
@@ -313,56 +465,63 @@ internal fun AppNavHost(
             ReaderSettingsScreen(onBack = navController::popBackStack)
         }
         composable(AppRoutes.MORE_SOURCES) {
+            val sourcesViewModel: SourcesViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.sources() },
+            )
+            val providers by sourcesViewModel.providers.collectAsStateWithLifecycle()
+            val stores by sourcesViewModel.extensionStores.collectAsStateWithLifecycle()
+            val storeAction by sourcesViewModel.action.collectAsStateWithLifecycle()
             SourcesScreen(
                 providers = providers,
-                extensionStores = extensionStores.state,
-                extensionStoreAction = extensionStores.action,
-                onPreviewStore = extensionStores.onPreview,
-                onConfirmStore = extensionStores.onConfirm,
-                onDismissStoreAction = extensionStores.onDismissAction,
-                onRefreshStore = extensionStores.onRefresh,
-                onRemoveStore = extensionStores.onRemove,
-                installStates = extensionStores.installStates,
+                extensionStores = stores,
+                extensionStoreAction = storeAction,
+                onPreviewStore = { indexUrl, publicKey ->
+                    sourcesViewModel.onAction(SourcesAction.PreviewStore(indexUrl, publicKey))
+                },
+                onConfirmStore = { sourcesViewModel.onAction(SourcesAction.ConfirmStore) },
+                onDismissStoreAction = { sourcesViewModel.onAction(SourcesAction.DismissStoreAction) },
+                onRefreshStore = { sourcesViewModel.onAction(SourcesAction.RefreshStore(it)) },
+                onRemoveStore = { sourcesViewModel.onAction(SourcesAction.RemoveStore(it)) },
+                installStates = extensionInstalls.installStates,
                 installedThemeVersions = themeCatalog.installedVersions,
                 blockedThemePackages = themeCatalog.issues.mapTo(hashSetOf()) { it.packageName },
-                onInstallExtension = extensionStores.onInstallExtension,
-                onDismissInstallState = extensionStores.onDismissInstallState,
-                onProviderEnabledChange = onProviderEnabledChange,
+                onInstallExtension = extensionInstalls.onInstallExtension,
+                onDismissInstallState = extensionInstalls.onDismissInstallState,
+                onProviderEnabledChange = { providerId, enabled ->
+                    sourcesViewModel.onAction(SourcesAction.SetProviderEnabled(providerId, enabled))
+                },
                 onBack = navController::popBackStack,
             )
         }
         composable(AppRoutes.MORE_ABOUT) { AboutScreen(onBack = navController::popBackStack) }
         composable(AppRoutes.DETAIL, arguments = listOf(navArgument("workId") { type = NavType.StringType })) { entry ->
             val workId = entry.arguments?.getString("workId").orEmpty()
-            val detail = when (library) {
-                LoadState.Loading -> LoadState.Loading
-                LoadState.Failed -> LoadState.Failed
-                is LoadState.Ready -> LoadState.Ready(library.value.firstOrNull { it.id == workId })
-            }
+            val detailViewModel: PaperDetailViewModel = viewModel(
+                factory = remember(screenViewModelFactory, workId) { screenViewModelFactory.detail(workId) },
+            )
+            val detailState by detailViewModel.uiState.collectAsStateWithLifecycle()
             DetailScreen(
-                state = detail,
-                collections = collections,
+                state = detailState.paper,
+                collections = detailState.collections,
                 themePreset = preset,
                 themeKey = themeKey,
                 themeMode = themeMode,
-                downloadTasks = (tasks as? LoadState.Ready)?.value
+                downloadTasks = (detailState.tasks as? dev.paperreader.app.ui.state.LoadState.Ready)?.value
                     ?.filter { it.workId?.value == workId }
                     .orEmpty(),
                 showImagesInDescription = showImagesInDescription,
-                requestingManifestations = downloadActions.requestingManifestations,
-                failedManifestations = downloadActions.failedManifestations,
+                requestingManifestations = detailState.downloadActions.requestingManifestations,
+                failedManifestations = detailState.downloadActions.failedManifestations,
                 onBack = navController::popBackStack,
-                onStatusChange = { onReadingStatusChange(workId, it) },
-                onRepairSavedPaper = onRepairSavedPaper,
-                onRequestDownload = { onRequestDownload(workId, it) },
-                onGetDownloadedPaper = onGetDownloadedPaper,
-                onLoadReadablePaper = { manifestationId, retainDocumentSha256 ->
-                    onLoadReadablePaper(workId, manifestationId, retainDocumentSha256)
-                },
-                onReadReadableAsset = onReadReadableAsset,
-                onDeleteDownload = { onDeleteDownload(workId, it) },
-                onRemove = { onRemovePaper(workId) },
-                onSetCollections = { onSetPaperCollections(workId, it) },
+                onStatusChange = { detailViewModel.onAction(PaperDetailAction.SetStatus(it)) },
+                onRepairSavedPaper = { detailViewModel.onAction(PaperDetailAction.RepairSavedPaper) },
+                onRequestDownload = { detailViewModel.onAction(PaperDetailAction.RequestDownload(it)) },
+                onGetDownloadedPaper = detailViewModel::downloadedPaper,
+                onLoadReadablePaper = detailViewModel::loadReadablePaper,
+                onReadReadableAsset = detailViewModel::readReadablePaperAsset,
+                onDeleteDownload = detailViewModel::deleteDownload,
+                onRemove = detailViewModel::remove,
+                onSetCollections = detailViewModel::setCollections,
                 onRemoved = navController::popBackStack,
             )
         }

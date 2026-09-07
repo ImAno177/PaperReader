@@ -11,7 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
-class ArxivReadableResourceFetcherTest {
+class OkHttpReadableAssetFetcherTest {
     @Test
     fun `returns bounded html with the configured identity headers`() = runTest {
         val server = MockWebServer()
@@ -116,28 +116,29 @@ class ArxivReadableResourceFetcherTest {
     @Test
     fun `validates constructor limits`() {
         assertThrows(IllegalArgumentException::class.java) {
-            ArxivReadableResourceFetcher(OkHttpClient(), " ", null, 0, "arxiv.org", "https")
+            OkHttpReadableAssetFetcher(OkHttpClient(), " ", null, "example.org", "https")
         }
         assertThrows(IllegalArgumentException::class.java) {
-            ArxivReadableResourceFetcher(OkHttpClient(), "PaperReader/Test", null, 0, "", "https")
+            OkHttpReadableAssetFetcher(OkHttpClient(), "PaperReader/Test", null, "", "https")
         }
         assertThrows(IllegalArgumentException::class.java) {
-            ArxivReadableResourceFetcher(OkHttpClient(), "PaperReader/Test", null, 0, "arxiv.org", "ftp")
+            OkHttpReadableAssetFetcher(OkHttpClient(), "PaperReader/Test", null, "example.org", "ftp")
         }
     }
 
-    private fun testFetcher(server: MockWebServer) = ArxivReadableResourceFetcher(
+    private fun testFetcher(server: MockWebServer) = OkHttpReadableAssetFetcher(
         client = OkHttpClient.Builder().retryOnConnectionFailure(false).build(),
         userAgent = "PaperReader/Test",
         contactEmail = null,
-        minimumRequestIntervalMillis = 0,
         allowedHost = server.hostName,
         allowedScheme = "http",
+        allowNonDefaultPort = true,
     )
 
     private fun request(server: MockWebServer, maximumBytes: Long) = ReadableResourceRequest(
         url = server.url("/paper").toString(),
         accept = "text/html",
         maximumBytes = maximumBytes,
+        kind = dev.paperreader.logic.reader.ReadableResourceKind.ASSET,
     )
 }

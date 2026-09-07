@@ -9,6 +9,8 @@ current branch. Released sections correspond to Git tags.
 
 - A dedicated More hub with grouped settings and a focused Download queue showing aggregate and
   per-task progress, retry/cancel/remove actions, completed work, and a visible back action.
+- Five built-in color themes now sit alongside the unchanged Neobrutalism preset; color mode stays
+  independently selectable as System, Light, or Dark.
 - A versioned readable_document extension capability. The arXiv source now owns structural HTML
   sanitization while the host receives bounded Binder chunks and materializes same-document assets
   through a separate lane.
@@ -42,7 +44,7 @@ current branch. Released sections correspond to Git tags.
 ### Added
 
 - More now groups download queue, reading stats, searchable settings, help, and existing data
-  management in one Mihon-inspired hub while retaining PaperReader's neobrutalist surfaces.
+  management in one focused hub while retaining PaperReader's neobrutalist surfaces.
 - Appearance now controls library layout, large-screen navigation, date/relative timestamps, and
   figure visibility in mobile papers. Reader settings expose persistent text size, spacing, and
   margin defaults.

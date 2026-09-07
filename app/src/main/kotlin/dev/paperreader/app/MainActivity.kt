@@ -89,6 +89,7 @@ class MainActivity : ComponentActivity() {
             acceptOpenUpdates(intent) ||
             acceptOpenExtensions(intent)
         ) {
+            intent.addFlags(this.intent.flags)
             setIntent(intent)
         }
     }
@@ -158,6 +159,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun neutralizeConsumedIntent() {
+        if (intent.action == Intent.ACTION_SEND && intent.type != null) {
+            val mediaType = intent.type
+            intent.replaceExtras(Bundle())
+            intent.clipData = null
+            intent.setDataAndType(null, mediaType)
+            return
+        }
         setIntent(
             Intent(Intent.ACTION_MAIN)
                 .setClass(this, MainActivity::class.java)

@@ -5,6 +5,7 @@ import dev.paperreader.logic.PaperReaderLogic
 import dev.paperreader.logic.domain.LocalPdfImportFailure
 import dev.paperreader.logic.domain.LocalPdfImportResult
 import dev.paperreader.logic.domain.PrepareLocalPdfResult
+import dev.paperreader.logic.domain.localPdfSourceKey
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.NonCancellable
@@ -18,6 +19,8 @@ internal class PaperReaderLocalPdfImportController(
     private val scope: CoroutineScope,
 ) {
     private val mutableState = MutableStateFlow<LocalPdfImportUiState>(LocalPdfImportUiState.Preparing)
+    private var recoveryCompleted = false
+    private var queuedSourceUri: String? = null
     val state: StateFlow<LocalPdfImportUiState> = mutableState
 
     init {
@@ -25,7 +28,16 @@ internal class PaperReaderLocalPdfImportController(
     }
 
     fun prepare(sourceUri: String): Boolean {
+        if (mutableState.value == LocalPdfImportUiState.Preparing && !recoveryCompleted) {
+            queuedSourceUri = sourceUri
+            return true
+        }
         if (!mutableState.value.canStartLocalPdfImport()) return false
+        startPrepare(sourceUri)
+        return true
+    }
+
+    private fun startPrepare(sourceUri: String) {
         mutableState.value = LocalPdfImportUiState.Preparing
         scope.launch {
             try {
@@ -40,7 +52,6 @@ internal class PaperReaderLocalPdfImportController(
                 mutableState.value = LocalPdfImportUiState.Failed(LocalPdfImportFailure.IO_FAILURE)
             }
         }
-        return true
     }
 
     fun confirm(title: String) {
@@ -114,13 +125,26 @@ internal class PaperReaderLocalPdfImportController(
     private fun recoverPendingImport() {
         scope.launch {
             try {
-                mutableState.value = logic.useCases.recoverPendingLocalPdf.await()
-                    ?.let(LocalPdfImportUiState::Confirming)
-                    ?: LocalPdfImportUiState.Idle
+                val recovered = logic.useCases.recoverPendingLocalPdf.await()
+                recoveryCompleted = true
+                val queued = queuedSourceUri
+                queuedSourceUri = null
+                when {
+                    queued == null -> {
+                        mutableState.value = recovered?.let(LocalPdfImportUiState::Confirming)
+                            ?: LocalPdfImportUiState.Idle
+                    }
+                    recovered?.sourceKey == localPdfSourceKey(queued) -> {
+                        mutableState.value = LocalPdfImportUiState.Confirming(recovered)
+                    }
+                    else -> startPrepare(queued)
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                mutableState.value = LocalPdfImportUiState.Failed(LocalPdfImportFailure.IO_FAILURE)
+                recoveryCompleted = true
+                queuedSourceUri?.let { queuedSourceUri = null; startPrepare(it) }
+                    ?: run { mutableState.value = LocalPdfImportUiState.Failed(LocalPdfImportFailure.IO_FAILURE) }
             }
         }
     }

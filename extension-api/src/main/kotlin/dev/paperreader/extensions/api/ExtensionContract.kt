@@ -136,6 +136,7 @@ internal object Keys {
     const val READABLE_PROVIDER_RECORD_ID = "readable_provider_record_id"
     const val READABLE_VERSION = "readable_version"
     const val READABLE_TITLE = "readable_title"
+    const val READABLE_CONTRACT_VERSION = "readable_contract_version"
     const val READABLE_SOURCE_URL = "readable_source_url"
     const val READABLE_SOURCE_VERSION = "readable_source_version"
     const val READABLE_SOURCE_SHA256 = "readable_source_sha256"

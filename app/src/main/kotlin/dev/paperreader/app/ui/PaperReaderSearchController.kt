@@ -4,6 +4,8 @@ import dev.paperreader.app.ui.model.SearchPaperUi
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.persistedSavedWorkIds
 import dev.paperreader.app.ui.model.toSearchPaperUi
+import dev.paperreader.app.ui.state.LoadState
+import dev.paperreader.app.ui.state.asLoadState
 import dev.paperreader.app.settings.PaperReaderPreferences
 import dev.paperreader.logic.PaperReaderLogic
 import dev.paperreader.logic.domain.SavedSearchFeed
@@ -28,11 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -492,17 +490,3 @@ private fun ProviderException.toUiFailure(
         kind = ProviderFailureKind.UNAVAILABLE,
     )
 }
-
-private fun <T, R> Flow<T>.asLoadState(
-    scope: CoroutineScope,
-    transform: (T) -> R,
-): StateFlow<LoadState<R>> = map<T, LoadState<R>> { LoadState.Ready(transform(it)) }
-    .catch { error ->
-        if (error is CancellationException) throw error
-        emit(LoadState.Failed)
-    }
-    .stateIn(
-        scope = scope,
-        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
-        initialValue = LoadState.Loading,
-    )

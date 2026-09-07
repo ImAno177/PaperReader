@@ -60,7 +60,6 @@ import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperTheme
 import dev.paperreader.app.ui.theme.PaperThemeMode
 import dev.paperreader.app.ui.theme.PaperThemePreset
-import dev.paperreader.logic.plugin.ExtensionStoreRegistryState
 import dev.paperreader.logic.plugin.VerifiedExtensionRelease
 
 internal object AppRoutes {
@@ -106,14 +105,7 @@ enum class TabletUiMode(
     }
 }
 
-internal data class ExtensionStoreBindings(
-    val state: ExtensionStoreRegistryState,
-    val action: ExtensionStoreActionUiState,
-    val onPreview: (String, String) -> Unit,
-    val onConfirm: () -> Unit,
-    val onDismissAction: () -> Unit,
-    val onRefresh: (String) -> Unit,
-    val onRemove: (String) -> Unit,
+internal data class ExtensionInstallBindings(
     val installStates: Map<String, ExtensionInstallState>,
     val onInstallExtension: (VerifiedExtensionRelease) -> Unit,
     val onDismissInstallState: (String) -> Unit,

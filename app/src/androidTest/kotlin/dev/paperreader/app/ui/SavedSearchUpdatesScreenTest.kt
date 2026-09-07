@@ -1,5 +1,6 @@
 package dev.paperreader.app.ui
 
+import dev.paperreader.app.ui.state.LoadState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

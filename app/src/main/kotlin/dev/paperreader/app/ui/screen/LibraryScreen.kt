@@ -35,7 +35,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,7 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
-import dev.paperreader.app.ui.LoadState
+import dev.paperreader.app.ui.state.LoadState
 import dev.paperreader.app.ui.components.PaperAppBarTitle
 import dev.paperreader.app.ui.components.PaperLabel
 import dev.paperreader.app.ui.components.PaperSectionHeader
@@ -66,33 +65,29 @@ import dev.paperreader.app.ui.theme.PaperIconKey
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
-    state: LoadState<List<PaperUi>>,
-    collections: LoadState<List<PaperCollectionUi>> = LoadState.Loading,
-    layout: LibraryLayout = LibraryLayout.LIST,
-    onLayoutChange: (LibraryLayout) -> Unit,
+    state: LibraryUiState,
+    onAction: (LibraryAction) -> Unit,
     onOpenPaper: (String) -> Unit,
     onDiscover: () -> Unit,
     onReadPaper: (PaperUi) -> Unit = { onOpenPaper(it.id) },
 ) {
-    val grid = layout == LibraryLayout.GRID
+    val grid = state.layout == LibraryLayout.GRID
     var searchVisible by rememberSaveable { mutableStateOf(false) }
-    var query by rememberSaveable { mutableStateOf("") }
-    var statusFilter by rememberSaveable { mutableStateOf(LibraryStatusFilter.ALL) }
-    var selectedCollectionId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var sortOrder by rememberSaveable { mutableStateOf(LibrarySortOrder.RECENTLY_SAVED) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
-    val papers = (state as? LoadState.Ready)?.value.orEmpty()
-    LaunchedEffect(collections, selectedCollectionId) {
-        if (
-            collections is LoadState.Ready &&
-            selectedCollectionId != null &&
-            collections.value.none { it.id == selectedCollectionId }
-        ) {
-            selectedCollectionId = null
-        }
-    }
-    val visiblePapers = remember(papers, query, statusFilter, sortOrder, selectedCollectionId) {
-        papers.filterAndSortLibrary(query, statusFilter, sortOrder, selectedCollectionId)
+    val papers = (state.papers as? LoadState.Ready)?.value.orEmpty()
+    val visiblePapers = remember(
+        papers,
+        state.query,
+        state.statusFilter,
+        state.sortOrder,
+        state.selectedCollectionId,
+    ) {
+        papers.filterAndSortLibrary(
+            state.query,
+            state.statusFilter,
+            state.sortOrder,
+            state.selectedCollectionId,
+        )
     }
     Scaffold(
         topBar = {
@@ -103,7 +98,7 @@ fun LibraryScreen(
                         IconButton(
                             onClick = {
                                 searchVisible = !searchVisible
-                                if (!searchVisible) query = ""
+                                if (!searchVisible) onAction(LibraryAction.SetQuery(""))
                             },
                             modifier = Modifier.size(48.dp),
                         ) {
@@ -126,12 +121,12 @@ fun LibraryScreen(
                                     DropdownMenuItem(
                                         text = { Text(librarySortLabel(option)) },
                                         onClick = {
-                                            sortOrder = option
+                                            onAction(LibraryAction.SetSortOrder(option))
                                             sortMenuExpanded = false
                                         },
                                         leadingIcon = {
                                             RadioButton(
-                                                selected = option == sortOrder,
+                                                selected = option == state.sortOrder,
                                                 onClick = null,
                                                 colors = RadioButtonDefaults.colors(
                                                     selectedColor = PaperTheme.tokens.ink,
@@ -147,7 +142,7 @@ fun LibraryScreen(
                     if (papers.isNotEmpty()) {
                         IconButton(
                             onClick = {
-                                onLayoutChange(if (grid) LibraryLayout.LIST else LibraryLayout.GRID)
+                                onAction(LibraryAction.SetLayout(if (grid) LibraryLayout.LIST else LibraryLayout.GRID))
                             },
                             modifier = Modifier.size(48.dp),
                         ) {
@@ -163,7 +158,7 @@ fun LibraryScreen(
         },
         containerColor = PaperTheme.tokens.canvas,
     ) { padding ->
-        when (state) {
+        when (state.papers) {
             LoadState.Loading -> PaperStatePanel(
                 title = stringResource(R.string.library_loading_title),
                 loading = true,
@@ -177,7 +172,7 @@ fun LibraryScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
             )
 
-            is LoadState.Ready -> if (state.value.isEmpty()) {
+            is LoadState.Ready -> if (state.papers.value.isEmpty()) {
                 PaperStatePanel(
                     title = stringResource(R.string.library_empty_title),
                     body = stringResource(R.string.library_empty_body),
@@ -191,13 +186,13 @@ fun LibraryScreen(
                     LibraryControls(
                         papers = papers,
                         searchVisible = searchVisible,
-                        query = query,
-                        onQueryChange = { query = it },
-                        statusFilter = statusFilter,
-                        onStatusFilterChange = { statusFilter = it },
-                        collections = collections,
-                        selectedCollectionId = selectedCollectionId,
-                        onCollectionChange = { selectedCollectionId = it },
+                        query = state.query,
+                        onQueryChange = { onAction(LibraryAction.SetQuery(it)) },
+                        statusFilter = state.statusFilter,
+                        onStatusFilterChange = { onAction(LibraryAction.SetStatusFilter(it)) },
+                        collections = state.collections,
+                        selectedCollectionId = state.selectedCollectionId,
+                        onCollectionChange = { onAction(LibraryAction.SetCollection(it)) },
                     )
                     if (visiblePapers.isEmpty()) {
                         PaperStatePanel(
@@ -212,7 +207,7 @@ fun LibraryScreen(
                             padding = PaddingValues(0.dp),
                             onOpenPaper = onOpenPaper,
                             onReadPaper = onReadPaper,
-                            sectionTitle = librarySortLabel(sortOrder),
+                            sectionTitle = librarySortLabel(state.sortOrder),
                             totalCount = papers.size,
                         )
                     } else {
@@ -221,7 +216,7 @@ fun LibraryScreen(
                             padding = PaddingValues(0.dp),
                             onOpenPaper = onOpenPaper,
                             onReadPaper = onReadPaper,
-                            sectionTitle = librarySortLabel(sortOrder),
+                            sectionTitle = librarySortLabel(state.sortOrder),
                             totalCount = papers.size,
                         )
                     }
@@ -229,6 +224,47 @@ fun LibraryScreen(
             }
         }
     }
+}
+
+/** Compatibility seam for existing root-screen tests while routes use [LibraryUiState]. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LibraryScreen(
+    state: LoadState<List<PaperUi>>,
+    collections: LoadState<List<PaperCollectionUi>> = LoadState.Loading,
+    layout: LibraryLayout = LibraryLayout.LIST,
+    onLayoutChange: (LibraryLayout) -> Unit,
+    onOpenPaper: (String) -> Unit,
+    onDiscover: () -> Unit,
+    onReadPaper: (PaperUi) -> Unit = { onOpenPaper(it.id) },
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    var statusFilter by rememberSaveable { mutableStateOf(LibraryStatusFilter.ALL) }
+    var selectedCollectionId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var sortOrder by rememberSaveable { mutableStateOf(LibrarySortOrder.RECENTLY_SAVED) }
+    LibraryScreen(
+        state = LibraryUiState(
+            papers = state,
+            collections = collections,
+            layout = layout,
+            query = query,
+            statusFilter = statusFilter,
+            selectedCollectionId = selectedCollectionId,
+            sortOrder = sortOrder,
+        ),
+        onAction = { action ->
+            when (action) {
+                is LibraryAction.SetLayout -> onLayoutChange(action.layout)
+                is LibraryAction.SetQuery -> query = action.query
+                is LibraryAction.SetStatusFilter -> statusFilter = action.filter
+                is LibraryAction.SetCollection -> selectedCollectionId = action.id
+                is LibraryAction.SetSortOrder -> sortOrder = action.sortOrder
+            }
+        },
+        onOpenPaper = onOpenPaper,
+        onDiscover = onDiscover,
+        onReadPaper = onReadPaper,
+    )
 }
 
 @Composable

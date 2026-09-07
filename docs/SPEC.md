@@ -24,7 +24,7 @@ and may be unavailable until the corresponding signed extension is installed.
 | Paper files | Per-version PDF download and readable HTML export from Paper Detail. After export, PaperReader attempts to retain the exact verified app-private artifact used by Read. |
 | Original documents | Bounded PDF download and an in-app PDF reader with search, page navigation, progress, and bookmarks. |
 | Extensions | Separate source and theme APKs over versioned AIDL, signed stores, package verification, user-confirmed PackageInstaller flows, update/orphan/untrusted states, and community extension discovery. |
-| Appearance and access | English UI, a Neobrutalism preset, complete community themes, System/Light/Dark mode, adaptive navigation, and 48 dp semantic touch targets. |
+| Appearance and access | English UI, the original Neobrutalism preset, five built-in color themes, complete community themes, System/Light/Dark mode, adaptive navigation, and 48 dp semantic touch targets. |
 | Privacy and safety | Local-first metadata and reading state, no analytics or advertising SDK, bounded network access, sanitized remote HTML, provenance and license retention, and exact-document annotation anchors. |
 
 ## Release scope and status
@@ -61,8 +61,10 @@ Bottom-navigation outlines align with the content grid, while independent touch 
 
 Appearance has independent controls for visual preset and System/Light/Dark mode. The built-in
 Neobrutalism preset uses Material Symbols, a restrained sun-yellow accent, 5 dp corners, 2 dp
-outlines, and subtle 1 dp bottom-only shadows. Dark mode inverts neutral surfaces, text, outlines,
-and shadows while preserving accent, container, selection, and status colors. A theme extension
+outlines, and subtle 1 dp bottom-only shadows; these original tokens remain unchanged. Five
+additional built-in color themes provide ocean, forest, violet, rose, and sunset accents on a
+calm reading surface. Dark mode inverts neutral surfaces, text, outlines, and shadows while
+preserving each theme's accent, container, selection, and status colors. A theme extension
 supplies a complete semantic icon set with its declarative tokens. The legacy `DOODLE` extension
 decoration remains readable for binary
 compatibility but is not a built-in preset. Empty-state headlines are unframed and keep the same

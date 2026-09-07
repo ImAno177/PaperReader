@@ -1,114 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/readable_reader_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/readable_reader_toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/colorSurface"
-        android:minHeight="72dp"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp"
-        app:contentInsetEndWithActions="4dp"
-        app:contentInsetStartWithNavigation="4dp"
-        app:subtitleTextColor="?attr/colorOnSurfaceVariant"
-        app:titleTextColor="?attr/colorOnSurface" />
-
-    <LinearLayout
-        android:id="@+id/readable_reader_find_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/colorSurface"
-        android:gravity="center_vertical"
-        android:minHeight="64dp"
-        android:orientation="horizontal"
-        android:paddingStart="12dp"
-        android:paddingTop="6dp"
-        android:paddingEnd="4dp"
-        android:paddingBottom="6dp"
-        android:visibility="gone">
-
-        <EditText
-            android:id="@+id/readable_reader_find_query"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="@string/readable_reader_search_hint"
-            android:imeOptions="actionSearch"
-            android:inputType="text"
-            android:maxLines="1"
-            android:minHeight="48dp"
-            android:selectAllOnFocus="false"
-            android:textColor="?attr/colorOnSurface"
-            android:textColorHint="?attr/colorOnSurfaceVariant" />
-
-        <TextView
-            android:id="@+id/readable_reader_find_result"
-            android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:accessibilityLiveRegion="polite"
-            android:gravity="center"
-            android:minWidth="56dp"
-            android:paddingHorizontal="4dp"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
-            android:textColor="?attr/colorOnSurfaceVariant" />
-
-        <ImageButton
-            android:id="@+id/readable_reader_find_previous"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/readable_reader_search_previous"
-            android:enabled="false"
-            android:padding="12dp" />
-
-        <ImageButton
-            android:id="@+id/readable_reader_find_next"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/readable_reader_search_next"
-            android:enabled="false"
-            android:padding="12dp" />
-
-        <ImageButton
-            android:id="@+id/readable_reader_find_close"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/readable_reader_search_close"
-            android:padding="12dp" />
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/readable_reader_provenance"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/colorSurfaceVariant"
-        android:clickable="true"
-        android:ellipsize="end"
-        android:focusable="true"
-        android:foreground="?attr/selectableItemBackground"
-        android:accessibilityLiveRegion="polite"
-        android:maxLines="1"
-        android:minHeight="48dp"
-        android:paddingStart="16dp"
-        android:paddingTop="10dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="10dp"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:visibility="gone" />
-
+    android:layout_height="match_parent">
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
         android:background="?attr/colorSurfaceVariant">
 
         <dev.paperreader.app.reader.ReadablePaperWebView
@@ -216,4 +114,111 @@
         </LinearLayout>
 
     </FrameLayout>
-</LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/readable_reader_chrome"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:elevation="4dp"
+        android:orientation="vertical">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/readable_reader_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorSurface"
+            android:minHeight="72dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            app:contentInsetEndWithActions="4dp"
+            app:contentInsetStartWithNavigation="4dp"
+            app:subtitleTextColor="?attr/colorOnSurfaceVariant"
+            app:titleTextColor="?attr/colorOnSurface" />
+
+        <LinearLayout
+            android:id="@+id/readable_reader_find_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorSurface"
+            android:gravity="center_vertical"
+            android:minHeight="64dp"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="6dp"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/readable_reader_find_query"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/readable_reader_search_hint"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1"
+                android:minHeight="48dp"
+                android:selectAllOnFocus="false"
+                android:textColor="?attr/colorOnSurface"
+                android:textColorHint="?attr/colorOnSurfaceVariant" />
+
+            <TextView
+                android:id="@+id/readable_reader_find_result"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:accessibilityLiveRegion="polite"
+                android:gravity="center"
+                android:minWidth="56dp"
+                android:paddingHorizontal="4dp"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <ImageButton
+                android:id="@+id/readable_reader_find_previous"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/readable_reader_search_previous"
+                android:enabled="false"
+                android:padding="12dp" />
+
+            <ImageButton
+                android:id="@+id/readable_reader_find_next"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/readable_reader_search_next"
+                android:enabled="false"
+                android:padding="12dp" />
+
+            <ImageButton
+                android:id="@+id/readable_reader_find_close"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/readable_reader_search_close"
+                android:padding="12dp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/readable_reader_provenance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorSurfaceVariant"
+            android:clickable="true"
+            android:ellipsize="end"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:accessibilityLiveRegion="polite"
+            android:maxLines="1"
+            android:minHeight="48dp"
+            android:paddingStart="16dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="10dp"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>

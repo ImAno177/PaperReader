@@ -25,7 +25,7 @@ import dev.paperreader.logic.usecase.paperReaderUseCases
 import dev.paperreader.logic.task.TaskCoordinator
 import dev.paperreader.logic.task.PaperDownloadCoordinator
 import dev.paperreader.logic.network.PdfDownloader
-import dev.paperreader.logic.network.ArxivReadableResourceFetcher
+import dev.paperreader.logic.network.OkHttpReadableAssetFetcher
 import dev.paperreader.logic.reader.PluginReadablePaperLoader
 import dev.paperreader.logic.reader.ReadablePaperCache
 import dev.paperreader.logic.reader.ReadablePaperAssetContent
@@ -115,12 +115,13 @@ class PaperReaderLogic private constructor(
                 },
             )
             val tasks = TaskCoordinator(RoomTaskRepository(database))
+            val httpClient = OkHttpClient()
             val downloads = PaperDownloadCoordinator(
                 library = library,
                 localFiles = RoomLocalFileRepository(database),
                 tasks = tasks,
                 downloader = PdfDownloader(
-                    client = OkHttpClient(),
+                    client = httpClient,
                     userAgent = configuration.userAgent,
                     contactEmail = configuration.contactEmail,
                     maximumBytes = configuration.maximumPdfBytes,
@@ -144,13 +145,13 @@ class PaperReaderLogic private constructor(
             val savedSearches = RoomSavedSearchRepository(database)
             val readablePaperLoader = PluginReadablePaperLoader(
                 transportForProvider = sourceExtensionCoordinator::readableTransport,
-                fetcher = ArxivReadableResourceFetcher(
-                    client = OkHttpClient(),
+                fetcher = OkHttpReadableAssetFetcher(
+                    client = httpClient,
                     userAgent = configuration.userAgent,
                     contactEmail = configuration.contactEmail,
                 ),
                 cache = ReadablePaperCache(
-                    applicationContext.filesDir.toPath().resolve("readable-cache/arxiv-html"),
+                    applicationContext.filesDir.toPath().resolve("readable-cache"),
                 ),
             )
             return PaperReaderLogic(

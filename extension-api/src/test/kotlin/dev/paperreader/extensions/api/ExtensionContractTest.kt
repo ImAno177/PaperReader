@@ -49,6 +49,20 @@ class ExtensionContractTest {
     }
 
     @Test
+    fun `readable metadata versions its wire contract and validates bounds`() {
+        val current = readableMetadata(contractVersion = "arxiv-html-1")
+
+        assertEquals("arxiv-html-1", current.contractVersion)
+        assertEquals(LEGACY_READABLE_CONTRACT_VERSION, readableMetadata().contractVersion)
+        assertThrows(IllegalArgumentException::class.java) {
+            readableMetadata(contractVersion = "UPPERCASE")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            readableMetadata(contractVersion = "x".repeat(65))
+        }
+    }
+
+    @Test
     fun `community theme requires a complete semantic icon set`() {
         assertThrows(IllegalArgumentException::class.java) {
             theme(iconKeys = ThemeSemanticIcon.entries.dropLast(1).toSet())
@@ -103,6 +117,20 @@ class ExtensionContractTest {
         emptyStateAccent = OPAQUE,
         selection = OPAQUE,
         hardShadow = OPAQUE,
+    )
+
+    private fun readableMetadata(contractVersion: String = LEGACY_READABLE_CONTRACT_VERSION) = SourceReadableDocumentMetadata(
+        requestId = "request-1",
+        title = "Readable paper",
+        contractVersion = contractVersion,
+        sourceUrl = "https://example.org/paper",
+        sourceVersion = "v1",
+        license = null,
+        sourceSha256 = "a".repeat(64),
+        documentSha256 = "b".repeat(64),
+        sections = emptyList(),
+        warnings = emptySet(),
+        assets = emptyList(),
     )
 
     private companion object {

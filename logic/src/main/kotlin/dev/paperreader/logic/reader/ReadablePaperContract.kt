@@ -5,8 +5,8 @@ import java.io.InputStream
 import java.time.Instant
 import org.jsoup.nodes.Document
 
-/** Version of the arXiv HTML sanitization contract embedded in cached/exported documents. */
-const val ARXIV_READABLE_SANITIZER_POLICY_VERSION = "arxiv-html-sanitizer-16"
+/** Renderer contract embedded in cache identity and exported readable documents. */
+const val READABLE_RENDERER_CONTRACT_VERSION = "mobile-html-10"
 
 data class ReadablePaperDocument(
     /** A sanitized fragment. Presentation and the CSP remain owned by the UI renderer. */
@@ -27,6 +27,9 @@ data class ReadablePaperDocument(
     /** Opaque metadata for locally cached figure assets; no filesystem path is exposed. */
     val assetGroupKey: String? = null,
     val assets: List<ReadablePaperAsset> = emptyList(),
+    val sourceRecordId: String = "",
+    val readableContractVersion: String = "legacy",
+    val rendererContractVersion: String = READABLE_RENDERER_CONTRACT_VERSION,
 )
 
 data class ReadablePaperAsset(

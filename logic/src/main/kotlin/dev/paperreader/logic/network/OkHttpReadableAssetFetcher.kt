@@ -7,7 +7,7 @@ import dev.paperreader.logic.reader.ReadableResourceKind
 import dev.paperreader.logic.reader.ReadableResourceRequest
 import java.io.IOException
 import java.net.URI
-import java.util.concurrent.CancellationException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -16,49 +16,52 @@ import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
-internal class ArxivReadableResourceFetcher(
+/** Bounded host-side asset transport. Document bytes stay on the extension/Binder lane. */
+internal class OkHttpReadableAssetFetcher(
     private val client: OkHttpClient,
     private val userAgent: String,
     private val contactEmail: String?,
-    minimumRequestIntervalMillis: Long = DEFAULT_REQUEST_INTERVAL_MILLIS,
-    private val allowedHost: String = "arxiv.org",
+    private val allowedHost: String? = null,
     private val allowedScheme: String = "https",
+    private val allowNonDefaultPort: Boolean = false,
     maximumConcurrentAssets: Int = DEFAULT_MAXIMUM_CONCURRENT_ASSETS,
 ) : ReadableResourceFetcher {
-    private val requestGate = ProviderRequestGate(minimumRequestIntervalMillis)
-    private val assetPermits = Semaphore(maximumConcurrentAssets)
+    private val permits = Semaphore(maximumConcurrentAssets)
 
     init {
         require(userAgent.isNotBlank())
-        require(minimumRequestIntervalMillis >= 0)
-        require(allowedHost.isNotBlank())
+        require(contactEmail == null || contactEmail.isNotBlank())
+        require(allowedHost == null || allowedHost.isNotBlank())
         require(allowedScheme in setOf("http", "https"))
         require(maximumConcurrentAssets > 0)
     }
 
-    override suspend fun fetch(request: ReadableResourceRequest): ReadableRemoteResult = when (request.kind) {
-        ReadableResourceKind.DOCUMENT -> requestGate.execute { fetchWithoutRateGate(request) }
-        // Figure assets use a separate, bounded lane so one HTML document cannot serialize every
-        // asset behind the document/API gate. The semaphore still caps simultaneous arXiv asset
-        // connections and keeps cancellation tied to the caller's fetch.
-        ReadableResourceKind.ASSET -> assetPermits.withPermit { fetchWithoutRateGate(request) }
+    override suspend fun fetch(request: ReadableResourceRequest): ReadableRemoteResult {
+        if (request.kind != ReadableResourceKind.ASSET) return ReadableRemoteResult.Invalid
+        return permits.withPermit { fetchAsset(request) }
     }
 
-    private suspend fun fetchWithoutRateGate(request: ReadableResourceRequest): ReadableRemoteResult {
+    private suspend fun fetchAsset(request: ReadableResourceRequest): ReadableRemoteResult {
         val requestedUri = runCatching { URI(request.url) }.getOrNull()
             ?: return ReadableRemoteResult.Invalid
         if (!requestedUri.isAllowed()) return ReadableRemoteResult.Invalid
-        val httpRequest = Request.Builder()
-            .url(request.url)
-            .header("Accept", request.accept)
-            .header("User-Agent", userAgent)
-            .apply { if (!contactEmail.isNullOrBlank()) header("From", contactEmail) }
-            .build()
+        val httpRequest = runCatching {
+            Request.Builder()
+                .url(request.url)
+                .header("Accept", request.accept)
+                .header("User-Agent", userAgent)
+                .apply { if (!contactEmail.isNullOrBlank()) header("From", contactEmail) }
+                .build()
+        }.getOrNull() ?: return ReadableRemoteResult.Invalid
         return try {
             client.newCall(httpRequest).awaitReadable().use { response ->
                 val finalUri = response.request.url.toUri()
-                if (!finalUri.isAllowed()) return ReadableRemoteResult.Invalid
+                if (!finalUri.isAllowed() || !finalUri.host.equals(requestedUri.host, ignoreCase = true)) {
+                    return ReadableRemoteResult.Invalid
+                }
                 when {
                     response.code == 404 || response.code == 410 -> ReadableRemoteResult.NotFound
                     response.code == 429 -> ReadableRemoteResult.RateLimited(
@@ -83,8 +86,7 @@ internal class ArxivReadableResourceFetcher(
     private fun Response.readBounded(maximumBytes: Long): ReadableRemoteResult {
         if (maximumBytes <= 0) return ReadableRemoteResult.Invalid
         val responseBody = body ?: return ReadableRemoteResult.Invalid
-        val announcedLength = responseBody.contentLength()
-        if (announcedLength > maximumBytes) return ReadableRemoteResult.TooLarge
+        if (responseBody.contentLength() > maximumBytes) return ReadableRemoteResult.TooLarge
         val mediaType = responseBody.contentType()?.toString()?.takeIf(String::isNotBlank)
             ?: return ReadableRemoteResult.Invalid
         val source = responseBody.source()
@@ -95,12 +97,14 @@ internal class ArxivReadableResourceFetcher(
     }
 
     private fun URI.isAllowed(): Boolean =
-        scheme == allowedScheme && host == allowedHost && userInfo == null &&
-            (port == -1 || allowedScheme == "http") && fragment == null
+        scheme == allowedScheme &&
+            host != null &&
+            (allowedHost == null || host.equals(allowedHost, ignoreCase = true)) &&
+            userInfo == null &&
+            fragment == null &&
+            (allowNonDefaultPort || port == -1)
 
     companion object {
-        /** Document requests use arXiv's documented three-second interval. */
-        private const val DEFAULT_REQUEST_INTERVAL_MILLIS = 3_000L
         private const val DEFAULT_MAXIMUM_CONCURRENT_ASSETS = 4
     }
 }
@@ -110,11 +114,15 @@ private suspend fun Call.awaitReadable(): Response = suspendCancellableCoroutine
     enqueue(
         object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                continuation.resumeWith(Result.failure(e))
+                if (continuation.isActive) continuation.resumeWithException(e)
             }
 
             override fun onResponse(call: Call, response: Response) {
-                continuation.resume(response) { _, value, _ -> value.close() }
+                if (continuation.isActive) {
+                    continuation.resume(response) { _, value, _ -> value.close() }
+                } else {
+                    response.close()
+                }
             }
         },
     )

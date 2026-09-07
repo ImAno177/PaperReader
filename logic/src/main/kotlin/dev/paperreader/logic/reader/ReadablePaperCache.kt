@@ -18,6 +18,11 @@ internal data class CachedReadablePaper(
     val keptForOffline: Boolean = false,
     val assetGroupKey: String? = null,
     val assets: List<ReadablePaperAsset> = emptyList(),
+    val sourceProvider: String = "",
+    val sourceRecordId: String = "",
+    val sourceVersion: String = "",
+    val readableContractVersion: String = "legacy",
+    val rendererContractVersion: String = READABLE_RENDERER_CONTRACT_VERSION,
 ) {
     fun toDocument(
         title: String,
@@ -25,6 +30,7 @@ internal data class CachedReadablePaper(
         sourceVersion: String,
         license: String?,
         servedFromCache: Boolean,
+        sourceRecordId: String = this.sourceRecordId,
     ) = ReadablePaperDocument(
         bodyHtml = bodyHtml,
         title = title,
@@ -41,8 +47,22 @@ internal data class CachedReadablePaper(
         warnings = warnings,
         assetGroupKey = assetGroupKey,
         assets = assets,
+        sourceRecordId = sourceRecordId,
+        readableContractVersion = readableContractVersion,
+        rendererContractVersion = rendererContractVersion,
     )
 }
+
+internal data class ReadablePaperCacheIdentity(
+    val providerId: String,
+    val providerRecordId: String,
+    val sourceVersion: String,
+)
+
+internal data class CachedReadablePaperEntry(
+    val key: String,
+    val paper: CachedReadablePaper,
+)
 
 internal class ReadablePaperCache(
     private val directory: Path,
@@ -69,6 +89,59 @@ internal class ReadablePaperCache(
     /** Reads one entry without scanning every cached manifest on the Reader hot path. */
     @Synchronized
     fun readForLoad(key: String): CachedReadablePaper? = readInternal(key, prune = false)
+
+    /** Finds a complete entry without requiring the caller to know the provider contract version. */
+    @Synchronized
+    fun readForIdentity(
+        identity: ReadablePaperCacheIdentity,
+        rendererContractVersion: String,
+        documentSha256: String? = null,
+    ): CachedReadablePaperEntry? = storedKeys().asSequence()
+        .mapNotNull { key -> readInternal(key, prune = false)?.let { CachedReadablePaperEntry(key, it) } }
+        .filter { entry ->
+            entry.paper.sourceProvider == identity.providerId &&
+                entry.paper.sourceRecordId == identity.providerRecordId &&
+                entry.paper.sourceVersion == identity.sourceVersion &&
+                entry.key == keyFor(
+                    providerId = entry.paper.sourceProvider,
+                    providerRecordId = entry.paper.sourceRecordId,
+                    sourceVersion = entry.paper.sourceVersion,
+                    readableContractVersion = entry.paper.readableContractVersion,
+                    rendererContractVersion = entry.paper.rendererContractVersion,
+                ) &&
+                entry.paper.rendererContractVersion == rendererContractVersion &&
+                (documentSha256 == null || entry.paper.documentSha256 == documentSha256) &&
+                assetCache.allPresent(entry.paper.assetGroupKey, entry.paper.assets) &&
+                bodyReferencesKnownAssets(entry.paper.bodyHtml, entry.paper.assets)
+        }
+        .firstOrNull()
+
+    @Synchronized
+    fun removeByIdentity(identity: ReadablePaperCacheIdentity): Int {
+        var removed = 0
+        storedKeys().forEach { key ->
+            val entry = readInternal(key, prune = false)
+            if (entry != null && entry.identity() == identity && deleteEntry(key)) removed += 1
+        }
+        return removed
+    }
+
+    @Synchronized
+    fun reconcileIdentities(identities: Set<ReadablePaperCacheIdentity>): Int {
+        var removed = 0
+        val retainedKeys = linkedSetOf<String>()
+        storedKeys().forEach { key ->
+            val entry = readInternal(key, prune = false)
+            if (entry == null) return@forEach
+            if (entry.identity() in identities) {
+                retainedKeys += key
+            } else if (deleteEntry(key)) {
+                removed += 1
+            }
+        }
+        runCatching { assetCache.removeGroupsNotIn(retainedKeys) }
+        return removed
+    }
 
     private fun readInternal(key: String, prune: Boolean): CachedReadablePaper? {
         if (!key.matches(SHA256_PATTERN)) return null
@@ -126,6 +199,15 @@ internal class ReadablePaperCache(
                         groupKey = assetGroupKey.orEmpty(),
                         assets = assets,
                     ),
+                sourceProvider = values["source_provider"]?.let(::decode).orEmpty(),
+                sourceRecordId = values["source_record_id"]?.let(::decode).orEmpty(),
+                sourceVersion = values["source_version"]?.let(::decode).orEmpty(),
+                readableContractVersion = values["readable_contract_version"]?.let(::decode)
+                    ?.takeIf(String::isNotBlank)
+                    ?: "legacy",
+                rendererContractVersion = values["renderer_contract_version"]?.let(::decode)
+                    ?.takeIf(String::isNotBlank)
+                    ?: READABLE_RENDERER_CONTRACT_VERSION,
             )
         }.getOrNull()
         if (record == null) {
@@ -179,8 +261,15 @@ internal class ReadablePaperCache(
         }.toMap()
         if (verified.assets.isNotEmpty() && verified.assetGroupKey != key) return@runCatching false
         values["document_sha256"] == verified.documentSha256 &&
-            values["source_sha256"] == verified.sourceSha256 &&
-            values["source_url"]?.let(::decode) == verified.sourceUrl &&
+        values["source_sha256"] == verified.sourceSha256 &&
+        values["source_url"]?.let(::decode) == verified.sourceUrl &&
+            values["source_provider"]?.let(::decode).orEmpty() == verified.sourceProvider &&
+            values["source_record_id"]?.let(::decode).orEmpty() == verified.sourceRecordId &&
+            values["source_version"]?.let(::decode).orEmpty() == verified.sourceVersion &&
+            values["readable_contract_version"]?.let(::decode).orEmpty().ifBlank { "legacy" } ==
+                verified.readableContractVersion &&
+            values["renderer_contract_version"]?.let(::decode).orEmpty()
+                .ifBlank { READABLE_RENDERER_CONTRACT_VERSION } == verified.rendererContractVersion &&
             values["asset_group"].orEmpty() == verified.assetGroupKey.orEmpty() &&
             decodeAssets(values["assets"].orEmpty()) == verified.assets &&
             Files.size(bodyPath) == verified.bodyHtml.toByteArray(Charsets.UTF_8).size.toLong()
@@ -251,6 +340,11 @@ internal class ReadablePaperCache(
         val manifest = listOf(
             CACHE_HEADER,
             "source_url=${encode(record.sourceUrl)}",
+            "source_provider=${encode(record.sourceProvider)}",
+            "source_record_id=${encode(record.sourceRecordId)}",
+            "source_version=${encode(record.sourceVersion)}",
+            "readable_contract_version=${encode(record.readableContractVersion)}",
+            "renderer_contract_version=${encode(record.rendererContractVersion)}",
             "source_sha256=${record.sourceSha256}",
             "document_sha256=${record.documentSha256}",
             "retrieved_at=${record.retrievedAt}",
@@ -408,6 +502,18 @@ internal class ReadablePaperCache(
         return complete
     }
 
+    private fun CachedReadablePaper.identity() = ReadablePaperCacheIdentity(
+        providerId = sourceProvider,
+        providerRecordId = sourceRecordId,
+        sourceVersion = sourceVersion,
+    )
+
+    private fun bodyReferencesKnownAssets(bodyHtml: String, assets: List<ReadablePaperAsset>): Boolean {
+        val known = assets.mapTo(hashSetOf(), ReadablePaperAsset::id)
+        return Regex("paperreader-asset://([0-9a-f]{64})").findAll(bodyHtml)
+            .all { it.groupValues[1] in known }
+    }
+
     private data class CacheEntry(
         val key: String,
         val bytes: Long,
@@ -416,7 +522,7 @@ internal class ReadablePaperCache(
     )
 
     companion object {
-        private const val CACHE_HEADER = "PAPERREADER-READABLE-CACHE-2"
+        private const val CACHE_HEADER = "PAPERREADER-READABLE-CACHE-3"
         private const val OFFLINE_HEADER = "PAPERREADER-READABLE-OFFLINE-1\n"
         // Asset metadata scales with the paper's figures; keep a bounded manifest without
         // imposing an arbitrary figure-count cap on otherwise valid papers.
@@ -430,11 +536,13 @@ internal class ReadablePaperCache(
         private val SHA256_PATTERN = Regex("[0-9a-f]{64}")
 
         fun keyFor(
-            sourceUrl: String,
-            sanitizerPolicyVersion: String,
+            providerId: String,
+            providerRecordId: String,
+            sourceVersion: String,
+            readableContractVersion: String,
             rendererContractVersion: String,
         ): String = sha256(
-            listOf(sourceUrl, sanitizerPolicyVersion, rendererContractVersion)
+            listOf(providerId, providerRecordId, sourceVersion, readableContractVersion, rendererContractVersion)
                 .joinToString("\n")
                 .toByteArray(Charsets.UTF_8),
         )

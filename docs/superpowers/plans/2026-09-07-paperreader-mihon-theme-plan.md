@@ -36,12 +36,14 @@
 ## Task 1: Expand semantic tokens without changing Neo output
 
 **Files:**
+
 - Modify: `app/src/main/kotlin/dev/paperreader/app/ui/theme/Theme.kt`
 - Modify: `app/src/main/kotlin/dev/paperreader/app/ui/theme/NeobrutalismThemePack.kt`
 - Modify: `app/src/main/kotlin/dev/paperreader/app/ui/theme/CommunityPaperTheme.kt` only if the shared token contract requires a neutral default
 - Test: existing theme contrast/icon tests under `app/src/test`
 
 **Interfaces:**
+
 - `PaperThemeTokens` gains only Material 3 roles consumed by the implementation: tertiary/on-tertiary, tertiary containers, error containers, outline variant, and surface-container levels.
 - `PaperThemePreset.MIHON` is a stable storage key; `fromStorageKey(null/unknown)` still returns `NEOBRUTALISM`.
 
@@ -83,11 +85,13 @@
 ## Task 2: Implement the Mihon-inspired palette
 
 **Files:**
+
 - Create: `app/src/main/kotlin/dev/paperreader/app/ui/theme/MihonThemePack.kt`
 - Modify: `app/src/main/kotlin/dev/paperreader/app/ui/theme/Theme.kt`
 - Modify: `THIRD_PARTY_NOTICES.md` only if the implementation copies attributable code/assets rather than color concepts
 
 **Interfaces:**
+
 - `mihonThemeTokens(dark: Boolean): PaperThemeTokens` returns a complete light or dark token set.
 - `paperThemeTokens` dispatches `MIHON` to this pack and preserves `NEOBRUTALISM` to the existing pack.
 
@@ -125,12 +129,14 @@
 ## Task 3: Expose the preset in Appearance
 
 **Files:**
+
 - Modify: `app/src/main/kotlin/dev/paperreader/app/ui/screen/AppearanceScreen.kt`
 - Modify: `app/src/main/res/values/strings.xml`
 - Modify: existing appearance ViewModel/preferences from the MVVM foundation branch
 - Test: existing appearance unit/connected tests
 
 **Interfaces:**
+
 - Appearance state lists `NEOBRUTALISM`, `MIHON`, and validated community themes.
 - Selecting MIHON persists `mihon`; a missing extension/theme does not overwrite the built-in preset.
 

@@ -33,6 +33,7 @@
 ## Task 1: Introduce the screen-state seam
 
 **Files:**
+
 - Create: `app/src/main/kotlin/dev/paperreader/app/ui/state/LoadState.kt`
 - Create: `app/src/main/kotlin/dev/paperreader/app/ui/ScreenViewModelFactory.kt`
 - Modify: `app/src/main/kotlin/dev/paperreader/app/ui/PaperReaderViewModel.kt`
@@ -40,6 +41,7 @@
 - Modify: `app/src/main/kotlin/dev/paperreader/app/ui/PaperReaderRoutes.kt`
 
 **Interfaces:**
+
 - `LoadState` moves without changing its public cases: `Loading`, `Ready<T>`, and `Failed`.
 - The factory consumes `PaperReaderLogic`, `PaperReaderPreferences`, `DownloadWorkScheduler`, and `MetadataRestoreSessionStore`, and produces only explicitly requested destination ViewModels.
 - Existing `PaperReaderApp` behavior remains available while later tasks migrate one route at a time.
@@ -96,6 +98,7 @@
 ## Task 2: Migrate Library and its state
 
 **Files:**
+
 - Create: `app/src/main/kotlin/dev/paperreader/app/ui/screen/LibraryViewModel.kt`
 - Create: `app/src/main/kotlin/dev/paperreader/app/ui/screen/LibraryUiState.kt`
 - Modify: `app/src/main/kotlin/dev/paperreader/app/ui/screen/LibraryScreen.kt`
@@ -104,6 +107,7 @@
 - Test: existing Library presentation/UI tests under `app/src/test` and `app/src/androidTest`
 
 **Interfaces:**
+
 - `LibraryViewModel.uiState: StateFlow<LibraryUiState>` owns papers, collections, layout preference, query, status filter, collection filter, and sort order.
 - `LibraryViewModel.onAction(LibraryAction)` owns filter/layout mutations and calls the existing facade for paper opens/status operations.
 - `LibraryScreen` continues to accept a state-driven seam so current Compose tests do not need a navigation-controller test double.
@@ -157,6 +161,7 @@
 ## Task 3: Migrate discovery, history, and updates
 
 **Files:**
+
 - Create: `app/src/main/kotlin/dev/paperreader/app/ui/screen/DiscoverViewModel.kt`
 - Create: `app/src/main/kotlin/dev/paperreader/app/ui/screen/HistoryViewModel.kt`
 - Create: `app/src/main/kotlin/dev/paperreader/app/ui/screen/UpdatesViewModel.kt`
@@ -166,6 +171,7 @@
 - Test: existing discovery/history/update tests under `app/src/test` and `app/src/androidTest`
 
 **Interfaces:**
+
 - `DiscoverViewModel` owns the existing search controller and exposes search/saved-search state without changing provider policy.
 - `HistoryViewModel` owns `observeReadingHistory` and remove-history action.
 - `UpdatesViewModel` owns saved-search refresh/update presentation and notification-facing state; permission launch remains a route effect.
@@ -203,12 +209,14 @@
 ## Task 4: Migrate More, queue, detail, and branch screens
 
 **Files:**
+
 - Create: `MoreViewModel.kt`, `DownloadQueueViewModel.kt`, `PaperDetailViewModel.kt`
 - Create: `CollectionsViewModel.kt`, `ReadingImportsViewModel.kt`, `DataBackupViewModel.kt`, `SourcesViewModel.kt`, `AppearanceViewModel.kt`, `SettingsViewModel.kt`, `StatsViewModel.kt`
 - Modify: matching `ui/screen/*Screen.kt` files, `PaperReaderRoutes.kt`, and `PaperReaderViewModel.kt`
 - Test: existing screen/unit/connected tests under `app/src/test` and `app/src/androidTest`
 
 **Interfaces:**
+
 - More state contains only summary inputs needed by More rows: library count, task summary, provider review counts, import/backup status, selected theme name, and notification/update state.
 - Queue state contains persisted `PaperTask` rows, paper-title lookup, and `DownloadActionUiState`.
 - Detail state contains one `PaperUi?`, collections, manifestation task state, and typed detail actions.
@@ -254,12 +262,14 @@
 ## Task 5: Remove the app-wide adapter and simplify composition
 
 **Files:**
+
 - Modify: `PaperReaderApp.kt`, `PaperReaderRoutes.kt`, `PaperReaderNavigationParts.kt`
 - Delete: `PaperReaderViewModel.kt` after all behavior is migrated
 - Modify: ViewModel factory and any tests importing the old class
 - Test: existing app unit/connected suites
 
 **Interfaces:**
+
 - `PaperReaderApp` retains global theme/lifecycle/effect responsibilities only.
 - Routes construct destination ViewModels through explicit factories and pass stable state/action seams.
 - No screen imports `PaperReaderViewModel` after this task.
@@ -294,6 +304,7 @@
 ## Task 6: Foundation review gate
 
 **Files:**
+
 - Modify: none unless a review finding requires a scoped fix
 - Test: host unit, lint, APK assembly, and connected app suites
 

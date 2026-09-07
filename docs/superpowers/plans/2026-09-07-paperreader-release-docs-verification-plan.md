@@ -29,6 +29,7 @@
 ## Task 1: Prepare branches and baseline evidence
 
 **Files:**
+
 - Modify: SDD ledger/progress artifacts only
 - Create: local evidence directory outside Git
 
@@ -61,10 +62,12 @@
 ## Task 2: Run local functional adb audit
 
 **Files:**
+
 - Create: local action log, screenshots, UI XML captures, and summary under `D:/research-new/artifacts/paperreader-release-2026-09-07/`
 - Modify: none in source test directories
 
 **Interfaces:**
+
 - Use the final merged debug APK and the declared arXiv source APK/configuration.
 - Capture six-paper readable/download flows: Attention, CGP-Tuning, LoRA, Llama 2, ResNet, InstructGPT.
 
@@ -101,6 +104,7 @@
 ## Task 3: Run local performance benchmark
 
 **Files:**
+
 - Create: local benchmark CSV/Markdown summary under `D:/research-new/artifacts/paperreader-release-2026-09-07/`
 - Modify: `docs/TESTING.md` later with summarized results only
 
@@ -136,6 +140,7 @@
 ## Task 4: Review and merge branches
 
 **Files:**
+
 - Modify: Git refs only; no source edits unless a reviewed fix branch exists
 
 - [ ] **Step 1: Complete per-branch task review and whole-branch review.**
@@ -161,6 +166,7 @@
 ## Task 5: Update host documentation
 
 **Files:**
+
 - Modify: `docs/SPEC.md`
 - Modify: `docs/ARCHITECTURE.md`
 - Modify: `docs/EXTENSIONS.md`
@@ -194,6 +200,7 @@
 ## Task 6: Update PaperReader site
 
 **Files:**
+
 - Modify: `paperreader-site/src/pages/index.astro`
 - Modify/create: site public screenshot assets and any page-specific design-system notes
 - Test: local site build/lint/manual responsive inspection

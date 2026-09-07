@@ -84,13 +84,14 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (
-            acceptIncomingPdf(intent) ||
-            acceptIncomingPaperReference(intent) ||
-            acceptOpenUpdates(intent) ||
-            acceptOpenExtensions(intent)
+            !(
+                acceptIncomingPdf(intent) ||
+                    acceptIncomingPaperReference(intent) ||
+                    acceptOpenUpdates(intent) ||
+                    acceptOpenExtensions(intent)
+                )
         ) {
-            intent.addFlags(this.intent.flags)
-            setIntent(intent)
+            return
         }
     }
 

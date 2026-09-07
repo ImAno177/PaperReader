@@ -43,6 +43,13 @@ internal class RoomLibraryRepository(
     override val collections: Flow<List<PaperCollection>> =
         dao.observeCollections().map { rows -> rows.map { it.toDomain() } }
 
+    override fun observePaper(workId: WorkId): Flow<dev.paperreader.logic.domain.LibraryPaper?> =
+        dao.observeLibraryPaper(workId.value).map { it?.toDomain() }
+
+    override fun observePaperCount(): Flow<Int> = dao.observeWorkCount()
+
+    override fun observeCollectionCount(): Flow<Int> = dao.observeCollectionCount()
+
     override suspend fun save(remote: RemotePaper): WorkId {
         val now = clock.instant()
         val providerIdentifier = PaperIdentifier(IdentifierType.PROVIDER, remote.providerRecordId, remote.providerId)

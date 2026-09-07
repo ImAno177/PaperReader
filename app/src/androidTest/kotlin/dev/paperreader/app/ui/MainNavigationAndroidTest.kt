@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.MainActivity
 import org.junit.Rule
@@ -63,9 +65,12 @@ class MainNavigationAndroidTest {
             "Backup",
             "Sources",
         ).forEach { branch ->
+            composeRule
+                .onNode(hasScrollToIndexAction())
+                .performScrollToNode(hasText(branch))
             composeRule.onNodeWithText(branch).performClick()
-            composeRule.onNodeWithText(branch).assertIsDisplayed()
             waitForPrimaryNavigation(visible = false)
+            composeRule.onNodeWithText(branch).assertIsDisplayed()
             composeRule.onNodeWithContentDescription("Back").performClick()
             waitForScreenTitle("More")
             waitForPrimaryNavigation(visible = true)

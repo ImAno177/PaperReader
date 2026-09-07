@@ -22,7 +22,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.paperreader.app.R
-import dev.paperreader.app.ui.components.PaperMetaRow
+import dev.paperreader.app.ui.components.PaperIdentityBlock
 import dev.paperreader.app.ui.components.PaperPrimaryButton
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSectionHeader
@@ -33,6 +33,7 @@ import dev.paperreader.app.ui.model.displayValue
 import dev.paperreader.app.ui.model.safeWebUrlOrNull
 import dev.paperreader.app.ui.model.toEnglishDisplayDateTime
 import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.logic.domain.IdentifierType
 import dev.paperreader.logic.domain.ManifestationType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,6 +49,7 @@ internal fun SearchPreviewSheet(
     onOpenSaved: (String) -> Unit,
     onOpenUrl: (String) -> Unit,
 ) {
+    val secondaryIdentifiers = result.identifiers.filterNot { it.type == IdentifierType.DOI }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = PaperTheme.tokens.canvas,
@@ -60,16 +62,17 @@ internal fun SearchPreviewSheet(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            PaperMetaRow(
+            PaperIdentityBlock(
                 source = result.sourceDisplayNames.joinToString(),
                 year = result.publishedDate?.year?.toString(),
-                identifier = result.primaryIdentifier?.displayValue(),
-            )
-            Text(result.title, style = MaterialTheme.typography.headlineSmall)
-            Text(
-                result.authors.joinToString().ifBlank { stringResource(R.string.unknown_authors) },
-                color = PaperTheme.tokens.inkMuted,
-                style = MaterialTheme.typography.bodyLarge,
+                identifier = result.primaryIdentifier
+                    ?.takeUnless { it.type == IdentifierType.DOI }
+                    ?.displayValue(),
+                title = result.title,
+                authors = result.authors.joinToString().ifBlank {
+                    stringResource(R.string.unknown_authors)
+                },
+                doi = result.identifiers.firstOrNull { it.type == IdentifierType.DOI }?.value,
             )
             result.citationMetrics?.let { metrics ->
                 PaperSurface(contentPadding = PaddingValues(12.dp)) {
@@ -88,17 +91,14 @@ internal fun SearchPreviewSheet(
                     )
                 }
             }
-            SearchPreviewSection(stringResource(R.string.search_preview_abstract)) {
+            PaperSurface {
+                PaperSectionHeader(stringResource(R.string.abstract_title))
+                Spacer(Modifier.height(8.dp))
                 Text(
                     result.abstractText ?: stringResource(R.string.search_preview_no_abstract),
                     color = if (result.abstractText == null) PaperTheme.tokens.inkMuted else PaperTheme.tokens.ink,
                     style = MaterialTheme.typography.bodyLarge,
                 )
-            }
-            if (result.identifiers.isNotEmpty()) {
-                SearchPreviewSection(stringResource(R.string.search_preview_identifiers)) {
-                    Text(result.identifiers.joinToString(separator = "\n") { it.displayValue() })
-                }
             }
             if (result.subjects.isNotEmpty()) {
                 SearchPreviewSection(stringResource(R.string.search_preview_subjects)) {
@@ -110,6 +110,11 @@ internal fun SearchPreviewSheet(
                     result.manifestations.forEach { manifestation ->
                         SearchManifestationPreview(manifestation, onOpenUrl)
                     }
+                }
+            }
+            if (secondaryIdentifiers.isNotEmpty()) {
+                SearchPreviewSection(stringResource(R.string.identifiers_title)) {
+                    Text(secondaryIdentifiers.joinToString(separator = "\n") { it.displayValue() })
                 }
             }
             if (savedWorkId == null) {

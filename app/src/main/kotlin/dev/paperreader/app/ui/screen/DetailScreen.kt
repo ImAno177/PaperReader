@@ -49,7 +49,7 @@ import dev.paperreader.app.ui.theme.PaperThemePreset
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.state.LoadState
 import dev.paperreader.app.ui.components.PaperAppBarTitle
-import dev.paperreader.app.ui.components.PaperMetaRow
+import dev.paperreader.app.ui.components.PaperIdentityBlock
 import dev.paperreader.app.ui.components.PaperLabel
 import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperStatePanel
@@ -325,27 +325,21 @@ private fun PaperDetailContent(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            PaperMetaRow(
+            PaperIdentityBlock(
                 source = paper.sources.joinToString { it.displayProviderName() }.ifBlank { null },
                 year = paper.publishedDate?.year?.toString(),
-                identifier = paper.primaryIdentifier?.displayValue(),
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = paper.title,
-                style = MaterialTheme.typography.headlineSmall,
-                color = PaperTheme.tokens.ink,
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = paper.authors.take(2).joinToString().ifBlank { stringResource(R.string.unknown_authors) } +
-                    if (paper.authors.size > 2) {
-                        stringResource(R.string.authors_and_more_suffix, paper.authors.size - 2)
-                    } else {
-                        ""
-                    },
-                style = MaterialTheme.typography.bodyLarge,
-                color = PaperTheme.tokens.inkMuted,
+                identifier = paper.primaryIdentifier
+                    ?.takeUnless { it.type == IdentifierType.DOI }
+                    ?.displayValue(),
+                title = paper.title,
+                authors = paper.authors.take(2).joinToString().ifBlank {
+                    stringResource(R.string.unknown_authors)
+                } + if (paper.authors.size > 2) {
+                    stringResource(R.string.authors_and_more_suffix, paper.authors.size - 2)
+                } else {
+                    ""
+                },
+                doi = paper.identifiers.firstOrNull { it.type == IdentifierType.DOI }?.value,
             )
             if (assignedCollections.isNotEmpty()) {
                 Spacer(Modifier.height(10.dp))
@@ -424,28 +418,17 @@ private fun PaperDetailContent(
                 )
             }
         }
-        if (paper.identifiers.isNotEmpty()) {
+        val secondaryIdentifiers = paper.identifiers.filterNot { it.type == IdentifierType.DOI }
+        if (secondaryIdentifiers.isNotEmpty()) {
             item { PaperSectionHeader(stringResource(R.string.identifiers_title)) }
             item {
                 PaperSurface(contentPadding = PaddingValues(12.dp)) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        paper.identifiers.forEach { identifier ->
-                            if (identifier.type == IdentifierType.DOI) {
-                                Text(
-                                    text = stringResource(R.string.doi_label),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = PaperTheme.tokens.inkMuted,
-                                )
-                                Text(
-                                    text = identifier.value,
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            } else {
-                                Text(
-                                    text = identifier.displayValue(),
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            }
+                        secondaryIdentifiers.forEach { identifier ->
+                            Text(
+                                text = identifier.displayValue(),
+                                style = MaterialTheme.typography.labelLarge,
+                            )
                         }
                     }
                 }

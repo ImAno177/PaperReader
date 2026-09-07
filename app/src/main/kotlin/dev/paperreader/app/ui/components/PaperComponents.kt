@@ -56,7 +56,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.widthIn
+import dev.paperreader.app.R
 import dev.paperreader.app.ui.theme.PaperDecoration
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
@@ -361,6 +363,50 @@ fun PaperMetaRow(
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )
+}
+
+@Composable
+fun PaperIdentityBlock(
+    source: String?,
+    year: String?,
+    identifier: String?,
+    title: String,
+    authors: String,
+    doi: String?,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        PaperMetaRow(source = source, year = year, identifier = identifier)
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,
+            color = PaperTheme.tokens.ink,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = authors,
+            style = MaterialTheme.typography.bodyLarge,
+            color = PaperTheme.tokens.inkMuted,
+        )
+        doi?.takeIf(String::isNotBlank)?.let { value ->
+            Spacer(Modifier.height(10.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = stringResource(R.string.doi_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = PaperTheme.tokens.inkMuted,
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = PaperTheme.tokens.ink,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
 }
 
 @Composable

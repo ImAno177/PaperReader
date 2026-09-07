@@ -19,10 +19,16 @@ import kotlinx.coroutines.withContext
 
 class ObserveLibrary(private val repository: LibraryRepository) {
     fun subscribe(): Flow<List<LibraryPaper>> = repository.library
+
+    fun subscribe(workId: WorkId): Flow<LibraryPaper?> = repository.observePaper(workId)
+
+    fun subscribeCount(): Flow<Int> = repository.observePaperCount()
 }
 
 class ObserveCollections(private val repository: LibraryRepository) {
     fun subscribe(): Flow<List<PaperCollection>> = repository.collections
+
+    fun subscribeCount(): Flow<Int> = repository.observeCollectionCount()
 }
 
 class SavePaper(
@@ -94,4 +100,3 @@ class SetPaperCollections(private val repository: LibraryRepository) {
 class UpdateReadingState(private val repository: LibraryRepository) {
     suspend fun await(state: ReadingState) = repository.updateReadingState(state)
 }
-

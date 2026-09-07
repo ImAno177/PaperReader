@@ -20,8 +20,26 @@ interface LibraryDao {
     )
     fun observeLibrary(): Flow<List<LibraryPaperAggregate>>
 
+    @Transaction
+    @Query(
+        """
+        SELECT works.*,
+               (SELECT COUNT(*) FROM annotations WHERE annotations.workId = works.id) AS annotationCount
+        FROM works
+        WHERE works.id = :workId
+        LIMIT 1
+        """,
+    )
+    fun observeLibraryPaper(workId: String): Flow<LibraryPaperAggregate?>
+
+    @Query("SELECT COUNT(*) FROM works")
+    fun observeWorkCount(): Flow<Int>
+
     @Query("SELECT * FROM collections ORDER BY sortOrder, name COLLATE NOCASE, id")
     fun observeCollections(): Flow<List<CollectionEntity>>
+
+    @Query("SELECT COUNT(*) FROM collections")
+    fun observeCollectionCount(): Flow<Int>
 
     @Query("SELECT * FROM collections WHERE id = :id LIMIT 1")
     suspend fun getCollection(id: Long): CollectionEntity?
@@ -297,4 +315,3 @@ interface LibraryDao {
     @Query("DELETE FROM works WHERE id = :workId")
     suspend fun deleteWork(workId: String): Int
 }
-

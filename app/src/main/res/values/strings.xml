@@ -429,16 +429,6 @@
     <string name="library_read_paper">Read</string>
     <string name="mobile_reading_available">Mobile reading available</string>
     <string name="readable_reader_loading">Preparing mobile paper</string>
-    <string name="readable_reader_subtitle">Mobile paper</string>
-    <string name="readable_reader_subtitle_progress">Mobile paper &#8226; %1$d%% read</string>
-    <string name="readable_reader_provenance">Official arXiv HTML &#8226; %1$s &#8226; saved offline</string>
-    <string name="readable_reader_provenance_fresh">Official arXiv HTML &#8226; %1$s &#8226; cached</string>
-    <string name="readable_reader_source_details_show">Show source details</string>
-    <string name="readable_reader_source_details_hide">Hide source details</string>
-    <string name="readable_reader_license_line">%1$s</string>
-    <string name="readable_reader_conversion_warning">Content was normalized; the original remains available.</string>
-    <string name="readable_reader_figure_warning">Some figures are unavailable offline.</string>
-    <string name="readable_reader_contents_warning">Section navigation unavailable.</string>
     <string name="readable_reader_failed_title">Mobile version unavailable</string>
     <string name="readable_reader_paper_missing">This saved paper no longer exists in the local library.</string>
     <string name="readable_reader_manifestation_missing">This exact paper version is no longer saved.</string>

@@ -28,8 +28,6 @@ import dev.paperreader.app.ui.theme.CommunityPaperTheme
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperIconSet
 import dev.paperreader.logic.reader.ReadablePaperSection
-import dev.paperreader.logic.reader.ReadablePaperDocument
-import dev.paperreader.logic.reader.ReadablePaperWarning
 import java.util.Locale
 import java.util.concurrent.CancellationException
 import kotlin.math.roundToInt
@@ -114,16 +112,14 @@ internal fun MaterialButton.hideReadableCitationReturn(animateExit: Boolean = fa
 /** Hides reader chrome while the document is moving and restores it on a tap/upward scroll. */
 internal fun setReadableReaderChromeVisible(
     toolbar: Toolbar,
-    provenance: TextView,
     visible: Boolean,
-    showProvenance: Boolean,
     animate: Boolean = true,
 ) {
     val chrome = toolbar.parent as? View ?: toolbar
     chrome.animate().withEndAction(null).cancel()
     if (!visible) {
         chrome.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-        val offset = chrome.height.coerceAtLeast(toolbar.height + provenance.height).toFloat()
+        val offset = chrome.height.coerceAtLeast(toolbar.height).toFloat()
         if (!animate || !ValueAnimator.areAnimatorsEnabled()) {
             chrome.alpha = 0f
             chrome.translationY = -offset
@@ -140,7 +136,6 @@ internal fun setReadableReaderChromeVisible(
 
     chrome.visibility = View.VISIBLE
     chrome.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
-    if (showProvenance) provenance.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
     if (!animate || !ValueAnimator.areAnimatorsEnabled()) {
         chrome.alpha = 1f
         chrome.translationY = 0f
@@ -156,71 +151,14 @@ internal fun setReadableReaderChromeVisible(
     }
 }
 
-internal fun TextView.configureReadableProvenance(icon: android.graphics.drawable.Drawable, color: Int) {
-    setCompoundDrawablesRelativeWithIntrinsicBounds(
-        icon.mutate().apply { setTint(color) },
-        null,
-        null,
-        null,
-    )
-    compoundDrawablePadding = (8 * resources.displayMetrics.density).roundToInt()
-    setOnClickListener { setReadableProvenanceExpanded(maxLines == 1) }
-}
-
-internal fun TextView.showReadableProvenance(value: String) {
-    text = value
-    setReadableProvenanceExpanded(false)
-    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
-    visibility = View.VISIBLE
-    alpha = 1f
-    translationY = 0f
-}
-
-internal fun Context.readableProvenanceText(document: ReadablePaperDocument): String = buildList {
-    add(
-        getString(
-            if (document.keptForOffline) R.string.readable_reader_provenance
-            else R.string.readable_reader_provenance_fresh,
-            document.sourceVersion,
-        ),
-    )
-    document.license?.takeIf(String::isNotBlank)?.let {
-        add(getString(R.string.readable_reader_license_line, it))
-    }
-    if (ReadablePaperWarning.SOURCE_CONVERSION_ARTIFACT_NORMALIZED in document.warnings) {
-        add(getString(R.string.readable_reader_conversion_warning))
-    }
-    if (
-        ReadablePaperWarning.FIGURE_UNAVAILABLE in document.warnings ||
-        ReadablePaperWarning.FIGURE_LIMIT_REACHED in document.warnings
-    ) {
-        add(getString(R.string.readable_reader_figure_warning))
-    }
-    if (ReadablePaperWarning.TABLE_OF_CONTENTS_MISSING in document.warnings) {
-        add(getString(R.string.readable_reader_contents_warning))
-    }
-}.joinToString("\n")
-
-private fun TextView.setReadableProvenanceExpanded(expanded: Boolean) {
-    maxLines = if (expanded) Int.MAX_VALUE else 1
-    ellipsize = if (expanded) null else TextUtils.TruncateAt.END
-    val action = context.getString(
-        if (expanded) R.string.readable_reader_source_details_hide
-        else R.string.readable_reader_source_details_show,
-    )
-    contentDescription = "$text. $action"
-}
-
 internal fun configureReadablePaperToolbar(
     toolbar: Toolbar,
-    title: String,
     icons: PaperIconSet,
     actions: ReadablePaperToolbarActions,
 ) {
     val context = toolbar.context
-    toolbar.title = title
-    constrainReaderToolbarTitle(toolbar, title)
-    toolbar.subtitle = context.getString(R.string.readable_reader_subtitle)
+    toolbar.title = null
+    toolbar.subtitle = null
     toolbar.navigationIcon = icons.drawable(context, PaperIconKey.BACK)
     toolbar.navigationContentDescription = context.getString(R.string.back)
     toolbar.setNavigationOnClickListener { actions.navigateBack() }
@@ -343,7 +281,6 @@ internal fun resolveReadablePaperPrimaryActionStyle(
 internal fun applyReadablePaperCommunityChrome(
     root: View,
     toolbar: Toolbar,
-    provenance: TextView,
     theme: CommunityPaperTheme?,
 ) {
     theme ?: return
@@ -352,10 +289,6 @@ internal fun applyReadablePaperCommunityChrome(
     val palette = theme.palette(dark)
     root.setBackgroundColor(palette.canvas)
     toolbar.setBackgroundColor(palette.surface)
-    toolbar.setTitleTextColor(palette.ink)
-    toolbar.setSubtitleTextColor(palette.inkMuted)
-    provenance.setBackgroundColor(palette.primaryContainer)
-    provenance.setTextColor(palette.onPrimaryContainer)
     tintReaderToolbarIcons(toolbar, palette.ink)
 }
 

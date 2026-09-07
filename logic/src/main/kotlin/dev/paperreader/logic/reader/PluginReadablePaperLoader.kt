@@ -228,12 +228,15 @@ internal class PluginReadablePaperLoader(
                 byteLength = safe.bytes.size.toLong(),
             )
             try {
-                cache.assetCache.write(assetGroupKey, asset, safe.bytes)
+                cache.assetCache.write(assetGroupKey, asset, safe.bytes, prune = false)
                 assets += asset
             } catch (_: IOException) {
                 unavailableIds += reference.id
                 cache.assetCache.remove(assetGroupKey, reference.id)
             }
+        }
+        if (references.isNotEmpty()) {
+            cache.assetCache.prune(protectedGroupKey = assetGroupKey)
         }
         MaterializedAssets(assets, unavailableIds)
     }

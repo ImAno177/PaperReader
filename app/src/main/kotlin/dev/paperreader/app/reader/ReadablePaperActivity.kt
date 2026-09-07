@@ -42,12 +42,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.roundToInt
 
 class ReadablePaperActivity : AppCompatActivity() {
     private lateinit var readerArgs: ReadableReaderArgs
     private lateinit var toolbar: Toolbar
-    private lateinit var provenance: TextView
     private lateinit var webView: ReadablePaperWebView
     private lateinit var loading: View
     private lateinit var errorContainer: LinearLayout
@@ -66,9 +64,7 @@ class ReadablePaperActivity : AppCompatActivity() {
     private var restorationReady = false
     private var readerResumed = false
     private var readerChromeVisible = true
-    private var provenanceAvailable = false
     private var readerLayout = DEFAULT_READER_LAYOUT
-    private var displayedProgressPercent = -1
     private var communityTheme: CommunityPaperTheme? = null
     private lateinit var readerIcons: PaperIconSet
     private var citationReturnScrollY: Int? = null
@@ -110,7 +106,6 @@ class ReadablePaperActivity : AppCompatActivity() {
         applyReadablePaperCommunityChrome(
             root = findViewById(R.id.readable_reader_root),
             toolbar = toolbar,
-            provenance = provenance,
             theme = communityTheme,
         )
         configureToolbar()
@@ -170,7 +165,6 @@ class ReadablePaperActivity : AppCompatActivity() {
 
     private fun bindViews() {
         toolbar = findViewById(R.id.readable_reader_toolbar)
-        provenance = findViewById(R.id.readable_reader_provenance)
         webView = findViewById(R.id.readable_reader_webview)
         loading = findViewById(R.id.readable_reader_loading)
         errorContainer = findViewById(R.id.readable_reader_error)
@@ -186,10 +180,6 @@ class ReadablePaperActivity : AppCompatActivity() {
         previous.imageTintList = actionTint
         next.imageTintList = actionTint
         close.imageTintList = actionTint
-        provenance.configureReadableProvenance(
-            readerIcons.drawable(this, PaperIconKey.INFO),
-            actionColor,
-        )
         findController = ReadablePaperFindController(
             context = this,
             webView = webView,
@@ -217,7 +207,6 @@ class ReadablePaperActivity : AppCompatActivity() {
     private fun configureToolbar() {
         configureReadablePaperToolbar(
             toolbar = toolbar,
-            title = readerArgs.title,
             icons = readerIcons,
             actions = ReadablePaperToolbarActions(
                 navigateBack = ::navigateBackWithinReader,
@@ -257,7 +246,6 @@ class ReadablePaperActivity : AppCompatActivity() {
             },
             onPageReady = ::finishReadablePageLoad,
             onProgressionChanged = { progression ->
-                updateProgress(progression)
                 if (restorationReady) scheduleProgressSave(progression)
             },
             onReaderScroll = { towardTop ->
@@ -305,20 +293,14 @@ class ReadablePaperActivity : AppCompatActivity() {
         restorationReady = false
         currentDocument = null
         readerChromeVisible = true
-        provenanceAvailable = false
         setReadableReaderChromeVisible(
             toolbar = toolbar,
-            provenance = provenance,
             visible = true,
-            showProvenance = false,
             animate = false,
         )
         findController.hide(clearQuery = true)
         clearCitationReturn()
         webView.visibility = View.INVISIBLE
-        displayedProgressPercent = -1
-        toolbar.subtitle = getString(R.string.readable_reader_subtitle)
-        provenance.visibility = View.GONE
         errorContainer.visibility = View.GONE
         loading.visibility = View.VISIBLE
         setReadablePaperActionsEnabled(toolbar, source = false, document = false, contents = false)
@@ -359,8 +341,6 @@ class ReadablePaperActivity : AppCompatActivity() {
             contents = document.sections.isNotEmpty(),
         )
         annotationController.updateMenu()
-        provenance.showReadableProvenance(readableProvenanceText(document))
-        provenanceAvailable = true
         loadRenderedDocument(document)
     }
 
@@ -378,7 +358,6 @@ class ReadablePaperActivity : AppCompatActivity() {
         webView.postDelayed({
             if (isDestroyed || !documentLoaded) return@postDelayed
             restorationReady = true
-            updateProgress(webView.currentProgression())
         }, RESTORE_SETTLE_MILLIS)
         if (readerResumed) sessionState.resume(SystemClock.elapsedRealtime())
         annotationController.observe(checkNotNull(currentDocument))
@@ -497,21 +476,12 @@ class ReadablePaperActivity : AppCompatActivity() {
         )
     }
 
-    private fun updateProgress(progression: Double) {
-        val percent = (progression.coerceIn(0.0, 1.0) * 100).roundToInt()
-        if (percent == displayedProgressPercent) return
-        displayedProgressPercent = percent
-        toolbar.subtitle = getString(R.string.readable_reader_subtitle_progress, percent)
-    }
-
     private fun showReaderChrome() {
         if (readerChromeVisible) return
         readerChromeVisible = true
         setReadableReaderChromeVisible(
             toolbar = toolbar,
-            provenance = provenance,
             visible = true,
-            showProvenance = provenanceAvailable,
         )
     }
 
@@ -520,9 +490,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         readerChromeVisible = false
         setReadableReaderChromeVisible(
             toolbar = toolbar,
-            provenance = provenance,
             visible = false,
-            showProvenance = provenanceAvailable,
         )
     }
 

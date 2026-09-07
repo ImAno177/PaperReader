@@ -7,6 +7,7 @@ import dev.paperreader.logic.domain.ReadingState
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.provider.RemotePaper
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 sealed interface RemovePaperResult {
     data object Removed : RemovePaperResult
@@ -42,6 +43,14 @@ sealed interface SetPaperCollectionsResult {
 interface LibraryRepository {
     val library: Flow<List<LibraryPaper>>
     val collections: Flow<List<PaperCollection>>
+
+    fun observePaper(workId: WorkId): Flow<LibraryPaper?> = library.map { papers ->
+        papers.firstOrNull { it.work.id == workId }
+    }
+
+    fun observePaperCount(): Flow<Int> = library.map { it.size }
+
+    fun observeCollectionCount(): Flow<Int> = collections.map { it.size }
 
     suspend fun save(remote: RemotePaper): WorkId
 

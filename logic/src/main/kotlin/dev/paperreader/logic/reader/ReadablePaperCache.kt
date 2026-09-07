@@ -91,35 +91,43 @@ internal class ReadablePaperCache(
     fun readForLoad(key: String): CachedReadablePaper? = readInternal(key, prune = false)
 
     /** Finds a complete entry without requiring the caller to know the provider contract version. */
+    // ponytail: O(cache entries) metadata scan; add an index only after profiling shows this ceiling.
     @Synchronized
     fun readForIdentity(
         identity: ReadablePaperCacheIdentity,
         rendererContractVersion: String,
         documentSha256: String? = null,
     ): CachedReadablePaperEntry? = storedKeys().asSequence()
-        .mapNotNull { key -> readInternal(key, prune = false)?.let { CachedReadablePaperEntry(key, it) } }
-        .filter { entry ->
-            entry.paper.sourceProvider == identity.providerId &&
-                entry.paper.sourceRecordId == identity.providerRecordId &&
-                entry.paper.sourceVersion == identity.sourceVersion &&
-                entry.key == keyFor(
-                    providerId = entry.paper.sourceProvider,
-                    providerRecordId = entry.paper.sourceRecordId,
-                    sourceVersion = entry.paper.sourceVersion,
-                    readableContractVersion = entry.paper.readableContractVersion,
-                    rendererContractVersion = entry.paper.rendererContractVersion,
-                ) &&
-                entry.paper.rendererContractVersion == rendererContractVersion &&
-                (documentSha256 == null || entry.paper.documentSha256 == documentSha256) &&
-                assetCache.allPresent(entry.paper.assetGroupKey, entry.paper.assets) &&
+        .mapNotNull { key ->
+            readIdentityMetadata(key)
+                ?.takeIf { metadata ->
+                    metadata.sourceProvider == identity.providerId &&
+                        metadata.sourceRecordId == identity.providerRecordId &&
+                        metadata.sourceVersion == identity.sourceVersion &&
+                        metadata.rendererContractVersion == rendererContractVersion &&
+                        key == keyFor(
+                            providerId = metadata.sourceProvider,
+                            providerRecordId = metadata.sourceRecordId,
+                            sourceVersion = metadata.sourceVersion,
+                            readableContractVersion = metadata.readableContractVersion,
+                            rendererContractVersion = metadata.rendererContractVersion,
+                        )
+                }
+                ?.let { readInternal(key, prune = false)?.let { paper -> CachedReadablePaperEntry(key, paper) } }
+        }
+        .firstOrNull { entry ->
+            (documentSha256 == null || entry.paper.documentSha256 == documentSha256) &&
+                (entry.paper.keptForOffline ||
+                    assetCache.allPresent(entry.paper.assetGroupKey, entry.paper.assets)) &&
                 bodyReferencesKnownAssets(entry.paper.bodyHtml, entry.paper.assets)
         }
-        .firstOrNull()
 
     @Synchronized
     fun removeByIdentity(identity: ReadablePaperCacheIdentity): Int {
         var removed = 0
         storedKeys().forEach { key ->
+            val metadata = readIdentityMetadata(key) ?: return@forEach
+            if (metadata.identity() != identity) return@forEach
             val entry = readInternal(key, prune = false)
             if (entry != null && entry.identity() == identity && deleteEntry(key)) removed += 1
         }
@@ -221,6 +229,30 @@ internal class ReadablePaperCache(
         }
         return record
     }
+
+    private fun readIdentityMetadata(key: String): CacheIdentityMetadata? = runCatching {
+        val manifestPath = directory.resolve("$key$MANIFEST_SUFFIX")
+        if (!Files.isRegularFile(manifestPath) || Files.size(manifestPath) > MAXIMUM_MANIFEST_BYTES) {
+            return@runCatching null
+        }
+        val fields = Files.readAllLines(manifestPath, Charsets.UTF_8)
+        if (fields.firstOrNull() != CACHE_HEADER) return@runCatching null
+        val values = fields.drop(1).mapNotNull { line ->
+            val separator = line.indexOf('=')
+            if (separator <= 0) null else line.substring(0, separator) to line.substring(separator + 1)
+        }.toMap()
+        CacheIdentityMetadata(
+            sourceProvider = values["source_provider"]?.let(::decode).orEmpty(),
+            sourceRecordId = values["source_record_id"]?.let(::decode).orEmpty(),
+            sourceVersion = values["source_version"]?.let(::decode).orEmpty(),
+            readableContractVersion = values["readable_contract_version"]?.let(::decode)
+                ?.takeIf(String::isNotBlank)
+                ?: "legacy",
+            rendererContractVersion = values["renderer_contract_version"]?.let(::decode)
+                ?.takeIf(String::isNotBlank)
+                ?: READABLE_RENDERER_CONTRACT_VERSION,
+        )
+    }.getOrNull()
 
     /**
      * Protects an already verified entry from ordinary LRU eviction. The marker never replaces
@@ -519,6 +551,20 @@ internal class ReadablePaperCache(
         val bytes: Long,
         val lastUsedMillis: Long,
         val keptForOffline: Boolean,
+    )
+
+    private data class CacheIdentityMetadata(
+        val sourceProvider: String,
+        val sourceRecordId: String,
+        val sourceVersion: String,
+        val readableContractVersion: String,
+        val rendererContractVersion: String,
+    )
+
+    private fun CacheIdentityMetadata.identity() = ReadablePaperCacheIdentity(
+        providerId = sourceProvider,
+        providerRecordId = sourceRecordId,
+        sourceVersion = sourceVersion,
     )
 
     companion object {

@@ -48,8 +48,8 @@ class MoreViewModel(
     init {
         viewModelScope.launch {
             logic.useCases.observeLibrary
-                .subscribe()
-                .asLoadState(viewModelScope) { it.size }
+                .subscribeCount()
+                .asLoadState(viewModelScope) { it }
                 .collectLatest { state -> update { copy(savedPaperCount = state) } }
         }
         viewModelScope.launch {
@@ -66,8 +66,8 @@ class MoreViewModel(
         }
         viewModelScope.launch {
             logic.useCases.observeCollections
-                .subscribe()
-                .asLoadState(viewModelScope) { it.size }
+                .subscribeCount()
+                .asLoadState(viewModelScope) { it }
                 .collectLatest { state -> update { copy(collectionCount = state) } }
         }
         viewModelScope.launch {

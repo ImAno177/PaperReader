@@ -58,8 +58,8 @@ class PaperDetailViewModel(
     init {
         viewModelScope.launch {
             logic.useCases.observeLibrary
-                .subscribe()
-                .asLoadState(viewModelScope) { papers -> papers.map { it.toPaperUi() }.firstOrNull { it.id == workId } }
+                .subscribe(WorkId(workId))
+                .asLoadState(viewModelScope) { it?.toPaperUi() }
                 .collectLatest { paper -> update { copy(paper = paper) } }
         }
         viewModelScope.launch {

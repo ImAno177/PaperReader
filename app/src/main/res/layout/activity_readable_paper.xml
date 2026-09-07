@@ -127,12 +127,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="?attr/colorSurface"
-            android:minHeight="72dp"
+            android:minHeight="56dp"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
             app:contentInsetEndWithActions="4dp"
             app:contentInsetStartWithNavigation="4dp"
-            app:subtitleTextColor="?attr/colorOnSurfaceVariant"
             app:titleTextColor="?attr/colorOnSurface" />
 
         <LinearLayout
@@ -201,24 +200,5 @@
                 android:padding="12dp" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/readable_reader_provenance"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?attr/colorSurfaceVariant"
-            android:clickable="true"
-            android:ellipsize="end"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground"
-            android:accessibilityLiveRegion="polite"
-            android:maxLines="1"
-            android:minHeight="48dp"
-            android:paddingStart="16dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="10dp"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:visibility="gone" />
     </LinearLayout>
 </FrameLayout>

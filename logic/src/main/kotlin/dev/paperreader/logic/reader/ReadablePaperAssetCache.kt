@@ -27,7 +27,7 @@ internal class ReadablePaperAssetCache(
     }
 
     @Synchronized
-    fun write(groupKey: String, asset: ReadablePaperAsset, bytes: ByteArray) {
+    fun write(groupKey: String, asset: ReadablePaperAsset, bytes: ByteArray, prune: Boolean = true) {
         val group = groupDirectory(groupKey)
         require(bytes.isNotEmpty() && bytes.size.toLong() <= maximumAssetBytes)
         if (
@@ -43,11 +43,14 @@ internal class ReadablePaperAssetCache(
         try {
             Files.newOutputStream(temporary).use { output -> output.write(bytes) }
             moveAtomically(temporary, destination)
-            pruneToBudget(protectedGroupKey = groupKey)
+            if (prune) pruneToBudget(protectedGroupKey = groupKey)
         } finally {
             Files.deleteIfExists(temporary)
         }
     }
+
+    @Synchronized
+    internal fun prune(protectedGroupKey: String) = pruneToBudget(protectedGroupKey)
 
     @Synchronized
     fun open(groupKey: String?, asset: ReadablePaperAsset): ReadablePaperAssetContent? {

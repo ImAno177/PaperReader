@@ -45,6 +45,8 @@ data while the host owns rendering and trust decisions.
 - Download verified PDFs and open the original document in the in-app PDF reader.
 - Organize papers with collections, history, bookmarks, reading status, saved searches, updates,
   and metadata backups.
+- Choose the original Neobrutalism preset or five built-in color themes, with independent
+  System/Light/Dark modes.
 - Install signed source and theme extensions without loading third-party code into the host process.
 - Keep reading data local. The default app has no analytics, advertising SDK, account, or cloud parser.
 
@@ -63,14 +65,18 @@ and Download queue smoke run on 2026-09-07. They are evidence of the visible run
 mockups; the detailed results and limits are recorded in `docs/TESTING.md`.
 
 <p align="center">
-  <img src="docs/screenshots/emulator-library.png" width="23%" alt="PaperReader emulator Library with saved papers and status counts" />
-  <img src="docs/screenshots/emulator-more.png" width="23%" alt="PaperReader emulator More hub with grouped settings" />
-  <img src="docs/screenshots/emulator-download-queue.png" width="23%" alt="PaperReader emulator Download queue with completed task rows" />
-  <img src="docs/screenshots/emulator-reader-cgp.png" width="23%" alt="PaperReader emulator readable CGP-Tuning paper" />
+  <img src="docs/screenshots/release-2026-09-07-library.png" width="15%" alt="PaperReader emulator Library with saved papers and status counts" />
+  <img src="docs/screenshots/release-2026-09-07-more.png" width="15%" alt="PaperReader emulator More hub with grouped settings" />
+  <img src="docs/screenshots/release-2026-09-07-appearance.png" width="15%" alt="PaperReader emulator Appearance with Neobrutalism and built-in color themes" />
+  <img src="docs/screenshots/release-2026-09-07-queue.png" width="15%" alt="PaperReader emulator Download queue with a completed task" />
+  <img src="docs/screenshots/release-2026-09-07-reader-attention.png" width="15%" alt="PaperReader emulator readable Attention paper with a figure" />
+  <img src="docs/screenshots/release-2026-09-07-reader-cgp.png" width="15%" alt="PaperReader emulator readable CGP-Tuning paper with a figure" />
 </p>
 
-The same local run captured the search result, a live PDF download percentage, and the Attention
-reader in `docs/screenshots/`. The screenshots do not contain credentials or uploaded paper files.
+The same local run captured Search results, Paper Detail, a live PDF download percentage, and both
+the Attention and CGP-Tuning readers in `docs/screenshots/`. The screenshots do not contain
+credentials or uploaded paper files. The final debug APK and the connected-test evidence remain
+local release artifacts; no GitHub-hosted test run was used for this audit.
 
 ## Built with
 

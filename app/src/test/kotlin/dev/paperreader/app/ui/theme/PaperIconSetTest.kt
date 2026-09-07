@@ -8,14 +8,9 @@ import org.junit.Test
 class PaperIconSetTest {
     @Test
     fun `built-in theme uses Material Symbols`() {
-        assertEquals(
-            PaperIconFamily.MATERIAL_SYMBOLS,
-            paperIconSet(PaperThemePreset.NEOBRUTALISM).family,
-        )
-        assertEquals(
-            PaperIconFamily.MATERIAL_SYMBOLS,
-            paperIconSet(PaperThemePreset.MIHON).family,
-        )
+        PaperThemePreset.entries.forEach { preset ->
+            assertEquals(PaperIconFamily.MATERIAL_SYMBOLS, paperIconSet(preset).family)
+        }
     }
 
     @Test

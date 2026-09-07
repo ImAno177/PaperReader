@@ -18,9 +18,13 @@ a pull request.
   percentages while the transfer was running.
 - The Google-to-arXiv handoff parser passes four connected Android tests on the declared API 36
   emulator, including `/html/` URL version parsing and rejection of unrelated VIEW links.
-- The local connected suites pass on `emulator-5554`: 11 extension-api, 43 logic, and 85 app tests
-  (139 total), with 0 failures, 0 errors, and 0 skipped tests. The app suite uses the `.uitest`
+- The latest app connected run on `emulator-5554` executed all 85 app test bodies. The 84 functional
+  assertions passed; one `ActivityScenarioRule.after` teardown still reports that the activity did
+  not reach `DESTROYED` after the share-redelivery UI flow. This is the same harness-only failure
+  seen before the importer fix, not a product assertion failure. The app suite uses the `.uitest`
   applicationId suffix so the demo APK remains installed.
+- The previously completed local connected baseline remains green for 11 extension-api and 43 logic
+  tests. No connected test source or GitHub workflow was added for this release audit.
 - Release readiness still requires live-provider audit, extension install flows, and Play Protect
   review listed below.
 
@@ -54,6 +58,36 @@ an explicit warning. Include a large image-heavy paper and a self-contained SVG 
 data in the asset audit, and confirm transient 429/unavailable responses use bounded retries before
 being reported. Do not add or modify test sources for this audit, and do not use GitHub as the test
 runner.
+
+## Final local release evidence (2026-09-07)
+
+The release APK was assembled, installed, and exercised only on the shared API 36 emulator. The
+host gate and source gate both passed locally. The final host debug artifact is
+`PaperReader-debug-final.apk`; its SHA-256 is
+`703E2CBC05E430EA4B57145057740CEE9F11696C703326064EE2C404DAB38589` and its debug signer is
+`0fc18d510fb0a74485d72d00a484a39c90c7af5e66d8527958a18626f81986e1`.
+
+The manual matrix covered:
+
+- Library, Search, Paper Detail, More, Appearance, Download queue, and predictable branch Back.
+- Appearance with the unchanged Neobrutalism preset plus Ocean, Forest, Violet, Rose, and Sunset;
+  Light and Dark mode selection remained independent.
+- Attention search with 20 results, detail actions, a live download percentage, queue completion,
+  and the reader's find/contents/Back controls.
+- Attention and CGP-Tuning readable documents with visible figure assets and captions. The broader
+  local paper audit also covered LoRA, Llama 2, ResNet, and InstructGPT for HTML/PDF/cache paths.
+
+Fresh emulator captures are in `docs/screenshots/release-2026-09-07-*.png`. They are runtime
+evidence, not mocks. The readable pipeline still has separate HTML/document and same-document asset
+lanes and no arbitrary image-count limit; per-asset bytes, SVG complexity, manifest size, retries,
+and cache quotas remain the safety bounds.
+
+The latest app XML result reports `85` tests, `1` teardown failure, `0` errors, and `0` skipped. The
+failed case is `MainActivityIncomingPdfUiAndroidTest.shareAfterCompletedImportReplacesStatusAndSurfacesReview`
+and fails only during `ActivityScenarioRule.after`; its share/import/status assertions complete.
+Android API 36 also logs the framework warning for a malformed single-stream `ACTION_SEND` extra;
+the production decoder accepts a single `Uri`, an `ArrayList`, or `ClipData` and handles the flow.
+This limitation is recorded rather than hidden by changing the test or adding a GitHub-only test.
 
 ## Coverage
 

@@ -55,7 +55,14 @@ class BuiltinThemePaletteTest {
     @Test
     fun `only supported built-in presets are selectable`() {
         assertEquals(
-            setOf(PaperThemePreset.NEOBRUTALISM, PaperThemePreset.MIHON),
+            setOf(
+                PaperThemePreset.NEOBRUTALISM,
+                PaperThemePreset.OCEAN,
+                PaperThemePreset.FOREST,
+                PaperThemePreset.VIOLET,
+                PaperThemePreset.ROSE,
+                PaperThemePreset.SUNSET,
+            ),
             PaperThemePreset.entries.toSet(),
         )
     }

@@ -22,7 +22,11 @@ enum class PaperThemePreset(
     val storageKey: String,
 ) {
     NEOBRUTALISM("neobrutalism"),
-    MIHON("mihon"),
+    OCEAN("ocean"),
+    FOREST("forest"),
+    VIOLET("violet"),
+    ROSE("rose"),
+    SUNSET("sunset"),
     ;
 
     companion object {
@@ -92,7 +96,7 @@ data class PaperThemeTokens(
 
 internal fun paperThemeTokens(preset: PaperThemePreset, dark: Boolean): PaperThemeTokens = when (preset) {
     PaperThemePreset.NEOBRUTALISM -> neobrutalismThemeTokens(dark)
-    PaperThemePreset.MIHON -> mihonThemeTokens(dark)
+    else -> colorThemeTokens(preset, dark)
 }
 
 internal fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (dark) {

@@ -57,6 +57,22 @@ Root screen functions are the UI test seam. A helper remains feature-private unt
 consumer needs the same behavior. Production Kotlin files should stay below 600 lines; split at a
 feature, state-machine, or lifecycle seam instead of introducing pass-through wrappers.
 
+## Presentation state
+
+Each root destination and More branch owns a focused screen-level `ViewModel` (or the smallest
+feature controller when Android lifecycle state is not required). Screens collect one immutable
+`UiState` and send user intents upward; they do not read Room, network, parser, or Binder classes.
+The `ScreenViewModelFactory` creates the screen models from the application-scoped logic facade,
+while `PaperReaderApp` only wires navigation, shared effects, and one-way callbacks. This keeps
+Library, Search, More, Download queue, Appearance, Detail, and Reader state isolated and makes
+recreation/resume behavior explicit.
+
+Incoming PDF sharing follows the same boundary: `MainActivity` accepts and consumes intents,
+`PaperReaderLocalPdfImportController` owns the recover/prepare/confirm state machine, and the logic
+use cases own durable staging. A share arriving while recovery is still running is queued by source
+URI and either reuses the matching durable candidate or starts a new preparation, so a later share
+cannot overwrite the earlier import session.
+
 ## Domain and persistence
 
 - `PaperWork`, `PaperManifestation`, provider records, and local/generated artifacts are distinct.

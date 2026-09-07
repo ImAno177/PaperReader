@@ -7,7 +7,7 @@ import dev.paperreader.app.ui.theme.PaperThemePreset
 
 internal fun readerThemeStyle(preset: PaperThemePreset): Int = when (preset) {
     PaperThemePreset.NEOBRUTALISM -> R.style.Theme_PaperReader_PdfReader_Neobrutalism
-    PaperThemePreset.MIHON -> R.style.Theme_PaperReader_PdfReader
+    else -> R.style.Theme_PaperReader_PdfReader
 }
 
 internal fun PaperThemeMode.toAppCompatNightMode(): Int = when (this) {

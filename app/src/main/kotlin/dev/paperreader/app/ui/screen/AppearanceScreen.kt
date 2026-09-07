@@ -445,7 +445,11 @@ private fun CommunityThemeChoiceCard(
 internal fun themeName(preset: PaperThemePreset): String = stringResource(
     when (preset) {
         PaperThemePreset.NEOBRUTALISM -> R.string.theme_neobrutalism
-        PaperThemePreset.MIHON -> R.string.theme_mihon
+        PaperThemePreset.OCEAN -> R.string.theme_ocean
+        PaperThemePreset.FOREST -> R.string.theme_forest
+        PaperThemePreset.VIOLET -> R.string.theme_violet
+        PaperThemePreset.ROSE -> R.string.theme_rose
+        PaperThemePreset.SUNSET -> R.string.theme_sunset
     },
 )
 

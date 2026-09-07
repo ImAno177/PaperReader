@@ -20,6 +20,7 @@ import dev.paperreader.app.R
 import dev.paperreader.app.ui.model.*
 import dev.paperreader.app.ui.screen.*
 import dev.paperreader.app.ui.state.LoadState
+import dev.paperreader.app.ui.state.DownloadActionUiState
 import dev.paperreader.app.reader.PdfReaderActivity
 import dev.paperreader.app.search.GoogleSearchActivity
 import dev.paperreader.app.ui.theme.PaperTheme
@@ -171,15 +172,21 @@ internal fun AppNavHost(
             )
         }
         composable(AppRoutes.DISCOVER) {
+            val discoverViewModel: DiscoverViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.discover() },
+            )
+            val searchState by discoverViewModel.uiState.collectAsStateWithLifecycle()
+            val savedSearchesState by discoverViewModel.savedSearches.collectAsStateWithLifecycle()
+            val savedSearchActionsState by discoverViewModel.savedSearchActions.collectAsStateWithLifecycle()
             DiscoverScreen(
-                state = search,
-                onSearch = onSearch,
-                onClear = onClearSearch,
-                onSave = onSave,
+                state = searchState,
+                onSearch = { discoverViewModel.onAction(DiscoverAction.Search(it)) },
+                onClear = { discoverViewModel.onAction(DiscoverAction.ClearSearch) },
+                onSave = { discoverViewModel.onAction(DiscoverAction.Save(it)) },
                 onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
-                savedSearches = savedSearches,
-                savedSearchActions = savedSearchActions,
-                onSaveSearch = onSaveSearch,
+                savedSearches = savedSearchesState,
+                savedSearchActions = savedSearchActionsState,
+                onSaveSearch = { discoverViewModel.onAction(DiscoverAction.CreateSavedSearch(it)) },
                 onOpenUpdates = { navController.navigate(AppRoutes.UPDATES) { launchSingleTop = true } },
                 onSearchGoogle = { query ->
                     context.startActivity(
@@ -195,30 +202,38 @@ internal fun AppNavHost(
             )
         }
         composable(AppRoutes.UPDATES) {
+            val updatesViewModel: UpdatesViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.updates() },
+            )
+            val updatesState by updatesViewModel.uiState.collectAsStateWithLifecycle()
             UpdatesScreen(
-                tasks = tasks,
-                library = library,
-                providers = providers,
-                savedSearches = savedSearches,
-                savedSearchActions = savedSearchActions,
-                actions = downloadActions,
+                tasks = updatesState.tasks,
+                library = updatesState.library,
+                providers = updatesState.providers,
+                savedSearches = updatesState.savedSearches,
+                savedSearchActions = updatesState.savedSearchActions,
+                actions = updatesState.downloadActions,
                 onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
-                onRefreshSearch = onRefreshSavedSearch,
-                onDeleteSearch = onDeleteSavedSearch,
-                onMarkHitRead = onMarkSavedSearchHitRead,
-                onSaveHit = onSaveSavedSearchHit,
-                onCancel = onCancelDownloadTask,
-                onRetry = onRetryDownloadTask,
-                onRemove = onRemoveDownloadTask,
+                onRefreshSearch = { updatesViewModel.onAction(UpdatesAction.RefreshSearch(it)) },
+                onDeleteSearch = { updatesViewModel.onAction(UpdatesAction.DeleteSearch(it)) },
+                onMarkHitRead = { updatesViewModel.onAction(UpdatesAction.MarkHitRead(it)) },
+                onSaveHit = { updatesViewModel.onAction(UpdatesAction.SaveHit(it)) },
+                onCancel = { updatesViewModel.onAction(UpdatesAction.CancelTask(it)) },
+                onRetry = { updatesViewModel.onAction(UpdatesAction.RetryTask(it)) },
+                onRemove = { updatesViewModel.onAction(UpdatesAction.RemoveTask(it)) },
                 dateFormat = dateFormat,
                 relativeTimeEnabled = relativeTimeEnabled,
             )
         }
         composable(AppRoutes.HISTORY) {
+            val historyViewModel: HistoryViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.history() },
+            )
+            val historyState by historyViewModel.uiState.collectAsStateWithLifecycle()
             HistoryScreen(
-                state = history,
+                state = historyState,
                 onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
-                onRemove = onRemoveHistory,
+                onRemove = { historyViewModel.onAction(HistoryAction.Remove(it)) },
                 dateFormat = dateFormat,
                 relativeTimeEnabled = relativeTimeEnabled,
             )

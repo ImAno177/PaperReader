@@ -18,6 +18,7 @@ import dev.paperreader.app.ui.model.toPaperUi
 import dev.paperreader.app.ui.model.toPaperCollectionUi
 import dev.paperreader.app.ui.model.toReadingHistoryUi
 import dev.paperreader.app.ui.state.LoadState
+import dev.paperreader.app.ui.state.DownloadActionUiState
 import dev.paperreader.app.ui.state.asLoadState
 import dev.paperreader.logic.PaperReaderLogic
 import dev.paperreader.logic.domain.ReadingStatus
@@ -50,13 +51,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-
-data class DownloadActionUiState(
-    val requestingManifestations: Set<String> = emptySet(),
-    val failedManifestations: Set<String> = emptySet(),
-    val actingTaskIds: Set<String> = emptySet(),
-    val failedTaskIds: Set<String> = emptySet(),
-)
 
 enum class ExtensionStoreOperation {
     PREVIEW,

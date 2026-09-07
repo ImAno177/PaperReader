@@ -2,6 +2,8 @@ package dev.paperreader.app.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
@@ -11,6 +13,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.navArgument
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.model.*
@@ -34,6 +38,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun AppNavHost(
     navController: NavHostController,
+    screenViewModelFactory: ScreenViewModelFactory,
     library: LoadState<List<PaperUi>>,
     history: LoadState<List<ReadingHistoryUi>>,
     collections: LoadState<List<PaperCollectionUi>>,
@@ -153,11 +158,13 @@ internal fun AppNavHost(
     }
     NavHost(navController = navController, startDestination = AppRoutes.LIBRARY, modifier = modifier) {
         composable(AppRoutes.LIBRARY) {
+            val libraryViewModel: LibraryViewModel = viewModel(
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.library() },
+            )
+            val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
             LibraryScreen(
-                state = library,
-                collections = collections,
-                layout = libraryLayout,
-                onLayoutChange = onLibraryLayoutChange,
+                state = libraryState,
+                onAction = libraryViewModel::onAction,
                 onOpenPaper = { navController.navigate(AppRoutes.detail(it)) },
                 onDiscover = { navController.navigate(AppRoutes.DISCOVER) },
                 onReadPaper = readLibraryPaper,

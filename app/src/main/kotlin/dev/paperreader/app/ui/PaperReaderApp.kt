@@ -150,6 +150,9 @@ private fun PaperReaderContent(
             PaperReaderViewModel.factory(logic, downloadWorkScheduler, restoreSessionStore, preferences)
         },
     )
+    val screenViewModelFactory = remember(logic, downloadWorkScheduler, restoreSessionStore, preferences) {
+        ScreenViewModelFactory(logic, preferences, downloadWorkScheduler, restoreSessionStore)
+    }
     val library by viewModel.library.collectAsStateWithLifecycle()
     val history by viewModel.history.collectAsStateWithLifecycle()
     val collections by viewModel.collections.collectAsStateWithLifecycle()
@@ -356,6 +359,7 @@ private fun PaperReaderContent(
         onOpenExtensionsConsumed = onOpenExtensionsConsumed,
         incomingPaperReferenceRequest = incomingPaperReferenceRequest,
         onIncomingPaperReferenceConsumed = onIncomingPaperReferenceConsumed,
+        screenViewModelFactory = screenViewModelFactory,
     )
 }
 
@@ -431,6 +435,7 @@ private fun PaperReaderNavigation(
     onOpenExtensionsConsumed: (Long) -> Unit,
     incomingPaperReferenceRequest: IncomingPaperReferenceRequest?,
     onIncomingPaperReferenceConsumed: (Long) -> Unit,
+    screenViewModelFactory: ScreenViewModelFactory,
 ) {
     val context = LocalContext.current
     val navController = rememberNavController()
@@ -487,6 +492,7 @@ private fun PaperReaderNavigation(
     if (chromeHidden) {
         AppNavHost(
             navController = navController,
+            screenViewModelFactory = screenViewModelFactory,
             library = library,
             history = history,
             collections = collections,
@@ -569,6 +575,7 @@ private fun PaperReaderNavigation(
         ) { modifier ->
             AppNavHost(
                 navController = navController,
+                screenViewModelFactory = screenViewModelFactory,
                 library = library,
                 history = history,
                 collections = collections,

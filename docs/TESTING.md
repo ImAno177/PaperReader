@@ -28,6 +28,11 @@ a pull request.
   grouped reading actions, and no standalone Stats card; Stats presents a reading-time lead metric
   followed by compact metric lists. Readable reader restore, real scroll chrome, and TOC anchor
   navigation were also rechecked; programmatic scroll no longer hides the reader title or Back action.
+- The slow-scroll reader regression was reproduced before the fix and then rechecked on the fresh
+  build. The reader now keeps the WebView at a stable full-height bound while toolbar, find bar, and
+  provenance move as one overlay using alpha/translation; the after sequence is retained locally in
+  `D:\research-new\artifacts\paperreader-release-2026-09-07\slow-scroll-overlay-after`. Native find
+  was also opened, typed with `graph`, and closed successfully after the layout change.
 - The previously completed local connected baseline remains green for 11 extension-api and 43 logic
   tests. No connected test source or GitHub workflow was added for this release audit.
 - Release readiness still requires live-provider audit, extension install flows, and Play Protect
@@ -69,7 +74,7 @@ runner.
 The release APK was assembled, installed, and exercised only on the shared API 36 emulator. The
 host gate and source gate both passed locally. The final host debug artifact is
 `PaperReader-debug-final.apk`; its SHA-256 is
-`0AE6E0A553E485EEE8FE3EC144A368CBE92768B343906CA15DD7E70935C88B3B` and its debug signer is
+`C3DF37ADA77DBC957C554883072693EC56610ABEA64084809FA3639A44B284D5` and its debug signer is
 `0fc18d510fb0a74485d72d00a484a39c90c7af5e66d8527958a18626f81986e1`.
 
 The manual matrix covered:
@@ -84,7 +89,8 @@ The manual matrix covered:
 - The compact 540×1200 viewport was also checked; More preference titles and summaries ellipsize
   without splitting words, while the original Neobrutalism visual tokens remain unchanged.
 - Reader chrome hiding was checked in Light/Neobrutalism; hidden toolbar/provenance slots now leave
-  no canvas gap, and a document tap restores both controls.
+  no canvas gap or document reflow, and a document tap restores both controls. The WebView bounds
+  remain unchanged while the overlay is hidden during a slow swipe.
 
 Fresh emulator captures are in `docs/screenshots/release-2026-09-07-*.png`, including the refreshed
 More and Stats surfaces. They are runtime evidence, not mocks. The readable pipeline still has separate HTML/document and same-document asset

@@ -12,7 +12,6 @@ import android.text.TextUtils
 import android.util.TypedValue
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
 import android.widget.Toast
@@ -120,69 +119,40 @@ internal fun setReadableReaderChromeVisible(
     showProvenance: Boolean,
     animate: Boolean = true,
 ) {
-    val views = listOf(toolbar, provenance)
+    val chrome = toolbar.parent as? View ?: toolbar
+    chrome.animate().withEndAction(null).cancel()
     if (!visible) {
-        views.forEach { view ->
-            view.animate().withEndAction(null).cancel()
-            if (!animate || !ValueAnimator.areAnimatorsEnabled()) {
-                collapseReaderChromeView(view)
-            } else {
-                view.animate()
-                    .alpha(0f)
-                    .translationY(-view.height.coerceAtLeast(48).toFloat())
-                    .setDuration(READER_CHROME_MOTION_MILLIS)
-                    .setInterpolator(DecelerateInterpolator())
-                    .withEndAction {
-                        collapseReaderChromeView(view)
-                    }
-                    .start()
-            }
-        }
-        return
-    }
-
-    views.forEach { view ->
-        if (view === provenance && !showProvenance) {
-            view.animate().withEndAction(null).cancel()
-            collapseReaderChromeView(view)
-            return@forEach
-        }
-        view.animate().withEndAction(null).cancel()
-        restoreReaderChromeLayout(view)
-        view.visibility = View.VISIBLE
-        view.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+        chrome.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+        val offset = chrome.height.coerceAtLeast(toolbar.height + provenance.height).toFloat()
         if (!animate || !ValueAnimator.areAnimatorsEnabled()) {
-            view.alpha = 1f
-            view.translationY = 0f
+            chrome.alpha = 0f
+            chrome.translationY = -offset
         } else {
-            view.alpha = 0f
-            view.translationY = -view.height.coerceAtLeast(48).toFloat()
-            view.animate()
-                .alpha(1f)
-                .translationY(0f)
+            chrome.animate()
+                .alpha(0f)
+                .translationY(-offset)
                 .setDuration(READER_CHROME_MOTION_MILLIS)
                 .setInterpolator(DecelerateInterpolator())
                 .start()
         }
+        return
     }
-}
 
-private fun collapseReaderChromeView(view: View) {
-    view.layoutParams = view.layoutParams.apply {
-        height = 0
-    }
-    view.requestLayout()
-    view.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-    view.alpha = 0f
-    view.translationY = -view.height.coerceAtLeast(48).toFloat()
-}
-
-private fun restoreReaderChromeLayout(view: View) {
-    if (view.layoutParams.height == 0) {
-        view.layoutParams = view.layoutParams.apply {
-            height = ViewGroup.LayoutParams.WRAP_CONTENT
-        }
-        view.requestLayout()
+    chrome.visibility = View.VISIBLE
+    chrome.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+    if (showProvenance) provenance.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+    if (!animate || !ValueAnimator.areAnimatorsEnabled()) {
+        chrome.alpha = 1f
+        chrome.translationY = 0f
+    } else {
+        chrome.alpha = 0f
+        chrome.translationY = -chrome.height.toFloat()
+        chrome.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(READER_CHROME_MOTION_MILLIS)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
     }
 }
 

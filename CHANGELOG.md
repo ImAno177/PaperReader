@@ -20,7 +20,8 @@ current branch. Released sections correspond to Git tags.
 - Library filters expose counts; list cards summarize authors; Paper Detail labels DOI and license
   values explicitly; redundant manifestation badges are reduced to the useful local-file state.
 - The readable reader hides chrome during downward scrolling and restores it on upward scrolling or
-  interaction, while preserving native search, contents, provenance, and Back controls.
+  interaction, while preserving native search, contents, provenance, and Back controls. The chrome
+  now lives in a fixed overlay, so hiding it no longer remeasures the WebView or shifts document text.
 
 ## [0.1.11] - 2026-09-06
 

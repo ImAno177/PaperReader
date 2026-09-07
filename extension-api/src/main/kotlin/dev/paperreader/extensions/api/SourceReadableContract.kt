@@ -2,6 +2,8 @@ package dev.paperreader.extensions.api
 
 import android.os.Bundle
 
+const val LEGACY_READABLE_CONTRACT_VERSION = "legacy"
+
 /** Request for a provider-owned, sanitized HTML document. */
 data class SourceGetReadableDocumentRequest(
     val requestId: String,
@@ -105,10 +107,12 @@ data class SourceReadableDocumentMetadata(
     val sections: List<SourceReadableSection>,
     val warnings: Set<SourceReadableWarning>,
     val assets: List<SourceReadableAsset>,
+    val contractVersion: String = LEGACY_READABLE_CONTRACT_VERSION,
 ) {
     init {
         requireValidRequestId(requestId)
         require(title.isNotBlank() && title.length <= PaperExtensionContract.MAX_TITLE_CHARACTERS)
+        require(contractVersion.matches(CONTRACT_VERSION_PATTERN))
         ExtensionPayloadValidator.requireSafeWebUrl(sourceUrl)
         require(sourceVersion.matches(Regex("v[1-9][0-9]*")))
         require(license == null || license.length <= 160)
@@ -122,6 +126,7 @@ data class SourceReadableDocumentMetadata(
     fun toBundle(): Bundle = Bundle().apply {
         putString(Keys.REQUEST_ID, requestId)
         putString(Keys.READABLE_TITLE, title)
+        putString(Keys.READABLE_CONTRACT_VERSION, contractVersion)
         putString(Keys.READABLE_SOURCE_URL, sourceUrl)
         putString(Keys.READABLE_SOURCE_VERSION, sourceVersion)
         putString(Keys.LICENSE, license)
@@ -138,6 +143,8 @@ data class SourceReadableDocumentMetadata(
             return SourceReadableDocumentMetadata(
                 requestId = bundle.requiredString(Keys.REQUEST_ID),
                 title = bundle.requiredString(Keys.READABLE_TITLE),
+                contractVersion = bundle.getString(Keys.READABLE_CONTRACT_VERSION)
+                    ?: LEGACY_READABLE_CONTRACT_VERSION,
                 sourceUrl = bundle.requiredString(Keys.READABLE_SOURCE_URL),
                 sourceVersion = bundle.requiredString(Keys.READABLE_SOURCE_VERSION),
                 license = bundle.getString(Keys.LICENSE),
@@ -154,6 +161,7 @@ data class SourceReadableDocumentMetadata(
         }
 
         private val SHA256_PATTERN = Regex("[0-9a-f]{64}")
+        private val CONTRACT_VERSION_PATTERN = Regex("[a-z0-9][a-z0-9._-]{0,63}")
     }
 }
 

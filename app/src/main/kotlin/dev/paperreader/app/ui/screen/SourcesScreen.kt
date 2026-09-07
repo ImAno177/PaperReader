@@ -32,8 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
 import dev.paperreader.app.extensions.ExtensionInstallState
-import dev.paperreader.app.ui.ExtensionStoreActionUiState
-import dev.paperreader.app.ui.ExtensionStoreOperation
+import dev.paperreader.app.ui.state.ExtensionStoreActionUiState
+import dev.paperreader.app.ui.state.ExtensionStoreOperation
 import dev.paperreader.app.ui.components.PaperPrimaryButton
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSectionHeader

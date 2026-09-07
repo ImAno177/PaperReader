@@ -9,6 +9,8 @@ import dev.paperreader.app.ui.model.toPaperUi
 import dev.paperreader.app.ui.state.LoadState
 import dev.paperreader.app.ui.state.asLoadState
 import dev.paperreader.logic.PaperReaderLogic
+import dev.paperreader.logic.task.DownloadedPaper
+import dev.paperreader.logic.domain.ManifestationId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -59,4 +61,7 @@ class LibraryViewModel(
             is LibraryAction.SetSortOrder -> mutableUiState.value = mutableUiState.value.copy(sortOrder = action.sortOrder)
         }
     }
+
+    suspend fun downloadedPaper(manifestationId: String): DownloadedPaper? =
+        logic.downloads.downloadedPaper(ManifestationId(manifestationId))
 }

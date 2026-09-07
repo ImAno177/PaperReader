@@ -40,6 +40,161 @@ import dev.paperreader.logic.task.TaskState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreScreen(
+    state: MoreUiState,
+    selectedPreset: PaperThemePreset,
+    selectedThemeName: String? = null,
+    onOpenAppearance: () -> Unit = {},
+    onOpenCollections: () -> Unit = {},
+    onOpenReadingImports: () -> Unit = {},
+    onOpenUpdates: () -> Unit = {},
+    onOpenDataBackup: () -> Unit = {},
+    onOpenSources: () -> Unit = {},
+    onOpenAbout: () -> Unit = {},
+    onOpenDownloadQueue: () -> Unit = {},
+    onOpenStats: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    onOpenHelp: () -> Unit = {},
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { PaperAppBarTitle(stringResource(R.string.more_title)) },
+                colors = topBarColors(),
+            )
+        },
+        containerColor = PaperTheme.tokens.canvas,
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 32.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            item(key = "more-header") {
+                MoreCompactHeader(
+                    savedPaperCount = state.savedPaperCount,
+                    activeDownloadCount = state.activeDownloadCount,
+                )
+            }
+            item(key = "more-personalize-section") {
+                PaperSectionHeader(title = stringResource(R.string.more_personalize_section))
+            }
+            item(key = "more-personalize") {
+                MorePreferenceGroup {
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.appearance_title),
+                        supportingText = selectedThemeName ?: themeName(selectedPreset),
+                        icon = PaperIconKey.PALETTE,
+                        onClick = onOpenAppearance,
+                    )
+                    MoreHubDivider()
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.collections_title),
+                        supportingText = collectionsHubSummaryCount(state.collectionCount),
+                        icon = PaperIconKey.FOLDER,
+                        onClick = onOpenCollections,
+                    )
+                }
+            }
+            item(key = "more-reading-section") {
+                PaperSectionHeader(title = stringResource(R.string.more_reading_section))
+            }
+            item(key = "more-reading") {
+                MorePreferenceGroup {
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.local_pdf_import_title),
+                        supportingText = localPdfHubSummary(state.localPdfImportState),
+                        icon = PaperIconKey.PDF,
+                        onClick = onOpenReadingImports,
+                    )
+                    MoreHubDivider()
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.download_queue_title),
+                        supportingText = downloadQueueHubSummaryCounts(
+                            state.activeDownloadCount,
+                            state.failedDownloadCount,
+                        ),
+                        icon = PaperIconKey.DOWNLOAD,
+                        onClick = onOpenDownloadQueue,
+                    )
+                }
+            }
+            item(key = "more-data-section") {
+                PaperSectionHeader(title = stringResource(R.string.more_data_section))
+            }
+            item(key = "more-data") {
+                MorePreferenceGroup {
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.updates_and_notifications_title),
+                        supportingText = updatesHubSummary(state.automaticRefreshEnabled, state.notificationsAvailable),
+                        icon = PaperIconKey.NOTIFICATIONS_ON,
+                        onClick = onOpenUpdates,
+                    )
+                    MoreHubDivider()
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.data_and_backup),
+                        supportingText = backupHubSummary(state.backupState),
+                        icon = PaperIconKey.DOWNLOAD,
+                        onClick = onOpenDataBackup,
+                    )
+                    MoreHubDivider()
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.sources_title),
+                        supportingText = sourcesHubSummaryCounts(
+                            state.providerReviewCount,
+                            state.availableProviderCount,
+                            state.installedProviderCount,
+                        ),
+                        icon = PaperIconKey.PUBLIC,
+                        onClick = onOpenSources,
+                    )
+                }
+            }
+            item(key = "more-insights-section") {
+                PaperSectionHeader(title = stringResource(R.string.more_insights_section))
+            }
+            item(key = "more-insights") {
+                MorePreferenceGroup {
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.stats_title),
+                        supportingText = statsHubSummaryCount(state.savedPaperCount),
+                        icon = PaperIconKey.UPDATES,
+                        onClick = onOpenStats,
+                    )
+                }
+            }
+            item(key = "more-about-section") {
+                PaperSectionHeader(title = stringResource(R.string.more_about_section))
+            }
+            item(key = "more-about") {
+                MorePreferenceGroup {
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.settings_title),
+                        supportingText = stringResource(R.string.settings_summary),
+                        icon = PaperIconKey.INFO,
+                        onClick = onOpenSettings,
+                    )
+                    MoreHubDivider()
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.about_title),
+                        icon = PaperIconKey.INFO,
+                        onClick = onOpenAbout,
+                    )
+                    MoreHubDivider()
+                    PaperPreferenceRow(
+                        title = stringResource(R.string.help_title),
+                        supportingText = stringResource(R.string.help_summary),
+                        icon = PaperIconKey.INFO,
+                        onClick = onOpenHelp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MoreScreen(
     selectedPreset: PaperThemePreset,
     selectedThemeName: String? = null,
     automaticRefreshEnabled: Boolean = false,
@@ -234,6 +389,41 @@ private fun MoreHeader(
 }
 
 @Composable
+private fun MoreCompactHeader(
+    savedPaperCount: LoadState<Int>,
+    activeDownloadCount: LoadState<Int>,
+) {
+    val savedCount = (savedPaperCount as? LoadState.Ready)?.value
+    val activeCount = (activeDownloadCount as? LoadState.Ready)?.value
+    PaperSurface(contentPadding = PaddingValues(16.dp)) {
+        Text(
+            text = stringResource(R.string.more_header_title),
+            style = MaterialTheme.typography.headlineSmall,
+            color = PaperTheme.tokens.ink,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.more_header_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = PaperTheme.tokens.inkMuted,
+        )
+        if (savedCount != null || activeCount != null) {
+            Row(
+                modifier = Modifier.padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                savedCount?.let {
+                    PaperLabel(pluralStringResource(R.plurals.saved_papers_count, it, it))
+                }
+                activeCount?.takeIf { it > 0 }?.let {
+                    PaperLabel(pluralStringResource(R.plurals.download_queue_pending, it, it))
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun MorePreferenceGroup(content: @Composable () -> Unit) {
     PaperSurface(contentPadding = PaddingValues(0.dp)) { content() }
 }
@@ -254,6 +444,13 @@ private fun statsHubSummary(library: LoadState<List<PaperUi>>): String? = when (
 }
 
 @Composable
+private fun statsHubSummaryCount(library: LoadState<Int>): String? = when (library) {
+    LoadState.Loading -> stringResource(R.string.stats_loading)
+    LoadState.Failed -> stringResource(R.string.stats_unavailable)
+    is LoadState.Ready -> pluralStringResource(R.plurals.saved_papers_count, library.value, library.value)
+}
+
+@Composable
 private fun downloadQueueHubSummary(tasks: LoadState<List<PaperTask>>): String? = when (tasks) {
     LoadState.Loading -> stringResource(R.string.download_queue_loading)
     LoadState.Failed -> stringResource(R.string.download_queue_unavailable)
@@ -270,11 +467,45 @@ private fun downloadQueueHubSummary(tasks: LoadState<List<PaperTask>>): String? 
 }
 
 @Composable
+private fun downloadQueueHubSummaryCounts(
+    active: LoadState<Int>,
+    failed: LoadState<Int>,
+): String? {
+    if (active is LoadState.Loading || failed is LoadState.Loading) {
+        return stringResource(R.string.download_queue_loading)
+    }
+    if (active is LoadState.Failed || failed is LoadState.Failed) {
+        return stringResource(R.string.download_queue_unavailable)
+    }
+    val activeCount = (active as LoadState.Ready).value
+    val failedCount = (failed as LoadState.Ready).value
+    return when {
+        activeCount > 0 && failedCount > 0 -> stringResource(
+            R.string.download_queue_active_and_failed,
+            activeCount,
+            failedCount,
+        )
+        activeCount > 0 -> pluralStringResource(R.plurals.download_queue_pending, activeCount, activeCount)
+        failedCount > 0 -> pluralStringResource(R.plurals.download_queue_failed, failedCount, failedCount)
+        else -> stringResource(R.string.download_queue_empty_title)
+    }
+}
+
+@Composable
 private fun collectionsHubSummary(collections: LoadState<List<PaperCollectionUi>>): String? = when (collections) {
     LoadState.Loading -> stringResource(R.string.collections_loading)
     LoadState.Failed -> stringResource(R.string.collections_load_failed_short)
     is LoadState.Ready -> collections.value.takeIf { it.isNotEmpty() }?.let { values ->
         pluralStringResource(R.plurals.collection_count, values.size, values.size)
+    }
+}
+
+@Composable
+private fun collectionsHubSummaryCount(collections: LoadState<Int>): String? = when (collections) {
+    LoadState.Loading -> stringResource(R.string.collections_loading)
+    LoadState.Failed -> stringResource(R.string.collections_load_failed_short)
+    is LoadState.Ready -> collections.value.takeIf { it > 0 }?.let {
+        pluralStringResource(R.plurals.collection_count, it, it)
     }
 }
 
@@ -334,5 +565,14 @@ private fun sourcesHubSummary(state: ProviderManagerState): String {
             state.installed.size,
             state.installed.size,
         )
+    }
+}
+
+@Composable
+private fun sourcesHubSummaryCounts(reviewCount: Int, availableCount: Int, installedCount: Int): String {
+    return when {
+        reviewCount > 0 -> pluralStringResource(R.plurals.provider_review_count, reviewCount, reviewCount)
+        availableCount > 0 -> pluralStringResource(R.plurals.available_provider_count, availableCount, availableCount)
+        else -> pluralStringResource(R.plurals.installed_provider_count, installedCount, installedCount)
     }
 }

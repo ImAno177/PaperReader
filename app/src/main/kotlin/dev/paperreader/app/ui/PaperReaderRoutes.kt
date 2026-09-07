@@ -15,6 +15,7 @@ import androidx.navigation.navArgument
 import dev.paperreader.app.R
 import dev.paperreader.app.ui.model.*
 import dev.paperreader.app.ui.screen.*
+import dev.paperreader.app.ui.state.LoadState
 import dev.paperreader.app.reader.PdfReaderActivity
 import dev.paperreader.app.search.GoogleSearchActivity
 import dev.paperreader.app.ui.theme.PaperTheme

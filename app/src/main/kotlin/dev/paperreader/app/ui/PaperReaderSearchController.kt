@@ -4,6 +4,7 @@ import dev.paperreader.app.ui.model.SearchPaperUi
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.persistedSavedWorkIds
 import dev.paperreader.app.ui.model.toSearchPaperUi
+import dev.paperreader.app.ui.state.LoadState
 import dev.paperreader.app.settings.PaperReaderPreferences
 import dev.paperreader.logic.PaperReaderLogic
 import dev.paperreader.logic.domain.SavedSearchFeed

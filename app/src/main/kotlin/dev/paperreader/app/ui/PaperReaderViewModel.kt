@@ -1,8 +1,8 @@
 package dev.paperreader.app.ui
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import dev.paperreader.app.download.DownloadWorkScheduler
@@ -17,6 +17,8 @@ import dev.paperreader.app.ui.model.LocalPdfImportUiState
 import dev.paperreader.app.ui.model.toPaperUi
 import dev.paperreader.app.ui.model.toPaperCollectionUi
 import dev.paperreader.app.ui.model.toReadingHistoryUi
+import dev.paperreader.app.ui.state.LoadState
+import dev.paperreader.app.ui.state.asLoadState
 import dev.paperreader.logic.PaperReaderLogic
 import dev.paperreader.logic.domain.ReadingStatus
 import dev.paperreader.logic.domain.CollectionId
@@ -42,23 +44,12 @@ import dev.paperreader.logic.task.TaskId
 import dev.paperreader.logic.task.TaskState
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-
-sealed interface LoadState<out T> {
-    data object Loading : LoadState<Nothing>
-    data class Ready<T>(val value: T) : LoadState<T>
-    data object Failed : LoadState<Nothing>
-}
 
 data class DownloadActionUiState(
     val requestingManifestations: Set<String> = emptySet(),
@@ -89,17 +80,17 @@ class PaperReaderViewModel internal constructor(
 ) : ViewModel() {
     val library: StateFlow<LoadState<List<PaperUi>>> = logic.useCases.observeLibrary
         .subscribe()
-        .asLoadState { papers -> papers.map { it.toPaperUi() } }
+        .asLoadState(viewModelScope) { papers -> papers.map { it.toPaperUi() } }
 
     val history: StateFlow<LoadState<List<ReadingHistoryUi>>> = logic.useCases.observeReadingHistory
         .subscribe()
-        .asLoadState { entries -> entries.map { it.toReadingHistoryUi() } }
+        .asLoadState(viewModelScope) { entries -> entries.map { it.toReadingHistoryUi() } }
 
     val collections: StateFlow<LoadState<List<PaperCollectionUi>>> = logic.useCases.observeCollections
         .subscribe()
-        .asLoadState { collections -> collections.map { it.toPaperCollectionUi() } }
+        .asLoadState(viewModelScope) { collections -> collections.map { it.toPaperCollectionUi() } }
 
-    val tasks: StateFlow<LoadState<List<PaperTask>>> = logic.tasks.tasks.asLoadState { it }
+    val tasks: StateFlow<LoadState<List<PaperTask>>> = logic.tasks.tasks.asLoadState(viewModelScope) { it }
 
     val providers = logic.providers.state
     val extensionStores = logic.extensionStores.state
@@ -422,18 +413,6 @@ class PaperReaderViewModel internal constructor(
             }
         }
     }
-
-    private fun <T, R> Flow<T>.asLoadState(transform: (T) -> R): StateFlow<LoadState<R>> =
-        map<T, LoadState<R>> { LoadState.Ready(transform(it)) }
-            .catch { error ->
-                if (error is CancellationException) throw error
-                emit(LoadState.Failed)
-            }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
-                initialValue = LoadState.Loading,
-            )
 
     companion object {
         internal fun factory(

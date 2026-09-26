@@ -23,6 +23,11 @@ current branch. Released sections correspond to Git tags.
   interaction, while preserving native search, contents, provenance, and Back controls. The chrome
   now lives in a fixed overlay, so hiding it no longer remeasures the WebView or shifts document text.
 
+### Build
+
+- Android CI and CodeQL now use the maintained Android SDK setup action and no longer request the
+  removed legacy `tools` package.
+
 ## [0.1.11] - 2026-09-06
 
 ### Changed

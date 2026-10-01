@@ -66,7 +66,7 @@ jobs:
           sdkmanager "platforms;android-37.0" "build-tools;36.1.0"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
         with:
           # Keep one trusted writer for the default branch. Pull requests and
           # manual/non-main runs restore the shared cache without creating a
@@ -175,7 +175,7 @@ jobs:
           python-version: "3.12"
 
       - name: Run MobSF static analysis
-        uses: MobSF/mobsfscan@a43635d92434e78b079ed7d860f022cf6c886b43
+        uses: MobSF/mobsfscan@4645ea70bc093268502fe9f6df93e41bb482254a
         with:
           args: >-
             . --type android --sarif --output mobsfscan.sarif --no-fail
@@ -183,7 +183,7 @@ jobs:
       - name: Upload MobSF SARIF
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
         with:
           sarif_file: mobsfscan.sarif
           category: mobsfscan

@@ -35,7 +35,7 @@ jobs:
       - name: Install Android SDK
         run: sdkmanager "platforms;android-37.0" "build-tools;36.1.0"
       - name: Set up Gradle (read-only cache)
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
         with:
           # A release is a cache consumer; the default-branch CI writer keeps
           # dependency and transform entries fresh without release duplicates.
@@ -82,7 +82,7 @@ jobs:
           verify --verbose --print-certs
           app/build/outputs/apk/release/app-release.apk
       - name: Generate release SBOM
-        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c
         with:
           path: .
           format: spdx-json

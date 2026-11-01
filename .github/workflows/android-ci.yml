@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
         with:
           distribution: temurin
           java-version: "21"
@@ -66,7 +66,7 @@ jobs:
           sdkmanager "platforms;android-37.0" "build-tools;36.1.0"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c
         with:
           # Keep one trusted writer for the default branch. Pull requests and
           # manual/non-main runs restore the shared cache without creating a
@@ -88,7 +88,7 @@ jobs:
 
       - name: Upload unit-test report when tests fail
         if: failure() && steps.quality_gate.outcome == 'failure'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: unit-test-reports-${{ github.sha }}
           path: |
@@ -100,7 +100,7 @@ jobs:
 
       - name: Upload JaCoCo reports
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: jacoco-unit-${{ github.sha }}
           path: |
@@ -112,7 +112,7 @@ jobs:
 
       - name: Generate SPDX SBOM
         if: github.event_name != 'pull_request'
-        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c
         with:
           path: .
           format: spdx-json
@@ -124,7 +124,7 @@ jobs:
           upload-release-assets: false
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: paperreader-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/app-debug.apk
@@ -133,7 +133,7 @@ jobs:
 
       - name: Upload unsigned release APK
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: paperreader-release-unsigned-${{ github.sha }}
           path: app/build/outputs/apk/release/app-release-unsigned.apk
@@ -170,12 +170,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.12"
 
       - name: Run MobSF static analysis
-        uses: MobSF/mobsfscan@a43635d92434e78b079ed7d860f022cf6c886b43
+        uses: MobSF/mobsfscan@18cce72c077cbac1925439c3158363fd3bb361aa
         with:
           args: >-
             . --type android --sarif --output mobsfscan.sarif --no-fail
@@ -183,7 +183,7 @@ jobs:
       - name: Upload MobSF SARIF
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370
         with:
           sarif_file: mobsfscan.sarif
           category: mobsfscan

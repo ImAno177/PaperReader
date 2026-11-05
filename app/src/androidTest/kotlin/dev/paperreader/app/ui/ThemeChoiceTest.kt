@@ -49,8 +49,11 @@ class ThemeChoiceTest {
         composeRule.setContent {
             PaperReaderTheme(preset = selectedPreset) {
                 AppearanceScreen(
-                    selectedPreset = selectedPreset,
-                    onPresetChange = { selectedPreset = it },
+                    selectedThemeKey = selectedPreset.storageKey,
+                    communityThemes = emptyList(),
+                    communityThemesLoading = false,
+                    communityThemeIssues = emptyList(),
+                    onThemeChange = { selectedPreset = PaperThemePreset.fromStorageKey(it) },
                     onThemeModeChange = {},
                     onBack = {},
                 )
@@ -76,9 +79,12 @@ class ThemeChoiceTest {
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM, themeMode = selectedMode) {
                 AppearanceScreen(
-                    selectedPreset = PaperThemePreset.NEOBRUTALISM,
+                    selectedThemeKey = PaperThemePreset.NEOBRUTALISM.storageKey,
+                    communityThemes = emptyList(),
+                    communityThemesLoading = false,
+                    communityThemeIssues = emptyList(),
                     selectedThemeMode = selectedMode,
-                    onPresetChange = {},
+                    onThemeChange = {},
                     onThemeModeChange = { selectedMode = it },
                     onBack = {},
                 )

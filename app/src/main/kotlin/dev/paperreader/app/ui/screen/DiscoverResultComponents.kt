@@ -97,7 +97,13 @@ internal fun SearchResultCard(
             )
             result.abstractText?.let { abstractText ->
                 Spacer(Modifier.height(10.dp))
-                Text(abstractText, maxLines = 4, overflow = TextOverflow.Ellipsis, color = PaperTheme.tokens.inkMuted)
+                Text(
+                    abstractText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = PaperTheme.tokens.inkMuted,
+                )
             }
         }
         Spacer(Modifier.height(12.dp))

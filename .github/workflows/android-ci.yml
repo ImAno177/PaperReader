@@ -39,6 +39,16 @@ jobs:
       - name: Lint Markdown
         uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff
 
+      - name: Validate GitHub Actions workflows
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --location --retry 3 \
+            --output "$RUNNER_TEMP/actionlint.tar.gz" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+
   quality-and-apk:
     name: Test, lint, and build APKs
     runs-on: ubuntu-24.04
@@ -48,31 +58,10 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+      - name: Set up Android build
+        uses: ./.github/actions/setup-android
         with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@035682743ab223ec9c6169af09811dff8247e520
-
-      - name: Install pinned Android SDK packages
-        shell: bash
-        run: |
-          set +o pipefail
-          yes | sdkmanager --licenses >/dev/null
-          set -o pipefail
-          sdkmanager "platforms;android-37.0" "build-tools;36.1.0"
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
-        with:
-          # Keep one trusted writer for the default branch. Pull requests and
-          # manual/non-main runs restore the shared cache without creating a
-          # new cache entry for every commit.
           cache-read-only: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
-          cache-cleanup: on-success
 
       - name: Verify host code and build APKs
         id: quality_gate
@@ -86,15 +75,17 @@ jobs:
           fi
           ./gradlew "${tasks[@]}" --stacktrace
 
-      - name: Upload unit-test report when tests fail
+      - name: Upload verification reports on failure
         if: failure() && steps.quality_gate.outcome == 'failure'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: unit-test-reports-${{ github.sha }}
+          name: verification-reports-${{ github.sha }}
           path: |
             extension-api/build/reports/tests/testDebugUnitTest
             logic/build/reports/tests/testDebugUnitTest
             app/build/reports/tests/testDebugUnitTest
+            */build/test-results/testDebugUnitTest/TEST-*.xml
+            */build/reports/lint-results-debug.*
           if-no-files-found: warn
           retention-days: 14
 
@@ -128,6 +119,7 @@ jobs:
         with:
           name: paperreader-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/app-debug.apk
+          compression-level: 0
           if-no-files-found: error
           retention-days: 14
 
@@ -137,6 +129,7 @@ jobs:
         with:
           name: paperreader-release-unsigned-${{ github.sha }}
           path: app/build/outputs/apk/release/app-release-unsigned.apk
+          compression-level: 0
           if-no-files-found: error
           retention-days: 14
 

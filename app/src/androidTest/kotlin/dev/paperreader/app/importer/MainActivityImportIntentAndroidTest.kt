@@ -1,7 +1,8 @@
 package dev.paperreader.app.importer
 
-import android.content.Intent
-import android.net.Uri
+import dev.paperreader.app.importer.PdfFixtureContentProvider.fixtureUri
+import dev.paperreader.app.importer.PdfFixtureContentProvider.shareIntent
+
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -62,12 +63,4 @@ class MainActivityImportIntentAndroidTest {
         }
     }
 
-    private fun shareIntent(packageName: String, uri: Uri): Intent = Intent(Intent.ACTION_SEND)
-        .setClassName(packageName, MainActivity::class.java.name)
-        .setType("application/pdf")
-        .putExtra(Intent.EXTRA_STREAM, uri)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-
-    private fun fixtureUri(name: String): Uri =
-        Uri.parse("content://dev.paperreader.app.test.pdf-fixture/$name")
 }

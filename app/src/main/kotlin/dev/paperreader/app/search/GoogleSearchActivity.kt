@@ -64,7 +64,7 @@ class GoogleSearchActivity : ComponentActivity() {
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             isIndeterminate = true
         }
-        val searchWebView = WebView(this)
+        val searchWebView = WebView(this).apply { setBackgroundColor(canvasColor) }
         val webSettings: WebSettings = searchWebView.settings
         // Google stopped serving useful no-JavaScript result pages in 2026. This activity
         // is isolated in its own process/data directory and never installs a JS bridge.

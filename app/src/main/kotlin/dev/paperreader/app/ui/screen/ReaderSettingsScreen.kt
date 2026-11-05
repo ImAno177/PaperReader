@@ -1,9 +1,9 @@
 package dev.paperreader.app.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -44,6 +44,8 @@ import dev.paperreader.app.ui.theme.PaperTheme
 fun ReaderSettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val preferences = remember(context) { ReadablePaperLayoutPreferences(context) }
+    val decreaseTextDescription = stringResource(R.string.readable_reader_text_smaller)
+    val increaseTextDescription = stringResource(R.string.readable_reader_text_larger)
     var layout by remember { mutableStateOf(preferences.load()) }
 
     fun update(next: ReadablePaperUserLayout) {
@@ -65,27 +67,30 @@ fun ReaderSettingsScreen(onBack: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     PaperSecondaryButton(
+                        contentDescription = decreaseTextDescription,
                         onClick = {
                             update(layout.copy(textZoom = nextReadableTextZoom(layout.textZoom, increase = false)))
                         },
                         enabled = layout.textZoom > MINIMUM_TEXT_ZOOM,
-                    ) { Text("A−") }
+                    ) { Text(stringResource(R.string.readable_reader_text_smaller_short)) }
                     PaperLabel(stringResource(R.string.reader_text_zoom_value, layout.textZoom), color = PaperTheme.tokens.ink)
                     PaperSecondaryButton(
+                        contentDescription = increaseTextDescription,
                         onClick = {
                             update(layout.copy(textZoom = nextReadableTextZoom(layout.textZoom, increase = true)))
                         },
                         enabled = layout.textZoom < MAXIMUM_TEXT_ZOOM,
-                    ) { Text("A+") }
+                    ) { Text(stringResource(R.string.readable_reader_text_larger_short)) }
                 }
             }
         }
         item { PaperSectionHeader(stringResource(R.string.reader_text_spacing_setting)) }
         item {
             PaperSurface(contentPadding = PaddingValues(8.dp)) {
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth().selectableGroup(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     ReadableTextSpacing.entries.forEach { spacing ->
                         ReaderChoice(
@@ -100,9 +105,10 @@ fun ReaderSettingsScreen(onBack: () -> Unit) {
         item { PaperSectionHeader(stringResource(R.string.reader_side_margin_setting)) }
         item {
             PaperSurface(contentPadding = PaddingValues(8.dp)) {
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth().selectableGroup(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     ReadableSideMargin.entries.forEach { margin ->
                         ReaderChoice(
@@ -123,10 +129,9 @@ fun ReaderSettingsScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun RowScope.ReaderChoice(selected: Boolean, label: String, onClick: () -> Unit) {
+private fun ReaderChoice(selected: Boolean, label: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
-            .weight(1f)
             .heightIn(min = 56.dp)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 2.dp),
@@ -141,7 +146,7 @@ private fun RowScope.ReaderChoice(selected: Boolean, label: String, onClick: () 
                 unselectedColor = PaperTheme.tokens.inkMuted,
             ),
         )
-        Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 2)
+        Text(label, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
     }
 }
 

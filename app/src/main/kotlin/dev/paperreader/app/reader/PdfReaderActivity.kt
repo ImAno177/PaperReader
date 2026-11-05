@@ -258,7 +258,6 @@ class PdfReaderActivity : AppCompatActivity() {
         }
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.reader_jump_to_page)
-            .setMessage(R.string.reader_jump_page_hint)
             .setView(input)
             .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.reader_jump_to_page, null)

@@ -2,6 +2,7 @@ package dev.paperreader.extensions.api
 
 import android.os.Bundle
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.fail
@@ -133,6 +134,129 @@ class ExtensionBundleContractTest {
     }
 
     @Test
+    fun sourceReadableRequestSectionsAndAssetsRoundTripAndRejectMalformedFields() {
+        val request = SourceGetReadableDocumentRequest(
+            requestId = "readable:1",
+            providerRecordId = "record-1",
+            version = "v2",
+        )
+        assertEquals(request, SourceGetReadableDocumentRequest.fromBundle(request.toBundle()))
+        expectIllegal {
+            SourceGetReadableDocumentRequest.fromBundle(request.toBundle().apply {
+                putString(Keys.READABLE_VERSION, "latest")
+            })
+        }
+        expectIllegal {
+            SourceGetReadableDocumentRequest.fromBundle(request.toBundle().apply {
+                remove(Keys.READABLE_PROVIDER_RECORD_ID)
+            })
+        }
+
+        val section = SourceReadableSection("intro:1", "Introduction", 1)
+        assertEquals(section, SourceReadableSection.fromBundle(section.toBundle()))
+        expectIllegal {
+            SourceReadableSection.fromBundle(section.toBundle().apply {
+                putInt(Keys.READABLE_SECTION_LEVEL, 4)
+            })
+        }
+        expectIllegal {
+            SourceReadableSection.fromBundle(section.toBundle().apply {
+                remove(Keys.READABLE_TITLE)
+            })
+        }
+
+        val asset = SourceReadableAsset(
+            id = "a".repeat(64),
+            sourceUrl = "https://example.org/figure.png",
+            mediaType = "image/png",
+        )
+        assertEquals(asset, SourceReadableAsset.fromBundle(asset.toBundle()))
+        expectIllegal {
+            SourceReadableAsset.fromBundle(asset.toBundle().apply {
+                putString(Keys.READABLE_ASSET_MEDIA_TYPE, "application/octet-stream")
+            })
+        }
+        expectIllegal {
+            SourceReadableAsset.fromBundle(asset.toBundle().apply {
+                remove(Keys.READABLE_ASSET_URL)
+            })
+        }
+    }
+
+    @Test
+    fun sourceReadableMetadataRoundTripsWarningsSectionsAndAssets() {
+        val metadata = readableMetadata(
+            sections = listOf(
+                SourceReadableSection("intro", "Introduction", 1),
+                SourceReadableSection("methods", "Methods", 2),
+            ),
+            warnings = SourceReadableWarning.entries.toSet(),
+            assets = listOf(
+                SourceReadableAsset("a".repeat(64), "https://example.org/a.png", "image/png"),
+                SourceReadableAsset("b".repeat(64), "https://example.org/b.svg", "image/svg+xml"),
+            ),
+        ).copy(contractVersion = "html-v1")
+
+        assertEquals(metadata, SourceReadableDocumentMetadata.fromBundle(metadata.toBundle()))
+    }
+
+    @Test
+    fun sourceReadableMetadataAcceptsSparseLegacyBundlesAndRejectsUnknownWarnings() {
+        val sparse = readableMetadata(license = null).toBundle().apply {
+            remove(Keys.READABLE_CONTRACT_VERSION)
+            remove(Keys.LICENSE)
+            remove(Keys.READABLE_SECTIONS)
+            remove(Keys.READABLE_WARNINGS)
+            remove(Keys.READABLE_ASSETS)
+        }
+
+        val decoded = SourceReadableDocumentMetadata.fromBundle(sparse)
+        assertEquals(LEGACY_READABLE_CONTRACT_VERSION, decoded.contractVersion)
+        assertNull(decoded.license)
+        assertEquals(emptyList<SourceReadableSection>(), decoded.sections)
+        assertEquals(emptySet<SourceReadableWarning>(), decoded.warnings)
+        assertEquals(emptyList<SourceReadableAsset>(), decoded.assets)
+
+        expectIllegal {
+            SourceReadableDocumentMetadata.fromBundle(readableMetadata().toBundle().apply {
+                putStringArrayList(Keys.READABLE_WARNINGS, arrayListOf("unknown_warning"))
+            })
+        }
+        expectIllegal {
+            SourceReadableDocumentMetadata.fromBundle(readableMetadata().toBundle().apply {
+                remove(Keys.READABLE_DOCUMENT_SHA256)
+            })
+        }
+    }
+
+    @Test
+    fun sourceReadableChunkRoundTripsBytesAndRejectsMissingOrMalformedFields() {
+        val bytes = byteArrayOf(0, 1, 2, 0x7f, 0xff.toByte())
+        val chunk = SourceReadableDocumentChunk("readable:chunk", 3, bytes)
+        val decoded = SourceReadableDocumentChunk.fromBundle(chunk.toBundle())
+
+        assertEquals(chunk.requestId, decoded.requestId)
+        assertEquals(chunk.sequence, decoded.sequence)
+        assertArrayEquals(bytes, decoded.bytes)
+
+        expectIllegal {
+            SourceReadableDocumentChunk.fromBundle(chunk.toBundle().apply {
+                remove(Keys.READABLE_CHUNK_SEQUENCE)
+            })
+        }
+        expectIllegal {
+            SourceReadableDocumentChunk.fromBundle(chunk.toBundle().apply {
+                remove(Keys.READABLE_CHUNK_BYTES)
+            })
+        }
+        expectIllegal {
+            SourceReadableDocumentChunk.fromBundle(chunk.toBundle().apply {
+                putInt(Keys.READABLE_CHUNK_SEQUENCE, -1)
+            })
+        }
+    }
+
+    @Test
     fun sourcePagesAndResponsesRoundTripWithinBinderLimit() {
         val record = fullRecord(SourceManifestation("preprint"))
         val page = SourceSearchPage("page:1", listOf(record), "next")
@@ -257,6 +381,24 @@ class ExtensionBundleContractTest {
         publishedDate = "2026-08-14",
         updatedAt = "2026-08-14T00:00:00Z",
         manifestations = listOf(manifestation),
+    )
+
+    private fun readableMetadata(
+        license: String? = "CC-BY-4.0",
+        sections: List<SourceReadableSection> = emptyList(),
+        warnings: Set<SourceReadableWarning> = emptySet(),
+        assets: List<SourceReadableAsset> = emptyList(),
+    ) = SourceReadableDocumentMetadata(
+        requestId = "readable:metadata",
+        title = "Readable paper",
+        sourceUrl = "https://example.org/paper",
+        sourceVersion = "v2",
+        license = license,
+        sourceSha256 = "a".repeat(64),
+        documentSha256 = "b".repeat(64),
+        sections = sections,
+        warnings = warnings,
+        assets = assets,
     )
 
     private fun fullTheme() = CommunityTheme(

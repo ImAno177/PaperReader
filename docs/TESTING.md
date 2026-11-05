@@ -4,42 +4,10 @@ PaperReader maps tests to production boundaries. Coverage counters support revie
 product readiness. This file describes the current verification contract and the evidence expected in
 a pull request.
 
-## Current verification baseline
-
-- The local host gate passes on the feature branch with the configured debug arXiv source:
-  hostUnitTest, hostLint, and :app:assembleDebug.
-- The source gate passes locally with :source-arxiv:testDebugUnitTest,
-  :source-common:testDebugUnitTest, and :source-arxiv:assembleDebug.
-- The emulator smoke audit opened cached HTML for Attention, CGP-Tuning, LoRA, and Llama 2 without a
-  source-process crash. Llama's cache contained 43 assets and LoRA's contained 8; the body and asset
-  files were separate and the body contained no script or event-handler markup.
-- The emulator also exercised the PDF download path for ResNet, Llama 2, and InstructGPT. The queue
-  persisted completed task rows and exposed open/clear actions; the detail screen showed live download
-  percentages while the transfer was running.
-- The Google-to-arXiv handoff parser passes four connected Android tests on the declared API 36
-  emulator, including `/html/` URL version parsing and rejection of unrelated VIEW links.
-- The latest app connected run on `emulator-5554` executed all 85 app test bodies: 85 passed, 0
-  failed, 0 errored, and 0 skipped. The share-redelivery lifecycle flow and the More navigation
-  check now pass after keeping the launch intent stable and scrolling the off-viewport `Sources`
-  row before interaction.
-  The app suite uses the `.uitest` applicationId suffix so the demo APK remains installed.
-- The UI refresh was exercised on the same emulator: More now presents a compact workspace header,
-  grouped reading actions, and no standalone Stats card; Stats presents a reading-time lead metric
-  followed by compact metric lists. Readable reader restore, real scroll chrome, and TOC anchor
-  navigation were also rechecked; programmatic scroll no longer hides the reader title or Back action.
-- The slow-scroll reader regression was reproduced before the fix and then rechecked on the fresh
-  build. The reader now keeps the WebView at a stable full-height bound while toolbar, find bar, and
-  provenance move as one overlay using alpha/translation; the after sequence is retained locally in
-  `D:\research-new\artifacts\paperreader-release-2026-09-07\slow-scroll-overlay-after`. Native find
-  was also opened, typed with `graph`, and closed successfully after the layout change.
-- The previously completed local connected baseline remains green for 11 extension-api and 43 logic
-  tests. No connected test source or GitHub workflow was added for this release audit.
-- Release readiness still requires live-provider audit, extension install flows, and Play Protect
-  review listed below.
-
 ## Local gate
 
-Run the host gate with the Gradle wrapper, JDK 21, Android SDK Platform 37.0, and Build-Tools 36.1.0:
+Build and dependency versions are pinned in [`gradle/libs.versions.toml`](../gradle/libs.versions.toml).
+Use the Gradle wrapper with JDK 21, Android SDK Platform 37.0, and Build-Tools 36.1.0:
 
 ```powershell
 .\gradlew.bat hostUnitTest hostLint :app:assembleDebug
@@ -49,10 +17,7 @@ For Android-runtime, Room, reader, or UI changes, reuse the declared API 36 emul
 without wiping it:
 
 ```powershell
-.\gradlew.bat :extension-api:connectedDebugAndroidTest
-.\gradlew.bat :logic:connectedDebugAndroidTest
-.\gradlew.bat :app:connectedDebugAndroidTest `
-  -PpaperReaderConnectedTestApplicationIdSuffix=.uitest
+.\gradlew.bat hostConnectedTest '-PpaperReaderConnectedTestApplicationIdSuffix=.uitest'
 ```
 
 The isolated app suffix avoids replacing a production-signed installation. Connected XML results are
@@ -68,7 +33,7 @@ data in the asset audit, and confirm transient 429/unavailable responses use bou
 being reported. Do not add or modify test sources for this audit, and do not use GitHub as the test
 runner.
 
-## Final local release evidence (2026-09-07)
+## Historical local audit (2026-09-07)
 
 The release APK was assembled, installed, and exercised only on the shared API 36 emulator. The
 host gate and source gate both passed locally. The final host debug artifact is
@@ -95,7 +60,7 @@ More and Stats surfaces. They are runtime evidence, not mocks. The readable pipe
 lanes and no arbitrary image-count limit; per-asset bytes, SVG complexity, manifest size, retries,
 and cache quotas remain the safety bounds.
 
-The latest app XML result reports `85` tests, `0` failures, `0` errors, and `0` skipped. The
+The 2026-09-07 app XML result reports `85` tests, `0` failures, `0` errors, and `0` skipped. The
 share/import/status lifecycle flow and `MainNavigationAndroidTest.everyMoreBranchHidesPrimaryNavigationAndReturnsToTheHub`
 both pass on the API 36 emulator.
 Android API 36 also logs the framework warning for a malformed single-stream `ACTION_SEND` extra;
@@ -104,11 +69,11 @@ The warning does not affect the green suite, and no GitHub-only test was added.
 
 ## Coverage
 
-Generate unit and merged reports after the relevant tests:
+Generate deterministic JVM coverage, or run connected tests and enforce merged coverage:
 
 ```powershell
-.\gradlew.bat :extension-api:jacocoDebugUnitTestReport :logic:jacocoDebugUnitTestReport :app:jacocoDebugUnitTestReport
-.\gradlew.bat :logic:jacocoDebugCombinedReport
+.\gradlew.bat coverageReport
+.\gradlew.bat coverageConnectedReport '-PpaperReaderConnectedTestApplicationIdSuffix=.uitest'
 ```
 
 Reports are XML, CSV, and HTML under `build/reports/jacoco`. The merged report combines deterministic
@@ -119,29 +84,36 @@ the exact XML counters and test result files. Do not add a broad exclusion or a 
 make a percentage pass.
 
 `:extension-api` currently enforces 100% merged line and branch coverage. `:logic` and `:app` publish
-reports while their Android/framework seams are being closed; a threshold is added only when the
-denominator and connected test device are deterministic in CI.
+reports while their Android/framework seams are being closed. Combined reports fail when connected
+coverage or compiled production classes are missing. Do not treat unit-only execution as merged
+coverage. Each merged report depends on its connected-test task, so tests complete before the report
+reads coverage data. Use the same sources, build variant, and isolated test package for both.
 
 ## CI responsibilities
 
 PaperReader separates dependency review, tests, lint, artifacts, and security checks. Each workflow
 owns one gate so a test command is not copied into security or release jobs.
 The root Gradle tasks `hostUnitTest` and `hostLint` are the single command definitions for the host
-unit-test and lint gates.
+unit-test and lint gates. All three Android workflows share
+[the Android setup action](../.github/actions/setup-android/action.yml), which reads tool versions
+from the Gradle catalog. Third-party actions remain pinned by commit.
 
 | Workflow or job | Owns | Does not repeat |
 | --- | --- | --- |
 | `android-ci.yml` / `dependency-review` | Pull-request dependency diff | Gradle tests and builds |
 | `android-ci.yml` / `quality-and-apk` | One Gradle invocation for host tests, debug lint, and the debug APK on pull requests; main and manual runs also produce JaCoCo, an unsigned release APK, and an SBOM | CodeQL extraction, MobSF, secrets, dependency review, connected tests |
-| `android-ci.yml` / `documentation` | Markdown lint | Gradle tests or builds |
+| `android-ci.yml` / `documentation` | Markdown and GitHub Actions lint | Gradle tests or builds |
 | `android-ci.yml` / `secret-scan` | Full-history Gitleaks scan | Gradle tests and builds |
 | `android-ci.yml` / `mobsfscan` | MobSF source scan and SARIF upload | Gradle tests or builds |
 | `codeql.yml` | Java/Kotlin CodeQL extraction and analysis | Unit tests and lint; its debug build exists only to provide extraction input |
 | `release.yml` | Green-commit check, release lint, signed APK, signature verification, release SBOM, and publishing | Unit tests and `lintDebug`, which belong to the green Android CI run |
 
-The release workflow requires a successful `android-ci.yml` run for the exact commit before it
-restores signing material. This keeps release verification tied to the same host gate used for pull
-requests and main, without running that gate a second time.
+Releases must be dispatched from `main` with a valid semantic version and an Android version code
+from 1 to 2100000000. The release workflow requires a successful `android-ci.yml` main-branch push
+for the exact commit before it restores signing material. Version and signing properties reach
+Gradle through environment variables; the keystore is removed even when a later step fails. This keeps release verification tied to the same host gate used for pull
+requests and main, without running that gate a second time. Failed host checks upload JUnit XML, unit-test HTML, and
+lint reports. APK uploads disable redundant ZIP compression.
 
 Pull requests intentionally skip coverage packaging, the unsigned release build, and SBOM generation.
 Those artifacts do not change the review verdict and remain available from main, manual, and release
@@ -177,25 +149,3 @@ report-only until their Android framework seams can be measured deterministicall
 
 Tests use local fixtures and MockWebServer for provider/network behavior. Live provider APIs and
 Play Protect are release smoke checks, never deterministic unit-test dependencies.
-
-## Historical release smoke record (2026-08-14)
-
-The signed [v0.1.3 release](https://github.com/ImAno177/PaperReader/releases/tag/v0.1.3) was exercised
-on `emulator-5554` (`covaigay_api36(AVD) - 16`, API 36) with the official source extensions installed.
-The host is commit `7d7d176`; the APK is versionCode 4. Results were:
-
-- `arXiv:1706.03762v7` searched, opened in detail, saved, and loaded as verified/cached HTML. The
-  mobile reader now renders each author as a vertical block with readable affiliation/email lines;
-  no raw `footnotemark` payload appeared. Reader search and Paper contents opened successfully.
-- `arXiv:2501.04510v2` searched, opened in detail, saved, and loaded as verified/cached HTML. The
-  known conversion-artifact warning was surfaced without blocking reading.
-- A Crossref/Europe PMC DOI lookup (`10.1038/s41586-020-2649-2`) returned live metadata for
-  *Array programming with NumPy*. An unauthenticated Semantic Scholar rate limit was surfaced as
-  an unavailable source instead of fabricated results.
-- The connected Android suite completed `78` tests with `0` failures, `0` errors, and `0` skipped.
-  The local JVM suites completed `11` extension-api, `245` logic, and `77` app test cases with no
-  failures or errors.
-
-The README reader image is the same v0.1.3 smoke capture, so documentation reflects the shipped
-mobile layout rather than a mock or stale render. Play Protect evidence remains a device-installed-
-set verdict; it is not an upload API attestation.

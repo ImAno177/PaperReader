@@ -402,7 +402,7 @@ class SavedSearchUpdatesScreenTest {
         val statusBounds = composeRule.onNodeWithText("Completed").fetchSemanticsNode().boundsInRoot
         assertTrue(statusBounds.left > titleBounds.left)
         assertTrue(statusBounds.top < titleBounds.bottom)
-        composeRule.onNodeWithText("Clear").performClick()
+        composeRule.onNodeWithText("Clear task").performClick()
         composeRule.runOnIdle { assertEquals(task.id.value, removedTaskId) }
     }
 

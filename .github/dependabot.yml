@@ -31,13 +31,6 @@ updates:
         applies-to: "security-updates"
         patterns:
           - "*"
-    ignore:
-      # These releases require compileSdk 37. Remove the pins only with the
-      # repository's explicit SDK 37 migration.
-      - dependency-name: "androidx.compose:compose-bom"
-        versions: [">= 2026.08.00"]
-      - dependency-name: "androidx.core:core-ktx"
-        versions: [">= 1.19.0"]
 
   - package-ecosystem: "github-actions"
     directory: "/"

@@ -15,6 +15,7 @@ import dev.paperreader.logic.provider.MutableProviderManager
 import dev.paperreader.logic.provider.RemotePaper
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.flow.Flow
@@ -55,6 +56,8 @@ class FederatedPaperSearch(private val providerManager: ProviderManager) {
                         val page = provider.search(query)
                         succeeded.incrementAndGet()
                         send(FederatedSearchEvent.PageReceived(provider.descriptor.id, page))
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
                     } catch (error: ProviderException) {
                         failed.incrementAndGet()
                         send(FederatedSearchEvent.ProviderFailed(provider.descriptor.id, error))

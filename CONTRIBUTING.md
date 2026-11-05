@@ -17,14 +17,18 @@ large UI, schema, provider, reader, or dependency changes.
 
 ## Development workflow
 
-1. Create a typed branch named `<type>/<kebab-case-summary>` and add the smallest deterministic test
-   that proves the behavior.
+1. Create a typed branch named `<type>/<kebab-case-summary>`. Extend the nearest contract test for
+   behavior changes; use the local smoke flow for reversible UI polish.
 2. Update exported Room schemas and migrations for persistence changes.
 3. Update `docs/SPEC.md`, `docs/ARCHITECTURE.md`, or `docs/EXTENSIONS.md` when a documented decision changes.
 4. Update `CHANGELOG.md` for user-visible, public API, schema, security, build, or CI changes. Keep
    unreleased work under `Unreleased` until a tag exists.
 5. Run the Markdown and local host gates defined in [`docs/TESTING.md`](docs/TESTING.md).
 6. Run the connected gate for Android runtime/UI changes and report the device/API used.
+
+Dependency and build-tool versions belong in [`gradle/libs.versions.toml`](gradle/libs.versions.toml).
+Keep Compose libraries governed by its BOM. Editor whitespace and line endings follow
+[`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes).
 
 Provider unit tests must use recorded local fixtures. Live API calls belong in an explicit manual
 verification, not the deterministic suite. Never weaken `LogicBoundaryTest`, add a lint baseline, or

@@ -24,7 +24,7 @@ The host keeps provider implementations outside the app repository. The current 
 
 ## Build against the local API
 
-The SDK is not published to Maven yet. Extension repositories use a composite build and substitute
+The SDK is not published to a remote Maven repository yet. Extension repositories use a composite build and substitute
 `dev.paperreader:extension-api:0.1.0` with the local `:extension-api` project.
 
 Place a PaperReader checkout in a directory named `PaperReader` under the extension repository, or
@@ -41,8 +41,9 @@ For a checkout at another location, set `PAPERREADER_SDK_PATH` to its absolute p
   -PpaperReaderSdkPath=$env:PAPERREADER_SDK_PATH
 ```
 
-The current contract requires Android 9 (API 28) or newer and JVM target 17. The official source
-repository uses JDK 21 and Android SDK Platform 36 with Build-Tools 36.1.0 in CI.
+The current contract requires Android 9 (API 28) or newer and JVM target 17. Use the host
+[build prerequisites](TESTING.md#local-gate) for the composite SDK build, even when the extension
+app uses an older compile SDK.
 
 ## Source extensions
 

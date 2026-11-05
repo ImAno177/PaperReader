@@ -1,7 +1,8 @@
 package dev.paperreader.app.importer
 
-import android.content.Intent
-import android.net.Uri
+import dev.paperreader.app.importer.PdfFixtureContentProvider.fixtureUri
+import dev.paperreader.app.importer.PdfFixtureContentProvider.shareIntent
+
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -31,21 +32,21 @@ class MainActivityIncomingPdfUiAndroidTest {
 
         application.startActivity(shareIntent(application.packageName, fixtureUri("completed-first")))
         waitForText("completed-first.pdf")
-        composeRule.onNodeWithText("Review this local PDF").assertIsDisplayed()
+        composeRule.onNodeWithText("Review PDF").assertIsDisplayed()
         composeRule.runOnIdle {
             assertNull(composeRule.activity.intent.incomingPdfUriOrNull())
         }
 
         composeRule.onNode(hasText("Import PDF") and hasClickAction()).performClick()
         waitForText("Imported")
-        composeRule.onNodeWithText("Open imported paper").performClick()
-        waitForText("Paper detail")
+        composeRule.onNodeWithText("Open paper").performClick()
+        waitForText("Paper details")
 
         val secondUri = fixtureUri("after-complete")
         application.startActivity(shareIntent(application.packageName, secondUri))
         waitForText("after-complete.pdf")
 
-        composeRule.onNodeWithText("Review this local PDF").assertIsDisplayed()
+        composeRule.onNodeWithText("Review PDF").assertIsDisplayed()
         composeRule.onNodeWithText("after-complete.pdf").assertIsDisplayed()
         composeRule.runOnIdle {
             assertEquals(activityIdentity, System.identityHashCode(composeRule.activity))
@@ -60,12 +61,4 @@ class MainActivityIncomingPdfUiAndroidTest {
         }
     }
 
-    private fun shareIntent(packageName: String, uri: Uri): Intent = Intent(Intent.ACTION_SEND)
-        .setClassName(packageName, MainActivity::class.java.name)
-        .setType("application/pdf")
-        .putExtra(Intent.EXTRA_STREAM, uri)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-
-    private fun fixtureUri(name: String): Uri =
-        Uri.parse("content://dev.paperreader.app.test.pdf-fixture/$name")
 }

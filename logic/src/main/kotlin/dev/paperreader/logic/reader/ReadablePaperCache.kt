@@ -6,64 +6,6 @@ import java.nio.file.Path
 import java.time.Instant
 import java.util.Base64
 
-internal data class CachedReadablePaper(
-    val bodyHtml: String,
-    val sourceUrl: String,
-    val sourceSha256: String,
-    val documentSha256: String,
-    val retrievedAt: Instant,
-    val sourceLicense: String?,
-    val sections: List<ReadablePaperSection>,
-    val warnings: Set<ReadablePaperWarning>,
-    val keptForOffline: Boolean = false,
-    val assetGroupKey: String? = null,
-    val assets: List<ReadablePaperAsset> = emptyList(),
-    val sourceProvider: String = "",
-    val sourceRecordId: String = "",
-    val sourceVersion: String = "",
-    val readableContractVersion: String = "legacy",
-    val rendererContractVersion: String = READABLE_RENDERER_CONTRACT_VERSION,
-) {
-    fun toDocument(
-        title: String,
-        sourceProvider: String,
-        sourceVersion: String,
-        license: String?,
-        servedFromCache: Boolean,
-        sourceRecordId: String = this.sourceRecordId,
-    ) = ReadablePaperDocument(
-        bodyHtml = bodyHtml,
-        title = title,
-        sourceUrl = sourceUrl,
-        sourceProvider = sourceProvider,
-        sourceVersion = sourceVersion,
-        license = license ?: sourceLicense,
-        sourceSha256 = sourceSha256,
-        documentSha256 = documentSha256,
-        retrievedAt = retrievedAt,
-        servedFromCache = servedFromCache,
-        keptForOffline = keptForOffline,
-        sections = sections,
-        warnings = warnings,
-        assetGroupKey = assetGroupKey,
-        assets = assets,
-        sourceRecordId = sourceRecordId,
-        readableContractVersion = readableContractVersion,
-        rendererContractVersion = rendererContractVersion,
-    )
-}
-
-internal data class ReadablePaperCacheIdentity(
-    val providerId: String,
-    val providerRecordId: String,
-    val sourceVersion: String,
-)
-
-internal data class CachedReadablePaperEntry(
-    val key: String,
-    val paper: CachedReadablePaper,
-)
-
 internal class ReadablePaperCache(
     private val directory: Path,
     private val maximumCachedBodyBytes: Long = 20L * 1024L * 1024L,
@@ -85,10 +27,6 @@ internal class ReadablePaperCache(
 
     @Synchronized
     fun read(key: String): CachedReadablePaper? = readInternal(key, prune = true)
-
-    /** Reads one entry without scanning every cached manifest on the Reader hot path. */
-    @Synchronized
-    fun readForLoad(key: String): CachedReadablePaper? = readInternal(key, prune = false)
 
     /** Finds a complete entry without requiring the caller to know the provider contract version. */
     // ponytail: O(cache entries) metadata scan; add an index only after profiling shows this ceiling.
@@ -253,17 +191,6 @@ internal class ReadablePaperCache(
                 ?: READABLE_RENDERER_CONTRACT_VERSION,
         )
     }.getOrNull()
-
-    /**
-     * Protects an already verified entry from ordinary LRU eviction. The marker never replaces
-     * manifest/body validation, so Read still fails closed if either file is modified or corrupt.
-     */
-    @Synchronized
-    fun keepForOffline(key: String): Boolean {
-        if (!key.matches(SHA256_PATTERN)) return false
-        val cached = read(key) ?: return false
-        return keepForOffline(key, cached)
-    }
 
     /**
      * Retains a record that has already passed cache validation. Future reads still validate the

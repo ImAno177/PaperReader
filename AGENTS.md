@@ -116,7 +116,7 @@ Update the relevant document when a decision changes.
 
 ## Development and verification
 
-- Use the Gradle wrapper, JDK 21, Android SDK 36/36.1, and Java/Kotlin bytecode target 17.
+- Use the Gradle wrapper, JDK 21, Android SDK Platform 37.0 and Build-Tools 36.1.0, and Java/Kotlin bytecode target 17.
 - Keep the smallest stable contract test for regression-prone domain, persistence, migration, trust,
   and security behavior. Extend the nearest existing test before adding another Kotlin test case or
   test file.

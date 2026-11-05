@@ -17,14 +17,36 @@ current branch. Released sections correspond to Git tags.
 
 ### Changed
 
+- Screens and Compose tests use the same state/action interfaces; obsolete overloads, duplicated
+  fixtures, and redundant contract assertions are removed. Reader cache models have their own file.
+- Shorter labels and recovery messages across search, library, reader, imports, and backup; technical
+  diagnostics stay secondary and destructive-action warnings remain explicit.
+- A smaller More header, wrapping download actions, two-line settings summaries, and shorter result
+  previews keep existing controls readable on compact screens. Library search focuses on opening
+  and dismisses the keyboard when closed or submitted.
+- The mobile reader uses a compact find counter with a full spoken description; reader text-size
+  controls now have descriptive accessibility labels. Google search uses the app canvas while loading.
 - Library filters expose counts; list cards summarize authors; Paper Detail labels DOI and license
   values explicitly; redundant manifestation badges are reduced to the useful local-file state.
 - The readable reader hides chrome during downward scrolling and restores it on upward scrolling or
   interaction, while preserving native search, contents, provenance, and Back controls. The chrome
   now lives in a fixed overlay, so hiding it no longer remeasures the WebView or shifts document text.
 
+### Fixed
+
+- Cancelling a source search no longer reports it as an unavailable provider.
+- The extension SDK packages the readable-document AIDL callback required by source services.
+
 ### Build
 
+- Centralized dependency and build-tool pins in the Gradle version catalog without upgrading them;
+  CI, CodeQL, and release share one Android setup action and retain the main-only cache writer.
+- Release inputs are validated before signing, use environment variables, and require green main
+  push CI for the exact commit. Signing keys are cleaned up after success or failure.
+- CI validates workflow syntax and uploads test and lint diagnostics on failure; APK artifacts skip
+  redundant compression. Combined coverage fails clearly without connected data or class inputs.
+- Readable-document contract tests cover bounded inputs, malformed payloads, and Android Bundle
+  compatibility under the existing 100% merged line and branch coverage gate.
 - Android CI and CodeQL now use the maintained Android SDK setup action and no longer request the
   removed legacy `tools` package.
 

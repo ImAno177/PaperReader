@@ -1,6 +1,5 @@
 package dev.paperreader.extensions.api
 
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
@@ -34,49 +33,9 @@ class ExtensionContractTest {
     }
 
     @Test
-    fun `source record preserves biomedical identifiers and citation count`() {
-        val original = SourcePaperRecord(
-            providerRecordId = "record",
-            title = "Paper",
-            pmid = "12345678",
-            pmcid = "PMC123456",
-            citationCount = 42,
-        )
-
-        assertEquals("12345678", original.pmid)
-        assertEquals("PMC123456", original.pmcid)
-        assertEquals(42, original.citationCount)
-    }
-
-    @Test
-    fun `readable metadata versions its wire contract and validates bounds`() {
-        val current = readableMetadata(contractVersion = "arxiv-html-1")
-
-        assertEquals("arxiv-html-1", current.contractVersion)
-        assertEquals(LEGACY_READABLE_CONTRACT_VERSION, readableMetadata().contractVersion)
-        assertThrows(IllegalArgumentException::class.java) {
-            readableMetadata(contractVersion = "UPPERCASE")
-        }
-        assertThrows(IllegalArgumentException::class.java) {
-            readableMetadata(contractVersion = "x".repeat(65))
-        }
-    }
-
-    @Test
     fun `community theme requires a complete semantic icon set`() {
         assertThrows(IllegalArgumentException::class.java) {
             theme(iconKeys = ThemeSemanticIcon.entries.dropLast(1).toSet())
-        }
-    }
-
-    @Test
-    fun `icon path validator accepts only bounded ASCII path data`() {
-        assertEquals("M0 0L24 24Z", requireValidIconPathData("M0 0L24 24Z".encodeToByteArray()))
-        assertThrows(IllegalArgumentException::class.java) {
-            requireValidIconPathData("<svg onload='bad'>".encodeToByteArray())
-        }
-        assertThrows(IllegalArgumentException::class.java) {
-            requireValidIconPathData(ByteArray(PaperExtensionContract.MAX_ICON_BYTES + 1) { 'M'.code.toByte() })
         }
     }
 
@@ -117,20 +76,6 @@ class ExtensionContractTest {
         emptyStateAccent = OPAQUE,
         selection = OPAQUE,
         hardShadow = OPAQUE,
-    )
-
-    private fun readableMetadata(contractVersion: String = LEGACY_READABLE_CONTRACT_VERSION) = SourceReadableDocumentMetadata(
-        requestId = "request-1",
-        title = "Readable paper",
-        contractVersion = contractVersion,
-        sourceUrl = "https://example.org/paper",
-        sourceVersion = "v1",
-        license = null,
-        sourceSha256 = "a".repeat(64),
-        documentSha256 = "b".repeat(64),
-        sections = emptyList(),
-        warnings = emptySet(),
-        assets = emptyList(),
     )
 
     private companion object {

@@ -3,6 +3,7 @@ package dev.paperreader.app.ui.screen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
@@ -69,6 +71,7 @@ import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.model.SearchPaperUi
 import dev.paperreader.app.ui.model.displayValue
 import dev.paperreader.app.ui.theme.PaperTheme
@@ -501,13 +504,13 @@ private fun SavedSearchDiscoverAction(
         ?.value
         ?: actions.createdSearchIds[actionKey]
     val creating = actionKey in actions.creatingSearches
-    PaperSurface {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    PaperSurface(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            PaperIcon(PaperIconKey.BOOKMARK_ADD, contentDescription = null, tint = PaperTheme.tokens.secondary)
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.widthIn(max = 240.dp).padding(vertical = 4.dp)) {
                 Text(stringResource(R.string.save_search_title), style = MaterialTheme.typography.titleMedium)
                 Text(
                     pluralStringResource(
@@ -519,27 +522,25 @@ private fun SavedSearchDiscoverAction(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-        }
-        Spacer(Modifier.height(12.dp))
-        if (existingId == null) {
-            PaperPrimaryButton(
-                onClick = { onSaveSearch(query) },
-                enabled = !creating && normalized.isNotEmpty() && providerIds.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (creating) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        color = PaperTheme.tokens.ink,
-                        strokeWidth = 2.dp,
-                    )
-                    Spacer(Modifier.size(8.dp))
+            if (existingId == null) {
+                PaperTextButton(
+                    onClick = { onSaveSearch(query) },
+                    enabled = !creating && normalized.isNotEmpty() && providerIds.isNotEmpty(),
+                ) {
+                    if (creating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(Modifier.size(8.dp))
+                    }
+                    Text(stringResource(if (creating) R.string.saving_search else R.string.save_search_action))
                 }
-                Text(stringResource(if (creating) R.string.saving_search else R.string.save_search_action))
-            }
-        } else {
-            PaperSecondaryButton(onClick = onOpenUpdates, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.view_saved_search))
+            } else {
+                PaperTextButton(onClick = onOpenUpdates) {
+                    Text(stringResource(R.string.view_saved_search))
+                }
             }
         }
         actions.createFailures[actionKey]?.let { failure ->

@@ -21,6 +21,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -35,6 +37,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +45,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.pluralStringResource
@@ -72,6 +79,7 @@ fun LibraryScreen(
     onReadPaper: (PaperUi) -> Unit = { onOpenPaper(it.id) },
 ) {
     val grid = state.layout == LibraryLayout.GRID
+    val focusManager = LocalFocusManager.current
     var searchVisible by rememberSaveable { mutableStateOf(false) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
     val papers = (state.papers as? LoadState.Ready)?.value.orEmpty()
@@ -98,7 +106,10 @@ fun LibraryScreen(
                         IconButton(
                             onClick = {
                                 searchVisible = !searchVisible
-                                if (!searchVisible) onAction(LibraryAction.SetQuery(""))
+                                if (!searchVisible) {
+                                    focusManager.clearFocus()
+                                    onAction(LibraryAction.SetQuery(""))
+                                }
                             },
                             modifier = Modifier.size(48.dp),
                         ) {
@@ -226,47 +237,6 @@ fun LibraryScreen(
     }
 }
 
-/** Compatibility seam for existing root-screen tests while routes use [LibraryUiState]. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun LibraryScreen(
-    state: LoadState<List<PaperUi>>,
-    collections: LoadState<List<PaperCollectionUi>> = LoadState.Loading,
-    layout: LibraryLayout = LibraryLayout.LIST,
-    onLayoutChange: (LibraryLayout) -> Unit,
-    onOpenPaper: (String) -> Unit,
-    onDiscover: () -> Unit,
-    onReadPaper: (PaperUi) -> Unit = { onOpenPaper(it.id) },
-) {
-    var query by rememberSaveable { mutableStateOf("") }
-    var statusFilter by rememberSaveable { mutableStateOf(LibraryStatusFilter.ALL) }
-    var selectedCollectionId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var sortOrder by rememberSaveable { mutableStateOf(LibrarySortOrder.RECENTLY_SAVED) }
-    LibraryScreen(
-        state = LibraryUiState(
-            papers = state,
-            collections = collections,
-            layout = layout,
-            query = query,
-            statusFilter = statusFilter,
-            selectedCollectionId = selectedCollectionId,
-            sortOrder = sortOrder,
-        ),
-        onAction = { action ->
-            when (action) {
-                is LibraryAction.SetLayout -> onLayoutChange(action.layout)
-                is LibraryAction.SetQuery -> query = action.query
-                is LibraryAction.SetStatusFilter -> statusFilter = action.filter
-                is LibraryAction.SetCollection -> selectedCollectionId = action.id
-                is LibraryAction.SetSortOrder -> sortOrder = action.sortOrder
-            }
-        },
-        onOpenPaper = onOpenPaper,
-        onDiscover = onDiscover,
-        onReadPaper = onReadPaper,
-    )
-}
-
 @Composable
 private fun LibraryControls(
     papers: List<PaperUi>,
@@ -279,6 +249,11 @@ private fun LibraryControls(
     selectedCollectionId: Long?,
     onCollectionChange: (Long?) -> Unit,
 ) {
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    LaunchedEffect(searchVisible) {
+        if (searchVisible) focusRequester.requestFocus()
+    }
     Column(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -287,9 +262,11 @@ private fun LibraryControls(
             OutlinedTextField(
                 value = query,
                 onValueChange = onQueryChange,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).focusRequester(focusRequester),
                 singleLine = true,
                 label = { Text(stringResource(R.string.library_search_label)) },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 leadingIcon = { PaperIcon(PaperIconKey.SEARCH, contentDescription = null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {

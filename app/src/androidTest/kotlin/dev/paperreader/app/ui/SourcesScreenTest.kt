@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import dev.paperreader.app.ui.screen.MoreUiState
 import dev.paperreader.app.ui.screen.MoreScreen
 import dev.paperreader.app.ui.screen.SourcesScreen
 import dev.paperreader.app.extensions.ExtensionInstallState
@@ -268,31 +269,7 @@ class SourcesScreenTest {
         composeRule.onNodeWithText("1 release").performClick()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Semantic Scholar"))
         composeRule.onNodeWithText("Install extension").assertDoesNotExist()
-        composeRule.onNodeWithText("Unavailable").assertIsDisplayed()
-    }
-
-    @Test
-    fun MoreHubCombinesAllProviderIssuesIntoOneReviewCount() {
-        composeRule.setContent {
-            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
-                MoreScreen(
-                    selectedPreset = PaperThemePreset.NEOBRUTALISM,
-                    providers = providerState().copy(
-                        orphaned = listOf(
-                            OrphanedProviderPlugin(
-                                packageName = "dev.example.orphaned",
-                                displayName = "Orphaned",
-                                versionCode = 1,
-                            ),
-                        ),
-                    ),
-                )
-            }
-        }
-
-        composeRule.onNode(hasScrollToIndexAction())
-            .performScrollToNode(hasText("2 need review"))
-        composeRule.onNodeWithText("2 need review").assertIsDisplayed()
+        composeRule.onNodeWithText("Install unavailable").assertIsDisplayed()
     }
 
     @Test
@@ -301,6 +278,7 @@ class SourcesScreenTest {
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 MoreScreen(
+                    state = MoreUiState(),
                     selectedPreset = PaperThemePreset.NEOBRUTALISM,
                     onOpenAbout = { opened = true },
                 )
@@ -310,6 +288,30 @@ class SourcesScreenTest {
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("About"))
         composeRule.onNodeWithText("About").performClick()
         assertTrue(opened)
+    }
+
+    @Test
+    fun MoreHubCombinesAllProviderIssuesIntoOneReviewCount() {
+        val providers = providerState().copy(
+            orphaned = listOf(
+                OrphanedProviderPlugin(
+                    packageName = "dev.example.orphaned",
+                    displayName = "Orphaned",
+                    versionCode = 1,
+                ),
+            ),
+        )
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                MoreScreen(
+                    state = MoreUiState().withProviders(providers),
+                    selectedPreset = PaperThemePreset.NEOBRUTALISM,
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("2 need review"))
+        composeRule.onNodeWithText("2 need review").assertIsDisplayed()
     }
 
     @Test
@@ -364,8 +366,8 @@ class SourcesScreenTest {
 
         composeRule.waitForIdle()
         composeRule.onNode(hasScrollToIndexAction())
-            .performScrollToNode(hasText("No providers installed"))
-        composeRule.onNodeWithText("No providers installed").assertIsDisplayed()
+            .performScrollToNode(hasText("No sources installed"))
+        composeRule.onNodeWithText("No sources installed").assertIsDisplayed()
     }
 
     private fun providerState() = ProviderManagerState(

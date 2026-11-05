@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -56,9 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.widthIn
-import dev.paperreader.app.R
 import dev.paperreader.app.ui.theme.PaperDecoration
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
@@ -112,7 +109,7 @@ fun PaperPreferenceRow(
             Text(
                 title,
                 style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             supportingText?.takeIf(String::isNotBlank)?.let { summary ->
@@ -120,7 +117,7 @@ fun PaperPreferenceRow(
                     summary,
                     style = MaterialTheme.typography.bodyMedium,
                     color = PaperTheme.tokens.inkMuted,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -177,13 +174,17 @@ fun PaperSecondaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    contentDescription: String? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
     val tokens = PaperTheme.tokens
     PaperButtonFrame(modifier = modifier, enabled = enabled) { buttonModifier, interactionSource ->
+        val accessibleButtonModifier = contentDescription?.let { description ->
+            buttonModifier.semantics { this.contentDescription = description }
+        } ?: buttonModifier
         OutlinedButton(
             onClick = onClick,
-            modifier = buttonModifier,
+            modifier = accessibleButtonModifier,
             enabled = enabled,
             shape = RoundedCornerShape(tokens.cornerRadius),
             colors = ButtonDefaults.outlinedButtonColors(
@@ -308,103 +309,6 @@ fun PaperSurface(
                 modifier = Modifier.padding(contentPadding),
                 content = content,
             )
-        }
-    }
-}
-
-@Composable
-fun PaperLabel(text: String, color: Color = PaperTheme.tokens.inkMuted) {
-    Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        color = color,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
-}
-
-@Composable
-fun PaperSectionHeader(
-    title: String,
-    modifier: Modifier = Modifier,
-    action: (@Composable () -> Unit)? = null,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = PaperTheme.tokens.ink,
-        )
-        action?.invoke()
-    }
-}
-
-@Composable
-fun PaperMetaRow(
-    source: String?,
-    year: String?,
-    identifier: String?,
-    modifier: Modifier = Modifier,
-) {
-    val metadata = listOfNotNull(
-        source?.takeIf(String::isNotBlank),
-        year?.takeIf(String::isNotBlank),
-        identifier?.takeIf(String::isNotBlank),
-    ).joinToString(" · ")
-    Text(
-        text = metadata,
-        modifier = modifier.fillMaxWidth(),
-        style = MaterialTheme.typography.labelMedium,
-        color = PaperTheme.tokens.inkMuted,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
-}
-
-@Composable
-fun PaperIdentityBlock(
-    source: String?,
-    year: String?,
-    identifier: String?,
-    title: String,
-    authors: String,
-    doi: String?,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier) {
-        PaperMetaRow(source = source, year = year, identifier = identifier)
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            color = PaperTheme.tokens.ink,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = authors,
-            style = MaterialTheme.typography.bodyLarge,
-            color = PaperTheme.tokens.inkMuted,
-        )
-        doi?.takeIf(String::isNotBlank)?.let { value ->
-            Spacer(Modifier.height(10.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = stringResource(R.string.doi_label),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = PaperTheme.tokens.inkMuted,
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = PaperTheme.tokens.ink,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
         }
     }
 }

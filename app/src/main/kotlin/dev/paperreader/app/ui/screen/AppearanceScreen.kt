@@ -123,7 +123,7 @@ fun AppearanceScreen(
                     ) {
                         PaperIcon(PaperIconKey.ERROR, contentDescription = null, tint = PaperTheme.tokens.danger)
                         Text(
-                            issue.packageName,
+                            stringResource(R.string.theme_needs_attention),
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
@@ -131,6 +131,11 @@ fun AppearanceScreen(
                         )
                     }
                     Spacer(Modifier.height(6.dp))
+                    Text(
+                        issue.packageName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PaperTheme.tokens.inkMuted,
+                    )
                     Text(issue.message, color = PaperTheme.tokens.inkMuted)
                 }
             }
@@ -151,26 +156,6 @@ fun AppearanceScreen(
             )
         }
     }
-}
-
-@Composable
-fun AppearanceScreen(
-    selectedPreset: PaperThemePreset,
-    selectedThemeMode: PaperThemeMode = PaperThemeMode.SYSTEM,
-    onPresetChange: (PaperThemePreset) -> Unit,
-    onThemeModeChange: (PaperThemeMode) -> Unit,
-    onBack: () -> Unit,
-) {
-    AppearanceScreen(
-        selectedThemeKey = selectedPreset.storageKey,
-        communityThemes = emptyList(),
-        communityThemesLoading = false,
-        communityThemeIssues = emptyList(),
-        selectedThemeMode = selectedThemeMode,
-        onThemeChange = { key -> onPresetChange(PaperThemePreset.fromStorageKey(key)) },
-        onThemeModeChange = onThemeModeChange,
-        onBack = onBack,
-    )
 }
 
 @Composable

@@ -39,6 +39,9 @@ current branch. Released sections correspond to Git tags.
 
 ### Build
 
+- Documentation-only pull requests skip Android setup and Gradle while retaining their existing
+  check names, documentation validation, dependency review, and security scans. Main and manual
+  runs still execute the full host gate and produce release artifacts.
 - Centralized dependency and build-tool pins in the Gradle version catalog without upgrading them;
   CI, CodeQL, and release share one Android setup action and retain the main-only cache writer.
 - Release inputs are validated before signing, use environment variables, and require green main

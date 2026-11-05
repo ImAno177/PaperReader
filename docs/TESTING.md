@@ -121,6 +121,13 @@ runs. Gradle receives all tasks for a run in one invocation, so shared compilati
 is executed once. Connected tests remain a local release-readiness gate on the declared emulator; CI
 does not claim device coverage that it does not run.
 
+Pull requests that change only root Markdown or files under `docs/` also skip Android setup and
+Gradle in the existing build job. Documentation, dependency review, and security checks still run;
+the workflow and check names remain present. The scope check compares the complete pull-request
+diff, including deletions and both sides of renames. Missing or unreadable diff data runs the full
+gate. Source, asset, dependency, build, and workflow changes always run it, as do all main pushes
+and manual runs, so release eligibility still requires full verification of the exact main commit.
+
 GitHub CodeQL Advanced scans the Java/Kotlin build on every pull request and main push, with a weekly
 scheduled security-extended analysis. The repository intentionally uses Advanced setup: `codeql.yml`
 is the source of truth, while GitHub's Default setup remains disabled so it cannot replace that pinned

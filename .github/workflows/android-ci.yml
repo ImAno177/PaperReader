@@ -58,13 +58,53 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
+      - name: Select Android verification scope
+        id: android_gate
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import subprocess
+
+          run_android = True
+          base = os.environ["BASE_SHA"]
+          if os.environ["EVENT_NAME"] == "pull_request" and re.fullmatch(r"[0-9a-f]{40}", base):
+              try:
+                  subprocess.run(["git", "fetch", "--no-tags", "--depth=1", "origin", base], check=True)
+                  diff = subprocess.check_output([
+                      "git", "diff", "--no-renames", "--name-only", "-z", base, "HEAD", "--",
+                  ])
+                  paths = [os.fsdecode(path) for path in diff.split(b"\0") if path]
+                  run_android = not paths or not all(
+                      path.startswith("docs/") or ("/" not in path and path.endswith(".md"))
+                      for path in paths
+                  )
+              except (OSError, subprocess.CalledProcessError):
+                  print("::warning::Could not inspect changed paths; running the full Android gate.")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              print(f"run_android={str(run_android).lower()}", file=output)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              print(
+                  "Full Android verification selected." if run_android else
+                  "Android build skipped: this pull request changes only root Markdown or docs/ files. "
+                  "Documentation, dependency review, and security checks still run.",
+                  file=summary,
+              )
+          PY
+
       - name: Set up Android build
+        if: steps.android_gate.outputs.run_android == 'true'
         uses: ./.github/actions/setup-android
         with:
           cache-read-only: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
 
       - name: Verify host code and build APKs
         id: quality_gate
+        if: steps.android_gate.outputs.run_android == 'true'
         shell: bash
         env:
           BUILD_FULL_ARTIFACTS: ${{ github.event_name != 'pull_request' }}
@@ -115,6 +155,7 @@ jobs:
           upload-release-assets: false
 
       - name: Upload debug APK
+        if: steps.android_gate.outputs.run_android == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: paperreader-debug-${{ github.sha }}

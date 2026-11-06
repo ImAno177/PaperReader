@@ -368,6 +368,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         val palette = resolveReadablePaperPalette(this, communityTheme)
         val dark = isReaderDarkMode()
         val layout = ReadablePaperLayout(readerLayout.textSpacing, readerLayout.sideMargin)
+        val authorDetailsSummary = getString(R.string.show_details)
         val renderedHtml = withContext(Dispatchers.Default) {
             renderReadablePaperHtml(
                 sanitizedBodyHtml = document.bodyHtml,
@@ -375,6 +376,7 @@ class ReadablePaperActivity : AppCompatActivity() {
                 dark = dark,
                 layout = layout,
                 showImages = readerArgs.showImagesInDescription,
+                authorDetailsSummary = authorDetailsSummary,
             )
         }
         webView.loadDataWithBaseURL(

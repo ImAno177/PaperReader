@@ -108,6 +108,26 @@ class LibraryScreenTest {
     }
 
     @Test
+    fun gridCardKeepsTheCompleteColonSeparatedTitle() {
+        val title = "CGP-Tuning: Structure-aware optimization"
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                LibraryScreen(
+                    state = LibraryUiState(
+                        papers = LoadState.Ready(listOf(paper("paper", title, emptyList()))),
+                        layout = LibraryLayout.GRID,
+                    ),
+                    onAction = {},
+                    onOpenPaper = {},
+                    onDiscover = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(title).assertExists()
+    }
+
+    @Test
     fun paperCardExposesAFullQuickReadAction() {
         var read = false
         composeRule.setContent {

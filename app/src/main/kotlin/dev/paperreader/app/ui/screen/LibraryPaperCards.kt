@@ -129,7 +129,7 @@ internal fun LibraryGridPaperCard(
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                text = compactLibraryGridTitle(paper.title),
+                text = paper.title,
                 modifier = Modifier.semantics { contentDescription = paper.title },
                 style = MaterialTheme.typography.titleLarge,
                 color = PaperTheme.tokens.ink,
@@ -139,16 +139,15 @@ internal fun LibraryGridPaperCard(
             )
             Spacer(Modifier.height(6.dp))
             LibraryGridStateBadge(paper)
-            Spacer(Modifier.height(6.dp))
-            PaperProgress(paper.progress)
+            if (paper.progress > 0f) {
+                Spacer(Modifier.height(6.dp))
+                PaperProgress(paper.progress)
+            }
         }
         Spacer(Modifier.height(8.dp))
         LibraryReadButton(onRead)
     }
 }
-
-internal fun compactLibraryGridTitle(title: String): String =
-    title.substringBefore(':').trim().ifBlank { title }
 
 @Composable
 private fun LibraryGridStateBadge(paper: PaperUi) {

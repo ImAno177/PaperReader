@@ -172,6 +172,37 @@ class SourcesScreenTest {
     }
 
     @Test
+    fun failedInstallOffersToRefreshItsSignedStore() {
+        var refreshedStoreId: String? = null
+        var dismissedPackage: String? = null
+        val packageName = "dev.paperreader.extensions.semanticscholar"
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                SourcesScreen(
+                    providers = ProviderManagerState(),
+                    extensionStores = signedStoreState(),
+                    installStates = mapOf(
+                        packageName to ExtensionInstallState.Failed(
+                            "APK signing certificate does not match the signed registry",
+                        ),
+                    ),
+                    onRefreshStore = { refreshedStoreId = it },
+                    onDismissInstallState = { dismissedPackage = it },
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("1 release").performClick()
+        composeRule.onNodeWithText("Install failed: APK signing certificate does not match the signed registry")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Refresh store").performClick()
+
+        assertEquals("paperreader.community", refreshedStoreId)
+        assertEquals(packageName, dismissedPackage)
+    }
+
+    @Test
     fun pinnedStoreAndBlockedInstalledReleaseDoNotOfferDestructiveOrRepeatActions() {
         val blockedPackage = "dev.paperreader.extensions.semanticscholar"
         composeRule.setContent {

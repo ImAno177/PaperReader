@@ -11,6 +11,7 @@ import dev.paperreader.logic.reader.ReadablePaperFailure
 import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.reader.ReadablePaperLoader
 import dev.paperreader.logic.reader.ReadablePaperResult
+import dev.paperreader.logic.reader.ReadablePaperCacheReadiness
 import java.lang.ref.WeakReference
 
 class LoadReadablePaper internal constructor(
@@ -60,6 +61,18 @@ class LoadReadablePaper internal constructor(
     ) {
         val document: ReadablePaperDocument?
             get() = documentReference.get()
+    }
+}
+
+class GetReadablePaperCacheReadiness internal constructor(
+    private val repository: LibraryRepository,
+    private val loader: ReadablePaperLoader,
+) {
+    suspend fun await(workId: WorkId, manifestationId: ManifestationId): ReadablePaperCacheReadiness {
+        val paper = repository.get(workId) ?: return ReadablePaperCacheReadiness.NOT_CACHED
+        val manifestation = paper.manifestations.firstOrNull { it.id == manifestationId }
+            ?: return ReadablePaperCacheReadiness.NOT_CACHED
+        return loader.cacheReadiness(manifestation)
     }
 }
 

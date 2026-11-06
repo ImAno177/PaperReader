@@ -187,6 +187,14 @@ internal class PluginReadablePaperLoader(
         return cache.keepForOffline(key, record)
     }
 
+    override suspend fun cacheReadiness(manifestation: PaperManifestation): ReadablePaperCacheReadiness =
+        withContext(Dispatchers.IO) {
+            val identity = identityFor(manifestation) ?: return@withContext ReadablePaperCacheReadiness.NOT_CACHED
+            val cached = cache.inspectForIdentity(identity, READABLE_RENDERER_CONTRACT_VERSION)
+                ?: return@withContext ReadablePaperCacheReadiness.NOT_CACHED
+            ReadablePaperCacheReadiness(cached = true, keptForOffline = cached.paper.keptForOffline)
+        }
+
     suspend fun removeArtifacts(manifestation: PaperManifestation) {
         identityFor(manifestation)?.let { identity ->
             withContext(Dispatchers.IO) { cache.removeByIdentity(identity) }

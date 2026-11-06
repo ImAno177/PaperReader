@@ -1,6 +1,7 @@
 package dev.paperreader.logic.reader
 
 import java.nio.file.Files
+import java.nio.file.attribute.FileTime
 import java.security.MessageDigest
 import java.time.Instant
 import org.junit.Assert.assertEquals
@@ -10,6 +11,79 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ReadablePaperCacheTest {
+    @Test
+    fun `identity inspection validates without touching or cleaning cache files`() {
+        val directory = Files.createTempDirectory("paper-cache-inspect")
+        val cache = ReadablePaperCache(directory)
+        val rendererVersion = READABLE_RENDERER_CONTRACT_VERSION
+        val contractVersion = "readable-v1"
+        val identity = ReadablePaperCacheIdentity("provider-1", "record-1", "v1")
+        val key = ReadablePaperCache.keyFor(
+            identity.providerId,
+            identity.providerRecordId,
+            identity.sourceVersion,
+            contractVersion,
+            rendererVersion,
+        )
+        cache.write(
+            key,
+            record("inspect").copy(
+                sourceProvider = identity.providerId,
+                sourceRecordId = identity.providerRecordId,
+                sourceVersion = identity.sourceVersion,
+                readableContractVersion = contractVersion,
+                rendererContractVersion = rendererVersion,
+            ),
+        )
+
+        val oldTimestamp = FileTime.fromMillis(1_000L)
+        val body = directory.resolve("$key.body.html")
+        val manifest = directory.resolve("$key.manifest")
+        Files.setLastModifiedTime(body, oldTimestamp)
+        Files.setLastModifiedTime(manifest, oldTimestamp)
+        val invalidOfflineMarker = directory.resolve("$key.offline")
+        Files.write(invalidOfflineMarker, "invalid".toByteArray())
+        val staleBodyPart = directory.resolve(".stale.body.part")
+        val staleManifestPart = directory.resolve(".stale.manifest.part")
+        Files.write(staleBodyPart, byteArrayOf(1))
+        Files.write(staleManifestPart, byteArrayOf(1))
+
+        val inspected = cache.inspectForIdentity(identity, rendererVersion)
+
+        assertEquals(key, inspected?.key)
+        assertFalse(inspected?.paper?.keptForOffline ?: true)
+        assertEquals(oldTimestamp, Files.getLastModifiedTime(body))
+        assertEquals(oldTimestamp, Files.getLastModifiedTime(manifest))
+        assertTrue(Files.exists(invalidOfflineMarker))
+        assertTrue(Files.exists(staleBodyPart))
+        assertTrue(Files.exists(staleManifestPart))
+
+        val corruptIdentity = identity.copy(providerRecordId = "record-2")
+        val corruptKey = ReadablePaperCache.keyFor(
+            corruptIdentity.providerId,
+            corruptIdentity.providerRecordId,
+            corruptIdentity.sourceVersion,
+            contractVersion,
+            rendererVersion,
+        )
+        cache.write(
+            corruptKey,
+            record("corrupt").copy(
+                sourceProvider = corruptIdentity.providerId,
+                sourceRecordId = corruptIdentity.providerRecordId,
+                sourceVersion = corruptIdentity.sourceVersion,
+                readableContractVersion = contractVersion,
+                rendererContractVersion = rendererVersion,
+            ),
+        )
+        val corruptBody = directory.resolve("$corruptKey.body.html")
+        Files.write(corruptBody, "<article>tampered</article>".toByteArray())
+
+        assertNull(cache.inspectForIdentity(corruptIdentity, rendererVersion))
+        assertTrue(Files.exists(corruptBody))
+        assertTrue(Files.exists(directory.resolve("$corruptKey.manifest")))
+    }
+
     @Test
     fun `key is deterministic and changes with every cache contract input`() {
         val first = ReadablePaperCache.keyFor("provider-1", "record-1", "v1", "contract-1", "renderer-1")

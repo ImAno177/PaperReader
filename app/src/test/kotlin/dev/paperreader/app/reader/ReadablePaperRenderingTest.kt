@@ -141,7 +141,12 @@ class ReadablePaperRenderingTest {
         assertTrue(html.contains(".ltx_creator, .paperreader-author"))
         assertTrue(html.contains("grid-template-columns: repeat(2, minmax(0, 1fr))"))
         assertTrue(html.contains(".ltx_author_notes, .paperreader-author-details"))
-        assertTrue(html.contains("<details class=\"paperreader-author-notes\"><summary>Details</summary>"))
+        assertTrue(
+            html.contains(
+                "<details class=\"paperreader-author-notes\"><summary>Details</summary>" +
+                    "<span class=\"ltx_author_notes paperreader-author-details\">",
+            ),
+        )
         assertTrue(html.contains("Google Brain and the complete affiliation notes stay available in the reader, including the department, campus, and contact details."))
         assertTrue(html.contains("<span class=\"ltx_author_notes paperreader-author-details\">OpenAI</span>"))
         assertTrue(html.contains(".ltx_role_footnotemark .ltx_note_outer"))

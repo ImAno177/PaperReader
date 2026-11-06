@@ -51,6 +51,7 @@ import dev.paperreader.logic.domain.LOCAL_PDF_SOURCE_ID
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.reader.ReadablePaperResult
 import dev.paperreader.logic.reader.ReadablePaperDocument
+import dev.paperreader.logic.reader.ReadablePaperCacheReadiness
 import dev.paperreader.logic.task.DeleteDownloadResult
 import dev.paperreader.logic.task.DownloadedPaper
 import dev.paperreader.logic.task.PaperTask
@@ -102,6 +103,7 @@ internal fun ManifestationCard(
     requestFailed: Boolean,
     showMobileReadAction: Boolean = true,
     showImagesInDescription: Boolean = true,
+    readableCacheReadiness: ReadablePaperCacheReadiness? = null,
     onRequestDownload: () -> Unit,
     onGetDownloadedPaper: suspend () -> DownloadedPaper?,
     onLoadReadablePaper: suspend (String?) -> ReadablePaperResult,
@@ -233,6 +235,22 @@ internal fun ManifestationCard(
                                 formatFileSize(localCopy.byteLength),
                             ),
                             color = PaperTheme.tokens.success,
+                        )
+                    }
+                    if (supportsMobileReading && readableCacheReadiness != null) {
+                        val readiness = readableCacheReadiness
+                        val htmlStatus = when {
+                            readiness.keptForOffline -> R.string.manifestation_html_kept_offline
+                            readiness.cached -> R.string.manifestation_html_cached
+                            else -> R.string.manifestation_html_not_cached
+                        }
+                        StatusBadge(
+                            text = stringResource(htmlStatus),
+                            color = when {
+                                readiness.keptForOffline -> PaperTheme.tokens.success
+                                readiness.cached -> PaperTheme.tokens.warning
+                                else -> PaperTheme.tokens.inkMuted
+                            },
                         )
                     }
                 }

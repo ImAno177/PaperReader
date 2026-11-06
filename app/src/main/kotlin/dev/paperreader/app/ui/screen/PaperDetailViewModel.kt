@@ -17,6 +17,7 @@ import dev.paperreader.logic.domain.ReadingStatus
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.domain.repository.RemovePaperResult
 import dev.paperreader.logic.domain.repository.SetPaperCollectionsResult
+import dev.paperreader.logic.reader.ReadablePaperCacheReadiness
 import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.reader.ReadablePaperResult
 import dev.paperreader.logic.task.DeleteDownloadResult
@@ -26,6 +27,7 @@ import dev.paperreader.logic.task.PaperTask
 import dev.paperreader.logic.task.TaskState
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +40,7 @@ data class PaperDetailUiState(
     val collections: LoadState<List<PaperCollectionUi>> = LoadState.Loading,
     val tasks: LoadState<List<PaperTask>> = LoadState.Loading,
     val downloadActions: DownloadActionUiState = DownloadActionUiState(),
+    val readableCacheReadiness: Map<String, ReadablePaperCacheReadiness> = emptyMap(),
 )
 
 sealed interface PaperDetailAction {
@@ -54,13 +57,25 @@ class PaperDetailViewModel(
     private val mutableUiState = MutableStateFlow(PaperDetailUiState())
     val uiState: StateFlow<PaperDetailUiState> = mutableUiState.asStateFlow()
     private val repairing = mutableSetOf<String>()
+    private var readinessIdentity: List<Triple<String, String, String?>>? = null
+    private var readinessJob: Job? = null
 
     init {
         viewModelScope.launch {
             logic.useCases.observeLibrary
                 .subscribe(WorkId(workId))
                 .asLoadState(viewModelScope) { it?.toPaperUi() }
-                .collectLatest { paper -> update { copy(paper = paper) } }
+                .collectLatest { paper ->
+                    update { copy(paper = paper) }
+                    val loadedPaper = (paper as? LoadState.Ready)?.value
+                    if (loadedPaper == null) {
+                        readinessIdentity = null
+                        readinessJob?.cancel()
+                        update { copy(readableCacheReadiness = emptyMap()) }
+                    } else {
+                        refreshReadablePaperCacheReadiness(loadedPaper)
+                    }
+                }
         }
         viewModelScope.launch {
             logic.useCases.observeCollections
@@ -138,11 +153,22 @@ class PaperDetailViewModel(
     suspend fun loadReadablePaper(
         manifestationId: String,
         retainDocumentSha256: String?,
-    ): ReadablePaperResult = logic.useCases.loadReadablePaper.await(
-        WorkId(workId),
-        ManifestationId(manifestationId),
-        retainDocumentSha256,
-    )
+    ): ReadablePaperResult {
+        readinessJob?.cancel()
+        val result = logic.useCases.loadReadablePaper.await(
+            WorkId(workId),
+            ManifestationId(manifestationId),
+            retainDocumentSha256,
+        )
+        refreshReadablePaperCacheReadiness()
+        return result
+    }
+
+    fun refreshReadablePaperCacheReadiness() {
+        val paper = (mutableUiState.value.paper as? LoadState.Ready)?.value ?: return
+        readinessIdentity = null
+        refreshReadablePaperCacheReadiness(paper)
+    }
 
     suspend fun readReadablePaperAsset(document: ReadablePaperDocument, assetId: String): ByteArray? =
         withContext(Dispatchers.IO) {
@@ -154,5 +180,28 @@ class PaperDetailViewModel(
 
     private fun update(block: PaperDetailUiState.() -> PaperDetailUiState) {
         mutableUiState.value = mutableUiState.value.block()
+    }
+
+    private fun refreshReadablePaperCacheReadiness(paper: PaperUi) {
+        val identity = paper.manifestations.map { Triple(it.id, it.source, it.version) }
+        if (identity == readinessIdentity) return
+        readinessIdentity = identity
+        readinessJob?.cancel()
+        readinessJob = viewModelScope.launch {
+            val readiness = paper.manifestations.associate { manifestation ->
+                val result = try {
+                    logic.useCases.readablePaperCacheReadiness.await(
+                        WorkId(workId),
+                        ManifestationId(manifestation.id),
+                    )
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    ReadablePaperCacheReadiness.NOT_CACHED
+                }
+                manifestation.id to result
+            }
+            update { copy(readableCacheReadiness = readiness) }
+        }
     }
 }

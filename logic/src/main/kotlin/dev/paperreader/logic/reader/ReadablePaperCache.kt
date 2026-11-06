@@ -35,6 +35,20 @@ internal class ReadablePaperCache(
         identity: ReadablePaperCacheIdentity,
         rendererContractVersion: String,
         documentSha256: String? = null,
+    ): CachedReadablePaperEntry? = findForIdentity(identity, rendererContractVersion, documentSha256, mutateCache = true)
+
+    /** Verifies a cache entry without touching timestamps, pruning, or cleaning corrupt files/markers. */
+    @Synchronized
+    fun inspectForIdentity(
+        identity: ReadablePaperCacheIdentity,
+        rendererContractVersion: String,
+    ): CachedReadablePaperEntry? = findForIdentity(identity, rendererContractVersion, documentSha256 = null, mutateCache = false)
+
+    private fun findForIdentity(
+        identity: ReadablePaperCacheIdentity,
+        rendererContractVersion: String,
+        documentSha256: String?,
+        mutateCache: Boolean,
     ): CachedReadablePaperEntry? = storedKeys().asSequence()
         .mapNotNull { key ->
             readIdentityMetadata(key)
@@ -51,12 +65,15 @@ internal class ReadablePaperCache(
                             rendererContractVersion = metadata.rendererContractVersion,
                         )
                 }
-                ?.let { readInternal(key, prune = false)?.let { paper -> CachedReadablePaperEntry(key, paper) } }
+                ?.let {
+                    readInternal(key, prune = false, mutateCache = mutateCache)
+                        ?.let { paper -> CachedReadablePaperEntry(key, paper) }
+                }
         }
         .firstOrNull { entry ->
             (documentSha256 == null || entry.paper.documentSha256 == documentSha256) &&
                 (entry.paper.keptForOffline ||
-                    assetCache.allPresent(entry.paper.assetGroupKey, entry.paper.assets)) &&
+                    assetCache.allPresent(entry.paper.assetGroupKey, entry.paper.assets, touch = mutateCache)) &&
                 bodyReferencesKnownAssets(entry.paper.bodyHtml, entry.paper.assets)
         }
 
@@ -89,7 +106,7 @@ internal class ReadablePaperCache(
         return removed
     }
 
-    private fun readInternal(key: String, prune: Boolean): CachedReadablePaper? {
+    private fun readInternal(key: String, prune: Boolean, mutateCache: Boolean = true): CachedReadablePaper? {
         if (!key.matches(SHA256_PATTERN)) return null
         if (prune) {
             try {
@@ -140,10 +157,12 @@ internal class ReadablePaperCache(
                     .filter(String::isNotBlank)
                     .mapNotNull { runCatching { ReadablePaperWarning.valueOf(it) }.getOrNull() }
                     .toSet(),
-                keptForOffline = hasValidOfflineMarker(key) &&
+                keptForOffline = hasValidOfflineMarker(key, deleteInvalid = mutateCache) &&
                     assetCache.isKeptForOffline(
                         groupKey = assetGroupKey.orEmpty(),
                         assets = assets,
+                        touch = mutateCache,
+                        deleteInvalidMarker = mutateCache,
                     ),
                 sourceProvider = values["source_provider"]?.let(::decode).orEmpty(),
                 sourceRecordId = values["source_record_id"]?.let(::decode).orEmpty(),
@@ -157,13 +176,15 @@ internal class ReadablePaperCache(
             )
         }.getOrNull()
         if (record == null) {
-            deleteEntry(key)
+            if (mutateCache) deleteEntry(key)
             return null
         }
-        runCatching {
-            val now = java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis())
-            Files.setLastModifiedTime(bodyPath, now)
-            Files.setLastModifiedTime(manifestPath, now)
+        if (mutateCache) {
+            runCatching {
+                val now = java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis())
+                Files.setLastModifiedTime(bodyPath, now)
+                Files.setLastModifiedTime(manifestPath, now)
+            }
         }
         return record
     }
@@ -420,14 +441,14 @@ internal class ReadablePaperCache(
         }
     }.getOrNull()
 
-    private fun hasValidOfflineMarker(key: String): Boolean {
+    private fun hasValidOfflineMarker(key: String, deleteInvalid: Boolean = true): Boolean {
         val marker = directory.resolve("$key$OFFLINE_SUFFIX")
         if (!Files.isRegularFile(marker)) return false
         val valid = runCatching {
             Files.size(marker) <= MAXIMUM_OFFLINE_MARKER_BYTES &&
                 Files.newBufferedReader(marker, Charsets.UTF_8).use { it.readText() } == OFFLINE_HEADER
         }.getOrDefault(false)
-        if (!valid) runCatching { Files.deleteIfExists(marker) }
+        if (!valid && deleteInvalid) runCatching { Files.deleteIfExists(marker) }
         return valid
     }
 

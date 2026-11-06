@@ -25,7 +25,7 @@ The host keeps provider implementations outside the app repository. The current 
 ## Build against the local API
 
 The SDK is not published to a remote Maven repository yet. Extension repositories use a composite build and substitute
-`dev.paperreader:extension-api:0.1.0` with the local `:extension-api` project.
+`dev.paperreader:extension-api:0.2.0` with the local `:extension-api` project.
 
 Place a PaperReader checkout in a directory named `PaperReader` under the extension repository, or
 pass its path from an extension repository:
@@ -45,10 +45,20 @@ The current contract requires Android 9 (API 28) or newer and JVM target 17. Use
 [build prerequisites](TESTING.md#local-gate) for the composite SDK build, even when the extension
 app uses an older compile SDK.
 
+## Contract upgrade
+
+Contract API 2 adds readable-document Binder operations. API 1 used a different transaction number
+for cancellation, so the host rejects API 1 packages before binding rather than treating them as
+compatible. Source and theme APKs must be rebuilt against SDK 0.2.0 and declare API 2.
+
+The host reads the official `registry/v2/index.signed.json` channel. The original
+`registry/index.signed.json` remains the API 1 channel for older app releases. Publishing a new
+source must verify that its signed registry capabilities, manifest API, and Binder descriptor agree.
+
 ## Source extensions
 
 A source APK exports one service for
-`dev.paperreader.extensions.api.action.PAPER_SOURCE`. Its manifest metadata declares API version 1
+`dev.paperreader.extensions.api.action.PAPER_SOURCE`. Its manifest metadata declares API version 2
 and kind `source`. The descriptor contains:
 
 - a stable provider ID and display name;
@@ -92,7 +102,7 @@ wire, packaging, and trust boundary.
 ## Theme extensions
 
 A theme APK exports one service for
-`dev.paperreader.extensions.api.action.PAPER_THEME`. Its manifest metadata declares API version 1
+`dev.paperreader.extensions.api.action.PAPER_THEME`. Its manifest metadata declares API version 2
 and kind `theme`.
 
 A theme supplies complete declarative data:

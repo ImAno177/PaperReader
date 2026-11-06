@@ -137,7 +137,7 @@ class SourcesScreenTest {
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
         composeRule.onNodeWithContentDescription("Show releases from PaperReader community").performClick()
         composeRule.onNode(
-            hasText("Semantic Scholar") and hasAnySibling(hasText("1.2.0 • Apache-2.0")),
+            hasText("Semantic Scholar") and hasAnySibling(hasText("1.2.0 â€¢ Apache-2.0")),
         ).assertIsDisplayed()
         composeRule.onNodeWithText("Install extension").assertDoesNotExist()
 
@@ -166,8 +166,8 @@ class SourcesScreenTest {
 
         composeRule.onNodeWithText("1 release").performClick()
         composeRule.onNode(hasScrollToIndexAction())
-            .performScrollToNode(hasText("Cancel · Waiting to download"))
-        composeRule.onNodeWithText("Cancel · Waiting to download").performClick()
+            .performScrollToNode(hasText("Cancel Â· Waiting to download"))
+        composeRule.onNodeWithText("Cancel Â· Waiting to download").performClick()
         assertEquals(packageName, cancelledPackage)
     }
 
@@ -421,8 +421,8 @@ class SourcesScreenTest {
                             minimumVersionCode = 2,
                             versionName = "1.2.0",
                             signerSha256 = "cd".repeat(32),
-                            minimumHostApi = 1,
-                            maximumHostApi = 1,
+                            minimumHostApi = 2,
+                            maximumHostApi = 2,
                             installUrl = "https://example.org/semanticscholar.apk",
                             apkSha256 = "01".repeat(32),
                             apkSizeBytes = 1_048_576,
@@ -460,8 +460,8 @@ class SourcesScreenTest {
                             minimumVersionCode = 4,
                             versionName = "1.0.0",
                             signerSha256 = "cd".repeat(32),
-                            minimumHostApi = 1,
-                            maximumHostApi = 1,
+                            minimumHostApi = 2,
+                            maximumHostApi = 2,
                             installUrl = "https://example.org/community-theme.apk",
                             apkSha256 = "02".repeat(32),
                             apkSizeBytes = 524_288,

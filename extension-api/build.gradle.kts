@@ -9,7 +9,7 @@ extra["combinedCoverageMinimum"] = BigDecimal("1.00")
 apply(from = rootProject.file("gradle/jacoco-android.gradle.kts"))
 
 group = "dev.paperreader"
-version = "0.1.0"
+version = "0.2.0"
 
 android {
     buildToolsVersion = libs.versions.buildTools.get()

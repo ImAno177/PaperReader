@@ -73,6 +73,9 @@ class ExtensionBundleContractTest {
             SourceExtensionDescriptor.fromBundle(Bundle(valid).apply { remove("api_version") })
         }
         expectIllegal {
+            SourceExtensionDescriptor.fromBundle(Bundle(valid).apply { putInt("api_version", 1) })
+        }
+        expectIllegal {
             SourceExtensionDescriptor.fromBundle(Bundle(valid).apply { remove("capabilities") })
         }
     }

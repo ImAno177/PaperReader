@@ -17,6 +17,8 @@ current branch. Released sections correspond to Git tags.
 
 ### Changed
 
+- Extension SDK 0.2.0 uses contract API 2 for readable-document Binder calls. API 1 APKs require an
+  update; the host checks the separate v2 official store and rejects incompatible service metadata.
 - Screens and Compose tests use the same state/action interfaces; obsolete overloads, duplicated
   fixtures, and redundant contract assertions are removed. Reader cache models have their own file.
 - Shorter labels and recovery messages across search, library, reader, imports, and backup; technical

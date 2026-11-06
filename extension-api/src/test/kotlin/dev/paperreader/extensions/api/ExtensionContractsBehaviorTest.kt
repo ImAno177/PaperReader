@@ -61,7 +61,8 @@ class ExtensionContractsBehaviorTest {
         assertIllegal { SourceExtensionDescriptor("dev.example", "Bad", "Name") }
         assertIllegal { SourceExtensionDescriptor("dev.example", "ok.provider", " ") }
         assertIllegal { SourceExtensionDescriptor("dev.example", "ok.provider", "x".repeat(81)) }
-        assertIllegal { SourceExtensionDescriptor("dev.example", "ok.provider", "Name", apiVersion = 2) }
+        assertIllegal { SourceExtensionDescriptor("dev.example", "ok.provider", "Name", apiVersion = 1) }
+        assertIllegal { SourceExtensionDescriptor("dev.example", "ok.provider", "Name", apiVersion = 3) }
         assertIllegal { SourceExtensionDescriptor("dev.example", "ok.provider", "Name", minimumRequestIntervalMillis = -1) }
         assertIllegal { SourceExtensionDescriptor("dev.example", "ok.provider", "Name", minimumRequestIntervalMillis = 86_400_001) }
         assertIllegal { SourceExtensionDescriptor("dev.example", "ok.provider", "Name", capabilities = emptySet()) }
@@ -126,7 +127,8 @@ class ExtensionContractsBehaviorTest {
         assertIllegal { ThemeExtensionDescriptor("dev.example", "Name", emptySet()) }
         assertIllegal { ThemeExtensionDescriptor("dev.example", "Name", (0..20).mapTo(linkedSetOf()) { "theme-$it" }) }
         assertIllegal { ThemeExtensionDescriptor("dev.example", "Name", setOf("Bad")) }
-        assertIllegal { ThemeExtensionDescriptor("dev.example", "Name", setOf("theme"), apiVersion = 2) }
+        assertIllegal { ThemeExtensionDescriptor("dev.example", "Name", setOf("theme"), apiVersion = 1) }
+        assertIllegal { ThemeExtensionDescriptor("dev.example", "Name", setOf("theme"), apiVersion = 3) }
         assertIllegal { palette(0) }
         assertIllegal { CommunityTheme("", "theme", "Name", palette(), palette(), 0f, 0f, 0f, ThemeFontFamily.SYSTEM_SANS, ThemeFontFamily.SYSTEM_SANS, ThemeFontFamily.SYSTEM_SANS, ThemeDecoration.NONE, ThemeSemanticIcon.entries.toSet()) }
         assertIllegal { CommunityTheme("req", "Bad", "Name", palette(), palette(), 0f, 0f, 0f, ThemeFontFamily.SYSTEM_SANS, ThemeFontFamily.SYSTEM_SANS, ThemeFontFamily.SYSTEM_SANS, ThemeDecoration.NONE, ThemeSemanticIcon.entries.toSet()) }

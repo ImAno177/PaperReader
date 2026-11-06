@@ -136,7 +136,7 @@ androidComponents {
                 "OFFICIAL_SOURCE_STORE_URL",
                 BuildConfigField(
                     "String",
-                    "https://raw.githubusercontent.com/ImAno177/PaperReader-sources/main/registry/index.signed.json"
+                    "https://raw.githubusercontent.com/ImAno177/PaperReader-sources/main/registry/v2/index.signed.json"
                         .asBuildConfigString(),
                     null,
                 ),

@@ -111,6 +111,20 @@ class DomainModelsTest {
     }
 
     @Test
+    fun `year only publications preserve precision and reject inconsistent dates`() {
+        val work = PaperWork(workId, "Year only", createdAt = now, updatedAt = now, publicationYear = 2024)
+        assertEquals(null, work.publishedDate)
+        assertEquals(2024, work.publicationYear)
+        assertThrows(IllegalArgumentException::class.java) { work.copy(publicationYear = 0) }
+        assertThrows(IllegalArgumentException::class.java) {
+            work.copy(publishedDate = LocalDate.of(2025, 2, 1))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            RemotePaper("fixture", "year", "Paper", publicationYear = 10000)
+        }
+    }
+
+    @Test
     fun `reading and annotation models cover boundary values and failures`() {
         val locator = ReadingLocator(sha, "block", 0, 0, 0.0)
         assertEquals(0, locator.characterOffset)

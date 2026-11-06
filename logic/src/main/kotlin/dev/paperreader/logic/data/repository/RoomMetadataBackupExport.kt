@@ -57,6 +57,7 @@ internal suspend fun buildMetadataBackupProto(
                 abstractText = work.abstractText,
                 subjects = work.subjects.split(SUBJECT_SEPARATOR).filter(String::isNotBlank),
                 publishedDateEpochDay = work.publishedDateEpochDay,
+                publicationYear = work.publicationYear,
                 createdAtEpochMillis = work.createdAtEpochMillis,
                 updatedAtEpochMillis = work.updatedAtEpochMillis,
                 authors = authors[work.id].orEmpty().map { author ->

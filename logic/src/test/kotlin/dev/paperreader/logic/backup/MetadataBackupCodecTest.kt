@@ -113,6 +113,14 @@ class MetadataBackupCodecTest {
     }
 
     @Test
+    fun `year precision survives backup and invalid date combinations are rejected`() {
+        val value = fixture().let { it.copy(works = listOf(it.works.single().copy(publishedDateEpochDay = null, publicationYear = 2024))) }
+        assertEquals(value, (MetadataBackupCodec.decode(MetadataBackupCodec.encode(value)) as DecodedBackup.Valid).value)
+        val inconsistent = value.copy(works = listOf(value.works.single().copy(publishedDateEpochDay = 1)))
+        assertThrows(MetadataBackupEncodingException::class.java) { MetadataBackupCodec.encode(inconsistent) }
+    }
+
+    @Test
     fun `multiline scientific text remains valid backup content`() {
         val work = fixture().works.single().copy(abstractText = "Line one\nLine two\twith a table")
         val annotation = annotation().copy(note = "First thought\nSecond thought", quoteExact = "A\nB")

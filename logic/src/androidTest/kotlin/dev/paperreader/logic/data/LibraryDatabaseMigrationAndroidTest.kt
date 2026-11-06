@@ -126,6 +126,26 @@ class LibraryDatabaseMigrationAndroidTest {
         }
     }
 
+    @Test
+    fun migrationFourToFivePreservesRowsAndAllowsYearWithoutInventingDate() {
+        helper.createDatabase(DATABASE_NAME, 4).use { db -> seedVersionOne(db) }
+        helper.runMigrationsAndValidate(DATABASE_NAME, 5, true, LibraryDatabaseMigrations.MIGRATION_4_5).use { db ->
+            assertEquals(1, db.count("works"))
+            assertEquals(1, db.count("files"))
+            assertEquals(1, db.count("paper_tasks"))
+            db.query("SELECT publicationYear FROM works").use { cursor ->
+                check(cursor.moveToFirst())
+                org.junit.Assert.assertTrue(cursor.isNull(0))
+            }
+            db.execSQL("UPDATE works SET publicationYear = 2024")
+            db.query("SELECT publicationYear, publishedDateEpochDay FROM works").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(2024, cursor.getInt(0))
+                org.junit.Assert.assertTrue(cursor.isNull(1))
+            }
+        }
+    }
+
     private fun seedVersionOne(db: SupportSQLiteDatabase) {
         db.execSQL(
             """

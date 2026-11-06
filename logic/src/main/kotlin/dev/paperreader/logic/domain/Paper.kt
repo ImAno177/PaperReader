@@ -62,8 +62,11 @@ data class PaperWork(
     val publishedDate: LocalDate? = null,
     val createdAt: Instant,
     val updatedAt: Instant,
+    val publicationYear: Int? = null,
 ) {
     init {
+        require(publicationYear == null || publicationYear in 1..9999)
+        require(publicationYear == null || publishedDate == null || publishedDate.year == publicationYear)
         require(title.isNotBlank()) { "Paper title cannot be blank" }
     }
 }

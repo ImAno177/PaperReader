@@ -40,6 +40,19 @@ class LibraryMappersTest {
     }
 
     @Test
+    fun yearOnlyPublicationSurvivesMappingAndDateEnrichment() {
+        val now = Instant.EPOCH
+        val remote = RemotePaper("fixture", "year", "Paper", publicationYear = 2024)
+        val row = remote.toEntities(WorkId("year-only"), now).work
+        val paper = row.toDomain(emptyList(), emptyList(), emptyList(), null)
+        assertNull(paper.work.publishedDate)
+        assertEquals(2024, paper.work.publicationYear)
+        val enriched = mergeWork(row, row.copy(publishedDateEpochDay = LocalDate.of(2025, 3, 2).toEpochDay(), publicationYear = null))
+        assertEquals(2025, enriched.publicationYear)
+        assertEquals(enriched, mergeWork(enriched, row.copy(publicationYear = 2023)).copy(updatedAtEpochMillis = enriched.updatedAtEpochMillis))
+    }
+
+    @Test
     fun stableWorkIdIsIndependentOfIdentifierOrder() {
         val identifiers = listOf(
             PaperIdentifier(IdentifierType.DOI, "10.1000/example"),

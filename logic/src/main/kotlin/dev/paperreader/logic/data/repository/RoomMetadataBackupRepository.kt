@@ -461,6 +461,9 @@ internal class RoomMetadataBackupRepository(
                     abstractText = existing.abstractText ?: incoming.abstractText,
                     subjects = mergeSubjects(existing.subjects, incoming.subjects),
                     publishedDateEpochDay = existing.publishedDateEpochDay ?: incoming.publishedDateEpochDay,
+                    publicationYear = (existing.publishedDateEpochDay ?: incoming.publishedDateEpochDay)
+                        ?.let { java.time.LocalDate.ofEpochDay(it).year.takeIf { year -> year in 1..9999 } }
+                        ?: existing.publicationYear ?: incoming.publicationYear,
                     createdAtEpochMillis = minOf(existing.createdAtEpochMillis, incoming.createdAtEpochMillis),
                     updatedAtEpochMillis = maxOf(existing.updatedAtEpochMillis, incoming.updatedAtEpochMillis),
                 )

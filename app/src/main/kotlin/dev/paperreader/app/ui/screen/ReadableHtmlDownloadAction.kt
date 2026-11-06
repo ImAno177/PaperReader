@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -44,23 +45,33 @@ internal fun ReadableHtmlDownloadAction(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var preparing by remember(manifestationId) { mutableStateOf(false) }
-    var selectingDestination by remember(manifestationId) { mutableStateOf(false) }
     var writing by remember(manifestationId) { mutableStateOf(false) }
     var offlineRetained by remember(manifestationId) { mutableStateOf(false) }
     var pendingDocument by remember(manifestationId) { mutableStateOf<ReadablePaperDocument?>(null) }
+    var pendingDocumentSha256 by rememberSaveable(manifestationId) { mutableStateOf<String?>(null) }
     val createDocument = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/html"),
     ) { destination ->
-        selectingDestination = false
-        val document = pendingDocument
+        val preparedDocument = pendingDocument
+        val documentSha256 = pendingDocumentSha256
         pendingDocument = null
-        if (destination == null || document == null) {
+        pendingDocumentSha256 = null
+        if (destination == null) {
             writing = false
             return@rememberLauncherForActivityResult
         }
         writing = true
         scope.launch {
             try {
+                val expectedHash = checkNotNull(documentSha256) { "The selected document hash is missing" }
+                val document = preparedDocument ?: checkNotNull(
+                    withContext(Dispatchers.IO) {
+                        (onLoadReadablePaper(expectedHash) as? ReadablePaperResult.Ready)?.document
+                    },
+                ) { "The selected readable document is no longer available" }.also {
+                    offlineRetained = it.keptForOffline
+                }
+                check(document.documentSha256 == expectedHash) { "The selected readable document changed" }
                 withContext(Dispatchers.IO) {
                     ReadablePaperHtmlFileGateway(context.contentResolver).write(destination) { output ->
                         writeReadablePaperExportHtml(
@@ -92,7 +103,7 @@ internal fun ReadableHtmlDownloadAction(
             }
         }
     }
-    val busy = preparing || selectingDestination || writing
+    val busy = preparing || pendingDocumentSha256 != null || writing
     PaperSecondaryButton(
         enabled = !busy,
         onClick = {
@@ -118,7 +129,7 @@ internal fun ReadableHtmlDownloadAction(
                                 false
                             }
                             pendingDocument = result.document
-                            selectingDestination = true
+                            pendingDocumentSha256 = result.document.documentSha256
                             createDocument.launch(readablePaperHtmlFileName(result.document))
                         }
                         is ReadablePaperResult.Unavailable -> onError(result.reason.messageResource())
@@ -126,8 +137,8 @@ internal fun ReadableHtmlDownloadAction(
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (_: Exception) {
-                    selectingDestination = false
                     pendingDocument = null
+                    pendingDocumentSha256 = null
                     onError(R.string.readable_reader_html_save_failed)
                 } finally {
                     preparing = false

@@ -13,8 +13,8 @@ Use the Gradle wrapper with JDK 21, Android SDK Platform 37.0, and Build-Tools 3
 .\gradlew.bat hostUnitTest hostLint :app:assembleDebug
 ```
 
-For Android-runtime, Room, reader, or UI changes, reuse the declared API 36 emulator (`emulator-5554`)
-without wiping it:
+For Android-runtime, Room, reader, or UI changes, reuse an already connected emulator without wiping
+it. Record its AVD name, Android version, and API level with the results:
 
 ```powershell
 .\gradlew.bat hostConnectedTest '-PpaperReaderConnectedTestApplicationIdSuffix=.uitest'
@@ -32,6 +32,27 @@ an explicit warning. Include a large image-heavy paper and a self-contained SVG 
 data in the asset audit, and confirm transient 429/unavailable responses use bounded retries before
 being reported. Do not add or modify test sources for this audit, and do not use GitHub as the test
 runner.
+
+## Local verification (2026-11-06)
+
+The existing `Pixel_10` AVD (`emulator-5554`, Android 17, API 37, x86_64) passed 347 JVM and
+144 connected tests with no failures, errors, or skipped cases. Debug/release lint and APK assembly
+passed. Merged extension API coverage remained 690/690 lines and 468/468 branches.
+
+The HTML-export restoration regression failed before the fix and passed after it. A separate manual
+SAF export stopped the background host process while the save picker remained open. Saving relaunched
+the host and wrote a complete 2,034,632-byte HTML file with eight embedded images and the original
+cached document hash. HTML figures and the original PDF also reopened with no active network.
+
+Manual checks also covered PDF import with a title preserved through rotation, three-page PDF search,
+page navigation, bookmarks, progress reopening, history, collection assignment, metadata backup and
+exact-match restore, theme selection, and More at 150% system font size. Network and display settings
+were restored after these checks.
+
+Live arXiv checks used source commit `27616dc1044e09085fc6553fea850702a9e90870` with the documented
+[local development configuration](EXTENSIONS.md#local-host-development). The published source v0.1.4
+rejects the local debug host certificate and does not advertise readable HTML. Production signer
+checks and signed-store records were unchanged; this audit does not verify a signed release pair.
 
 ## Historical local audit (2026-09-07)
 

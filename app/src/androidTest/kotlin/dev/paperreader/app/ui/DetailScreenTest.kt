@@ -1,5 +1,13 @@
 package dev.paperreader.app.ui
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.LocalActivityResultRegistryOwner
+import androidx.activity.result.ActivityResultRegistry
+import androidx.activity.result.ActivityResultRegistryOwner
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.compose.runtime.CompositionLocalProvider
 import dev.paperreader.app.ui.state.LoadState
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
@@ -25,10 +33,16 @@ import dev.paperreader.logic.domain.ManifestationType
 import dev.paperreader.logic.domain.repository.RemovePaperResult
 import dev.paperreader.logic.domain.repository.SetPaperCollectionsResult
 import dev.paperreader.logic.reader.ReadablePaperFailure
+import dev.paperreader.logic.reader.ReadablePaperDocument
 import dev.paperreader.logic.reader.ReadablePaperResult
 import dev.paperreader.logic.task.DeleteDownloadResult
+import androidx.core.app.ActivityOptionsCompat
+import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
 import java.time.Instant
 import java.time.LocalDate
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -198,6 +212,86 @@ class DetailScreenTest {
     }
 
     @Test
+    fun readableHtmlExportRestoresTheExactDocumentAfterSavedInstanceStateRestore() {
+        val restorationTester = StateRestorationTester(composeRule)
+        val registry = RecordingActivityResultRegistry()
+        val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val destination = File.createTempFile("paperreader-readable-export", ".html", targetContext.cacheDir)
+        val original = readableDocument()
+        val restoredHashRequests = CopyOnWriteArrayList<String?>()
+        val restored = AtomicBoolean(false)
+        val completedHtml = java.util.concurrent.atomic.AtomicReference<String?>()
+
+        try {
+            restorationTester.setContent {
+                CompositionLocalProvider(LocalActivityResultRegistryOwner provides registry) {
+                    PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                        DetailScreen(
+                            state = LoadState.Ready(
+                                paper(manifestations = listOf(manifestation(id = "manifestation-1", local = false))),
+                            ),
+                            onBack = {},
+                            onStatusChange = {},
+                            onLoadReadablePaper = { _, requestedHash ->
+                                if (restored.get()) restoredHashRequests.add(requestedHash)
+                                when (requestedHash) {
+                                    null -> ReadablePaperResult.Ready(original)
+                                    original.documentSha256 -> {
+                                        ReadablePaperResult.Ready(original.copy(keptForOffline = true))
+                                    }
+                                    else -> ReadablePaperResult.Unavailable(ReadablePaperFailure.INVALID_RESPONSE)
+                                }
+                            },
+                            onRemove = { RemovePaperResult.Removed },
+                            onRemoved = {},
+                        )
+                    }
+                }
+            }
+
+            composeRule.onNodeWithText("Download readable HTML").performScrollTo().performClick()
+            composeRule.waitUntil(timeoutMillis = 5_000) {
+                registry.launchedFileName != null
+            }
+
+            restorationTester.emulateSavedInstanceStateRestore()
+            restored.set(true)
+            composeRule.runOnIdle {
+                assertTrue(registry.dispatchSavedDocument(Uri.fromFile(destination)))
+            }
+
+            composeRule.waitUntil(timeoutMillis = 5_000) {
+                restoredHashRequests.contains(original.documentSha256)
+            }
+            composeRule.waitUntil(timeoutMillis = 5_000) {
+                val html = runCatching { destination.readText(Charsets.UTF_8) }.getOrNull()
+                    ?: return@waitUntil false
+                if (html.contains("ORIGINAL_EXPORT_BODY_MARKER") && html.trimEnd().endsWith("</html>")) {
+                    completedHtml.set(html)
+                    true
+                } else {
+                    false
+                }
+            }
+
+            val html = checkNotNull(completedHtml.get())
+            assertTrue(html.contains("ORIGINAL_EXPORT_BODY_MARKER"))
+            assertTrue(
+                html.contains(
+                    "name=\"paperreader-title\" content=\"Original export title\"",
+                ),
+            )
+            assertTrue(
+                html.contains(
+                    "name=\"paperreader-document-sha256\" content=\"${original.documentSha256}\"",
+                ),
+            )
+        } finally {
+            destination.delete()
+        }
+    }
+
+    @Test
     fun collectionAssignmentSendsSelectedCollectionIds() {
         composeRule.enableAccessibilityChecks()
         var assignedIds: Set<Long>? = null
@@ -340,4 +434,45 @@ class DetailScreenTest {
             null
         },
     )
+
+    private fun readableDocument() = ReadablePaperDocument(
+        bodyHtml = "<article><p>ORIGINAL_EXPORT_BODY_MARKER</p></article>",
+        title = "Original export title",
+        sourceUrl = "https://arxiv.org/html/1706.03762v1",
+        sourceProvider = "arxiv",
+        sourceVersion = "v1",
+        license = "CC BY 4.0",
+        sourceSha256 = "a".repeat(64),
+        documentSha256 = "b".repeat(64),
+        retrievedAt = Instant.parse("2026-08-11T00:00:00Z"),
+        servedFromCache = false,
+        sections = emptyList(),
+        warnings = emptySet(),
+        sourceRecordId = "1706.03762v1",
+        readableContractVersion = "arxiv-html-10",
+    )
+
+    private class RecordingActivityResultRegistry : ActivityResultRegistry(), ActivityResultRegistryOwner {
+        override val activityResultRegistry: ActivityResultRegistry
+            get() = this
+
+        private var createDocumentRequestCode: Int? = null
+        var launchedFileName: String? = null
+            private set
+
+        override fun <I, O> onLaunch(
+            requestCode: Int,
+            contract: ActivityResultContract<I, O>,
+            input: I,
+            options: ActivityOptionsCompat?,
+        ) {
+            createDocumentRequestCode = requestCode
+            launchedFileName = input as? String
+        }
+
+        fun dispatchSavedDocument(destination: Uri): Boolean {
+            val requestCode = createDocumentRequestCode ?: return false
+            return dispatchResult(requestCode, Activity.RESULT_OK, Intent().setData(destination))
+        }
+    }
 }

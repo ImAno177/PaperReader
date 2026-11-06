@@ -34,6 +34,8 @@ current branch. Released sections correspond to Git tags.
 
 ### Fixed
 
+- Readable HTML export restores the exact cached document when the screen is recreated while the
+  save picker is open. Missing or changed documents report an export failure.
 - Cancelling a source search no longer reports it as an unavailable provider.
 - The extension SDK packages the readable-document AIDL callback required by source services.
 

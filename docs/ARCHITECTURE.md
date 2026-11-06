@@ -189,6 +189,11 @@ cleanup; rejected removals leave artifacts untouched. Startup reconciliation rem
 Read always validates and opens the app-private body and asset streams; it never trusts the mutable
 exported copy.
 
+While the save picker is open, saved UI state contains only the expected document SHA-256. After
+screen recreation, export reloads that exact cache entry through the existing logic facade and
+checks its hash before writing. A missing or changed entry reports failure without fetching a new
+document or switching revisions.
+
 ## Supported host surface
 
 The app creates one process-scoped instance:

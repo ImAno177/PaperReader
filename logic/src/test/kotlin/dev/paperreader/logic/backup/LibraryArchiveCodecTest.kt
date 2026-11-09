@@ -23,6 +23,25 @@ import org.junit.Test
 
 class LibraryArchiveCodecTest {
     @Test
+    fun sessionQuotaIncludesPreviouslyPreparedArchivesAndRejectsPartialWrites() = kotlinx.coroutines.runBlocking {
+        val directory = java.nio.file.Files.createTempDirectory("archive-sessions-")
+        try {
+            val store = LibraryArchiveSessionStore(directory, java.time.Clock.systemUTC(), maximumStoredBytes = 1024)
+            val token = store.create("export") { it.write(ByteArray(700)) }
+            try {
+                store.create("restore") { it.write(ByteArray(400)) }
+                org.junit.Assert.fail("Aggregate staging quota must reject the second file")
+            } catch (error: LibraryArchiveException) {
+                org.junit.Assert.assertEquals(LibraryArchiveFailure.LIMIT_EXCEEDED, error.reason)
+            }
+            org.junit.Assert.assertEquals(700L, java.nio.file.Files.size(store.load(token, "export")))
+            org.junit.Assert.assertEquals(1L, java.nio.file.Files.list(directory).use { it.count() })
+        } finally {
+            java.nio.file.Files.walk(directory).use { paths -> paths.sorted(Comparator.reverseOrder()).forEach(java.nio.file.Files::deleteIfExists) }
+        }
+    }
+
+    @Test
     fun `write and read round trip without closing caller output`() = runBlocking {
         val pdf = "%PDF-1.7\npaper".toByteArray()
         val document = archiveDocument(pdf)

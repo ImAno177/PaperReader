@@ -89,6 +89,7 @@ fun DetailScreen(
     downloadTasks: List<PaperTask> = emptyList(),
     requestingManifestations: Set<String> = emptySet(),
     failedManifestations: Set<String> = emptySet(),
+    readableCacheReadiness: Map<String, dev.paperreader.logic.reader.ReadablePaperCacheReadiness> = emptyMap(),
     onBack: () -> Unit,
     onStatusChange: (ReadingStatus) -> Unit,
     onRepairSavedPaper: (String) -> Unit = {},
@@ -205,6 +206,7 @@ fun DetailScreen(
                     downloadTasks = downloadTasks,
                     requestingManifestations = requestingManifestations,
                     failedManifestations = failedManifestations,
+                    readableCacheReadiness = readableCacheReadiness,
                     onStatusChange = onStatusChange,
                     onRepairSavedPaper = onRepairSavedPaper,
                     onRequestDownload = onRequestDownload,
@@ -307,6 +309,7 @@ private fun PaperDetailContent(
     downloadTasks: List<PaperTask>,
     requestingManifestations: Set<String>,
     failedManifestations: Set<String>,
+    readableCacheReadiness: Map<String, dev.paperreader.logic.reader.ReadablePaperCacheReadiness>,
     onStatusChange: (ReadingStatus) -> Unit,
     onRepairSavedPaper: (String) -> Unit,
     onRequestDownload: (String) -> Unit,
@@ -327,7 +330,7 @@ private fun PaperDetailContent(
         item {
             PaperIdentityBlock(
                 source = paper.sources.joinToString { it.displayProviderName() }.ifBlank { null },
-                year = paper.publishedDate?.year?.toString(),
+                year = (paper.publishedDate?.year ?: paper.publicationYear)?.toString(),
                 identifier = paper.primaryIdentifier
                     ?.takeUnless { it.type == IdentifierType.DOI }
                     ?.displayValue(),
@@ -404,6 +407,7 @@ private fun PaperDetailContent(
                     themeMode = themeMode,
                     showImagesInDescription = showImagesInDescription,
                     manifestation = manifestation,
+                    readableCacheReadiness = readableCacheReadiness[manifestation.id],
                     task = downloadTasks.firstOrNull { it.targetKey == manifestation.id },
                     requesting = manifestation.id in requestingManifestations,
                     requestFailed = manifestation.id in failedManifestations,

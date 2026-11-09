@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,7 +53,7 @@ internal fun LibraryListPaperCard(
                 PaperDisciplineBadge(paper)
                 PaperMetaRow(
                     source = paper.sources.joinToString { it.displayProviderName() }.ifBlank { null },
-                    year = paper.publishedDate?.year?.toString(),
+                    year = (paper.publishedDate?.year ?: paper.publicationYear)?.toString(),
                     identifier = paper.primaryIdentifier?.displayValue(),
                 )
             }
@@ -123,7 +122,7 @@ internal fun LibraryGridPaperCard(
                 PaperDisciplineBadge(paper, compact = true)
                 PaperMetaRow(
                     source = paper.sources.firstOrNull()?.displayProviderName(),
-                    year = paper.publishedDate?.year?.toString(),
+                    year = (paper.publishedDate?.year ?: paper.publicationYear)?.toString(),
                     identifier = paper.primaryIdentifier?.displayValue(),
                 )
             }
@@ -131,11 +130,8 @@ internal fun LibraryGridPaperCard(
             Text(
                 text = paper.title,
                 modifier = Modifier.semantics { contentDescription = paper.title },
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = PaperTheme.tokens.ink,
-                minLines = 1,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(6.dp))
             LibraryGridStateBadge(paper)

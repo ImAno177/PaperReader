@@ -3,7 +3,6 @@ package dev.paperreader.app.ui.screen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
@@ -312,7 +310,7 @@ fun DiscoverScreen(
                         icon = PaperIconKey.ERROR,
                         compact = true,
                     )
-                    state.submittedQuery?.let { submittedQuery ->
+                    state.submittedQuery.let { submittedQuery ->
                         PaperSecondaryButton(
                             onClick = { onSearchGoogle(submittedQuery) },
                             modifier = Modifier.fillMaxWidth(),
@@ -332,7 +330,7 @@ fun DiscoverScreen(
                         icon = PaperIconKey.SEARCH,
                         compact = true,
                     )
-                    state.submittedQuery?.let { submittedQuery ->
+                    state.submittedQuery.let { submittedQuery ->
                         PaperSecondaryButton(
                             onClick = { onSearchGoogle(submittedQuery) },
                             modifier = Modifier.fillMaxWidth(),
@@ -505,13 +503,18 @@ private fun SavedSearchDiscoverAction(
         ?: actions.createdSearchIds[actionKey]
     val creating = actionKey in actions.creatingSearches
     PaperSurface(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
-        FlowRow(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.widthIn(max = 240.dp).padding(vertical = 4.dp)) {
-                Text(stringResource(R.string.save_search_title), style = MaterialTheme.typography.titleMedium)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.save_search_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     pluralStringResource(
                         R.plurals.save_search_provider_count,
@@ -519,13 +522,16 @@ private fun SavedSearchDiscoverAction(
                         providerIds.size,
                     ),
                     color = PaperTheme.tokens.inkMuted,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             if (existingId == null) {
                 PaperTextButton(
                     onClick = { onSaveSearch(query) },
                     enabled = !creating && normalized.isNotEmpty() && providerIds.isNotEmpty(),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     if (creating) {
                         CircularProgressIndicator(
@@ -538,7 +544,10 @@ private fun SavedSearchDiscoverAction(
                     Text(stringResource(if (creating) R.string.saving_search else R.string.save_search_action))
                 }
             } else {
-                PaperTextButton(onClick = onOpenUpdates) {
+                PaperTextButton(
+                    onClick = onOpenUpdates,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                ) {
                     Text(stringResource(R.string.view_saved_search))
                 }
             }

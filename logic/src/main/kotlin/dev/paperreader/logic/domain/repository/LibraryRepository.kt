@@ -71,3 +71,5 @@ interface LibraryRepository {
         collectionIds: Set<CollectionId>,
     ): SetPaperCollectionsResult
 }
+
+internal class ExactIdentityConflictException : IllegalArgumentException("Exact identifiers match multiple saved papers")

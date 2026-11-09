@@ -13,7 +13,8 @@ Pre-1.0; requires Android 9 (API 28) or newer.
 - Read supported arXiv papers in a mobile layout with figures, equations, search, highlights,
   and notes. Open original PDFs or import local PDFs.
 - Keep downloaded documents available offline and organize papers with collections, bookmarks,
-  reading history, saved searches, and metadata backups.
+  reading history, and saved searches.
+- Back up metadata and PDFs, exchange BibTeX/RIS bibliographies, and export notes as Markdown.
 - Choose built-in themes or verified theme extensions. Library data and reading state stay local;
   no account, analytics, or advertising SDK is required.
 
@@ -49,6 +50,7 @@ See [Testing](docs/TESTING.md) for unit tests, lint, connected checks, and CI re
 - [Product specification](docs/SPEC.md): current behavior and deferred scope.
 - [Architecture](docs/ARCHITECTURE.md): module boundaries and ownership.
 - [Extensions](docs/EXTENSIONS.md): source and theme contracts, installation, and trust.
+- [Development workspace](docs/WORKSPACE.md): source, theme, and site repository checkouts.
 - [Contributing](CONTRIBUTING.md): development and pull request workflow.
 - [Changelog](CHANGELOG.md): release history and unreleased changes.
 - [Issues](https://github.com/ImAno177/PaperReader/issues): bugs and questions.

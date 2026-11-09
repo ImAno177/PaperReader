@@ -5,7 +5,11 @@ private val HTML_CLASS_ATTRIBUTE = Regex(
     """\sclass\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))""",
     RegexOption.IGNORE_CASE,
 )
-private val AUTHOR_DETAIL_CLASSES = setOf("ltx_author_notes", "paperreader-author-details")
+private val AUTHOR_DETAIL_CLASSES = setOf(
+    "ltx_author_notes",
+    "paperreader-author-details",
+    "ltx_note_frontmatter",
+)
 private val VOID_HTML_ELEMENTS = setOf(
     "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr",
 )

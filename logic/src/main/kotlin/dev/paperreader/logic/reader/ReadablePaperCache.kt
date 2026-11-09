@@ -118,16 +118,8 @@ internal class ReadablePaperCache(
         val manifestPath = directory.resolve("$key$MANIFEST_SUFFIX")
         val bodyPath = directory.resolve("$key$BODY_SUFFIX")
         val record = runCatching {
-            if (!Files.isRegularFile(manifestPath) || !Files.isRegularFile(bodyPath)) return@runCatching null
-            if (Files.size(manifestPath) > MAXIMUM_MANIFEST_BYTES || Files.size(bodyPath) > maximumCachedBodyBytes) {
-                return@runCatching null
-            }
-            val fields = Files.readAllLines(manifestPath, Charsets.UTF_8)
-            if (fields.firstOrNull() != CACHE_HEADER) return@runCatching null
-            val values = fields.drop(1).mapNotNull { line ->
-                val separator = line.indexOf('=')
-                if (separator <= 0) null else line.substring(0, separator) to line.substring(separator + 1)
-            }.toMap()
+            if (!Files.isRegularFile(bodyPath) || Files.size(bodyPath) > maximumCachedBodyBytes) return@runCatching null
+            val values = readManifestValues(key) ?: return@runCatching null
             val body = Files.newBufferedReader(bodyPath, Charsets.UTF_8).use { it.readText() }
             val documentSha = values.getValue("document_sha256")
             if (!documentSha.matches(SHA256_PATTERN) || sha256(body.toByteArray(Charsets.UTF_8)) != documentSha) {
@@ -189,17 +181,21 @@ internal class ReadablePaperCache(
         return record
     }
 
-    private fun readIdentityMetadata(key: String): CacheIdentityMetadata? = runCatching {
+    private fun readManifestValues(key: String): Map<String, String>? {
         val manifestPath = directory.resolve("$key$MANIFEST_SUFFIX")
         if (!Files.isRegularFile(manifestPath) || Files.size(manifestPath) > MAXIMUM_MANIFEST_BYTES) {
-            return@runCatching null
+            return null
         }
         val fields = Files.readAllLines(manifestPath, Charsets.UTF_8)
-        if (fields.firstOrNull() != CACHE_HEADER) return@runCatching null
-        val values = fields.drop(1).mapNotNull { line ->
+        if (fields.firstOrNull() != CACHE_HEADER) return null
+        return fields.drop(1).mapNotNull { line ->
             val separator = line.indexOf('=')
             if (separator <= 0) null else line.substring(0, separator) to line.substring(separator + 1)
         }.toMap()
+    }
+
+    private fun readIdentityMetadata(key: String): CacheIdentityMetadata? = runCatching {
+        val values = readManifestValues(key) ?: return@runCatching null
         CacheIdentityMetadata(
             sourceProvider = values["source_provider"]?.let(::decode).orEmpty(),
             sourceRecordId = values["source_record_id"]?.let(::decode).orEmpty(),
@@ -228,17 +224,8 @@ internal class ReadablePaperCache(
 
     private fun matchesVerifiedEntry(key: String, verified: CachedReadablePaper): Boolean = runCatching {
         val bodyPath = directory.resolve("$key$BODY_SUFFIX")
-        val manifestPath = directory.resolve("$key$MANIFEST_SUFFIX")
-        if (!Files.isRegularFile(bodyPath) || !Files.isRegularFile(manifestPath)) return@runCatching false
-        if (Files.size(bodyPath) > maximumCachedBodyBytes || Files.size(manifestPath) > MAXIMUM_MANIFEST_BYTES) {
-            return@runCatching false
-        }
-        val fields = Files.readAllLines(manifestPath, Charsets.UTF_8)
-        if (fields.firstOrNull() != CACHE_HEADER) return@runCatching false
-        val values = fields.drop(1).mapNotNull { line ->
-            val separator = line.indexOf('=')
-            if (separator <= 0) null else line.substring(0, separator) to line.substring(separator + 1)
-        }.toMap()
+        if (!Files.isRegularFile(bodyPath) || Files.size(bodyPath) > maximumCachedBodyBytes) return@runCatching false
+        val values = readManifestValues(key) ?: return@runCatching false
         if (verified.assets.isNotEmpty() && verified.assetGroupKey != key) return@runCatching false
         values["document_sha256"] == verified.documentSha256 &&
         values["source_sha256"] == verified.sourceSha256 &&

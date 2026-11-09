@@ -48,6 +48,7 @@ class LibraryTransferViewModel(
 
     private val operationLock = Any()
     private var operationRunning = false
+    private var recoveryJob: kotlinx.coroutines.Job? = null
     private var pendingRestoreToken: String? = null
     private var pendingBibliographyPreview: BibliographyImportPreview? = null
 
@@ -56,7 +57,7 @@ class LibraryTransferViewModel(
             operationRunning = true
             mutableUiState.value = LibraryTransferUiState.Recovering
         }
-        viewModelScope.launch {
+        recoveryJob = viewModelScope.launch {
             try {
                 val candidate = logic.archives.recoverPendingRestore()
                 pendingRestoreToken = candidate?.token
@@ -233,7 +234,7 @@ class LibraryTransferViewModel(
                     mutableUiState.value = state.copy(importFailure = LibraryTransferFailure.IMPORT_FAILED)
                 } else {
                     pendingBibliographyPreview = null
-                    mutableUiState.value = LibraryTransferUiState.BibliographyImported(report.toUi())
+                    mutableUiState.value = LibraryTransferUiState.BibliographyImported(report.toUi(state.value.format))
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -270,6 +271,13 @@ class LibraryTransferViewModel(
         fallbackReason: LibraryTransferFailure,
         operation: suspend () -> LibraryTransferUiState,
     ) {
+        if (mutableUiState.value == LibraryTransferUiState.Recovering) {
+            viewModelScope.launch {
+                recoveryJob?.join()
+                startOperation(initialState, fallbackOperation, fallbackReason, operation)
+            }
+            return
+        }
         synchronized(operationLock) {
             if (operationRunning || mutableUiState.value.isBusy || !mutableUiState.value.canStartOperation) return
             operationRunning = true
@@ -380,7 +388,7 @@ class LibraryTransferViewModel(
         ),
     )
 
-    private fun BibliographyImportReport.toUi() = BibliographyImportReportUi(
+    private fun BibliographyImportReport.toUi(format: BibliographyFormat) = BibliographyImportReportUi(
         format = format,
         imported = importedCount,
         merged = mergedCount,

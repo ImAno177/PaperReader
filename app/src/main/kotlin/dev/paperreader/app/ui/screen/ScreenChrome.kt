@@ -6,7 +6,8 @@ import dev.paperreader.app.ui.theme.PaperTheme
 
 @Composable
 internal fun topBarColors() = TopAppBarDefaults.topAppBarColors(
-    containerColor = PaperTheme.tokens.canvas,
+    containerColor = PaperTheme.tokens.surface,
+    scrolledContainerColor = PaperTheme.tokens.surface,
     titleContentColor = PaperTheme.tokens.ink,
     actionIconContentColor = PaperTheme.tokens.ink,
 )

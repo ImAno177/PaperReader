@@ -53,6 +53,7 @@ data class PaperReaderUseCases(
     val recordReadingSession: RecordReadingSession,
     val removeReadingHistory: RemoveReadingHistory,
     val loadReadablePaper: LoadReadablePaper,
+    val readablePaperCacheReadiness: GetReadablePaperCacheReadiness,
     val prepareLocalPdf: PrepareLocalPdf,
     val recoverPendingLocalPdf: RecoverPendingLocalPdf,
     val importLocalPdf: ImportLocalPdf,
@@ -67,6 +68,10 @@ data class PaperReaderUseCases(
     val refreshAllSavedSearches: RefreshAllSavedSearches,
     val markSavedSearchHitRead: MarkSavedSearchHitRead,
     val saveSavedSearchHit: SaveSavedSearchHit,
+    val exportBibliography: ExportBibliography,
+    val previewBibliographyImport: PreviewBibliographyImport,
+    val importBibliography: ImportBibliography,
+    val exportNotesMarkdown: ExportNotesMarkdown,
 )
 
 internal fun paperReaderUseCases(
@@ -84,6 +89,7 @@ internal fun paperReaderUseCases(
     },
     annotationRepository: AnnotationRepository = UnavailableAnnotationRepository,
     removeReadableArtifacts: suspend (PaperManifestation) -> Unit = {},
+    annotationSnapshot: suspend () -> List<dev.paperreader.logic.interop.AnnotatedPaperSnapshot> = { emptyList() },
 ) : PaperReaderUseCases {
     val refreshSavedSearch = RefreshSavedSearch(savedSearchRepository, providerManager)
     val savedPaperEnricher = ReadableManifestationResolver(providerManager)
@@ -113,6 +119,7 @@ internal fun paperReaderUseCases(
     recordReadingSession = RecordReadingSession(historyRepository),
     removeReadingHistory = RemoveReadingHistory(historyRepository),
     loadReadablePaper = LoadReadablePaper(repository, readablePaperLoader),
+    readablePaperCacheReadiness = GetReadablePaperCacheReadiness(repository, readablePaperLoader),
     prepareLocalPdf = PrepareLocalPdf(localPdfImportRepository),
     recoverPendingLocalPdf = RecoverPendingLocalPdf(localPdfImportRepository),
     importLocalPdf = ImportLocalPdf(localPdfImportRepository),
@@ -127,6 +134,10 @@ internal fun paperReaderUseCases(
     refreshAllSavedSearches = RefreshAllSavedSearches(savedSearchRepository, refreshSavedSearch),
     markSavedSearchHitRead = MarkSavedSearchHitRead(savedSearchRepository),
     saveSavedSearchHit = SaveSavedSearchHit(savedSearchRepository, repository, savedPaperEnricher),
+    exportBibliography = ExportBibliography(repository),
+    previewBibliographyImport = PreviewBibliographyImport(repository),
+    importBibliography = ImportBibliography(repository),
+    exportNotesMarkdown = ExportNotesMarkdown(annotationSnapshot),
 )
 }
 

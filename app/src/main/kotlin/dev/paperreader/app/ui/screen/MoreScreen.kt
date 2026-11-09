@@ -64,8 +64,8 @@ fun MoreScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 32.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 48.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             item(key = "more-header") {
                 MoreCompactHeader(
@@ -196,7 +196,7 @@ private fun MoreCompactHeader(
 
 @Composable
 private fun MoreHubHeader(savedCount: Int?, activeCount: Int?) {
-    PaperSurface(contentPadding = PaddingValues(16.dp)) {
+    PaperSurface(contentPadding = PaddingValues(14.dp)) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -204,7 +204,7 @@ private fun MoreHubHeader(savedCount: Int?, activeCount: Int?) {
             PaperIcon(
                 key = PaperIconKey.LIBRARY,
                 contentDescription = null,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(28.dp),
                 tint = PaperTheme.tokens.primary,
             )
             Column(
@@ -247,14 +247,14 @@ private fun MoreHubHeader(savedCount: Int?, activeCount: Int?) {
 @Composable
 private fun MoreSectionHeader(title: String, icon: PaperIconKey) {
     Row(
-        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         PaperIcon(
             key = icon,
             contentDescription = null,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(18.dp),
             tint = PaperTheme.tokens.primary,
         )
         Text(

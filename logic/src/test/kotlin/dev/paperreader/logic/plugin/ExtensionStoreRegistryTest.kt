@@ -151,6 +151,46 @@ class ExtensionStoreRegistryTest {
     }
 
     @Test
+    fun `authorized pinned URL migration preserves trust rollback guards and durable recovery`() = runTest {
+        val directory = temporaryFolder.newFolder("pinned-url-migration").toPath()
+        val migratedUrl = "https://example.org/extensions/v2/index.signed.json"
+        val requested = mutableListOf<String>()
+        val registry = ExtensionStoreRegistry(directory, clock = clock, envelopeFetcher = {
+            requested += it
+            envelope
+        })
+        registry.ensurePinned(INDEX_URL, publicKey, "paperreader.community")
+        val original = registry.state.value.stores.single()
+        val otherKey = KeyPairGenerator.getInstance("Ed25519").generateKeyPair()
+            .public.encoded.takeLast(32).toByteArray().base64()
+        assertFails { registry.ensurePinned(migratedUrl, otherKey, "paperreader.community", INDEX_URL) }
+        assertFails { registry.ensurePinned(migratedUrl, publicKey, "paperreader.community", "https://example.org/wrong.json") }
+        for (invalid in listOf(
+            signedEnvelope(payload(sequence = 6)),
+            signedEnvelope(payload(sequence = 7).replace("Community", "Changed name")),
+            signedEnvelope(payload(sequence = 8).replace("paperreader.community", "other.store")),
+            "unavailable".encodeToByteArray(),
+        )) {
+            envelope = invalid
+            assertFails { registry.ensurePinned(migratedUrl, publicKey, "paperreader.community", INDEX_URL) }
+            assertEquals(original, registry.state.value.stores.single())
+            assertEquals(INDEX_URL, registry(directory).state.value.stores.single().indexUrl)
+        }
+        envelope = signedEnvelope(payload(sequence = 7))
+        val migrated = registry.ensurePinned(migratedUrl, publicKey, "paperreader.community", INDEX_URL)
+        assertEquals(migratedUrl, requested.last())
+        assertEquals(migratedUrl, migrated.indexUrl)
+        assertEquals(7, migrated.index.sequence)
+        assertTrue(migrated.pinned)
+        assertTrue(registry.state.value.issues.isEmpty())
+        assertEquals(migratedUrl, registry(directory).state.value.stores.single().indexUrl)
+        envelope = signedEnvelope(payload(sequence = 8))
+        assertEquals(8, registry.ensurePinned(migratedUrl, publicKey, "paperreader.community", INDEX_URL).index.sequence)
+        assertFails { registry.remove("paperreader.community") }
+        assertFails { registry.ensurePinned(INDEX_URL, publicKey, "paperreader.community") }
+    }
+
+    @Test
     fun `preview validation is strict and older pending previews are evicted`() = runTest {
         val registry = registry(temporaryFolder.newFolder("previews").toPath())
         assertFails { registry.preview("http://example.org/index.json", publicKey) }

@@ -92,14 +92,14 @@ fun PaperPreferenceRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(32.dp),
             shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
-            color = PaperTheme.tokens.primary,
-            contentColor = PaperTheme.tokens.onPrimary,
-            border = BorderStroke(1.dp, PaperTheme.tokens.border),
+            color = PaperTheme.tokens.secondaryContainer,
+            contentColor = PaperTheme.tokens.onSecondaryContainer,
+            border = BorderStroke(1.dp, PaperTheme.tokens.border.copy(alpha = 0.65f)),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                PaperIcon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+                PaperIcon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
             }
         }
         Column(
@@ -245,7 +245,7 @@ private fun PaperButtonFrame(
     )
     Box(
         modifier = modifier.paperBottomShadow(
-            color = tokens.hardShadow.copy(alpha = if (enabled) 0.18f else 0.07f),
+            color = tokens.hardShadow.copy(alpha = if (enabled) 0.14f else 0.06f),
             verticalOffset = tokens.shadowOffset,
         ),
         propagateMinConstraints = true,
@@ -277,7 +277,7 @@ fun PaperSurface(
     )
     Box(
         modifier = modifier.paperBottomShadow(
-            color = tokens.hardShadow.copy(alpha = 0.12f),
+            color = tokens.hardShadow.copy(alpha = 0.08f),
             verticalOffset = tokens.shadowOffset,
         ),
     ) {
@@ -390,7 +390,7 @@ private fun PaperStateIcon(icon: PaperIconKey, compact: Boolean) {
     val tileSize = if (compact) 36.dp else 48.dp
     Box(
         modifier = Modifier.paperBottomShadow(
-            color = tokens.hardShadow.copy(alpha = if (compact) 0.12f else 0.18f),
+            color = tokens.hardShadow.copy(alpha = if (compact) 0.08f else 0.12f),
             verticalOffset = tokens.shadowOffset,
         ),
     ) {
@@ -439,11 +439,11 @@ fun StatusBadge(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius / 2),
-        color = color.copy(alpha = 0.18f),
+        color = color.copy(alpha = 0.14f),
         contentColor = PaperTheme.tokens.ink,
         border = BorderStroke(
             PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp),
-            PaperTheme.tokens.border,
+            color.copy(alpha = 0.70f),
         ),
     ) {
         Row(
@@ -485,9 +485,9 @@ fun PaperProgress(
             progress = { boundedProgress },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(8.dp)
+                .height(6.dp)
                 .clip(RoundedCornerShape(PaperTheme.tokens.cornerRadius / 2)),
-            color = PaperTheme.tokens.ink,
+            color = PaperTheme.tokens.primary,
             trackColor = PaperTheme.tokens.surfaceMuted,
         )
     }

@@ -61,6 +61,7 @@ class PaperReaderLogic private constructor(
     val providers: ProviderManager,
     val tasks: TaskCoordinator,
     val downloads: PaperDownloadCoordinator,
+    val archives: dev.paperreader.logic.usecase.LibraryArchiveUseCases,
     val extensionStores: ExtensionStoreRegistry,
     private val sourceExtensionCoordinator: SourceExtensionCoordinator,
     private val reconcileReadableArtifactStore: suspend () -> Unit,
@@ -69,7 +70,10 @@ class PaperReaderLogic private constructor(
 ) : Closeable {
     suspend fun reconcileSourceExtensions() = sourceExtensionCoordinator.reconcile()
 
-    suspend fun reconcileReadableArtifacts() = reconcileReadableArtifactStore()
+    suspend fun reconcileReadableArtifacts() {
+        archives.reconcileStaging()
+        reconcileReadableArtifactStore()
+    }
 
     /** Opens a verified local figure stream without exposing the app-private storage path. */
     fun openReadablePaperAsset(
@@ -111,7 +115,7 @@ class PaperReaderLogic private constructor(
             val metadataBackup = RoomMetadataBackupRepository(
                 database = database,
                 installedProviderIds = {
-                    providers.state.value.installed.map { it.descriptor.id }.toSet() + LOCAL_PDF_SOURCE_ID
+                    providers.state.value.installed.map { it.descriptor.id }.toSet() + LOCAL_PDF_SOURCE_ID + dev.paperreader.logic.usecase.BIBLIOGRAPHY_IMPORT_PROVIDER
                 },
             )
             val tasks = TaskCoordinator(RoomTaskRepository(database))
@@ -143,6 +147,21 @@ class PaperReaderLogic private constructor(
                 maximumBytes = configuration.maximumPdfBytes,
             )
             val savedSearches = RoomSavedSearchRepository(database)
+            val annotations = RoomAnnotationRepository(database)
+            val archiveRepository = dev.paperreader.logic.data.repository.RoomLibraryArchiveRepository(
+                database, metadataBackup,
+                applicationContext.filesDir.toPath(),
+                applicationContext.noBackupFilesDir.toPath().resolve("library-archive-sessions"),
+            )
+            val archives = dev.paperreader.logic.usecase.LibraryArchiveUseCases(
+                prepareExport = archiveRepository::prepareExport,
+                writeExport = archiveRepository::writeExport,
+                prepareRestore = archiveRepository::prepareRestore,
+                recoverPendingRestore = archiveRepository::recoverPendingRestore,
+                restore = archiveRepository::restore,
+                discard = archiveRepository::discard,
+                reconcileStaging = archiveRepository::reconcileStaging,
+            )
             val readablePaperLoader = PluginReadablePaperLoader(
                 transportForProvider = sourceExtensionCoordinator::readableTransport,
                 fetcher = OkHttpReadableAssetFetcher(
@@ -165,12 +184,14 @@ class PaperReaderLogic private constructor(
                     savedSearches,
                     providers,
                     readablePaperLoader,
-                    RoomAnnotationRepository(database),
+                    annotations,
                     removeReadableArtifacts = readablePaperLoader::removeArtifacts,
+                    annotationSnapshot = annotations::snapshotForMarkdown,
                 ),
                 providers = providers,
                 tasks = tasks,
                 downloads = downloads,
+                archives = archives,
                 extensionStores = extensionStores,
                 sourceExtensionCoordinator = sourceExtensionCoordinator,
                 reconcileReadableArtifactStore = {

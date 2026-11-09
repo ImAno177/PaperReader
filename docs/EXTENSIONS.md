@@ -174,6 +174,12 @@ fields are not accepted on theme entries.
 The official store URL, store ID, and Ed25519 public key are pinned in the host. A user-managed store
 requires an independent confirmation of its displayed public-key SHA-256 fingerprint.
 
+Contract API 2 uses `registry/v2/index.signed.json`. The host explicitly recognizes the previous
+official `registry/index.signed.json` URL when upgrading an existing installation. It replaces the
+cached URL only after verifying the new catalog with the same store ID and public key, monotonic
+sequence, and same-sequence payload checks. A failed migration retains the last verified catalog
+and retries the configured new URL on the next refresh. User stores cannot redirect a pinned store.
+
 The visible lifecycle states are:
 
 - available;

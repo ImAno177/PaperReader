@@ -33,7 +33,42 @@ data in the asset audit, and confirm transient 429/unavailable responses use bou
 being reported. Do not add or modify test sources for this audit, and do not use GitHub as the test
 runner.
 
-## Local verification (2026-11-06)
+## Local verification (2026-11-09)
+
+The existing `Pixel_10` AVD (`emulator-5554`, Android 17, API 37, x86_64) passed all 155 connected
+tests: extension API 15, logic 50, and app 90. The local host gate passed all 370 JVM tests:
+extension API 15, logic 267, and app 88. There were no failures, errors, or skipped cases in these
+final runs. Host lint and debug assembly also passed. No new merged-coverage result is claimed.
+
+The reviewed normal debug APK has SHA-256
+`5E5A29CB40739D0FAD1B2652FE6458A7F36236931D9C788508ACC3EA7E0A8B42`.
+It was installed without clearing the existing library. Manual checks covered:
+
+- Live arXiv exact search, retained search state across tabs, and a preview action visible immediately
+  at both 100% and 150% system font size.
+- Neobrutalism light/dark surfaces, full Library grid titles, collapsed CARE-LoRA author details,
+  single source-supplied list markers, and Contents navigation that leaves Introduction below the
+  reader toolbar. A separate browser layout check covered multi-paragraph and nested ordered lists.
+- A useful search failure with Wi-Fi and mobile data disabled, followed by a cached CARE-LoRA reopen
+  with the network still disabled.
+- An isolated `.uitest` restore from a previously exported three-paper, one-PDF archive. Killing the
+  background process during the document picker still delivered its result. Killing it again during
+  preview restored the same confirmation after relaunch; confirmation restored all three papers and
+  the three-page PDF. The result scrolled into view, and the restored PDF opened successfully.
+
+Network, font scale, color mode, and Library layout were returned to their original settings. Only
+the existing API 37 emulator was used. TalkBack, other Android versions, and a production-signed
+host/source pair were not verified. Live search used the documented local certificate configuration
+with the API 2 arXiv source; this is not evidence that the public signed API 2 store has been released.
+
+The [extension workspace gate](WORKSPACE.md#verify-android-compatibility) passed JVM tests, debug
+lint, and debug assembly in the three pinned Android extension repositories. Markdown lint and
+GitHub Actions syntax validation also passed.
+
+The README screenshots show the reviewed Library, live search, and cached reader on this emulator.
+They are runtime captures of the unreleased branch, not design mockups or a signed-release claim.
+
+## Historical local verification (2026-11-06)
 
 The existing `Pixel_10` AVD (`emulator-5554`, Android 17, API 37, x86_64) passed 347 JVM and
 144 connected tests with no failures, errors, or skipped cases. Debug/release lint and APK assembly

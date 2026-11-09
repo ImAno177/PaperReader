@@ -54,6 +54,7 @@ class SourcesScreenTest {
 
         composeRule.onNodeWithText("Blocked extensions").assertIsDisplayed()
         composeRule.onNodeWithText("Untrusted").assertIsDisplayed()
+        composeRule.onNodeWithText("The extension could not be verified. Refresh the store and try again.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Show details for Untrusted").performClick()
         composeRule.onNodeWithText("Package: dev.example.untrusted").assertIsDisplayed()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Installed"))
@@ -137,7 +138,7 @@ class SourcesScreenTest {
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("PaperReader community"))
         composeRule.onNodeWithContentDescription("Show releases from PaperReader community").performClick()
         composeRule.onNode(
-            hasText("Semantic Scholar") and hasAnySibling(hasText("1.2.0 â€¢ Apache-2.0")),
+            hasText("Semantic Scholar") and hasAnySibling(hasText("1.2.0 \u2022 Apache-2.0")),
         ).assertIsDisplayed()
         composeRule.onNodeWithText("Install extension").assertDoesNotExist()
 
@@ -166,8 +167,8 @@ class SourcesScreenTest {
 
         composeRule.onNodeWithText("1 release").performClick()
         composeRule.onNode(hasScrollToIndexAction())
-            .performScrollToNode(hasText("Cancel Â· Waiting to download"))
-        composeRule.onNodeWithText("Cancel Â· Waiting to download").performClick()
+            .performScrollToNode(hasText("Cancel \u00b7 Waiting to download"))
+        composeRule.onNodeWithText("Cancel \u00b7 Waiting to download").performClick()
         assertEquals(packageName, cancelledPackage)
     }
 

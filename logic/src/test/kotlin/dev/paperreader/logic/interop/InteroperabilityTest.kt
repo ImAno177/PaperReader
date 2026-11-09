@@ -33,7 +33,7 @@ class InteroperabilityTest {
     fun `BibTeX supported metadata round trips escaped text identifiers and partial dates`() {
         val entry = BibliographyEntry(
             title = "A {careful} 100% & \\write18 study",
-            authors = listOf("Research {and} Development", "Doe, Jane"),
+            authors = listOf("Research {and} Development", "Doe, Jane", "Research and Development", "Élodie"),
             identifiers = setOf(
                 id(IdentifierType.DOI, "10.1234/Example"),
                 id(IdentifierType.ARXIV, "arXiv:2401.00001v2"),
@@ -65,7 +65,7 @@ class InteroperabilityTest {
                 id(IdentifierType.PMID, "7654321"),
                 id(IdentifierType.PMCID, "PMC7654321"),
             ),
-            abstractText = "Abstract with angle brackets <data>.",
+            abstractText = "Abstract with angle brackets <data>.\n\nSecond paragraph.",
             publishedAt = BibliographyDate(2025, 2, 28),
             sourceUrl = "https://example.org/item",
             entryType = "inproceedings",
@@ -75,8 +75,17 @@ class InteroperabilityTest {
         val decoded = success(BibliographyCodec.parse(BibliographyFormat.RIS, encoded))
 
         assertEquals(listOf(entry), decoded)
-        assertTrue(encoded.startsWith("TY  - CPAPER\n"))
-        assertTrue(encoded.endsWith("ER  - \n"))
+        assertTrue(encoded.startsWith("TY  - CPAPER\r\n"))
+        assertTrue(encoded.endsWith("ER  - \r\n"))
+    }
+
+    @Test
+    fun `exports non ASCII authors with valid stable keys and imports consistent RIS dates`() {
+        val entry = BibliographyEntry("Unicode", authors = listOf("Élodie Research and Development"))
+        val decoded = success(BibliographyCodec.parse(BibliographyFormat.BIBTEX, BibliographyCodec.encode(BibliographyFormat.BIBTEX, listOf(entry))))
+        assertEquals(entry.authors, decoded.single().authors)
+        val ris = "TY  - JOUR\nTI  - Paper\nT1  - Paper\nPY  - 2024\nY1  - 2024/05/06\nER  - \n"
+        assertEquals(BibliographyDate(2024, 5, 6), success(BibliographyCodec.parse(BibliographyFormat.RIS, ris)).single().publishedAt)
     }
 
     @Test

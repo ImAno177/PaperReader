@@ -154,6 +154,34 @@ class ReadablePaperRenderingTest {
     }
 
     @Test
+    fun `renderer collapses arxiv frontmatter thanks notes without dropping their text`() {
+        val html = renderReadablePaperHtml(
+            sanitizedBodyHtml = """
+                <article><div class="ltx_authors"><span class="ltx_creator ltx_role_author">
+                  <span class="ltx_personname">Xiaolin Huang</span>
+                  <span id="id1" class="ltx_note ltx_note_frontmatter ltx_thanks_note ltx_role_thanks">
+                    <sup class="ltx_note_mark">†</sup><span class="ltx_note_outer"><span class="ltx_note_content">
+                      <span class="ltx_note_type">thanks: </span>The authors are with the Institute of Image Processing and Pattern Recognition, Shanghai Jiao Tong University, Shanghai 200240, China. E-mail: authors@example.edu.
+                    </span></span>
+                  </span>
+                </span></div></article>
+            """.trimIndent(),
+            palette = palette(),
+            dark = false,
+            authorDetailsSummary = "Show details",
+        )
+
+        assertTrue(
+            html.contains(
+                "<details class=\"paperreader-author-notes\"><summary>Show details</summary>" +
+                    "<span id=\"id1\" class=\"ltx_note ltx_note_frontmatter ltx_thanks_note ltx_role_thanks\">",
+            ),
+        )
+        assertTrue(html.contains("Shanghai Jiao Tong University"))
+        assertTrue(html.contains("authors@example.edu"))
+    }
+
+    @Test
     fun `renderer rewrites only bounded bibliography links to the app-owned citation route`() {
         val source = """<p><a href = '#bib.bib12'>[12]</a> <a href="#bib.bib13">[13]</a> <a href="#S3.SS2">section</a> <a href="https://example.org">web</a></p>"""
 

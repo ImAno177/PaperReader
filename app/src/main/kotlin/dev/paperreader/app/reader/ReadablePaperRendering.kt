@@ -332,8 +332,8 @@ internal fun renderReadablePaperHtml(
               line-height: 1.22;
               letter-spacing: -0.012em;
               margin: 1.65em 0 0.62em;
-              scroll-margin-top: 18px;
             }
+            .paperreader-document [id] { scroll-margin-top: 72px; }
             h1 { margin-top: 0; font-size: 1.72rem; letter-spacing: -0.025em; }
             h2 { font-size: 1.55rem; }
             h3 { font-size: 1.28rem; }
@@ -342,6 +342,29 @@ internal fun renderReadablePaperHtml(
             p { margin: var(--reader-paragraph-margin) 0; }
             a { color: var(--link); text-decoration-thickness: 0.08em; text-underline-offset: 0.15em; }
             a:focus { outline: 3px solid var(--link); outline-offset: 3px; }
+            .ltx_itemize {
+              list-style: none;
+              margin: 0.92em 0;
+              padding-inline-start: 0;
+            }
+            .ltx_itemize > .ltx_item {
+              display: grid;
+              grid-template-columns: 1.1em minmax(0, 1fr);
+              column-gap: 0.35em;
+              list-style: none;
+              margin: 0.55em 0;
+            }
+            .ltx_itemize > .ltx_item > .ltx_tag_item {
+              grid-column: 1;
+              grid-row: 1;
+              align-self: start;
+            }
+            .ltx_itemize > .ltx_item > :not(.ltx_tag_item) {
+              grid-column: 2;
+              min-width: 0;
+            }
+            .ltx_itemize > .ltx_item > .ltx_para > p { margin: 0; }
+            .ltx_itemize > .ltx_item > .ltx_para > p + p { margin-top: var(--reader-paragraph-margin); }
             .ltx_authors {
               display: grid;
               grid-template-columns: repeat(2, minmax(0, 1fr));

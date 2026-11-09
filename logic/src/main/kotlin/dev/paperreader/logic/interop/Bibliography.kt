@@ -123,13 +123,6 @@ object BibliographyCodec {
 
     fun encode(format: BibliographyFormat, entries: List<BibliographyEntry>): String {
         require(entries.size <= MAX_RECORDS) { "Too many bibliography records" }
-        val estimatedMaximum = entries.sumOf { entry ->
-            256L + entry.title.length.toLong() * 16 + entry.authors.sumOf { it.length.toLong() * 16 } +
-                (entry.abstractText?.length?.toLong() ?: 0L) * 16 +
-                (entry.sourceUrl?.length?.toLong() ?: 0L) * 16 +
-                entry.identifiers.sumOf { it.value.length.toLong() * 16 }
-        }
-        require(estimatedMaximum <= MAX_INPUT_BYTES.toLong()) { "Encoded bibliography exceeds the size limit" }
         val text = when (format) {
             BibliographyFormat.BIBTEX -> BibTeXWriter.write(entries)
             BibliographyFormat.RIS -> RisWriter.write(entries)
@@ -141,7 +134,8 @@ object BibliographyCodec {
     }
 }
 
-internal const val MAX_INPUT_BYTES = 8 * 1024 * 1024
+const val MAX_BIBLIOGRAPHY_INPUT_BYTES = 8 * 1024 * 1024
+internal const val MAX_INPUT_BYTES = MAX_BIBLIOGRAPHY_INPUT_BYTES
 internal const val MAX_RECORDS = 20_000
 internal const val MAX_FIELDS_PER_RECORD = 48
 internal const val MAX_FIELD_CHARACTERS = 256_000
@@ -259,4 +253,21 @@ private fun parseMonth(value: String): Int {
         "dec", "december" -> 12
         else -> throw IllegalArgumentException("Unsupported month value")
     }
+}
+
+internal class BoundedBibliographyText {
+    private val value = StringBuilder()
+    private var bytes = 0
+
+    fun append(text: String): BoundedBibliographyText {
+        val extra = text.toByteArray(StandardCharsets.UTF_8).size
+        require(extra <= MAX_INPUT_BYTES - bytes) { "Encoded bibliography exceeds the size limit" }
+        bytes += extra
+        value.append(text)
+        return this
+    }
+
+    fun append(character: Char): BoundedBibliographyText = append(character.toString())
+
+    override fun toString(): String = value.toString()
 }

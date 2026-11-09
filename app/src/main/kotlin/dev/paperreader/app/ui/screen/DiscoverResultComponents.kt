@@ -51,7 +51,10 @@ internal fun ProviderFailureRow(
                             ((retryAfterMillis + 999L) / 1_000L).coerceAtLeast(1L),
                         )
                     } ?: stringResource(R.string.provider_rate_limited, failure.providerName)
-                    ProviderFailureKind.UNAVAILABLE -> stringResource(R.string.provider_unavailable, failure.providerName)
+                    ProviderFailureKind.UNAVAILABLE -> stringResource(
+                        R.string.search_provider_unreachable,
+                        failure.providerName,
+                    )
                     ProviderFailureKind.INVALID_RESPONSE -> stringResource(R.string.provider_invalid_response, failure.providerName)
                 },
                 modifier = Modifier.weight(1f),
@@ -83,7 +86,7 @@ internal fun SearchResultCard(
         ) {
             PaperMetaRow(
                 source = result.sourceDisplayNames.joinToString(),
-                year = result.publishedDate?.year?.toString(),
+                year = (result.publishedDate?.year ?: result.publicationYear)?.toString(),
                 identifier = result.primaryIdentifier?.displayValue(),
             )
             Spacer(Modifier.height(8.dp))

@@ -8,12 +8,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -52,7 +56,6 @@ fun LibraryTransferSection(
     onExportBibliography: (BibliographyFormat) -> Unit,
     onImportBibliography: (BibliographyFormat) -> Unit,
     onExportNotes: () -> Unit,
-    onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     enabled: Boolean,
 ) {
@@ -123,7 +126,6 @@ fun LibraryTransferSection(
         }
         TransferStatus(state, onDismiss)
     }
-    TransferPreviewDialog(state, enabled, onConfirm, onDismiss)
 }
 
 @Composable
@@ -217,12 +219,17 @@ private fun TransferStatus(
             state.value.skipped,
         )
         is LibraryTransferUiState.Failed -> stringResource(state.reason.toStringResource())
+        LibraryTransferUiState.Idle,
         is LibraryTransferUiState.LibraryPreview,
         is LibraryTransferUiState.BibliographyPreview,
         -> null
     }
     if (message == null) return
-    PaperSurface {
+    val statusPosition = remember { BringIntoViewRequester() }
+    LaunchedEffect(message, state.isBusy) {
+        if (!state.isBusy) statusPosition.bringIntoView()
+    }
+    PaperSurface(modifier = Modifier.bringIntoViewRequester(statusPosition)) {
         Text(
             message,
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -247,7 +254,7 @@ private fun TransferStatus(
 }
 
 @Composable
-private fun TransferPreviewDialog(
+internal fun LibraryTransferPreviewDialog(
     state: LibraryTransferUiState,
     enabled: Boolean,
     onConfirm: () -> Unit,

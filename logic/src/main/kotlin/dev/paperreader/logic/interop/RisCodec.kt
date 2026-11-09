@@ -8,11 +8,20 @@ internal class RisParser(private val source: String) {
         val entries = mutableListOf<BibliographyEntry>()
         var fields: LinkedHashMap<String, MutableList<String>>? = null
         var recordFieldCount = 0
+        var previousTag: String? = null
         source.lineSequence().forEach { line ->
+            if (line.startsWith("      ") && previousTag in setOf("AB", "N2")) {
+                val values = fields?.get(previousTag) ?: malformed("RIS continuation has no field")
+                val combined = values.last() + "\n" + line.drop(6)
+                if (combined.length > MAX_FIELD_CHARACTERS) limit("RIS field is too long")
+                values[values.lastIndex] = combined
+                return@forEach
+            }
             if (line.isBlank()) return@forEach
-            val match = TAG.matchEntire(line) ?: malformed("RIS input must contain one tagged field per line")
+            val match = TAG.matchEntire(line) ?: malformed("RIS input must contain a tagged field or indented abstract continuation")
             val tag = match.groupValues[1]
             val value = match.groupValues[2]
+            previousTag = tag
             val currentFields = fields
             if (currentFields == null) {
                 if (tag != "TY") malformed("RIS record must begin with TY")
@@ -46,8 +55,9 @@ internal class RisParser(private val source: String) {
     private fun makeEntry(fields: Map<String, List<String>>): BibliographyEntry {
         fun oneOf(vararg tags: String): String? {
             val present = tags.mapNotNull { tag -> fields[tag]?.singleOrNull()?.let { tag to it } }
-            if (present.size > 1) malformed("RIS has conflicting ${tags.joinToString("/")} fields")
-            return present.singleOrNull()?.second
+            val values = present.map { it.second.trim() }.distinct()
+            if (values.size > 1) malformed("RIS has conflicting ${tags.joinToString("/")} fields")
+            return values.singleOrNull()
         }
 
         val title = oneOf("TI", "T1")?.trim().orEmpty()
@@ -65,8 +75,12 @@ internal class RisParser(private val source: String) {
                 value.startsWith("doi:", ignoreCase = true) -> identifiers += canonicalIdentifier(IdentifierType.DOI, value)
             }
         }
-        val date = oneOf("Y1", "PY", "DA")?.let { parseDate(it.trim()) }
-        val url = oneOf("UR", "L2")?.trim()?.takeIf(String::isNotEmpty)
+        val dates = listOf("Y1", "PY", "DA").mapNotNull { fields[it]?.singleOrNull()?.let { value -> parseDate(value.trim()) } }
+        val date = dates.maxByOrNull { if (it.day != null) 3 else if (it.month != null) 2 else 1 }
+        if (date != null && dates.any { it.year != date.year || it.month != null && date.month != it.month || it.day != null && date.day != it.day }) {
+            malformed("RIS has conflicting publication dates")
+        }
+        val url = (fields["UR"]?.singleOrNull() ?: fields["L2"]?.singleOrNull())?.trim()?.takeIf(String::isNotEmpty)
         if (url != null && !isSafeWebUrl(url)) malformed("RIS URL must use HTTP(S)")
         val recordType = fields["TY"]?.singleOrNull()?.trim()?.uppercase()
             ?.takeIf(String::isNotEmpty) ?: malformed("RIS record has an invalid type")
@@ -92,7 +106,7 @@ internal class RisParser(private val source: String) {
 }
 
 internal object RisWriter {
-    fun write(entries: List<BibliographyEntry>): String = buildString {
+    fun write(entries: List<BibliographyEntry>): String = BoundedBibliographyText().apply {
         entries.forEachIndexed { index, entry ->
             if (index > 0) append('\n')
             appendTag("TY", toRisType(entry.entryType))
@@ -120,14 +134,18 @@ internal object RisWriter {
                     }
                     appendTag("AN", "$label:${safeLine(identifier.value)}")
                 }
-            entry.abstractText?.let { appendTag("AB", safeLine(it)) }
+            entry.abstractText?.let { text ->
+                val lines = text.replace("\r\n", "\n").replace('\r', '\n').split('\n')
+                appendTag("AB", safeLine(lines.first()))
+                lines.drop(1).forEach { append("      ").append(safeLine(it)).append("\r\n") }
+            }
             entry.sourceUrl?.let { appendTag("UR", safeLine(it)) }
             appendTag("ER", "")
         }
-    }
+    }.toString()
 
-    private fun StringBuilder.appendTag(tag: String, value: String) {
-        append(tag).append("  - ").append(value).append('\n')
+    private fun BoundedBibliographyText.appendTag(tag: String, value: String) {
+        append(tag).append("  - ").append(value).append("\r\n")
     }
 
     private fun safeLine(value: String): String {
@@ -144,12 +162,13 @@ internal object RisWriter {
         else -> "GEN"
     }
 
-    private fun fromRisType(type: String): String = when (type) {
-        "JOUR" -> "article"
-        "CPAPER" -> "inproceedings"
-        "BOOK" -> "book"
-        "CHAP" -> "incollection"
-        "THES" -> "thesis"
-        else -> "misc"
-    }
+}
+
+private fun fromRisType(type: String): String = when (type) {
+    "JOUR" -> "article"
+    "CPAPER" -> "inproceedings"
+    "BOOK" -> "book"
+    "CHAP" -> "incollection"
+    "THES" -> "thesis"
+    else -> "misc"
 }

@@ -53,6 +53,7 @@ internal class BibTeXParser(private val source: String) {
                     problem(BibliographyErrorCode.DUPLICATE_FIELD, "Duplicate BibTeX field '$field'")
                 }
                 skipWhitespace()
+                if (position < source.length && source[position] == '#') unsupported("BibTeX value concatenation is not supported")
                 if (position < source.length && source[position] == ',') {
                     position++
                     skipWhitespace()
@@ -69,7 +70,7 @@ internal class BibTeXParser(private val source: String) {
     private fun entry(type: String, key: String, fields: Map<String, String>): BibliographyEntry {
         val title = fields["title"]?.let(::decodeBibEscapes)?.trim().orEmpty()
         if (title.isBlank()) malformed("BibTeX record is missing a title")
-        val authors = fields["author"]?.let(::decodeBibEscapes)?.let(::splitBibAuthors).orEmpty()
+        val authors = fields["author"]?.let(::splitBibAuthors)?.map(::decodeBibAuthor).orEmpty()
         val identifiers = linkedSetOf<PaperIdentifier>()
         fields["doi"]?.let { identifiers += canonicalIdentifier(IdentifierType.DOI, decodeBibEscapes(it)) }
         fields["arxiv"]?.let { identifiers += canonicalIdentifier(IdentifierType.ARXIV, decodeBibEscapes(it)) }
@@ -228,7 +229,7 @@ internal class BibTeXParser(private val source: String) {
 }
 
 internal object BibTeXWriter {
-    fun write(entries: List<BibliographyEntry>): String = buildString {
+    fun write(entries: List<BibliographyEntry>): String = BoundedBibliographyText().apply {
         val usedKeys = mutableSetOf<String>()
         entries.forEachIndexed { index, entry ->
             if (index > 0) append('\n')
@@ -247,7 +248,14 @@ internal object BibTeXWriter {
             }
             append('@').append(entry.entryType).append('{').append(key).append(",\n")
             appendField("title", entry.title)
-            if (entry.authors.isNotEmpty()) appendField("author", entry.authors.joinToString(" and "))
+            if (entry.authors.isNotEmpty()) {
+                append("  author = {")
+                entry.authors.forEachIndexed { authorIndex, author ->
+                    if (authorIndex > 0) append(" and ")
+                    append('{').append(escapeBibText(author)).append('}')
+                }
+                append("},\n")
+            }
             entry.publishedAt?.let { date ->
                 appendField("year", date.year.toString())
                 date.month?.let { appendField("month", MONTHS[it - 1]) }
@@ -264,15 +272,15 @@ internal object BibTeXWriter {
             entry.sourceUrl?.let { appendField("url", it) }
             append("}\n")
         }
-    }
+    }.toString()
 
-    private fun StringBuilder.appendField(name: String, value: String) {
+    private fun BoundedBibliographyText.appendField(name: String, value: String) {
         append("  ").append(name).append(" = {").append(escapeBibText(value)).append("},\n")
     }
 
     private fun stableCitationKey(entry: BibliographyEntry): String {
         val raw = entry.authors.firstOrNull()?.substringBefore(',')?.substringBefore(' ')?.ifBlank { null } ?: "paper"
-        val safe = raw.filter(Char::isLetterOrDigit).take(24).ifBlank { "paper" }
+        val safe = raw.filter { it in 'A'..'Z' || it in 'a'..'z' || it in '0'..'9' }.take(24).ifBlank { "paper" }
         val year = entry.publishedAt?.year?.toString().orEmpty()
         return "$safe$year"
     }
@@ -315,6 +323,24 @@ private fun decodeBibEscapes(value: String): String {
         }
     }
     return result.toString()
+}
+
+private fun decodeBibAuthor(raw: String): String {
+    var depth = 0
+    var index = 0
+    var outerGroup = raw.startsWith('{') && raw.endsWith('}')
+    while (index < raw.length && outerGroup) {
+        when (raw[index]) {
+            '\\' -> index++
+            '{' -> depth++
+            '}' -> {
+                depth--
+                if (depth == 0 && index < raw.lastIndex) outerGroup = false
+            }
+        }
+        index++
+    }
+    return decodeBibEscapes(if (outerGroup) raw.substring(1, raw.lastIndex) else raw)
 }
 
 private fun splitBibAuthors(value: String): List<String> {

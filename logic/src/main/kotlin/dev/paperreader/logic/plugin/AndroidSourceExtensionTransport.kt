@@ -1,6 +1,7 @@
 package dev.paperreader.logic.plugin
 
 import android.content.ComponentName
+import dev.paperreader.logic.provider.ProviderTrustIssue
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
@@ -168,9 +169,9 @@ internal class AndroidSourceExtensionTransport(
     private fun requireMatchingDescriptor(service: IPaperSourceService) {
         val remoteDescriptor = runCatching {
             SourceExtensionDescriptor.fromBundle(service.descriptor)
-        }.getOrElse { throw SourceExtensionProtocolException("Source rejected host preflight", it) }
+        }.getOrElse { throw SourceExtensionProtocolException("Source rejected host preflight", it, ProviderTrustIssue.HOST_REJECTED) }
         if (remoteDescriptor != descriptor) {
-            throw SourceExtensionProtocolException("Source descriptor does not match the trusted index")
+            throw SourceExtensionProtocolException("Source descriptor does not match the trusted index", trustIssue = ProviderTrustIssue.DESCRIPTOR_MISMATCH)
         }
     }
 
@@ -367,26 +368,22 @@ internal class AndroidSourceExtensionTransport(
             PackageManager.GET_SIGNING_CERTIFICATES,
         )
         val fingerprint = normalizeFingerprint(trustedRelease.signerSha256)
-        require(
-            packageManager.hasSigningCertificate(
+        if (!packageManager.hasSigningCertificate(
                 trustedRelease.packageName,
                 fingerprint.hexToByteArray(),
                 PackageManager.CERT_INPUT_SHA256,
-            ),
-        ) { "Installed source signer does not match the trusted index" }
+            )) throw SourceTrustValidationException(ProviderTrustIssue.SIGNER_MISMATCH, "Installed source signer does not match the trusted index")
         val serviceInfo = packageManager.getServiceInfo(component, PackageManager.GET_META_DATA)
-        require(serviceInfo.enabled && serviceInfo.exported) { "Source service is not bindable" }
-        require(serviceInfo.applicationInfo?.uid != applicationContext.applicationInfo.uid) {
-            "Source extension must run under a separate UID"
+        if (!serviceInfo.enabled || !serviceInfo.exported) throw SourceTrustValidationException(
+            ProviderTrustIssue.INVALID_SERVICE, "Source service is not bindable")
+        if (serviceInfo.applicationInfo?.uid == applicationContext.applicationInfo.uid) throw SourceTrustValidationException(
+            ProviderTrustIssue.INVALID_SERVICE, "Source extension must run under a separate UID")
+        if (serviceInfo.metaData?.getInt(PaperExtensionContract.META_API_VERSION, -1) != PaperExtensionContract.API_VERSION) {
+            throw SourceTrustValidationException(ProviderTrustIssue.INCOMPATIBLE_API, "Source service API version is incompatible")
         }
-        require(
-            serviceInfo.metaData?.getInt(PaperExtensionContract.META_API_VERSION, -1) ==
-                PaperExtensionContract.API_VERSION,
-        ) { "Source service API version is incompatible" }
-        require(
-            serviceInfo.metaData?.getString(PaperExtensionContract.META_EXTENSION_KIND) ==
-                PaperExtensionContract.EXTENSION_KIND_SOURCE,
-        ) { "Source service kind is invalid" }
+        if (serviceInfo.metaData?.getString(PaperExtensionContract.META_EXTENSION_KIND) != PaperExtensionContract.EXTENSION_KIND_SOURCE) {
+            throw SourceTrustValidationException(ProviderTrustIssue.INVALID_SERVICE, "Source service kind is invalid")
+        }
         requireTrustedSourceVersion(
             installedVersionCode = packageInfo.longVersionCode,
             minimumVersionCode = trustedRelease.minimumVersionCode,
@@ -428,9 +425,12 @@ internal fun requireTrustedSourceVersion(
     }
 }
 
+internal class SourceTrustValidationException(val issue: ProviderTrustIssue, message: String) : IllegalArgumentException(message)
+
 internal class SourceExtensionProtocolException(
     message: String,
     cause: Throwable? = null,
+    val trustIssue: ProviderTrustIssue? = null,
 ) : Exception(message, cause)
 
 private fun normalizeFingerprint(value: String): String {

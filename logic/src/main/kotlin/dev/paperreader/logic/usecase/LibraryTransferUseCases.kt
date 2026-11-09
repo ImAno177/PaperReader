@@ -19,14 +19,16 @@ import dev.paperreader.logic.interop.stableBibliographyRecordId
 import dev.paperreader.logic.provider.RemoteManifestation
 import dev.paperreader.logic.provider.RemotePaper
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import dev.paperreader.logic.domain.repository.ExactIdentityConflictException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
 class ExportBibliography(private val library: LibraryRepository) {
-    suspend fun export(format: BibliographyFormat): String = BibliographyCodec.encode(
-        format,
-        library.library.first().map(LibraryPaper::toBibliographyEntry),
-    )
+    suspend fun export(format: BibliographyFormat): String = withContext(Dispatchers.Default) {
+        BibliographyCodec.encode(format, library.library.first().map(LibraryPaper::toBibliographyEntry))
+    }
 }
 
 enum class BibliographyImportDisposition {
@@ -51,10 +53,10 @@ data class BibliographyImportPreview(
 )
 
 class PreviewBibliographyImport(private val library: LibraryRepository) {
-    suspend fun preview(format: BibliographyFormat, input: ByteArray): BibliographyImportPreview {
+    suspend fun preview(format: BibliographyFormat, input: ByteArray): BibliographyImportPreview = withContext(Dispatchers.Default) {
         val parsed = BibliographyCodec.parse(format, input)
         if (parsed is BibliographyParseResult.Failure) {
-            return BibliographyImportPreview(format, emptyList(), parsed.error)
+            return@withContext BibliographyImportPreview(format, emptyList(), parsed.error)
         }
         val entries = (parsed as BibliographyParseResult.Success).entries
         val papers = library.library.first()
@@ -79,7 +81,7 @@ class PreviewBibliographyImport(private val library: LibraryRepository) {
                 },
             )
         }
-        return BibliographyImportPreview(
+        return@withContext BibliographyImportPreview(
             format = format,
             candidates = candidates,
             partialDatePrecisionLossIndices = entries.mapIndexedNotNull { index, entry ->
@@ -112,21 +114,26 @@ data class BibliographyImportReport(
 }
 
 class ImportBibliography(private val library: LibraryRepository) {
-    suspend fun import(preview: BibliographyImportPreview): BibliographyImportReport {
+    suspend fun import(preview: BibliographyImportPreview): BibliographyImportReport = withContext(Dispatchers.IO) {
         if (preview.error != null) {
-            return BibliographyImportReport(emptyList(), preview.error, preview.partialDatePrecisionLossIndices)
+            return@withContext BibliographyImportReport(emptyList(), preview.error, preview.partialDatePrecisionLossIndices)
         }
         val results = mutableListOf<BibliographyImportRecordResult>()
+        val aliasOwners = mutableMapOf<String, MutableSet<WorkId>>()
+        for (paper in library.library.first()) {
+            for (key in IdentityResolver.exactKeys(paper.work.identifiers)) {
+                aliasOwners.getOrPut(key) { linkedSetOf() }.add(paper.work.id)
+            }
+        }
         for (candidate in preview.candidates) {
             currentCoroutineContext().ensureActive()
-            val currentPapers = library.library.first()
             val incoming = candidate.entry.identifiers + PaperIdentifier(
                 IdentifierType.PROVIDER,
                 candidate.stableRecordId,
                 BIBLIOGRAPHY_IMPORT_PROVIDER,
             )
-            val matched = currentPapers.filter { paper -> hasExactIdentity(paper, incoming) }
-                .mapTo(linkedSetOf()) { it.work.id }
+            val incomingKeys = IdentityResolver.exactKeys(incoming)
+            val matched = incomingKeys.flatMap { aliasOwners[it].orEmpty() }.toSet()
             if (matched.size > 1) {
                 results += BibliographyImportRecordResult(
                     candidate.index,
@@ -134,7 +141,13 @@ class ImportBibliography(private val library: LibraryRepository) {
                 )
                 continue
             }
-            val workId = library.save(candidate.entry.toRemotePaper(candidate.stableRecordId))
+            val workId = try {
+                library.save(candidate.entry.toRemotePaper(candidate.stableRecordId))
+            } catch (_: ExactIdentityConflictException) {
+                results += BibliographyImportRecordResult(candidate.index, BibliographyImportOutcome.SKIPPED_AMBIGUOUS)
+                continue
+            }
+            for (key in incomingKeys) aliasOwners.getOrPut(key) { linkedSetOf() }.add(workId)
             results += BibliographyImportRecordResult(
                 index = candidate.index,
                 outcome = if (matched.isEmpty()) BibliographyImportOutcome.IMPORTED
@@ -142,7 +155,7 @@ class ImportBibliography(private val library: LibraryRepository) {
                 workId = workId,
             )
         }
-        return BibliographyImportReport(
+        return@withContext BibliographyImportReport(
             records = results,
             partialDatePrecisionLossIndices = preview.partialDatePrecisionLossIndices,
         )

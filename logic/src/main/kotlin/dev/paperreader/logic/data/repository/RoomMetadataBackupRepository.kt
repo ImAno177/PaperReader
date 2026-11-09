@@ -1,6 +1,8 @@
 package dev.paperreader.logic.data.repository
 
 import androidx.room.withTransaction
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import dev.paperreader.logic.backup.BackupAnnotationProto
 import dev.paperreader.logic.backup.BackupAuthorProto
 import dev.paperreader.logic.backup.BackupBookmarkProto
@@ -75,7 +77,7 @@ internal class RoomMetadataBackupRepository(
         val proto = database.withTransaction { buildMetadataBackupProto(database, clock) }
         MetadataBackupExportResult.Success(
             MetadataBackupExport(
-                archiveBytes = MetadataBackupCodec.encode(proto),
+                archiveBytes = withContext(Dispatchers.Default) { MetadataBackupCodec.encode(proto) },
                 summary = summary(proto),
                 createdAt = Instant.ofEpochMilli(proto.createdAtEpochMillis),
             ),
@@ -98,7 +100,7 @@ internal class RoomMetadataBackupRepository(
     }
 
     override suspend fun preview(bytes: ByteArray): MetadataRestorePreviewResult =
-        when (val decoded = MetadataBackupCodec.decode(bytes)) {
+        when (val decoded = withContext(Dispatchers.Default) { MetadataBackupCodec.decode(bytes) }) {
             is DecodedBackup.Invalid -> MetadataRestorePreviewResult.Rejected(decoded.error)
             is DecodedBackup.Valid -> try {
                 database.withTransaction {
@@ -115,7 +117,7 @@ internal class RoomMetadataBackupRepository(
         }
 
     override suspend fun restore(bytes: ByteArray): MetadataRestoreResult {
-        val proto = when (val decoded = MetadataBackupCodec.decode(bytes)) {
+        val proto = when (val decoded = withContext(Dispatchers.Default) { MetadataBackupCodec.decode(bytes) }) {
             is DecodedBackup.Invalid -> return MetadataRestoreResult.Rejected(decoded.error)
             is DecodedBackup.Valid -> decoded.value
         }
@@ -131,7 +133,7 @@ internal class RoomMetadataBackupRepository(
         }
     }
 
-    private suspend fun analyze(proto: MetadataBackupProto): RestorePlan {
+    internal suspend fun analyze(proto: MetadataBackupProto): RestorePlan {
         val localWorks = dao.getAllWorks()
         val localWorksById = localWorks.associateBy(WorkEntity::id)
         val localAliases = dao.getAllIdentifiers().groupBy { identifier -> canonicalIdentifier(identifier).toAliasKey() }
@@ -450,7 +452,7 @@ internal class RoomMetadataBackupRepository(
         )
     }
 
-    private suspend fun apply(plan: RestorePlan): MetadataRestoreResult.Applied {
+    internal suspend fun apply(plan: RestorePlan): MetadataRestoreResult.Applied {
         val eligibleWorks = plan.works.filter(WorkPlan::eligible)
         eligibleWorks.forEach { workPlan ->
             val workId = checkNotNull(workPlan.targetId)

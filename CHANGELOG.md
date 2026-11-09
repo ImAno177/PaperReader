@@ -7,9 +7,14 @@ current branch. Released sections correspond to Git tags.
 
 ### Added
 
+- Full library backup with streamed, hash-verified PDFs, restore preview, durable recovery, and
+  preservation of existing local documents.
+- BibTeX/RIS import and export with exact-identifier matching and ambiguity warnings, plus Markdown
+  notes export with original quotes and exact document/anchor references.
+- Separate per-version labels for cached HTML, retained offline HTML, and an original PDF.
 - A dedicated More hub with grouped settings and a focused Download queue showing aggregate and
   per-task progress, retry/cancel/remove actions, completed work, and a visible back action.
-- Five built-in color themes now sit alongside the unchanged Neobrutalism preset; color mode stays
+- Five built-in color themes sit alongside the Neobrutalism preset; color mode stays
   independently selectable as System, Light, or Dark.
 - A versioned readable_document extension capability. The arXiv source now owns structural HTML
   sanitization while the host receives bounded Binder chunks and materializes same-document assets
@@ -17,6 +22,16 @@ current branch. Released sections correspond to Git tags.
 
 ### Changed
 
+- Neobrutalism uses layered paper surfaces, cobalt actions, yellow selections, lighter outlines,
+  and serif display headings, with separate dark-mode surface and accent colors.
+- Search previews keep Save/Open visible while metadata scrolls, saved-search controls take less
+  space, and unreachable-source messages point to connection checks and retry.
+- Root tabs restore search and navigation state. Library grid titles wrap fully, zero-percent
+  progress bars are hidden, and long reader author details collapse without changing cached content.
+- Room schema 5 and backwards-readable metadata backups preserve year-only publication values
+  without inventing a month or day.
+- Blocked sources show recovery guidance while keeping certificate and protocol diagnostics in
+  expandable details.
 - Extension SDK 0.2.0 uses contract API 2 for readable-document Binder calls. API 1 APKs require an
   update; the host checks the separate v2 official store and rejects incompatible service metadata.
 - Screens and Compose tests use the same state/action interfaces; obsolete overloads, duplicated
@@ -36,6 +51,16 @@ current branch. Released sections correspond to Git tags.
 
 ### Fixed
 
+- Reader contents links leave the target heading below the toolbar; source-supplied list markers
+  no longer render twice, and multi-paragraph list items retain their content alignment.
+- Native reader surfaces and link colors follow the Neobrutalism light and dark palettes.
+- Search previews omit duplicate provider aliases while preserving the original provider records.
+- Existing installations migrate the pinned official source store to its API 2 URL only after
+  signature, identity, rollback, and equivocation validation succeeds.
+- Metadata and PDF picker results survive Activity recreation; metadata archive parsing runs off Main.
+- Bibliography imports reject aliases owned by multiple works instead of silently choosing one.
+- Archive cancellation closes blocked input streams, and interrupted restores clean only unreferenced
+  task-owned files.
 - Readable HTML export restores the exact cached document when the screen is recreated while the
   save picker is open. Missing or changed documents report an export failure.
 - Cancelling a source search no longer reports it as an unavailable provider.
@@ -43,6 +68,8 @@ current branch. Released sections correspond to Git tags.
 
 ### Build
 
+- Related source, sample, theme, and site repositories are pinned as optional Git submodules under
+  `external/`, with a local extension compatibility gate against the host SDK.
 - Documentation-only pull requests skip Android setup and Gradle while retaining their existing
   check names, documentation validation, dependency review, and security scans. Main and manual
   runs still execute the full host gate and produce release artifacts.

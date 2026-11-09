@@ -37,13 +37,32 @@ class PaperThemeContrastTest {
     }
 
     @Test
-    fun `empty-state heading keeps its violet identity in both modes`() {
+    fun `empty-state heading keeps its accent contrast in both modes`() {
         listOf(false, true).forEach { dark ->
             PaperThemePreset.entries.forEach { preset ->
                 val tokens = paperThemeTokens(preset, dark)
-                assertEquals(NeoViolet, tokens.emptyStateAccent)
                 assertTrue(
                     contrastRatio(tokens.emptyStateAccent, tokens.canvas) >= WCAG_AA_LARGE_TEXT,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `neobrutalism status colors meet WCAG AA on both paper surfaces`() {
+        listOf(false, true).forEach { dark ->
+            val tokens = neobrutalismThemeTokens(dark)
+            listOf(
+                "success on canvas" to (tokens.success to tokens.canvas),
+                "success on surface" to (tokens.success to tokens.surface),
+                "warning on canvas" to (tokens.warning to tokens.canvas),
+                "warning on surface" to (tokens.warning to tokens.surface),
+                "danger on canvas" to (tokens.danger to tokens.canvas),
+                "danger on surface" to (tokens.danger to tokens.surface),
+            ).forEach { (role, colors) ->
+                assertTrue(
+                    "$role contrast was ${contrastRatio(colors.first, colors.second)}",
+                    contrastRatio(colors.first, colors.second) >= WCAG_AA_NORMAL_TEXT,
                 )
             }
         }

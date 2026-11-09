@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.nio.file.StandardOpenOption.CREATE_NEW
 import java.nio.file.StandardOpenOption.WRITE
 import java.security.MessageDigest
@@ -166,7 +167,7 @@ internal object LibraryArchiveCodec {
         val extractedFiles = mutableListOf<Path>()
         var documentsDirectory: Path? = null
         var completed = false
-        try {
+        return try {
             val decoded = ZipFile(archiveFile.toFile()).use { zip ->
                 val entries = readCentralEntries(zip)
                 val manifestEntry = entries.firstOrNull() ?: archiveFailure(LibraryArchiveFailure.INVALID_ARCHIVE)
@@ -205,12 +206,12 @@ internal object LibraryArchiveCodec {
                 for ((index, document) in manifest.documents.withIndex()) {
                     currentCoroutineContext().ensureActive()
                     val entry = entries[index + 2]
-                    val relative = Path.of(document.entryName)
+                    val relative = Paths.get(document.entryName)
                     val target = root.resolve(relative).normalize()
                     if (relative.isAbsolute || target == root || !target.startsWith(root) || target.parent != directory) {
                         archiveFailure(LibraryArchiveFailure.INVALID_ARCHIVE)
                     }
-                    extractedFiles += target
+                    extractedFiles.add(target)
                     Files.newOutputStream(target, CREATE_NEW, WRITE, NOFOLLOW_LINKS).use { output ->
                         copyEntry(zip, entry, output, document.byteLength, digestDocuments = true)
                     }
@@ -370,7 +371,7 @@ internal object LibraryArchiveCodec {
         if (name.isEmpty() || name.startsWith('/') || name.contains('\\') || name.contains('\u0000')) return false
         if (name.split('/').any { it.isEmpty() || it == "." || it == ".." }) return false
         return runCatching {
-            val path = Path.of(name)
+            val path = Paths.get(name)
             !path.isAbsolute && path.normalize().toString().replace('\\', '/') == name
         }.getOrDefault(false)
     }

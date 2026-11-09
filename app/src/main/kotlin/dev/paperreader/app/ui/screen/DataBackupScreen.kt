@@ -32,6 +32,9 @@ import dev.paperreader.app.ui.components.PaperPrimaryButton
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSurface
 import dev.paperreader.app.ui.components.PaperTextButton
+import dev.paperreader.app.ui.model.LibraryTransferUiState
+import dev.paperreader.app.ui.model.canStartOperation
+import dev.paperreader.logic.interop.BibliographyFormat
 import dev.paperreader.app.ui.model.MetadataBackupFailure
 import dev.paperreader.app.ui.model.MetadataBackupUiState
 import dev.paperreader.app.ui.model.MetadataRestoreIssueUi
@@ -48,10 +51,19 @@ fun DataBackupScreen(
     onConfirmRestore: () -> Unit,
     onDismissState: () -> Unit,
     onBack: () -> Unit,
+    transferState: LibraryTransferUiState = LibraryTransferUiState.Idle,
+    onExportLibrary: () -> Unit = {},
+    onImportLibrary: () -> Unit = {},
+    onExportBibliography: (BibliographyFormat) -> Unit = {},
+    onImportBibliography: (BibliographyFormat) -> Unit = {},
+    onExportNotes: () -> Unit = {},
+    onConfirmTransfer: () -> Unit = {},
+    onDismissTransfer: () -> Unit = {},
 ) {
-    val actionsEnabled = state is MetadataBackupUiState.Idle ||
+    val metadataAvailable = state is MetadataBackupUiState.Idle ||
         state is MetadataBackupUiState.Exported || state is MetadataBackupUiState.Restored ||
         state is MetadataBackupUiState.Failed
+    val actionsEnabled = metadataAvailable && transferState.canStartOperation
     MoreBranchScaffold(title = stringResource(R.string.data_and_backup), onBack = onBack) {
         item {
             PaperSurface {
@@ -81,8 +93,21 @@ fun DataBackupScreen(
                 }
             }
         }
+        item {
+            LibraryTransferSection(
+                state = transferState,
+                onExportLibrary = onExportLibrary,
+                onImportLibrary = onImportLibrary,
+                onExportBibliography = onExportBibliography,
+                onImportBibliography = onImportBibliography,
+                onExportNotes = onExportNotes,
+                onDismiss = onDismissTransfer,
+                enabled = metadataAvailable,
+            )
+        }
     }
     MetadataRestoreDialog(state, onConfirmRestore, onDismissState)
+    LibraryTransferPreviewDialog(transferState, metadataAvailable, onConfirmTransfer, onDismissTransfer)
 }
 
 @Composable

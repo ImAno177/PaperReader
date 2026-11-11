@@ -402,6 +402,7 @@ internal fun renderReadablePaperHtml(
               cursor: pointer;
               font-weight: 650;
             }
+            .paperreader-author-notes > summary::before { content: attr(data-label); }
             .paperreader-author-notes-content { padding: 0 14px 14px; }
             .ltx_abstract {
               margin: 24px 0 30px;

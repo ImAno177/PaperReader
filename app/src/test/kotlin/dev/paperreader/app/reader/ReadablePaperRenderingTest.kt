@@ -143,7 +143,7 @@ class ReadablePaperRenderingTest {
         assertTrue(html.contains(".ltx_author_notes, .paperreader-author-details"))
         assertTrue(
             html.contains(
-                "<details class=\"paperreader-author-notes\"><summary>Details</summary>" +
+                "<details class=\"paperreader-author-notes\"><summary aria-label=\"Details\" data-label=\"Details\"></summary>" +
                     "<span class=\"ltx_author_notes paperreader-author-details\">",
             ),
         )
@@ -173,12 +173,14 @@ class ReadablePaperRenderingTest {
 
         assertTrue(
             html.contains(
-                "<details class=\"paperreader-author-notes\"><summary>Show details</summary>" +
+                "<details class=\"paperreader-author-notes\"><summary aria-label=\"Show details\" data-label=\"Show details\"></summary>" +
                     "<span id=\"id1\" class=\"ltx_note ltx_note_frontmatter ltx_thanks_note ltx_role_thanks\">",
             ),
         )
         assertTrue(html.contains("Shanghai Jiao Tong University"))
         assertTrue(html.contains("authors@example.edu"))
+        // The collapse control adds no text, so annotation offsets inside the block stay put.
+        assertFalse(html.contains(">Show details<"))
     }
 
     @Test

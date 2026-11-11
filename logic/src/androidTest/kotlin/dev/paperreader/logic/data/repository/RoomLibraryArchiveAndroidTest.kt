@@ -143,6 +143,20 @@ class RoomLibraryArchiveAndroidTest {
     }
 
     @Test
+    fun missingLocalPdfIsSkippedWhileMetadataStillExports() = runBlocking {
+        val source = fixture()
+        val stored = source.database.libraryDao().getStoredFiles().single()
+        Files.delete(source.root.resolve(stored.localPath!!))
+
+        val prepared = source.repository.prepareExport()
+
+        assertEquals(0, prepared.documents)
+        assertEquals(1, prepared.skippedDocuments)
+        assertEquals(source.database.libraryDao().getAllWorks().size, prepared.summary.works)
+        source.repository.discard(prepared.token)
+    }
+
+    @Test
     fun recoveryCleansOnlyUnreferencedArchiveArtifactsAfterInterruptedProcess() = runBlocking {
         val source = fixture()
         val stored = source.database.libraryDao().getStoredFiles().single()

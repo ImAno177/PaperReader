@@ -86,7 +86,12 @@ sealed interface LibraryTransferUiState {
     data object Recovering : LibraryTransferUiState
     data object Idle : LibraryTransferUiState
     data object ExportingLibrary : LibraryTransferUiState
-    data class LibraryExported(val papers: Int, val documents: Int, val documentBytes: Long) : LibraryTransferUiState
+    data class LibraryExported(
+        val papers: Int,
+        val documents: Int,
+        val documentBytes: Long,
+        val skippedDocuments: Int = 0,
+    ) : LibraryTransferUiState
     data object InspectingLibrary : LibraryTransferUiState
     data object DiscardingLibraryPreview : LibraryTransferUiState
     data class LibraryPreview(

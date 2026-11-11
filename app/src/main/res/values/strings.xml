@@ -738,6 +738,10 @@
     <string name="library_transfer_importing_bibliography">Importing %1$s…</string>
     <string name="library_transfer_exporting_notes">Exporting notes…</string>
     <string name="library_transfer_archive_exported">Saved %1$d papers and %2$d PDFs (%3$d bytes).</string>
+    <plurals name="library_transfer_archive_skipped_documents">
+        <item quantity="one">%d stored PDF was missing or changed, so only its details were saved.</item>
+        <item quantity="other">%d stored PDFs were missing or changed, so only their details were saved.</item>
+    </plurals>
     <string name="library_transfer_bibliography_exported">%1$s saved.</string>
     <string name="library_transfer_notes_exported">Markdown saved.</string>
     <string name="library_transfer_archive_restored">Restored %1$d papers and %2$d PDFs. Skipped %3$d PDFs and %4$d records.</string>

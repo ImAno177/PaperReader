@@ -5,6 +5,7 @@ import dev.paperreader.logic.domain.CollectionId
 import dev.paperreader.logic.domain.IdentifierType
 import dev.paperreader.logic.domain.LibraryPaper
 import dev.paperreader.logic.domain.PaperCollection
+import dev.paperreader.logic.domain.PaperAuthor
 import dev.paperreader.logic.domain.PaperIdentifier
 import dev.paperreader.logic.domain.PaperWork
 import dev.paperreader.logic.domain.ReadingState
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -52,6 +54,25 @@ class InteroperabilityTest {
 
         assertEquals(listOf(entry), decoded)
         assertTrue(encoded.contains("\\textbackslash{}write18"))
+    }
+
+    @Test
+    fun `BibTeX exports a work with several DOIs using the publisher DOI`() {
+        val entry = BibliographyEntry(
+            title = "Merged work",
+            authors = listOf("Doe, Jane"),
+            identifiers = setOf(
+                id(IdentifierType.DOI, "10.48550/arXiv.2401.00001"),
+                id(IdentifierType.DOI, "10.1234/journal.5"),
+                id(IdentifierType.ARXIV, "2401.00001"),
+            ),
+            entryType = "article",
+        )
+
+        val encoded = BibliographyCodec.encode(BibliographyFormat.BIBTEX, listOf(entry))
+
+        assertTrue(encoded.contains("doi = {10.1234/journal.5}"))
+        assertFalse(encoded.contains("10.48550"))
     }
 
     @Test
@@ -159,6 +180,27 @@ class InteroperabilityTest {
             preview.candidates[1].stableRecordId,
             stableBibliographyRecordId(preview.candidates[1].entry.copy(citationKey = "different-key")),
         )
+    }
+
+    @Test
+    fun `exact-match import adds identifiers without replacing saved metadata`() = runTest {
+        val author = PaperAuthor("Jane Doe", givenName = "Jane", familyName = "Doe", orcid = "0000-0002-1825-0097")
+        val existing = paper("work-doi", "Provider title", setOf(id(IdentifierType.DOI, "10.1234/exact")))
+            .let { it.copy(work = it.work.copy(authors = listOf(author), publicationYear = 2023)) }
+        val repository = FakeLibraryRepository(listOf(existing))
+        val input = """
+            @article{one, title={Imported title}, author={Doe, J.}, year={2024}, doi={10.1234/exact}, eprint={2401.00001}, archiveprefix={arXiv}}
+        """.trimIndent().toByteArray()
+        val preview = PreviewBibliographyImport(repository).preview(BibliographyFormat.BIBTEX, input)
+
+        val report = ImportBibliography(repository).import(preview)
+
+        assertEquals(1, report.mergedCount)
+        val saved = repository.saved.single()
+        assertEquals("Provider title", saved.title)
+        assertEquals(listOf(author), saved.authors)
+        assertEquals(2023, saved.publicationYear)
+        assertTrue(saved.identifiers.any { it.type == IdentifierType.ARXIV })
     }
 
     @Test

@@ -5,6 +5,7 @@ import dev.paperreader.logic.domain.LibraryPaper
 import dev.paperreader.logic.domain.ManifestationType
 import dev.paperreader.logic.domain.PaperAuthor
 import dev.paperreader.logic.domain.PaperIdentifier
+import dev.paperreader.logic.domain.PaperWork
 import dev.paperreader.logic.domain.WorkId
 import dev.paperreader.logic.domain.identity.IdentifierNormalizer
 import dev.paperreader.logic.domain.identity.IdentityResolver
@@ -120,7 +121,9 @@ class ImportBibliography(private val library: LibraryRepository) {
         }
         val results = mutableListOf<BibliographyImportRecordResult>()
         val aliasOwners = mutableMapOf<String, MutableSet<WorkId>>()
+        val savedWorks = mutableMapOf<WorkId, RemotePaper>()
         for (paper in library.library.first()) {
+            savedWorks[paper.work.id] = paper.work.toMetadataOnlyRemotePaper()
             for (key in IdentityResolver.exactKeys(paper.work.identifiers)) {
                 aliasOwners.getOrPut(key) { linkedSetOf() }.add(paper.work.id)
             }
@@ -141,13 +144,18 @@ class ImportBibliography(private val library: LibraryRepository) {
                 )
                 continue
             }
+            val imported = candidate.entry.toRemotePaper(candidate.stableRecordId)
+            // An exact match adds identifiers and links but never replaces the saved
+            // title, authors (with ORCID and name parts), abstract, or dates.
+            val toSave = matched.singleOrNull()?.let(savedWorks::get)?.let(imported::keepingMetadataOf) ?: imported
             val workId = try {
-                library.save(candidate.entry.toRemotePaper(candidate.stableRecordId))
+                library.save(toSave)
             } catch (_: ExactIdentityConflictException) {
                 results += BibliographyImportRecordResult(candidate.index, BibliographyImportOutcome.SKIPPED_AMBIGUOUS)
                 continue
             }
             for (key in incomingKeys) aliasOwners.getOrPut(key) { linkedSetOf() }.add(workId)
+            savedWorks.putIfAbsent(workId, toSave)
             results += BibliographyImportRecordResult(
                 index = candidate.index,
                 outcome = if (matched.isEmpty()) BibliographyImportOutcome.IMPORTED
@@ -168,6 +176,28 @@ private fun hasExactIdentity(paper: LibraryPaper, identifiers: Set<PaperIdentifi
     val paperKeys = IdentityResolver.exactKeys(paper.work.identifiers)
     val incomingKeys = IdentityResolver.exactKeys(identifiers)
     return paperKeys.intersect(incomingKeys).isNotEmpty()
+}
+
+private fun PaperWork.toMetadataOnlyRemotePaper(): RemotePaper = RemotePaper(
+    providerId = BIBLIOGRAPHY_IMPORT_PROVIDER,
+    providerRecordId = id.value,
+    title = title,
+    abstractText = abstractText,
+    authors = authors,
+    publishedDate = publishedDate,
+    publicationYear = publicationYear,
+)
+
+private fun RemotePaper.keepingMetadataOf(saved: RemotePaper): RemotePaper {
+    // Date and year move together so the year-matches-date invariant always holds.
+    val dateSource = if (saved.publishedDate != null || saved.publicationYear != null) saved else this
+    return copy(
+        title = saved.title,
+        abstractText = saved.abstractText ?: abstractText,
+        authors = saved.authors.ifEmpty { authors },
+        publishedDate = dateSource.publishedDate,
+        publicationYear = dateSource.publicationYear ?: dateSource.publishedDate?.year,
+    )
 }
 
 private fun BibliographyEntry.toRemotePaper(stableId: String): RemotePaper {

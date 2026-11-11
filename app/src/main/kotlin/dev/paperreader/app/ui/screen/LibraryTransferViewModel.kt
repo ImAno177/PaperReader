@@ -97,6 +97,7 @@ class LibraryTransferViewModel(
                     papers = archive.summary.works,
                     documents = archive.documents,
                     documentBytes = archive.documentBytes,
+                    skippedDocuments = archive.skippedDocuments,
                 )
             } finally {
                 prepared?.let { archive ->

@@ -61,14 +61,15 @@ internal class RoomLibraryArchiveRepository(
         val workByManifestation = proto.works.flatMap { work ->
             work.manifestations.map { it.sourceId to work.sourceId }
         }.toMap()
-        val documents = files.sortedBy(FileEntity::manifestationId).mapIndexed { index, file ->
+        // A stored PDF that is missing, resized, or no longer a PDF is left out; its metadata
+        // still exports, and the skipped count is reported instead of failing the whole backup.
+        val exportable = files.sortedBy(FileEntity::manifestationId).mapNotNull { file ->
+            if (workByManifestation[file.manifestationId] == null) null else exportableFile(file)
+        }
+        val documents = exportable.mapIndexed { index, (file, path) ->
             val sha = requireNotNull(file.sha256).lowercase()
-            val size = requireNotNull(file.byteLength)
-            require(file.mimeType == "application/pdf" && sha.matches(SHA256) && size in 1..MAX_PDF_BYTES)
-            val path = storedPath(requireNotNull(file.localPath))
-            require(Files.isRegularFile(path, NOFOLLOW_LINKS) && Files.size(path) == size && path.hasPdfMagic())
             ArchiveDocument(requireNotNull(workByManifestation[file.manifestationId]), file.manifestationId,
-                sha, size, "documents/$index-$sha.pdf") to path
+                sha, requireNotNull(file.byteLength), "documents/$index-$sha.pdf") to path
         }
         require(documents.size <= 1000)
         val manifest = LibraryArchiveManifest(createdAtEpochMillis = proto.createdAtEpochMillis, documents = documents.map { it.first })
@@ -79,7 +80,19 @@ internal class RoomLibraryArchiveRepository(
             }
         }
         PreparedLibraryArchive(token, summary(proto), documents.size, documents.sumOf { it.first.byteLength },
-            Instant.ofEpochMilli(proto.createdAtEpochMillis))
+            Instant.ofEpochMilli(proto.createdAtEpochMillis), skippedDocuments = files.size - documents.size)
+    }
+
+    private fun exportableFile(file: FileEntity): Pair<FileEntity, Path>? {
+        val sha = file.sha256?.lowercase() ?: return null
+        val size = file.byteLength ?: return null
+        val localPath = file.localPath ?: return null
+        if (file.mimeType != "application/pdf" || !sha.matches(SHA256) || size !in 1..MAX_PDF_BYTES) return null
+        val path = runCatching { storedPath(localPath) }.getOrNull() ?: return null
+        val intact = runCatching {
+            Files.isRegularFile(path, NOFOLLOW_LINKS) && Files.size(path) == size && path.hasPdfMagic()
+        }.getOrDefault(false)
+        return if (intact) file to path else null
     }
 
     suspend fun writeExport(token: String, output: OutputStream) = operation(LibraryArchiveFailure.EXPORT_FAILED) {

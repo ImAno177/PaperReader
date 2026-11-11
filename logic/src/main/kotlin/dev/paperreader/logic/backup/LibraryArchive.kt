@@ -10,6 +10,8 @@ data class PreparedLibraryArchive(
     val documentBytes: Long,
     val createdAt: Instant,
     val suggestedFileName: String = "paper-reader-library.paperreader.zip",
+    /** Stored PDFs left out because they were missing or no longer matched their record. */
+    val skippedDocuments: Int = 0,
 )
 
 data class LibraryRestoreCandidate(

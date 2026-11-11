@@ -8,9 +8,12 @@ current branch. Released sections correspond to Git tags.
 ### Added
 
 - Full library backup with streamed, hash-verified PDFs, restore preview, durable recovery, and
-  preservation of existing local documents.
+  preservation of existing local documents. A missing or changed stored PDF is reported and left
+  out instead of failing the whole backup.
 - BibTeX/RIS import and export with exact-identifier matching and ambiguity warnings, plus Markdown
-  notes export with original quotes and exact document/anchor references.
+  notes export with original quotes and exact document/anchor references. Exact-match imports add
+  identifiers and links without replacing saved titles or authors, and BibTeX export keeps works
+  with several DOIs by writing the publisher DOI.
 - Separate per-version labels for cached HTML, retained offline HTML, and an original PDF.
 - A dedicated More hub with grouped settings and a focused Download queue showing aggregate and
   per-task progress, retry/cancel/remove actions, completed work, and a visible back action.
@@ -27,7 +30,8 @@ current branch. Released sections correspond to Git tags.
 - Search previews keep Save/Open visible while metadata scrolls, saved-search controls take less
   space, and unreachable-source messages point to connection checks and retry.
 - Root tabs restore search and navigation state. Library grid titles wrap fully, zero-percent
-  progress bars are hidden, and long reader author details collapse without changing cached content.
+  progress bars are hidden, and long reader author details collapse without changing cached content
+  or annotation offsets.
 - Room schema 5 and backwards-readable metadata backups preserve year-only publication values
   without inventing a month or day.
 - Blocked sources show recovery guidance while keeping certificate and protocol diagnostics in

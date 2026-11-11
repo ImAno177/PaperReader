@@ -198,7 +198,15 @@ private fun TransferStatus(
             state.papers,
             state.documents,
             state.documentBytes,
-        )
+        ) + if (state.skippedDocuments > 0) {
+            " " + pluralStringResource(
+                R.plurals.library_transfer_archive_skipped_documents,
+                state.skippedDocuments,
+                state.skippedDocuments,
+            )
+        } else {
+            ""
+        }
         is LibraryTransferUiState.BibliographyExported -> stringResource(
             R.string.library_transfer_bibliography_exported,
             formatLabel(state.format),

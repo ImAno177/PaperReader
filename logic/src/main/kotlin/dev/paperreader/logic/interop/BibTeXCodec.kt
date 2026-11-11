@@ -233,9 +233,6 @@ internal object BibTeXWriter {
         val usedKeys = mutableSetOf<String>()
         entries.forEachIndexed { index, entry ->
             if (index > 0) append('\n')
-            require(IdentifierType.entries.all { type -> entry.identifiers.count { it.type == type } <= 1 }) {
-                "BibTeX supports at most one identifier of each type per record"
-            }
             val baseKey = entry.citationKey ?: stableCitationKey(entry)
             require(entry.citationKey == null || usedKeys.add(baseKey.lowercase(Locale.ROOT))) {
                 "Duplicate BibTeX citation key"
@@ -261,7 +258,11 @@ internal object BibTeXWriter {
                 date.month?.let { appendField("month", MONTHS[it - 1]) }
                 date.day?.let { appendField("day", it.toString()) }
             }
-            entry.identifiers.firstOrNull { it.type == IdentifierType.DOI }?.let { appendField("doi", it.value) }
+            // BibTeX has one doi field. A merged work can hold several DOIs (for example the
+            // publisher DOI and arXiv's DataCite DOI); export the publisher DOI when present.
+            entry.identifiers.filter { it.type == IdentifierType.DOI }
+                .minByOrNull { if (it.value.startsWith(ARXIV_DATACITE_DOI_PREFIX, ignoreCase = true)) 1 else 0 }
+                ?.let { appendField("doi", it.value) }
             entry.identifiers.firstOrNull { it.type == IdentifierType.ARXIV }?.let {
                 appendField("eprint", it.value)
                 appendField("archiveprefix", "arXiv")
@@ -303,6 +304,7 @@ internal object BibTeXWriter {
         }
     }
 
+    private const val ARXIV_DATACITE_DOI_PREFIX = "10.48550/"
     private val MONTHS = listOf("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")
 }
 

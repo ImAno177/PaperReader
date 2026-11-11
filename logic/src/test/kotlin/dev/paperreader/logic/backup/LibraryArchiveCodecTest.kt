@@ -118,6 +118,21 @@ class LibraryArchiveCodecTest {
     }
 
     @Test
+    fun `write fails when a document changes after the export pre-check`() {
+        val recorded = "%PDF-1.7\npaper".toByteArray()
+        val changedSameSize = "%PDF-1.7\npapes".toByteArray()
+        val manifest = LibraryArchiveManifest(createdAtEpochMillis = 1, documents = listOf(archiveDocument(recorded)))
+
+        val failure = assertThrowsArchive {
+            LibraryArchiveCodec.write(byteArrayOf(1), manifest, ByteArrayOutputStream()) {
+                ByteArrayInputStream(changedSameSize)
+            }
+        }
+
+        assertEquals(LibraryArchiveFailure.EXPORT_FAILED, failure.reason)
+    }
+
+    @Test
     fun `read validates document size hash and PDF magic and cleans partial extraction`() {
         val pdf = "%PDF-1.7\npaper".toByteArray()
         val wrongHash = archiveDocument(pdf).copy(sha256 = "0".repeat(64), entryName = "documents/0-${"0".repeat(64)}.pdf")

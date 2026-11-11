@@ -111,7 +111,10 @@ A theme supplies complete declarative data:
 
 - light and dark semantic color palettes;
 - title, body, and label font families;
-- corner, border, shadow, and decoration tokens;
+- corner, border, shadow, and decoration tokens. A non-zero shadow offset draws an opaque,
+  unblurred copy of each card and button outline in the hard-shadow color, shifted down and right
+  by that offset, and pressed controls move into it. With a shadow offset, status badges use the
+  border color for their outline;
 - every `ThemeSemanticIcon` as bounded ASCII path data.
 
 The current sample uses a `2400 x 2400` icon viewport and a 64 KiB per-icon limit. The host parses and

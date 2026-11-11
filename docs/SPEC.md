@@ -60,10 +60,11 @@ Bottom-navigation outlines align with the content grid, while independent touch 
 48 dp and extend safely around the visible geometry.
 
 Appearance has independent controls for visual preset and System/Light/Dark mode. The built-in
-Neobrutalism preset uses layered paper surfaces, cobalt primary actions, yellow selection states,
-serif display headings, sans-serif body and metadata, 8 dp corners, 1 dp outlines, and subtle
-bottom-only shadows. Its dark mode separates canvas, cards, and muted surfaces and adjusts accent
-colors for legibility. Five additional built-in color themes provide ocean, forest, violet, rose,
+Neobrutalism preset uses black ink on a lavender canvas with white cards, electric-violet primary
+actions, highlighter-yellow selection, magenta secondary accents, Space Grotesk display headings,
+system sans-serif body and metadata, 4 dp corners, 2 dp outlines, and opaque 4 dp diagonal hard
+shadows that a pressed control moves into. Dark mode inverts the ink: outlines and shadows turn
+light on a near-black canvas while the yellow selection and violet actions stay saturated. Five additional built-in color themes provide ocean, forest, violet, rose,
 and sunset accents. A theme extension supplies a complete semantic icon set with its declarative
 tokens; the built-in Neobrutalism type scale does not override community typography. The legacy
 `DOODLE` extension decoration remains readable for binary compatibility but is not a built-in

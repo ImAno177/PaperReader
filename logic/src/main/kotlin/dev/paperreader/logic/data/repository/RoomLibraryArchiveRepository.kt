@@ -8,6 +8,7 @@ import dev.paperreader.logic.local.hasPdfMagic
 import java.io.InputStream
 import java.io.OutputStream
 import java.nio.file.Files
+import java.security.MessageDigest
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -83,7 +84,7 @@ internal class RoomLibraryArchiveRepository(
             Instant.ofEpochMilli(proto.createdAtEpochMillis), skippedDocuments = files.size - documents.size)
     }
 
-    private fun exportableFile(file: FileEntity): Pair<FileEntity, Path>? {
+    private suspend fun exportableFile(file: FileEntity): Pair<FileEntity, Path>? {
         val sha = file.sha256?.lowercase() ?: return null
         val size = file.byteLength ?: return null
         val localPath = file.localPath ?: return null
@@ -92,8 +93,24 @@ internal class RoomLibraryArchiveRepository(
         val intact = runCatching {
             Files.isRegularFile(path, NOFOLLOW_LINKS) && Files.size(path) == size && path.hasPdfMagic()
         }.getOrDefault(false)
-        return if (intact) file to path else null
+        // Same-size edits pass the cheap checks, so compare the recorded hash too. The codec
+        // still verifies each document while writing in case the file changes in between.
+        return if (intact && sha256Of(path) == sha) file to path else null
     }
+
+    private suspend fun sha256Of(path: Path): String? = runCatching {
+        val digest = MessageDigest.getInstance("SHA-256")
+        Files.newInputStream(path).use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                currentCoroutineContext().ensureActive()
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        digest.digest().joinToString("") { "%02x".format(it) }
+    }.onFailure { if (it is CancellationException) throw it }.getOrNull()
 
     suspend fun writeExport(token: String, output: OutputStream) = operation(LibraryArchiveFailure.EXPORT_FAILED) {
         Files.newInputStream(sessions.load(token, "export")).use { LibraryArchiveSessionStore.copyBounded(it, output) }

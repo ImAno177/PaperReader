@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import dev.paperreader.logic.backup.LibraryArchiveException
 import dev.paperreader.logic.data.AnnotationEntity
 import dev.paperreader.logic.data.FileEntity
 import dev.paperreader.logic.data.LibraryDatabase
@@ -118,15 +117,15 @@ class RoomLibraryArchiveAndroidTest {
     }
 
     @Test
-    fun corruptLocalPdfIsRejectedWithoutChangingLibraryAndCancelledInputLeavesNoPendingRestore() = runBlocking {
+    fun sameSizeChangedPdfIsSkippedWithoutChangingLibraryAndCancelledInputLeavesNoPendingRestore() = runBlocking {
         val source = fixture()
         val originalWorks = source.database.libraryDao().getAllWorks()
         val stored = source.database.libraryDao().getStoredFiles().single()
         Files.write(source.root.resolve(stored.localPath!!), PDF.copyOf().also { it[it.lastIndex - 2] = 65 })
-        try {
-            source.repository.prepareExport()
-            fail("A changed PDF must fail its exact hash check")
-        } catch (_: LibraryArchiveException) { }
+        val prepared = source.repository.prepareExport()
+        assertEquals(0, prepared.documents)
+        assertEquals(1, prepared.skippedDocuments)
+        source.repository.discard(prepared.token)
         assertEquals(originalWorks, source.database.libraryDao().getAllWorks())
         val target = fixture(populate = false)
         val cancelled = object : java.io.InputStream() {

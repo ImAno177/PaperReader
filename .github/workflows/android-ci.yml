@@ -102,8 +102,8 @@ jobs:
         with:
           # Same-repository pull requests write a PR-scoped cache so later pushes reuse
           # dependencies and build outputs; main pushes refresh the shared cache. Fork
-          # pull requests only read.
-          cache-read-only: ${{ github.event.pull_request.head.repo.fork == true }}
+          # pull requests and manual runs outside main only read.
+          cache-read-only: ${{ github.event.pull_request.head.repo.fork == true || (github.event_name != 'pull_request' && github.ref != 'refs/heads/main') }}
 
       - name: Verify host code and build APKs
         id: quality_gate

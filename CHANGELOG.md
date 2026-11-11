@@ -79,6 +79,8 @@ current branch. Released sections correspond to Git tags.
 
 ### Build
 
+- The `external/` submodules point to the API 2 source catalog and to sources and samples built with
+  Android Gradle Plugin 9.5.1, so `tools/verify-extensions.ps1` passes against the current host.
 - Removed 4 tautological host unit tests, narrowed 2 field-readback tests to their one real
   default, and merged 2 duplicate navigation cases (145 lines removed, 9 added). Coverage gates
   are unchanged.

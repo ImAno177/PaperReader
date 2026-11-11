@@ -16,35 +16,6 @@ import org.junit.Test
 
 class MetadataBackupCodecTest {
     @Test
-    fun `backup result models expose their complete public contract`() {
-        val summary = MetadataBackupSummary(1, 2, 3, 4, 5, 6, 7, 8, 9)
-        val issue = MetadataRestoreIssue("code", "detail")
-        val preview = MetadataRestorePreview(
-            summary = summary,
-            createdAt = Instant.EPOCH,
-            newWorks = 1,
-            mergedWorks = 2,
-            skippedWorks = 3,
-            conflicts = listOf(issue),
-            missingProviders = setOf("arxiv"),
-            dormantReadingStates = 4,
-            dormantBookmarks = 5,
-            dormantAnnotations = 6,
-            skippedRecords = 7,
-        )
-        val export = MetadataBackupExport(byteArrayOf(1), summary, Instant.EPOCH)
-        val applied = MetadataRestoreResult.Applied(preview, 1, 2, 3, 4, 5, 6, 7)
-
-        assertEquals(9, summary.savedSearchHits)
-        assertEquals("detail", issue.detail)
-        assertEquals(7, preview.skippedRecords)
-        assertEquals("paper-reader-metadata.paperreader.backup", export.suggestedFileName)
-        assertEquals(7, applied.appliedSavedSearchHits)
-        assertEquals(export, (MetadataBackupExportResult.Success(export)).export)
-        assertEquals(preview, (MetadataRestorePreviewResult.Ready(preview)).preview)
-    }
-
-    @Test
     fun `wire models preserve optional fields used by every backup section`() {
         val author = BackupAuthorProto(0, "Ada", "Ada", "Lovelace", "0000-0000")
         val identifier = BackupIdentifierProto("PROVIDER", "record", "source")

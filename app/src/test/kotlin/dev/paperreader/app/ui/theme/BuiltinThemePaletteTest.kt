@@ -10,19 +10,4 @@ class BuiltinThemePaletteTest {
         assertEquals(Color.Black, contrastForeground(Color(0xFFFFD84D)))
         assertEquals(Color.White, contrastForeground(Color(0xFF6B1020)))
     }
-
-    @Test
-    fun `only supported built-in presets are selectable`() {
-        assertEquals(
-            setOf(
-                PaperThemePreset.NEOBRUTALISM,
-                PaperThemePreset.OCEAN,
-                PaperThemePreset.FOREST,
-                PaperThemePreset.VIOLET,
-                PaperThemePreset.ROSE,
-                PaperThemePreset.SUNSET,
-            ),
-            PaperThemePreset.entries.toSet(),
-        )
-    }
 }

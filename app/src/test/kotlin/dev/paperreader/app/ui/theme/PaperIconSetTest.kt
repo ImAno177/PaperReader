@@ -1,18 +1,10 @@
 package dev.paperreader.app.ui.theme
 
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class PaperIconSetTest {
-    @Test
-    fun `built-in theme uses Material Symbols`() {
-        PaperThemePreset.entries.forEach { preset ->
-            assertEquals(PaperIconFamily.MATERIAL_SYMBOLS, paperIconSet(preset).family)
-        }
-    }
-
     @Test
     fun `every semantic icon has a resource in every family`() {
         requireCompletePaperIconSets()

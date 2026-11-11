@@ -33,6 +33,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
@@ -217,8 +219,15 @@ internal fun AdaptiveAppShell(
                 modifier = Modifier.fillMaxSize(),
                 containerColor = PaperTheme.tokens.canvas,
                 bottomBar = {
+                    val navigationRule = PaperTheme.tokens.border
+                    val navigationRuleWidth = PaperTheme.tokens.borderWidth
                     NavigationBar(
-                        modifier = Modifier.testTag(PRIMARY_NAVIGATION_TEST_TAG),
+                        modifier = Modifier
+                            .testTag(PRIMARY_NAVIGATION_TEST_TAG)
+                            .drawBehind {
+                                val stroke = navigationRuleWidth.toPx()
+                                drawRect(navigationRule, size = Size(size.width, stroke))
+                            },
                         containerColor = PaperTheme.tokens.surface,
                         contentColor = PaperTheme.tokens.ink,
                         tonalElevation = 0.dp,

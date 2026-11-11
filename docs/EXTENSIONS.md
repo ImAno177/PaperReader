@@ -54,6 +54,8 @@ compatible. Source and theme APKs must be rebuilt against SDK 0.2.0 and declare 
 The host reads the official `registry/v2/index.signed.json` channel. The original
 `registry/index.signed.json` remains the API 1 channel for older app releases. Publishing a new
 source must verify that its signed registry capabilities, manifest API, and Binder descriptor agree.
+The public API 2 catalog is not yet published. Follow the
+[candidate-first release order](TESTING.md#host-and-source-release-order) before promoting the host.
 
 ## Source extensions
 

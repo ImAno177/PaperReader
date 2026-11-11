@@ -131,7 +131,7 @@ internal class RoomLibraryArchiveRepository(
                     for ((document, path) in published) {
                         val targetId = bindings[ManifestationRef(document.workSourceId, document.manifestationSourceId)] ?: continue
                         val existing = dao.getFile(targetId)
-                        if (existing?.localPath != null) continue
+                        if (shouldPreserveLocalFile(existing)) continue
                         dao.upsertFile(FileEntity(
                             id = existing?.id ?: UUID.randomUUID().toString(),
                             manifestationId = targetId,
@@ -168,7 +168,7 @@ internal class RoomLibraryArchiveRepository(
             for (document in archive.manifest.documents) {
                 val target = bindings[ManifestationRef(document.workSourceId, document.manifestationSourceId)]
                 val current = target?.let { dao.getFile(it) }
-                if (target == null || current?.localPath != null && current.sha256 != document.sha256) conflicts++
+                if (target == null || shouldPreserveLocalFile(current) && current?.sha256 != document.sha256) conflicts++
             }
             LibraryRestoreCandidate(token, plan.preview, archive.documents.size,
                 archive.manifest.documents.sumOf(ArchiveDocument::byteLength), conflicts)
@@ -193,6 +193,11 @@ internal class RoomLibraryArchiveRepository(
         } finally {
             sessions.removeTemporaryDirectory(directory)
         }
+    }
+
+    private fun shouldPreserveLocalFile(file: FileEntity?): Boolean {
+        val relative = file?.localPath ?: return false
+        return !Files.notExists(storedPath(relative), NOFOLLOW_LINKS)
     }
 
     private fun storedPath(relative: String): Path {

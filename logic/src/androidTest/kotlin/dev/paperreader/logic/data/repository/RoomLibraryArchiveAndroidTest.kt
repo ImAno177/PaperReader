@@ -75,6 +75,18 @@ class RoomLibraryArchiveAndroidTest {
         assertEquals(stored, dao.getStoredFiles().single())
         assertEquals(1, dao.getAllWorks().size)
         assertEquals(1, Files.list(target.root.resolve("papers")).use { it.count() }.toInt())
+
+        Files.delete(target.root.resolve(stored.localPath))
+        val missing = target.repository.prepareRestore(bytes.inputStream())
+        assertEquals(0, missing.conflictingDocuments)
+        val repaired = target.repository.restore(missing.token)
+        assertEquals(1, repaired.restoredDocuments)
+        assertEquals(0, repaired.skippedDocuments)
+        val recoveredFile = dao.getStoredFiles().single()
+        assertEquals(stored.id, recoveredFile.id)
+        assertEquals(source.sha, recoveredFile.sha256)
+        assertArrayEquals(PDF, Files.readAllBytes(target.root.resolve(recoveredFile.localPath!!)))
+        assertEquals(source.sha, dao.getAllAnnotations().single().documentSha256)
     }
 
     @Test
@@ -95,6 +107,14 @@ class RoomLibraryArchiveAndroidTest {
         assertEquals(expected, dao.getStoredFiles().single())
         assertArrayEquals(different, Files.readAllBytes(target.root.resolve(existing.localPath)))
         assertEquals(source.sha, dao.getAllAnnotations().single().documentSha256)
+
+        Files.delete(target.root.resolve(existing.localPath))
+        val missing = target.repository.prepareRestore(archive(source).inputStream())
+        assertEquals(0, missing.conflictingDocuments)
+        assertEquals(1, target.repository.restore(missing.token).restoredDocuments)
+        val recoveredFile = dao.getStoredFiles().single()
+        assertEquals(source.sha, recoveredFile.sha256)
+        assertArrayEquals(PDF, Files.readAllBytes(target.root.resolve(recoveredFile.localPath!!)))
     }
 
     @Test

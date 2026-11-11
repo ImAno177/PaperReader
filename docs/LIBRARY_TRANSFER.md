@@ -13,6 +13,8 @@ Full library backup contains `library.json`, `metadata.backup`, and generated `d
 entries. PDFs are streamed and checked against their recorded byte length and SHA-256. Restore
 validates the entire archive before showing a preview, then commits metadata and PDF references in
 one database transaction. Existing local PDFs are preserved even when the incoming hash differs.
+A stale database path whose file no longer exists is repaired from the backup. Restore preserves
+the local reference when file existence cannot be determined.
 Annotations retain their exact hash and anchors; they become usable only with the matching document.
 Readable HTML and its assets are excluded and may need to be acquired again.
 

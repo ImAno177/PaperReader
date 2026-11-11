@@ -51,6 +51,8 @@ current branch. Released sections correspond to Git tags.
 
 ### Fixed
 
+- Full backup restore recovers missing PDFs even when their database paths remain, while preserving
+  existing files and exact document anchors.
 - Reader contents links leave the target heading below the toolbar; source-supplied list markers
   no longer render twice, and multi-paragraph list items retain their content alignment.
 - Native reader surfaces and link colors follow the Neobrutalism light and dark palettes.
@@ -68,6 +70,8 @@ current branch. Released sections correspond to Git tags.
 
 ### Build
 
+- Host releases start as prereleases without replacing the latest stable download. Promotion follows
+  signed source-catalog publication and verification of fresh installs and upgrades.
 - Related source, sample, theme, and site repositories are pinned as optional Git submodules under
   `external/`, with a local extension compatibility gate against the host SDK.
 - Documentation-only pull requests skip Android setup and Gradle while retaining their existing

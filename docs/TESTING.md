@@ -171,6 +171,32 @@ Gradle through environment variables; the keystore is removed even when a later 
 requests and main, without running that gate a second time. Failed host checks upload JUnit XML, unit-test HTML, and
 lint reports. APK uploads disable redundant ZIP compression.
 
+### Host and source release order
+
+The host workflow creates a GitHub prerelease and leaves the current stable release marked latest.
+It does not automatically promote the candidate. This allows the source workflow to verify the
+signed candidate before publishing a new contract channel.
+
+For an extension contract upgrade:
+
+1. Merge the reviewed host and source changes and wait for their exact main commits to pass CI.
+2. Build the host candidate from that main commit. Set the source repository's
+   `PAPERREADER_SDK_REF` variable to the same immutable host commit.
+3. Dispatch the source release with that SDK commit, the candidate's tag, and a version code above
+   all published source and catalog versions. A stale source checkout must be redispatched.
+4. Verify the signed API 2 catalog and its APK URLs, hashes, sizes, certificates, and descriptors.
+   On a fresh test installation, refresh the store, install a source through Android confirmation,
+   search, and open a paper. Also verify upgrading an existing installation and cached offline reading.
+5. Promote the exact tested host candidate only after those checks succeed:
+
+   ```powershell
+   gh release edit $env:PAPERREADER_RELEASE_TAG --repo ImAno177/PaperReader --prerelease=false --latest
+   ```
+
+The API 2 public catalog is not yet published. A candidate cannot provide official source installation
+on a fresh device until that catalog exists. Local development-source smoke tests do not prove this
+public delivery path; never promote a candidate using only those results.
+
 Pull requests intentionally skip coverage packaging, the unsigned release build, and SBOM generation.
 Those artifacts do not change the review verdict and remain available from main, manual, and release
 runs. Gradle receives all tasks for a run in one invocation, so shared compilation and unit-test work

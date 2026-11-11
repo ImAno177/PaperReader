@@ -221,11 +221,12 @@ Android XML. It uploads a SARIF report to GitHub Code Scanning. The scan uses `-
 findings remain visible for triage without turning an informational baseline into a false-green
 security waiver; no findings are suppressed by repository configuration.
 
-Gradle's enhanced cache has one writer: a successful `push` to `main` in `android-ci.yml`. Pull
-requests, CodeQL, and manual release runs are read-only consumers. This prevents each security scan,
-release, or review commit from creating a duplicate dependency/transforms cache; successful writes also
-run Gradle's built-in cleanup. The policy follows Gradle's `cache-read-only` guidance and GitHub's
-branch-scoped cache model.
+Only the `android-ci.yml` gate writes Gradle's enhanced cache: `main` pushes refresh the shared
+cache, and same-repository pull requests write a PR-scoped cache that later pushes to the same pull
+request restore. Fork pull requests, CodeQL, and release runs are read-only consumers. Work lands
+through long-lived pull requests, so a main-only writer left the cache evicted after GitHub's
+seven-day idle limit and every run rebuilt from empty. Successful writes run Gradle's built-in
+cleanup, and GitHub evicts least-recently-used entries at the repository quota.
 
 ## Test-case policy
 

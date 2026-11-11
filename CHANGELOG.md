@@ -83,7 +83,9 @@ current branch. Released sections correspond to Git tags.
   check names, documentation validation, dependency review, and security scans. Main and manual
   runs still execute the full host gate and produce release artifacts.
 - Centralized dependency and build-tool pins in the Gradle version catalog without upgrading them;
-  CI, CodeQL, and release share one Android setup action and retain the main-only cache writer.
+  CI, CodeQL, and release share one Android setup action.
+- Same-repository pull requests write a PR-scoped Gradle cache, so later pushes reuse dependencies
+  and build outputs instead of rebuilding from an empty cache; fork pull requests remain read-only.
 - Release inputs are validated before signing, use environment variables, and require green main
   push CI for the exact commit. Signing keys are cleaned up after success or failure.
 - CI validates workflow syntax and uploads test and lint diagnostics on failure; APK artifacts skip

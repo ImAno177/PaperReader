@@ -100,7 +100,10 @@ jobs:
         if: steps.android_gate.outputs.run_android == 'true'
         uses: ./.github/actions/setup-android
         with:
-          cache-read-only: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
+          # Same-repository pull requests write a PR-scoped cache so later pushes reuse
+          # dependencies and build outputs; main pushes refresh the shared cache. Fork
+          # pull requests only read.
+          cache-read-only: ${{ github.event.pull_request.head.repo.fork == true }}
 
       - name: Verify host code and build APKs
         id: quality_gate

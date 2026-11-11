@@ -75,6 +75,9 @@ current branch. Released sections correspond to Git tags.
 
 ### Build
 
+- Removed 4 tautological host unit tests, narrowed 2 field-readback tests to their one real
+  default, and merged 2 duplicate navigation cases (145 lines removed, 9 added). Coverage gates
+  are unchanged.
 - Host releases start as prereleases without replacing the latest stable download. Promotion follows
   signed source-catalog publication and verification of fresh installs and upgrades.
 - Related source, sample, theme, and site repositories are pinned as optional Git submodules under

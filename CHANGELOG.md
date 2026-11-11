@@ -92,6 +92,9 @@ current branch. Released sections correspond to Git tags.
   compatibility under the existing 100% merged line and branch coverage gate.
 - Android CI and CodeQL now use the maintained Android SDK setup action and no longer request the
   removed legacy `tools` package.
+- Updated Gradle 9.8.2, Android Gradle Plugin 9.5.1, Kotlin 2.4.21, Navigation 2.10.2, DataStore
+  1.3.0, WorkManager 2.12.0, OkHttp 5.5.1, kotlinx.serialization 1.12.0, Tink 1.24.0, and pinned
+  GitHub Actions. Coroutines stay on 1.11.0 because the 1.12.0 core artifact is not published.
 
 ## [0.1.11] - 2026-09-06
 

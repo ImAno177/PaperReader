@@ -218,7 +218,7 @@ internal fun AdaptiveAppShell(
                 containerColor = PaperTheme.tokens.canvas,
                 bottomBar = {
                     NavigationBar(
-                        modifier = Modifier.testTag(PRIMARY_NAVIGATION_TEST_TAG).padding(horizontal = 12.dp),
+                        modifier = Modifier.testTag(PRIMARY_NAVIGATION_TEST_TAG),
                         containerColor = PaperTheme.tokens.surface,
                         contentColor = PaperTheme.tokens.ink,
                         tonalElevation = 0.dp,

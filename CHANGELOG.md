@@ -48,9 +48,14 @@ current branch. Released sections correspond to Git tags.
 - The readable reader hides chrome during downward scrolling and restores it on upward scrolling or
   interaction, while preserving native search, contents, provenance, and Back controls. The chrome
   now lives in a fixed overlay, so hiding it no longer remeasures the WebView or shifts document text.
+- Bottom navigation spans the full width, library list cards place Read beside their badges, filter
+  chips are shorter with 48dp touch targets, progress bars render as one track, and history removal
+  sits inside each card.
 
 ### Fixed
 
+- Paper details keep the space in "+ N more" author summaries and label provider record IDs, such as
+  "arXiv record 2607.11940v1", instead of showing them as duplicate lowercase identifiers.
 - Full backup restore recovers missing PDFs even when their database paths remain, while preserving
   existing files and exact document anchors.
 - Reader contents links leave the target heading below the toolbar; source-supplied list markers

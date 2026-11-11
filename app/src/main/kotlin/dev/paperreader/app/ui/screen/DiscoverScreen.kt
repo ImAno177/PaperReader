@@ -91,6 +91,7 @@ fun DiscoverScreen(
     onSaveSearch: (String) -> Unit = {},
     onOpenUpdates: () -> Unit = {},
     onSearchGoogle: (String) -> Unit = {},
+    onOpenSources: () -> Unit = {},
 ) {
     var query by rememberSaveable(state.submittedQuery) {
         mutableStateOf(state.submittedQuery.orEmpty())
@@ -320,6 +321,18 @@ fun DiscoverScreen(
                             Text(stringResource(R.string.search_google_in_app))
                         }
                     }
+                }
+
+                !state.running && state.results.isEmpty() && state.providerCount == 0 -> item {
+                    PaperStatePanel(
+                        title = stringResource(R.string.search_no_sources_title),
+                        body = stringResource(R.string.search_no_sources_body),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        icon = PaperIconKey.PUBLIC,
+                        actionLabel = stringResource(R.string.search_no_sources_action),
+                        onAction = onOpenSources,
+                        compact = true,
+                    )
                 }
 
                 !state.running && state.results.isEmpty() -> item {

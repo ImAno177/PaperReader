@@ -337,10 +337,12 @@ private fun PaperDetailContent(
                 title = paper.title,
                 authors = paper.authors.take(2).joinToString().ifBlank {
                     stringResource(R.string.unknown_authors)
-                } + if (paper.authors.size > 2) {
-                    stringResource(R.string.authors_and_more_suffix, paper.authors.size - 2)
-                } else {
-                    ""
+                }.let { shown ->
+                    if (paper.authors.size > 2) {
+                        stringResource(R.string.authors_and_more, shown, paper.authors.size - 2)
+                    } else {
+                        shown
+                    }
                 },
                 doi = paper.identifiers.firstOrNull { it.type == IdentifierType.DOI }?.value,
             )
@@ -430,7 +432,15 @@ private fun PaperDetailContent(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         secondaryIdentifiers.forEach { identifier ->
                             Text(
-                                text = identifier.displayValue(),
+                                text = if (identifier.type == IdentifierType.PROVIDER) {
+                                    stringResource(
+                                        R.string.provider_record_identifier,
+                                        identifier.authority.orEmpty().displayProviderName(),
+                                        identifier.value,
+                                    )
+                                } else {
+                                    identifier.displayValue()
+                                },
                                 style = MaterialTheme.typography.labelLarge,
                             )
                         }

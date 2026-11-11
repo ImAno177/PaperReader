@@ -79,27 +79,32 @@ internal fun LibraryListPaperCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (paper.status != ReadingStatus.UNREAD || paper.progress > 0f || paper.annotationCount > 0) {
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (paper.status != ReadingStatus.UNREAD || paper.progress > 0f) {
-                        LibraryStatusBadge(paper)
-                    }
-                    if (paper.annotationCount > 0) {
-                        LibraryAnnotationBadge(paper.annotationCount)
-                    }
+        }
+        if (paper.progress > 0f) {
+            Spacer(Modifier.height(12.dp))
+            PaperProgress(paper.progress)
+        }
+        Spacer(Modifier.height(10.dp))
+        // Only the header opens details; the status row is information plus one Read action.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (paper.status != ReadingStatus.UNREAD || paper.progress > 0f) {
+                    LibraryStatusBadge(paper)
                 }
-                if (paper.progress > 0f) {
-                    Spacer(Modifier.height(10.dp))
-                    PaperProgress(paper.progress)
+                if (paper.annotationCount > 0) {
+                    LibraryAnnotationBadge(paper.annotationCount)
                 }
             }
+            LibraryReadButton(onRead)
         }
-        Spacer(Modifier.height(12.dp))
-        LibraryReadButton(onRead)
     }
 }
 
@@ -141,7 +146,7 @@ internal fun LibraryGridPaperCard(
             }
         }
         Spacer(Modifier.height(8.dp))
-        LibraryReadButton(onRead)
+        LibraryReadButton(onRead, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -194,8 +199,8 @@ private fun LibraryAnnotationBadge(count: Int) {
 }
 
 @Composable
-private fun LibraryReadButton(onClick: () -> Unit) {
-    PaperPrimaryButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+private fun LibraryReadButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    PaperPrimaryButton(onClick = onClick, modifier = modifier) {
         Text(stringResource(R.string.library_read_paper))
     }
 }

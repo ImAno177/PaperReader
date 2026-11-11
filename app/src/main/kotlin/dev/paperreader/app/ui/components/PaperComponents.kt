@@ -489,6 +489,8 @@ fun PaperProgress(
                 .clip(RoundedCornerShape(PaperTheme.tokens.cornerRadius / 2)),
             color = PaperTheme.tokens.primary,
             trackColor = PaperTheme.tokens.surfaceMuted,
+            gapSize = 0.dp,
+            drawStopIndicator = {},
         )
     }
 }

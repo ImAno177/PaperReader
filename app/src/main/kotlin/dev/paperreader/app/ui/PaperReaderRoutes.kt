@@ -203,6 +203,7 @@ internal fun AppNavHost(
                 savedSearchActions = savedSearchActions,
                 onSaveSearch = { discoverViewModel.onAction(DiscoverAction.CreateSavedSearch(it)) },
                 onOpenUpdates = { navController.navigate(AppRoutes.UPDATES) { launchSingleTop = true } },
+                onOpenSources = { navController.navigateToMoreBranch(AppRoutes.MORE_SOURCES) },
                 onSearchGoogle = { query ->
                     context.startActivity(
                         GoogleSearchActivity.createIntent(

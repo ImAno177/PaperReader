@@ -1,5 +1,6 @@
 package dev.paperreader.app.ui.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -27,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -140,16 +142,19 @@ private fun HistoryRow(
     dateFormat: PaperDateFormat,
     relativeTimeEnabled: Boolean,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        PaperSurface(
-            modifier = Modifier.weight(1f),
-            onClick = { onOpenPaper(entry.workId) },
+    // The open action covers only the text region so the remove button stays its own accessible node.
+    PaperSurface(contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 4.dp, bottom = 16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(top = 12.dp)
+                    .clickable(role = Role.Button, onClick = { onOpenPaper(entry.workId) }),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 Text(entry.title, style = MaterialTheme.typography.titleLarge, maxLines = 3, overflow = TextOverflow.Ellipsis)
                 Text(
                     text = if (relativeTimeEnabled) {
@@ -169,17 +174,17 @@ private fun HistoryRow(
                     )
                     PaperLabel(stringResource(R.string.reading_minutes, entry.totalReadDuration.toMinutes()))
                 }
+                if (entry.progression > 0f) {
+                    Spacer(Modifier.height(10.dp))
+                    PaperProgress(entry.progression)
+                }
             }
-            if (entry.progression > 0f) {
-                Spacer(Modifier.height(10.dp))
-                PaperProgress(entry.progression)
+            IconButton(onClick = { onRemove(entry.workId) }, modifier = Modifier.size(48.dp)) {
+                PaperIcon(
+                    PaperIconKey.DELETE,
+                    contentDescription = stringResource(R.string.remove_history_accessibility, entry.title),
+                )
             }
-        }
-        IconButton(onClick = { onRemove(entry.workId) }, modifier = Modifier.size(48.dp)) {
-            PaperIcon(
-                PaperIconKey.DELETE,
-                contentDescription = stringResource(R.string.remove_history_accessibility, entry.title),
-            )
         }
     }
 }

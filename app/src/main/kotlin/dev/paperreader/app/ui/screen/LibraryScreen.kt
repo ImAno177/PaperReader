@@ -30,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
@@ -374,21 +375,26 @@ private fun LibraryStatusButton(
     onClick: () -> Unit,
 ) {
     val tokens = PaperTheme.tokens
-    Surface(
+    // The 48dp minimum touch target wraps a shorter visible chip.
+    Box(
         modifier = Modifier
-            .heightIn(min = 48.dp)
+            .minimumInteractiveComponentSize()
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
-        shape = RoundedCornerShape(tokens.cornerRadius),
-        color = if (selected) tokens.primaryContainer else tokens.surface,
-        contentColor = if (selected) tokens.onPrimaryContainer else tokens.ink,
-        border = BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border),
-        tonalElevation = 0.dp,
+        contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
-            style = MaterialTheme.typography.labelLarge,
-        )
+        Surface(
+            shape = RoundedCornerShape(tokens.cornerRadius),
+            color = if (selected) tokens.primaryContainer else tokens.surface,
+            contentColor = if (selected) tokens.onPrimaryContainer else tokens.ink,
+            border = BorderStroke(tokens.borderWidth.coerceAtLeast(1.dp), tokens.border),
+            tonalElevation = 0.dp,
+        ) {
+            Text(
+                text = text,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
     }
 }
 

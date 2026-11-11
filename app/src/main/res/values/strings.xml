@@ -52,6 +52,9 @@
     </plurals>
     <string name="search_no_results_title">No papers found</string>
     <string name="search_no_results_body">Try a shorter title or exact identifier.</string>
+    <string name="search_no_sources_title">No sources enabled</string>
+    <string name="search_no_sources_body">Install or enable a source to search for papers.</string>
+    <string name="search_no_sources_action">Open sources</string>
     <string name="search_google_in_app">Search Google</string>
     <string name="google_search_title">Google · arXiv</string>
     <string name="google_search_failed">Google Search could not load.</string>
@@ -554,7 +557,7 @@
     <string name="data_error_body">Reopen the app and try again. Your saved data is unchanged.</string>
     <string name="unknown_authors">Unknown authors</string>
     <string name="authors_and_more">%1$s + %2$d more</string>
-    <string name="authors_and_more_suffix"> + %1$d more</string>
+    <string name="provider_record_identifier">%1$s record %2$s</string>
     <string name="status_unread">Unread</string>
     <string name="status_reading">Reading</string>
     <string name="status_finished">Finished</string>

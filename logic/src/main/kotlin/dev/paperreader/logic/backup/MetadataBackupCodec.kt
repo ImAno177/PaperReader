@@ -182,6 +182,9 @@ internal object MetadataBackupCodec {
             if (!workSourceIds.add(work.sourceId)) return invalid("duplicate_work", "Duplicate work source ID")
             require(validEpochMillis(work.createdAtEpochMillis) && validEpochMillis(work.updatedAtEpochMillis))
             require(validEpochDay(work.publishedDateEpochDay))
+            require(work.publicationYear == null || work.publicationYear in 1..9999)
+            require(work.publicationYear == null || work.publishedDateEpochDay == null ||
+                LocalDate.ofEpochDay(work.publishedDateEpochDay).year == work.publicationYear)
             work.subjects.forEach(::checkString)
             require(work.subjects.size == work.subjects.toSet().size)
             val authorPositions = HashSet<Int>()

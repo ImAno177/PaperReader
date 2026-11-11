@@ -51,8 +51,8 @@ class MetadataBackupScreenTest {
             }
         }
 
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Create metadata backup"))
-        composeRule.onNodeWithText("Create metadata backup").assertIsDisplayed().performClick()
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Create backup"))
+        composeRule.onNodeWithText("Create backup").assertIsDisplayed().performClick()
         composeRule.onNodeWithText("Restore from backup").performScrollTo().assertIsDisplayed().performClick()
         composeRule.onNodeWithText(
             "PDFs, downloads, caches, extensions, and credentials stay on this device.",
@@ -117,8 +117,8 @@ class MetadataBackupScreenTest {
             }
         }
 
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Create metadata backup"))
-        composeRule.onNodeWithText("Create metadata backup").assertIsNotEnabled()
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Create backup"))
+        composeRule.onNodeWithText("Create backup").assertIsNotEnabled()
         composeRule.onNodeWithText("Restore from backup").assertIsNotEnabled()
     }
 
@@ -181,7 +181,7 @@ class MetadataBackupScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("3 papers · 3 manifestations · 1 collection", substring = true)
+        composeRule.onNodeWithText("3 papers · 3 versions · 1 collection", substring = true)
             .assertIsDisplayed()
         composeRule.onNodeWithText("2 reading states · 2 history entries", substring = true)
             .assertIsDisplayed()

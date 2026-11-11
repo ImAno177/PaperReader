@@ -30,7 +30,13 @@ data class MoreUiState(
     val backupState: MetadataBackupUiState = MetadataBackupUiState.Idle,
     val automaticRefreshEnabled: Boolean = false,
     val notificationsAvailable: Boolean = true,
-)
+) {
+    internal fun withProviders(providers: ProviderManagerState): MoreUiState = copy(
+        providerReviewCount = providers.untrusted.size + providers.orphaned.size,
+        availableProviderCount = providers.available.size,
+        installedProviderCount = providers.installed.size,
+    )
+}
 
 sealed interface MoreAction {
     data class SetLocalPdfImportState(val state: LocalPdfImportUiState) : MoreAction
@@ -72,13 +78,7 @@ class MoreViewModel(
         }
         viewModelScope.launch {
             logic.providers.state.collectLatest { providers ->
-                update {
-                    copy(
-                        providerReviewCount = providers.untrusted.size + providers.orphaned.size,
-                        availableProviderCount = providers.available.size,
-                        installedProviderCount = providers.installed.size,
-                    )
-                }
+                update { withProviders(providers) }
             }
         }
         collectPreference(preferences.themeKey) { copy(themeKey = it) }

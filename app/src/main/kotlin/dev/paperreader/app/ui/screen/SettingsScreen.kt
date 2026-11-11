@@ -8,10 +8,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -52,37 +48,6 @@ fun SettingsScreen(
         query = state.query,
         options = options,
         onQueryChange = { onAction(SettingsAction.SetQuery(it)) },
-        onBack = onBack,
-    )
-}
-
-@Composable
-fun SettingsScreen(
-    onOpenAppearance: () -> Unit,
-    onOpenLibrary: () -> Unit,
-    onOpenReader: () -> Unit,
-    onOpenDownloads: () -> Unit,
-    onOpenUpdates: () -> Unit,
-    onOpenDataBackup: () -> Unit,
-    onOpenSources: () -> Unit,
-    onOpenAbout: () -> Unit,
-    onBack: () -> Unit,
-) {
-    var query by rememberSaveable { mutableStateOf("") }
-    val options = listOf(
-        SettingOption(PaperSettingEntry("appearance", stringResource(R.string.appearance_title), stringResource(R.string.appearance_display_summary)), PaperIconKey.PALETTE, onOpenAppearance),
-        SettingOption(PaperSettingEntry("library", stringResource(R.string.library_settings_title), stringResource(R.string.library_settings_summary)), PaperIconKey.LIBRARY, onOpenLibrary),
-        SettingOption(PaperSettingEntry("reader", stringResource(R.string.reader_settings_title), stringResource(R.string.reader_settings_summary)), PaperIconKey.HISTORY, onOpenReader),
-        SettingOption(PaperSettingEntry("downloads", stringResource(R.string.downloads_settings_title), stringResource(R.string.downloads_settings_summary)), PaperIconKey.DOWNLOAD, onOpenDownloads),
-        SettingOption(PaperSettingEntry("updates", stringResource(R.string.updates_settings_title), stringResource(R.string.updates_settings_summary)), PaperIconKey.UPDATES, onOpenUpdates),
-        SettingOption(PaperSettingEntry("data", stringResource(R.string.data_settings_title), stringResource(R.string.data_settings_summary)), PaperIconKey.DOWNLOAD, onOpenDataBackup),
-        SettingOption(PaperSettingEntry("sources", stringResource(R.string.sources_settings_title), stringResource(R.string.sources_settings_summary)), PaperIconKey.PUBLIC, onOpenSources),
-        SettingOption(PaperSettingEntry("about", stringResource(R.string.about_title), stringResource(R.string.about_description)), PaperIconKey.INFO, onOpenAbout),
-    )
-    SettingsScreenContent(
-        query = query,
-        options = options,
-        onQueryChange = { query = it },
         onBack = onBack,
     )
 }

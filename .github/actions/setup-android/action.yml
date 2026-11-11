@@ -1,0 +1,57 @@
+name: Set up Android build
+description: Install the catalog-pinned JDK, Android SDK, and Gradle cache policy.
+
+inputs:
+  cache-read-only:
+    description: Set to false only in the Android CI job, which writes the Gradle cache.
+    default: "true"
+
+outputs:
+  build-tools-version:
+    description: Build-Tools version selected by the Gradle catalog.
+    value: ${{ steps.versions.outputs.build-tools-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Read build versions
+      id: versions
+      shell: bash
+      run: |
+        python3 - <<'PY'
+        import os
+        import tomllib
+        with open("gradle/libs.versions.toml", "rb") as catalog:
+            versions = tomllib.load(catalog)["versions"]
+        with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+            print(f"java={versions['jdk']}", file=output)
+            print(f"platform=platforms;android-{versions['compileSdk']}.0", file=output)
+            print(f"build-tools=build-tools;{versions['buildTools']}", file=output)
+            print(f"build-tools-version={versions['buildTools']}", file=output)
+        PY
+
+    - name: Set up JDK
+      uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
+      with:
+        distribution: temurin
+        java-version: ${{ steps.versions.outputs.java }}
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@035682743ab223ec9c6169af09811dff8247e520
+
+    - name: Install pinned Android SDK packages
+      shell: bash
+      env:
+        ANDROID_PLATFORM: ${{ steps.versions.outputs.platform }}
+        ANDROID_BUILD_TOOLS: ${{ steps.versions.outputs.build-tools }}
+      run: |
+        set +o pipefail
+        yes | sdkmanager --licenses >/dev/null
+        set -o pipefail
+        sdkmanager "$ANDROID_PLATFORM" "$ANDROID_BUILD_TOOLS"
+
+    - name: Set up Gradle
+      uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c
+      with:
+        cache-read-only: ${{ inputs.cache-read-only }}
+        cache-cleanup: on-success

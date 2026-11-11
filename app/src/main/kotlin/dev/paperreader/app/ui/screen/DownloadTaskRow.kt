@@ -2,6 +2,7 @@ package dev.paperreader.app.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import dev.paperreader.app.ui.components.PaperLabel
 import dev.paperreader.app.ui.components.PaperPrimaryButton
 import dev.paperreader.app.ui.components.PaperProgress
 import dev.paperreader.app.ui.components.PaperSecondaryButton
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.components.PaperSurface
 import dev.paperreader.app.ui.components.StatusBadge
 import dev.paperreader.app.ui.theme.PaperTheme
@@ -121,35 +123,32 @@ internal fun DownloadTaskRow(
         }
         if (availableActions.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
-            Column(
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (onClick != null) {
                     PaperSecondaryButton(
                         onClick = onClick,
-                        modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.task_open_paper)) }
                 }
                 if (DownloadTaskAction.CANCEL in availableActions) {
                     PaperSecondaryButton(
                         onClick = onCancel,
                         enabled = !acting,
-                        modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.task_cancel_action)) }
                 }
                 if (DownloadTaskAction.RETRY in availableActions) {
                     PaperPrimaryButton(
                         onClick = onRetry,
                         enabled = !acting,
-                        modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.task_retry_action)) }
                 }
                 if (DownloadTaskAction.REMOVE in availableActions) {
-                    PaperSecondaryButton(
+                    PaperTextButton(
                         onClick = onRemove,
                         enabled = !acting,
-                        modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.task_remove_action)) }
                 }
             }

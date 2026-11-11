@@ -178,8 +178,9 @@ internal fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (d
 internal fun contrastForeground(background: Color): Color =
     if (background.luminance() > 0.179f) Color.Black else Color.White
 
-private fun PaperThemeTokens.materialTypography(): Typography {
+private fun PaperThemeTokens.materialTypography(editorialScale: Boolean): Typography {
     val base = Typography()
+    val headingFont = if (editorialScale) titleFont else bodyFont
     return base.copy(
         displayLarge = base.displayLarge.copy(
             fontFamily = titleFont,
@@ -192,28 +193,28 @@ private fun PaperThemeTokens.materialTypography(): Typography {
         displaySmall = base.displaySmall.copy(
             fontFamily = titleFont,
             fontWeight = FontWeight.Bold,
-            fontSize = 32.sp,
-            lineHeight = 40.sp,
+            fontSize = if (editorialScale) 30.sp else 32.sp,
+            lineHeight = if (editorialScale) 36.sp else 40.sp,
         ),
         headlineLarge = base.headlineLarge.copy(
-            fontFamily = bodyFont,
+            fontFamily = headingFont,
             fontWeight = FontWeight.Bold,
         ),
         headlineMedium = base.headlineMedium.copy(
-            fontFamily = bodyFont,
+            fontFamily = headingFont,
             fontWeight = FontWeight.Bold,
         ),
         headlineSmall = base.headlineSmall.copy(
-            fontFamily = bodyFont,
+            fontFamily = headingFont,
             fontWeight = FontWeight.Bold,
-            fontSize = 24.sp,
-            lineHeight = 30.sp,
+            fontSize = if (editorialScale) 22.sp else 24.sp,
+            lineHeight = if (editorialScale) 28.sp else 30.sp,
         ),
         titleLarge = base.titleLarge.copy(
-            fontFamily = bodyFont,
+            fontFamily = headingFont,
             fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
-            lineHeight = 26.sp,
+            fontSize = if (editorialScale) 19.sp else 20.sp,
+            lineHeight = if (editorialScale) 25.sp else 26.sp,
         ),
         titleMedium = base.titleMedium.copy(
             fontFamily = bodyFont,
@@ -240,6 +241,8 @@ private fun PaperThemeTokens.materialTypography(): Typography {
         bodySmall = base.bodySmall.copy(
             fontFamily = bodyFont,
             fontWeight = FontWeight.Medium,
+            fontSize = if (editorialScale) 13.sp else base.bodySmall.fontSize,
+            lineHeight = if (editorialScale) 18.sp else base.bodySmall.lineHeight,
         ),
         labelLarge = base.labelLarge.copy(
             fontFamily = bodyFont,
@@ -295,7 +298,9 @@ fun PaperReaderTheme(
     val icons = communityTheme?.let { PaperIconSet.community(it.iconPaths) } ?: paperIconSet(preset)
     MaterialTheme(
         colorScheme = tokens.materialScheme(darkTheme),
-        typography = tokens.materialTypography(),
+        typography = tokens.materialTypography(
+            editorialScale = communityTheme == null && preset == PaperThemePreset.NEOBRUTALISM,
+        ),
         shapes = tokens.materialShapes(),
     ) {
         androidx.compose.runtime.CompositionLocalProvider(

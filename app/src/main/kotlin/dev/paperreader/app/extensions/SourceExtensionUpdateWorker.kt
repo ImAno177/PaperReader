@@ -70,6 +70,7 @@ internal suspend fun PaperReaderApplication.refreshExtensionCatalogs(): Boolean 
             indexUrl = BuildConfig.OFFICIAL_SOURCE_STORE_URL,
             publicKeyBase64 = BuildConfig.OFFICIAL_SOURCE_STORE_PUBLIC_KEY,
             expectedStoreId = BuildConfig.OFFICIAL_SOURCE_STORE_ID,
+            previousIndexUrl = "https://raw.githubusercontent.com/ImAno177/PaperReader-sources/main/registry/index.signed.json",
         )
         true
     } catch (cancelled: CancellationException) {

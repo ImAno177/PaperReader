@@ -48,7 +48,7 @@ class LocalPdfImportScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Review this local PDF").assertIsDisplayed()
+        composeRule.onNodeWithText("Review PDF").assertIsDisplayed()
         composeRule.onNodeWithText("attention-paper.pdf").assertIsDisplayed()
         val titleField = composeRule.onNodeWithText("Attention Paper")
         titleField.performTextClearance()
@@ -124,7 +124,7 @@ class LocalPdfImportScreenTest {
         composeRule.onNodeWithText("Already in Library.")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText("Open imported paper").performScrollTo().performClick()
+        composeRule.onNodeWithText("Open paper").performScrollTo().performClick()
 
         composeRule.runOnIdle { assertEquals("w-existing", openedWorkId) }
     }
@@ -145,7 +145,7 @@ class LocalPdfImportScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("not a valid PDF", substring = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Invalid PDF. Nothing was imported.").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Choose PDF").performScrollTo().performClick()
         composeRule.runOnIdle { assertTrue(chooseRequested) }
     }

@@ -16,6 +16,7 @@
     "**/*.md",
     "!**/build/**",
     "!**/.gradle/**",
+    "!external/**",
     "!design-skills/**",
     "!.agents/**"
   ]

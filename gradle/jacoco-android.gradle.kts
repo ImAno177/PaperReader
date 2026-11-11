@@ -1,12 +1,16 @@
 import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
+import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
 import org.gradle.testing.jacoco.tasks.JacocoReport
 import java.math.BigDecimal
 
 apply(plugin = "jacoco")
 
+val jacocoVersion = extensions.getByType<VersionCatalogsExtension>()
+    .named("libs").findVersion("jacoco").get().requiredVersion
+
 configure<JacocoPluginExtension> {
-    toolVersion = "0.8.15"
+    toolVersion = jacocoVersion
 }
 
 val generatedAndroidClasses = listOf(
@@ -21,6 +25,7 @@ val generatedAndroidClasses = listOf(
     "**/*_Impl$*.class",
     "**/IPaperSource*.class",
     "**/IPaperTheme*.class",
+    "**/IPaperReadableDocumentCallback*.class",
 )
 
 val productionSources = files(
@@ -35,12 +40,13 @@ val productionClasses = files(
         exclude(generatedAndroidClasses)
     },
 )
-val combinedCoverageData = fileTree(layout.buildDirectory) {
-    include(
-        "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec",
-        "outputs/code_coverage/debugAndroidTest/connected/**/*.ec",
-    )
+val unitCoverageData = fileTree(layout.buildDirectory) {
+    include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
 }
+val connectedCoverageData = fileTree(layout.buildDirectory) {
+    include("outputs/code_coverage/debugAndroidTest/connected/**/*.ec")
+}
+val combinedCoverageData = unitCoverageData + connectedCoverageData
 
 tasks.register<JacocoReport>("jacocoDebugUnitTestReport") {
     group = "verification"
@@ -58,19 +64,13 @@ tasks.register<JacocoReport>("jacocoDebugUnitTestReport") {
 
     sourceDirectories.setFrom(productionSources)
     classDirectories.setFrom(productionClasses)
-    executionData.setFrom(
-        fileTree(layout.buildDirectory) {
-            include(
-                "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec",
-            )
-        },
-    )
+    executionData.setFrom(unitCoverageData)
 }
 
 val combinedReport = tasks.register<JacocoReport>("jacocoDebugCombinedReport") {
     group = "verification"
     description = "Merges debug unit and connected Android test coverage."
-    dependsOn("testDebugUnitTest", "createDebugAndroidTestCoverageReport")
+    dependsOn("testDebugUnitTest", "connectedDebugAndroidTest")
 
     reports {
         html.required.set(true)
@@ -84,6 +84,16 @@ val combinedReport = tasks.register<JacocoReport>("jacocoDebugCombinedReport") {
     sourceDirectories.setFrom(productionSources)
     classDirectories.setFrom(productionClasses)
     executionData.setFrom(combinedCoverageData)
+    val connectedData = connectedCoverageData
+    val classes = productionClasses
+    doFirst {
+        check(connectedData.files.any { it.isFile && it.length() > 0 }) {
+            "Connected Android tests did not produce nonempty .ec coverage data."
+        }
+        check(classes.asFileTree.files.any { it.extension == "class" }) {
+            "No production classes found. Check the Android plugin coverage paths."
+        }
+    }
 }
 
 val combinedCoverageMinimum = extra.properties["combinedCoverageMinimum"] as? BigDecimal

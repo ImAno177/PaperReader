@@ -218,8 +218,8 @@ internal fun AdaptiveAppShell(
                 containerColor = PaperTheme.tokens.canvas,
                 bottomBar = {
                     NavigationBar(
-                        modifier = Modifier.testTag(PRIMARY_NAVIGATION_TEST_TAG).padding(horizontal = 12.dp),
-                        containerColor = PaperTheme.tokens.canvas,
+                        modifier = Modifier.testTag(PRIMARY_NAVIGATION_TEST_TAG),
+                        containerColor = PaperTheme.tokens.surface,
                         contentColor = PaperTheme.tokens.ink,
                         tonalElevation = 0.dp,
                     ) {
@@ -242,7 +242,7 @@ internal fun AdaptiveAppShell(
             Row(modifier = Modifier.fillMaxSize()) {
                 NavigationRail(
                     modifier = Modifier.testTag(PRIMARY_NAVIGATION_TEST_TAG),
-                    containerColor = PaperTheme.tokens.canvas,
+                    containerColor = PaperTheme.tokens.surface,
                     contentColor = PaperTheme.tokens.ink,
                     windowInsets = NavigationRailDefaults.windowInsets,
                 ) {
@@ -286,7 +286,7 @@ private fun PaperDestinationItem(
     )
     val borderColor = if (selected) tokens.border else Color.Transparent
     val iconScale by animateFloatAsState(
-        targetValue = if (selected) 1.08f else 1f,
+        targetValue = if (selected) 1.04f else 1f,
         animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
         label = "primary navigation icon scale",
     )
@@ -301,8 +301,8 @@ private fun PaperDestinationItem(
             modifier = Modifier.fillMaxSize().padding(visualPadding)
                 .testTag("$PRIMARY_NAVIGATION_ITEM_VISUAL_TEST_TAG_PREFIX$testKey"),
             shape = RoundedCornerShape(tokens.cornerRadius),
-            color = Color.Transparent,
-            contentColor = tokens.ink,
+            color = if (selected) tokens.primaryContainer else Color.Transparent,
+            contentColor = if (selected) tokens.onPrimaryContainer else tokens.inkMuted,
             border = BorderStroke(borderWidth, borderColor).takeIf { borderWidth > 0.dp },
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,

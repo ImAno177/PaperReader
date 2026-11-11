@@ -55,12 +55,11 @@ internal class RoomLibraryRepository(
         val providerIdentifier = PaperIdentifier(IdentifierType.PROVIDER, remote.providerRecordId, remote.providerId)
         val canonicalIdentifiers = (remote.identifiers + providerIdentifier).map(IdentifierNormalizer::canonical)
         val workId = database.withTransaction {
-            var existingId: String? = null
-            for (identifier in canonicalIdentifiers) {
-                existingId = dao.findWorkId(identifier.type.name, identifier.value, identifier.authority.orEmpty())
-                if (existingId != null) break
-            }
-            val id = existingId?.let(::WorkId) ?: stableWorkId(canonicalIdentifiers)
+            val existingIds = canonicalIdentifiers.flatMap { identifier ->
+                dao.findWorkIds(identifier.type.name, identifier.value, identifier.authority.orEmpty())
+            }.toSet()
+            if (existingIds.size > 1) throw dev.paperreader.logic.domain.repository.ExactIdentityConflictException()
+            val id = existingIds.singleOrNull()?.let(::WorkId) ?: stableWorkId(canonicalIdentifiers)
             val rows = remote.toEntities(id, now)
             val existing = dao.getWork(id.value)
             val existingAuthors = dao.getAuthors(id.value)

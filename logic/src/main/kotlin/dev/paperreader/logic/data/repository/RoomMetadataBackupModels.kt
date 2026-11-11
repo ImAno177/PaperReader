@@ -110,6 +110,7 @@ internal fun BackupWorkProto.toEntity(workId: WorkId) = WorkEntity(
     abstractText = abstractText,
     subjects = subjects.filter(String::isNotBlank).toSortedSet().joinToString(SUBJECT_SEPARATOR),
     publishedDateEpochDay = publishedDateEpochDay,
+    publicationYear = publicationYear,
     createdAtEpochMillis = createdAtEpochMillis,
     updatedAtEpochMillis = updatedAtEpochMillis,
 )

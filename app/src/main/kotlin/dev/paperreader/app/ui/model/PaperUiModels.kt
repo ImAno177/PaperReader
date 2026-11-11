@@ -50,6 +50,7 @@ data class PaperUi(
     val manifestations: List<ManifestationUi>,
     val collectionIds: Set<Long> = emptySet(),
     val annotationCount: Int = 0,
+    val publicationYear: Int? = null,
 )
 
 data class PaperCollectionUi(
@@ -71,6 +72,7 @@ data class SearchPaperUi(
     val manifestations: List<SearchManifestationUi>,
     val citationMetrics: SearchCitationMetricsUi?,
     val records: List<RemotePaper>,
+    val publicationYear: Int? = null,
 )
 
 data class SearchManifestationUi(
@@ -136,6 +138,7 @@ fun LibraryPaper.toPaperUi(): PaperUi {
         savedAt = work.createdAt,
         updatedAt = work.updatedAt,
         publishedDate = work.publishedDate,
+        publicationYear = work.publicationYear,
         sources = orderedManifestations.map(ManifestationUi::source).distinct(),
         primaryIdentifier = orderedIdentifiers.firstOrNull(),
         identifiers = orderedIdentifiers,
@@ -160,7 +163,10 @@ fun SearchResultCluster.toSearchPaperUi(providerNames: Map<String, String> = emp
             .thenBy { it.providerRecordId },
     )
     val primary = orderedRecords.first()
-    val identifiers = orderedRecords.flatMap { it.identifiers }.distinct().sortedWith(identifierComparator)
+    val identifiers = orderedRecords.flatMap { it.identifiers }
+        .filterNot { it.type == IdentifierType.PROVIDER }
+        .distinct()
+        .sortedWith(identifierComparator)
     val citationMetrics = orderedRecords.mapNotNull(RemotePaper::citationMetrics)
         .sortedWith(
             compareBy<dev.paperreader.logic.provider.CitationMetrics> {
@@ -177,6 +183,7 @@ fun SearchResultCluster.toSearchPaperUi(providerNames: Map<String, String> = emp
         title = primary.title,
         authors = primary.authors.map { it.displayName },
         publishedDate = primary.publishedDate,
+        publicationYear = primary.publicationYear,
         sources = orderedRecords.map { it.providerId }.distinct().sorted(),
         sourceDisplayNames = orderedRecords.map { record ->
             providerNames[record.providerId] ?: record.providerId.displayProviderName()

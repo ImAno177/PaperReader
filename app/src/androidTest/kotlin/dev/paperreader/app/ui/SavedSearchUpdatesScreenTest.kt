@@ -11,6 +11,9 @@ import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -215,6 +218,44 @@ class SavedSearchUpdatesScreenTest {
         composeRule.onNodeWithText("Available versions").assertExists()
         composeRule.onNodeWithText("Open source page").assertExists()
         composeRule.onNodeWithText("Open PDF").assertExists()
+        composeRule.onNode(hasText("Save") and hasAnyAncestor(isDialog())).assertIsDisplayed()
+    }
+
+    @Test
+    fun discoverExplainsAnUnreachableSourceWithConnectionAndRetryGuidance() {
+        var retried = false
+        var googleQuery: String? = null
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                DiscoverScreen(
+                    state = SearchUiState(
+                        submittedQuery = "2106.09685",
+                        failures = listOf(
+                            ProviderSearchFailure(
+                                providerId = "arxiv",
+                                providerName = "arXiv",
+                                kind = ProviderFailureKind.UNAVAILABLE,
+                            ),
+                        ),
+                    ),
+                    onSearch = { retried = true },
+                    onClear = {},
+                    onSave = {},
+                    onOpenPaper = {},
+                    onSearchGoogle = { googleQuery = it },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Couldn’t reach arXiv.").assertIsDisplayed()
+        composeRule.onNodeWithText("Check your connection, then retry.").assertIsDisplayed()
+        composeRule.onNodeWithText("Retry").performClick()
+        composeRule.onNodeWithText("Search Google").performClick()
+
+        composeRule.runOnIdle {
+            assertTrue(retried)
+            assertEquals("2106.09685", googleQuery)
+        }
     }
 
     @Test
@@ -402,7 +443,7 @@ class SavedSearchUpdatesScreenTest {
         val statusBounds = composeRule.onNodeWithText("Completed").fetchSemanticsNode().boundsInRoot
         assertTrue(statusBounds.left > titleBounds.left)
         assertTrue(statusBounds.top < titleBounds.bottom)
-        composeRule.onNodeWithText("Clear").performClick()
+        composeRule.onNodeWithText("Clear task").performClick()
         composeRule.runOnIdle { assertEquals(task.id.value, removedTaskId) }
     }
 

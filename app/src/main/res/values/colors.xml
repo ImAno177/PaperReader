@@ -6,13 +6,13 @@
     <color name="reader_accent">#FFD166</color>
     <color name="reader_on_accent">#1C293C</color>
 
-    <color name="reader_neo_canvas">#FFF4DD</color>
-    <color name="reader_neo_surface">#FFFFFF</color>
-    <color name="reader_neo_surface_muted">#FFF4DD</color>
-    <color name="reader_neo_ink">#000000</color>
-    <color name="reader_neo_ink_muted">#525252</color>
-    <color name="reader_neo_border">#000000</color>
-    <color name="reader_neo_primary">#FFD84D</color>
-    <color name="reader_neo_on_primary">#000000</color>
-    <color name="reader_neo_on_secondary">#000000</color>
+    <color name="reader_neo_canvas">#F4EBDD</color>
+    <color name="reader_neo_surface">#FFFCF5</color>
+    <color name="reader_neo_surface_muted">#E9E0D3</color>
+    <color name="reader_neo_ink">#1E1A17</color>
+    <color name="reader_neo_ink_muted">#5E5750</color>
+    <color name="reader_neo_border">#2C261F</color>
+    <color name="reader_neo_primary">#2159A6</color>
+    <color name="reader_neo_on_primary">#FFFFFF</color>
+    <color name="reader_neo_selection">#F6D56F</color>
 </resources>

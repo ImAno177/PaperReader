@@ -6,64 +6,6 @@ import java.nio.file.Path
 import java.time.Instant
 import java.util.Base64
 
-internal data class CachedReadablePaper(
-    val bodyHtml: String,
-    val sourceUrl: String,
-    val sourceSha256: String,
-    val documentSha256: String,
-    val retrievedAt: Instant,
-    val sourceLicense: String?,
-    val sections: List<ReadablePaperSection>,
-    val warnings: Set<ReadablePaperWarning>,
-    val keptForOffline: Boolean = false,
-    val assetGroupKey: String? = null,
-    val assets: List<ReadablePaperAsset> = emptyList(),
-    val sourceProvider: String = "",
-    val sourceRecordId: String = "",
-    val sourceVersion: String = "",
-    val readableContractVersion: String = "legacy",
-    val rendererContractVersion: String = READABLE_RENDERER_CONTRACT_VERSION,
-) {
-    fun toDocument(
-        title: String,
-        sourceProvider: String,
-        sourceVersion: String,
-        license: String?,
-        servedFromCache: Boolean,
-        sourceRecordId: String = this.sourceRecordId,
-    ) = ReadablePaperDocument(
-        bodyHtml = bodyHtml,
-        title = title,
-        sourceUrl = sourceUrl,
-        sourceProvider = sourceProvider,
-        sourceVersion = sourceVersion,
-        license = license ?: sourceLicense,
-        sourceSha256 = sourceSha256,
-        documentSha256 = documentSha256,
-        retrievedAt = retrievedAt,
-        servedFromCache = servedFromCache,
-        keptForOffline = keptForOffline,
-        sections = sections,
-        warnings = warnings,
-        assetGroupKey = assetGroupKey,
-        assets = assets,
-        sourceRecordId = sourceRecordId,
-        readableContractVersion = readableContractVersion,
-        rendererContractVersion = rendererContractVersion,
-    )
-}
-
-internal data class ReadablePaperCacheIdentity(
-    val providerId: String,
-    val providerRecordId: String,
-    val sourceVersion: String,
-)
-
-internal data class CachedReadablePaperEntry(
-    val key: String,
-    val paper: CachedReadablePaper,
-)
-
 internal class ReadablePaperCache(
     private val directory: Path,
     private val maximumCachedBodyBytes: Long = 20L * 1024L * 1024L,
@@ -86,10 +28,6 @@ internal class ReadablePaperCache(
     @Synchronized
     fun read(key: String): CachedReadablePaper? = readInternal(key, prune = true)
 
-    /** Reads one entry without scanning every cached manifest on the Reader hot path. */
-    @Synchronized
-    fun readForLoad(key: String): CachedReadablePaper? = readInternal(key, prune = false)
-
     /** Finds a complete entry without requiring the caller to know the provider contract version. */
     // ponytail: O(cache entries) metadata scan; add an index only after profiling shows this ceiling.
     @Synchronized
@@ -97,6 +35,20 @@ internal class ReadablePaperCache(
         identity: ReadablePaperCacheIdentity,
         rendererContractVersion: String,
         documentSha256: String? = null,
+    ): CachedReadablePaperEntry? = findForIdentity(identity, rendererContractVersion, documentSha256, mutateCache = true)
+
+    /** Verifies a cache entry without touching timestamps, pruning, or cleaning corrupt files/markers. */
+    @Synchronized
+    fun inspectForIdentity(
+        identity: ReadablePaperCacheIdentity,
+        rendererContractVersion: String,
+    ): CachedReadablePaperEntry? = findForIdentity(identity, rendererContractVersion, documentSha256 = null, mutateCache = false)
+
+    private fun findForIdentity(
+        identity: ReadablePaperCacheIdentity,
+        rendererContractVersion: String,
+        documentSha256: String?,
+        mutateCache: Boolean,
     ): CachedReadablePaperEntry? = storedKeys().asSequence()
         .mapNotNull { key ->
             readIdentityMetadata(key)
@@ -113,12 +65,15 @@ internal class ReadablePaperCache(
                             rendererContractVersion = metadata.rendererContractVersion,
                         )
                 }
-                ?.let { readInternal(key, prune = false)?.let { paper -> CachedReadablePaperEntry(key, paper) } }
+                ?.let {
+                    readInternal(key, prune = false, mutateCache = mutateCache)
+                        ?.let { paper -> CachedReadablePaperEntry(key, paper) }
+                }
         }
         .firstOrNull { entry ->
             (documentSha256 == null || entry.paper.documentSha256 == documentSha256) &&
                 (entry.paper.keptForOffline ||
-                    assetCache.allPresent(entry.paper.assetGroupKey, entry.paper.assets)) &&
+                    assetCache.allPresent(entry.paper.assetGroupKey, entry.paper.assets, touch = mutateCache)) &&
                 bodyReferencesKnownAssets(entry.paper.bodyHtml, entry.paper.assets)
         }
 
@@ -151,7 +106,7 @@ internal class ReadablePaperCache(
         return removed
     }
 
-    private fun readInternal(key: String, prune: Boolean): CachedReadablePaper? {
+    private fun readInternal(key: String, prune: Boolean, mutateCache: Boolean = true): CachedReadablePaper? {
         if (!key.matches(SHA256_PATTERN)) return null
         if (prune) {
             try {
@@ -163,16 +118,8 @@ internal class ReadablePaperCache(
         val manifestPath = directory.resolve("$key$MANIFEST_SUFFIX")
         val bodyPath = directory.resolve("$key$BODY_SUFFIX")
         val record = runCatching {
-            if (!Files.isRegularFile(manifestPath) || !Files.isRegularFile(bodyPath)) return@runCatching null
-            if (Files.size(manifestPath) > MAXIMUM_MANIFEST_BYTES || Files.size(bodyPath) > maximumCachedBodyBytes) {
-                return@runCatching null
-            }
-            val fields = Files.readAllLines(manifestPath, Charsets.UTF_8)
-            if (fields.firstOrNull() != CACHE_HEADER) return@runCatching null
-            val values = fields.drop(1).mapNotNull { line ->
-                val separator = line.indexOf('=')
-                if (separator <= 0) null else line.substring(0, separator) to line.substring(separator + 1)
-            }.toMap()
+            if (!Files.isRegularFile(bodyPath) || Files.size(bodyPath) > maximumCachedBodyBytes) return@runCatching null
+            val values = readManifestValues(key) ?: return@runCatching null
             val body = Files.newBufferedReader(bodyPath, Charsets.UTF_8).use { it.readText() }
             val documentSha = values.getValue("document_sha256")
             if (!documentSha.matches(SHA256_PATTERN) || sha256(body.toByteArray(Charsets.UTF_8)) != documentSha) {
@@ -202,10 +149,12 @@ internal class ReadablePaperCache(
                     .filter(String::isNotBlank)
                     .mapNotNull { runCatching { ReadablePaperWarning.valueOf(it) }.getOrNull() }
                     .toSet(),
-                keptForOffline = hasValidOfflineMarker(key) &&
+                keptForOffline = hasValidOfflineMarker(key, deleteInvalid = mutateCache) &&
                     assetCache.isKeptForOffline(
                         groupKey = assetGroupKey.orEmpty(),
                         assets = assets,
+                        touch = mutateCache,
+                        deleteInvalidMarker = mutateCache,
                     ),
                 sourceProvider = values["source_provider"]?.let(::decode).orEmpty(),
                 sourceRecordId = values["source_record_id"]?.let(::decode).orEmpty(),
@@ -219,28 +168,34 @@ internal class ReadablePaperCache(
             )
         }.getOrNull()
         if (record == null) {
-            deleteEntry(key)
+            if (mutateCache) deleteEntry(key)
             return null
         }
-        runCatching {
-            val now = java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis())
-            Files.setLastModifiedTime(bodyPath, now)
-            Files.setLastModifiedTime(manifestPath, now)
+        if (mutateCache) {
+            runCatching {
+                val now = java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis())
+                Files.setLastModifiedTime(bodyPath, now)
+                Files.setLastModifiedTime(manifestPath, now)
+            }
         }
         return record
     }
 
-    private fun readIdentityMetadata(key: String): CacheIdentityMetadata? = runCatching {
+    private fun readManifestValues(key: String): Map<String, String>? {
         val manifestPath = directory.resolve("$key$MANIFEST_SUFFIX")
         if (!Files.isRegularFile(manifestPath) || Files.size(manifestPath) > MAXIMUM_MANIFEST_BYTES) {
-            return@runCatching null
+            return null
         }
         val fields = Files.readAllLines(manifestPath, Charsets.UTF_8)
-        if (fields.firstOrNull() != CACHE_HEADER) return@runCatching null
-        val values = fields.drop(1).mapNotNull { line ->
+        if (fields.firstOrNull() != CACHE_HEADER) return null
+        return fields.drop(1).mapNotNull { line ->
             val separator = line.indexOf('=')
             if (separator <= 0) null else line.substring(0, separator) to line.substring(separator + 1)
         }.toMap()
+    }
+
+    private fun readIdentityMetadata(key: String): CacheIdentityMetadata? = runCatching {
+        val values = readManifestValues(key) ?: return@runCatching null
         CacheIdentityMetadata(
             sourceProvider = values["source_provider"]?.let(::decode).orEmpty(),
             sourceRecordId = values["source_record_id"]?.let(::decode).orEmpty(),
@@ -253,17 +208,6 @@ internal class ReadablePaperCache(
                 ?: READABLE_RENDERER_CONTRACT_VERSION,
         )
     }.getOrNull()
-
-    /**
-     * Protects an already verified entry from ordinary LRU eviction. The marker never replaces
-     * manifest/body validation, so Read still fails closed if either file is modified or corrupt.
-     */
-    @Synchronized
-    fun keepForOffline(key: String): Boolean {
-        if (!key.matches(SHA256_PATTERN)) return false
-        val cached = read(key) ?: return false
-        return keepForOffline(key, cached)
-    }
 
     /**
      * Retains a record that has already passed cache validation. Future reads still validate the
@@ -280,17 +224,8 @@ internal class ReadablePaperCache(
 
     private fun matchesVerifiedEntry(key: String, verified: CachedReadablePaper): Boolean = runCatching {
         val bodyPath = directory.resolve("$key$BODY_SUFFIX")
-        val manifestPath = directory.resolve("$key$MANIFEST_SUFFIX")
-        if (!Files.isRegularFile(bodyPath) || !Files.isRegularFile(manifestPath)) return@runCatching false
-        if (Files.size(bodyPath) > maximumCachedBodyBytes || Files.size(manifestPath) > MAXIMUM_MANIFEST_BYTES) {
-            return@runCatching false
-        }
-        val fields = Files.readAllLines(manifestPath, Charsets.UTF_8)
-        if (fields.firstOrNull() != CACHE_HEADER) return@runCatching false
-        val values = fields.drop(1).mapNotNull { line ->
-            val separator = line.indexOf('=')
-            if (separator <= 0) null else line.substring(0, separator) to line.substring(separator + 1)
-        }.toMap()
+        if (!Files.isRegularFile(bodyPath) || Files.size(bodyPath) > maximumCachedBodyBytes) return@runCatching false
+        val values = readManifestValues(key) ?: return@runCatching false
         if (verified.assets.isNotEmpty() && verified.assetGroupKey != key) return@runCatching false
         values["document_sha256"] == verified.documentSha256 &&
         values["source_sha256"] == verified.sourceSha256 &&
@@ -493,14 +428,14 @@ internal class ReadablePaperCache(
         }
     }.getOrNull()
 
-    private fun hasValidOfflineMarker(key: String): Boolean {
+    private fun hasValidOfflineMarker(key: String, deleteInvalid: Boolean = true): Boolean {
         val marker = directory.resolve("$key$OFFLINE_SUFFIX")
         if (!Files.isRegularFile(marker)) return false
         val valid = runCatching {
             Files.size(marker) <= MAXIMUM_OFFLINE_MARKER_BYTES &&
                 Files.newBufferedReader(marker, Charsets.UTF_8).use { it.readText() } == OFFLINE_HEADER
         }.getOrDefault(false)
-        if (!valid) runCatching { Files.deleteIfExists(marker) }
+        if (!valid && deleteInvalid) runCatching { Files.deleteIfExists(marker) }
         return valid
     }
 

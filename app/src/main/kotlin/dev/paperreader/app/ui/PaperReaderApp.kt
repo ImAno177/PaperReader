@@ -31,7 +31,6 @@ import androidx.navigation.compose.rememberNavController
 import dev.paperreader.app.PaperReaderApplication
 import dev.paperreader.app.R
 import dev.paperreader.app.backup.FileMetadataRestoreSessionStore
-import dev.paperreader.app.backup.MetadataBackupFileGateway
 import dev.paperreader.app.download.DownloadWorkScheduler
 import dev.paperreader.app.extensions.CommunityThemeCatalog
 import dev.paperreader.app.extensions.CommunityThemeExtensionManager
@@ -49,7 +48,6 @@ import dev.paperreader.app.updates.SavedSearchNotificationPublisher
 import dev.paperreader.app.updates.SavedSearchRefreshScheduler
 import dev.paperreader.logic.PaperReaderLogic
 import dev.paperreader.logic.backup.MAX_METADATA_BACKUP_ARCHIVE_BYTES
-import dev.paperreader.logic.backup.MetadataBackupExport
 import kotlinx.coroutines.launch
 
 @Composable
@@ -106,7 +104,6 @@ fun PaperReaderApp(
         }
     }
 }
-
 @Composable
 private fun PaperReaderContent(
     preferences: PaperReaderPreferences,
@@ -174,40 +171,6 @@ private fun PaperReaderContent(
         logic.setDisabledProviderIds(disabledProviderIds)
     }
 
-    val backupFiles = remember(context) { MetadataBackupFileGateway(context.contentResolver) }
-    var pendingPdfHandler by remember { mutableStateOf<((String) -> Unit)?>(null) }
-    var pendingBackupExport by remember { mutableStateOf<RequestBackupExport?>(null) }
-    var pendingBackupImport by remember { mutableStateOf<RequestBackupImport?>(null) }
-    val createBackupDocument = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument(METADATA_BACKUP_MIME_TYPE),
-    ) { uri ->
-        val request = pendingBackupExport
-        pendingBackupExport = null
-        if (uri != null && request != null) {
-            scope.launch {
-                request { export -> backupFiles.write(uri, export.archiveBytes) }
-            }
-        }
-    }
-    val openBackupDocument = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri ->
-        val request = pendingBackupImport
-        pendingBackupImport = null
-        if (uri != null && request != null) {
-            scope.launch {
-                request { backupFiles.read(uri, MAX_METADATA_BACKUP_ARCHIVE_BYTES) }
-            }
-        }
-    }
-    val openPdfDocument = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri ->
-        val handler = pendingPdfHandler
-        pendingPdfHandler = null
-        uri?.let { handler?.invoke(it.toString()) }
-    }
-
     PaperReaderNavigation(
         screenViewModelFactory = screenViewModelFactory,
         preset = preset,
@@ -235,20 +198,6 @@ private fun PaperReaderContent(
             context.startActivity(
                 Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                     .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
-            )
-        },
-        onRequestLocalPdfImport = { handler ->
-            pendingPdfHandler = handler
-            openPdfDocument.launch(arrayOf("application/pdf"))
-        },
-        onRequestBackupExport = { request: RequestBackupExport ->
-            pendingBackupExport = request
-            createBackupDocument.launch(DEFAULT_METADATA_BACKUP_FILE_NAME)
-        },
-        onRequestBackupImport = { request: RequestBackupImport ->
-            pendingBackupImport = request
-            openBackupDocument.launch(
-                arrayOf(METADATA_BACKUP_MIME_TYPE, "application/zip", "application/octet-stream"),
             )
         },
         extensionInstalls = ExtensionInstallBindings(
@@ -282,9 +231,6 @@ private fun PaperReaderNavigation(
     notificationsAvailable: Boolean,
     onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
     onOpenNotificationSettings: () -> Unit,
-    onRequestLocalPdfImport: ((String) -> Unit) -> Unit,
-    onRequestBackupExport: (RequestBackupExport) -> Unit,
-    onRequestBackupImport: (RequestBackupImport) -> Unit,
     extensionInstalls: ExtensionInstallBindings,
     incomingPdfRequest: IncomingPdfRequest?,
     onIncomingPdfConsumed: (Long) -> Unit,
@@ -315,9 +261,6 @@ private fun PaperReaderNavigation(
             notificationsAvailable = notificationsAvailable,
             onAutomaticRefreshChange = onAutomaticRefreshChange,
             onOpenNotificationSettings = onOpenNotificationSettings,
-            onRequestLocalPdfImport = onRequestLocalPdfImport,
-            onRequestBackupExport = onRequestBackupExport,
-            onRequestBackupImport = onRequestBackupImport,
             extensionInstalls = extensionInstalls,
             incomingPdfRequest = incomingPdfRequest,
             onIncomingPdfConsumed = onIncomingPdfConsumed,
@@ -340,8 +283,9 @@ private fun PaperReaderNavigation(
             onNavigate = { destination ->
                 if (navController.currentDestination?.route != destination.route) {
                     navController.navigate(destination.route) {
-                        popUpTo(AppRoutes.LIBRARY)
+                        popUpTo(AppRoutes.LIBRARY) { saveState = true }
                         launchSingleTop = true
+                        restoreState = true
                     }
                 }
             },
@@ -349,11 +293,3 @@ private fun PaperReaderNavigation(
         )
     }
 }
-
-internal typealias RequestBackupExport = (BackupExportHandler) -> Unit
-internal typealias BackupExportHandler = suspend (MetadataBackupExport) -> Unit
-internal typealias RequestBackupImport = (BackupImportHandler) -> Unit
-internal typealias BackupImportHandler = suspend () -> ByteArray
-
-private const val METADATA_BACKUP_MIME_TYPE = "application/vnd.paperreader.backup+zip"
-private const val DEFAULT_METADATA_BACKUP_FILE_NAME = "paper-reader-metadata.paperreader.backup"

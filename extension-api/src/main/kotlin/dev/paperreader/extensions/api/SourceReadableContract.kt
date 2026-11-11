@@ -119,7 +119,6 @@ data class SourceReadableDocumentMetadata(
         require(sourceSha256.matches(SHA256_PATTERN))
         require(documentSha256.matches(SHA256_PATTERN))
         require(sections.distinctBy(SourceReadableSection::anchor).size == sections.size)
-        require(warnings.size == warnings.distinct().size)
         require(assets.distinctBy(SourceReadableAsset::id).size == assets.size)
     }
 

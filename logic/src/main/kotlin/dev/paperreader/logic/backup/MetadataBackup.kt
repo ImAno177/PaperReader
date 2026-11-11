@@ -8,7 +8,7 @@ import java.time.Instant
 
 
 const val METADATA_BACKUP_SCHEMA_VERSION: Int = 2
-const val METADATA_BACKUP_DATABASE_VERSION: Int = 4
+const val METADATA_BACKUP_DATABASE_VERSION: Int = 5
 const val MAX_METADATA_BACKUP_ARCHIVE_BYTES: Int = 10 * 1024 * 1024
 const val MAX_METADATA_BACKUP_PAYLOAD_BYTES: Int = 8 * 1024 * 1024
 const val METADATA_BACKUP_ENTRY_NAME: String = "metadata.pb"
@@ -106,6 +106,7 @@ internal data class BackupWorkProto(
     @ProtoNumber(8) val authors: List<BackupAuthorProto> = emptyList(),
     @ProtoNumber(9) val identifiers: List<BackupIdentifierProto> = emptyList(),
     @ProtoNumber(10) val manifestations: List<BackupManifestationProto> = emptyList(),
+    @ProtoNumber(11) val publicationYear: Int? = null,
 )
 
 @Serializable

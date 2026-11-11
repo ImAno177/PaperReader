@@ -1,18 +1,19 @@
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.plugin.serialization")
-    id("com.google.devtools.ksp")
-    id("androidx.room")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 apply(from = rootProject.file("gradle/jacoco-android.gradle.kts"))
 
 android {
+    buildToolsVersion = libs.versions.buildTools.get()
     namespace = "dev.paperreader.logic"
-    compileSdk = 37
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        minSdk = 28
+        minSdk = libs.versions.minSdk.get().toInt()
         consumerProguardFiles("consumer-rules.pro")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -25,7 +26,7 @@ android {
     }
 
     testCoverage {
-        jacocoVersion = "0.8.15"
+        jacocoVersion = libs.versions.jacoco.get()
     }
 
     compileOptions {
@@ -46,24 +47,24 @@ room {
 
 dependencies {
     implementation(project(":extension-api"))
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+    api(libs.kotlinx.coroutines.core)
 
-    implementation("androidx.room:room-runtime:2.8.5")
-    implementation("androidx.room:room-ktx:2.8.5")
-    implementation("androidx.core:core-ktx:1.17.0")
-    ksp("androidx.room:room-compiler:2.8.5")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.core)
+    ksp(libs.androidx.room.compiler)
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.11.0")
-    implementation("com.squareup.okhttp3:okhttp:5.5.0")
-    implementation("org.jsoup:jsoup:1.23.2")
-    implementation("com.google.crypto.tink:tink-android:1.23.0")
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.serialization.protobuf)
+    implementation(libs.okhttp)
+    implementation(libs.jsoup)
+    implementation(libs.tink)
 
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
-    testImplementation("com.squareup.okhttp3:mockwebserver:5.5.0")
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockwebserver)
 
-    androidTestImplementation("androidx.test.ext:junit:1.3.0")
-    androidTestImplementation("androidx.test:runner:1.7.0")
-    androidTestImplementation("androidx.room:room-testing:2.8.5")
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.room.testing)
 }

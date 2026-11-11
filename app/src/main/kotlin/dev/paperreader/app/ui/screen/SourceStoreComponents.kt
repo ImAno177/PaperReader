@@ -132,6 +132,7 @@ internal fun ExtensionStoreCard(
                     installedVersionCode = installedVersions[release.packageName],
                     onInstallExtension = onInstallExtension,
                     onDismissInstallState = onDismissInstallState,
+                    onRefreshStore = if (enabled) onRefresh else null,
                 )
             }
         }
@@ -146,6 +147,7 @@ private fun ExtensionReleaseRow(
     installedVersionCode: Long?,
     onInstallExtension: (VerifiedExtensionRelease) -> Unit,
     onDismissInstallState: (String) -> Unit,
+    onRefreshStore: (() -> Unit)?,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
@@ -211,6 +213,7 @@ private fun ExtensionReleaseRow(
                     update = installedVersionCode != null,
                     onInstall = onInstallExtension,
                     onDismissState = onDismissInstallState,
+                    onRefreshStore = onRefreshStore,
                 )
             }
         }
@@ -224,6 +227,7 @@ internal fun ExtensionInstallAction(
     update: Boolean,
     onInstall: (VerifiedExtensionRelease) -> Unit,
     onDismissState: (String) -> Unit,
+    onRefreshStore: (() -> Unit)? = null,
 ) {
     val busy = state is ExtensionInstallState.Pending ||
         state is ExtensionInstallState.Downloading ||
@@ -274,5 +278,16 @@ internal fun ExtensionInstallAction(
             color = PaperTheme.tokens.danger,
             style = MaterialTheme.typography.bodySmall,
         )
+        onRefreshStore?.let { refreshStore ->
+            TextButton(
+                onClick = {
+                    onDismissState(release.packageName)
+                    refreshStore()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.refresh_store))
+            }
+        }
     }
 }

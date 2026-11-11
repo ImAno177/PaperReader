@@ -1,0 +1,12 @@
+[submodule "external/sources"]
+	path = external/sources
+	url = https://github.com/ImAno177/PaperReader-sources.git
+[submodule "external/source-sample"]
+	path = external/source-sample
+	url = https://github.com/ImAno177/PaperReader-source-sample.git
+[submodule "external/theme-sample"]
+	path = external/theme-sample
+	url = https://github.com/ImAno177/PaperReader-theme-sample.git
+[submodule "external/site"]
+	path = external/site
+	url = https://github.com/ImAno177/paperreader-site.git

@@ -41,8 +41,8 @@ class ExtensionStoreIndexVerifierTest {
         assertEquals(3L, source.versionCode)
         assertEquals("1.2.0", source.versionName)
         assertEquals("ab".repeat(32), source.signerSha256)
-        assertEquals(1, source.minimumHostApi)
-        assertEquals(1, source.maximumHostApi)
+        assertEquals(2, source.minimumHostApi)
+        assertEquals(2, source.maximumHostApi)
         assertEquals("https://example.org/extensions/semanticscholar.apk", source.installUrl)
         assertEquals("01".repeat(32), source.apkSha256)
         assertEquals(1_048_576L, source.apkSizeBytes)
@@ -167,8 +167,8 @@ class ExtensionStoreIndexVerifierTest {
             { validPayload().replaceFirst("\"versionCode\":3", "\"versionCode\":0") },
             { validPayload().replaceFirst("\"versionName\":\"1.2.0\"", "\"versionName\":\" \"") },
             { validPayload().replaceFirst("${"ab".repeat(32)}", "zz") },
-            { validPayload().replaceFirst("\"minimumHostApi\":1", "\"minimumHostApi\":0") },
-            { validPayload().replaceFirst("\"maximumHostApi\":1", "\"maximumHostApi\":0") },
+            { validPayload().replaceFirst("\"minimumHostApi\":2", "\"minimumHostApi\":0") },
+            { validPayload().replaceFirst("\"maximumHostApi\":2", "\"maximumHostApi\":0") },
             { validPayload().replaceFirst("https://example.org/extensions/semanticscholar.apk", "http://example.org/extensions/semanticscholar.apk") },
             { validPayload().replaceFirst("${"01".repeat(32)}", "bad") },
             { validPayload().replaceFirst("\"apkSizeBytes\":1048576", "\"apkSizeBytes\":0") },
@@ -193,9 +193,8 @@ class ExtensionStoreIndexVerifierTest {
 
     @Test
     fun `incompatible release remains visible but cannot become trusted transport`() {
-        val payload = validPayload().replaceFirst("\"maximumHostApi\":1", "\"maximumHostApi\":0")
-            .replaceFirst("\"minimumHostApi\":1", "\"minimumHostApi\":2")
-            .replaceFirst("\"maximumHostApi\":0", "\"maximumHostApi\":2")
+        val payload = validPayload().replace("\"minimumHostApi\":2", "\"minimumHostApi\":1")
+            .replace("\"maximumHostApi\":2", "\"maximumHostApi\":1")
         val source = verifier.verify(signedEnvelope(payload), publicKey.base64()).releases
             .single { it.kind == ExtensionReleaseKind.SOURCE }
 
@@ -221,8 +220,8 @@ class ExtensionStoreIndexVerifierTest {
               "minimumVersionCode":2,
               "versionName":"1.2.0",
               "signerSha256":"${"ab".repeat(32)}",
-              "minimumHostApi":1,
-              "maximumHostApi":1,
+              "minimumHostApi":2,
+              "maximumHostApi":2,
               "installUrl":"https://example.org/extensions/semanticscholar.apk",
               "apkSha256":"${"01".repeat(32)}",
               "apkSizeBytes":1048576,
@@ -244,8 +243,8 @@ class ExtensionStoreIndexVerifierTest {
               "minimumVersionCode":1,
               "versionName":"1.1.0",
               "signerSha256":"${"cd".repeat(32)}",
-              "minimumHostApi":1,
-              "maximumHostApi":1,
+              "minimumHostApi":2,
+              "maximumHostApi":2,
               "installUrl":"https://example.org/extensions/blueprint.apk",
               "apkSha256":"${"02".repeat(32)}",
               "apkSizeBytes":524288,

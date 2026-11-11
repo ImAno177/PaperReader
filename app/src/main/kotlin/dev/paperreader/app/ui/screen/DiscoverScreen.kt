@@ -69,6 +69,7 @@ import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
+import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.model.SearchPaperUi
 import dev.paperreader.app.ui.model.displayValue
 import dev.paperreader.app.ui.theme.PaperTheme
@@ -90,6 +91,7 @@ fun DiscoverScreen(
     onSaveSearch: (String) -> Unit = {},
     onOpenUpdates: () -> Unit = {},
     onSearchGoogle: (String) -> Unit = {},
+    onOpenSources: () -> Unit = {},
 ) {
     var query by rememberSaveable(state.submittedQuery) {
         mutableStateOf(state.submittedQuery.orEmpty())
@@ -309,7 +311,7 @@ fun DiscoverScreen(
                         icon = PaperIconKey.ERROR,
                         compact = true,
                     )
-                    state.submittedQuery?.let { submittedQuery ->
+                    state.submittedQuery.let { submittedQuery ->
                         PaperSecondaryButton(
                             onClick = { onSearchGoogle(submittedQuery) },
                             modifier = Modifier.fillMaxWidth(),
@@ -321,6 +323,18 @@ fun DiscoverScreen(
                     }
                 }
 
+                !state.running && state.results.isEmpty() && state.providerCount == 0 -> item {
+                    PaperStatePanel(
+                        title = stringResource(R.string.search_no_sources_title),
+                        body = stringResource(R.string.search_no_sources_body),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        icon = PaperIconKey.PUBLIC,
+                        actionLabel = stringResource(R.string.search_no_sources_action),
+                        onAction = onOpenSources,
+                        compact = true,
+                    )
+                }
+
                 !state.running && state.results.isEmpty() -> item {
                     PaperStatePanel(
                         title = stringResource(R.string.search_no_results_title),
@@ -329,7 +343,7 @@ fun DiscoverScreen(
                         icon = PaperIconKey.SEARCH,
                         compact = true,
                     )
-                    state.submittedQuery?.let { submittedQuery ->
+                    state.submittedQuery.let { submittedQuery ->
                         PaperSecondaryButton(
                             onClick = { onSearchGoogle(submittedQuery) },
                             modifier = Modifier.fillMaxWidth(),
@@ -501,14 +515,19 @@ private fun SavedSearchDiscoverAction(
         ?.value
         ?: actions.createdSearchIds[actionKey]
     val creating = actionKey in actions.creatingSearches
-    PaperSurface {
+    PaperSurface(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PaperIcon(PaperIconKey.BOOKMARK_ADD, contentDescription = null, tint = PaperTheme.tokens.secondary)
             Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.save_search_title), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(R.string.save_search_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     pluralStringResource(
                         R.plurals.save_search_provider_count,
@@ -516,30 +535,34 @@ private fun SavedSearchDiscoverAction(
                         providerIds.size,
                     ),
                     color = PaperTheme.tokens.inkMuted,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-        }
-        Spacer(Modifier.height(12.dp))
-        if (existingId == null) {
-            PaperPrimaryButton(
-                onClick = { onSaveSearch(query) },
-                enabled = !creating && normalized.isNotEmpty() && providerIds.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (creating) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        color = PaperTheme.tokens.ink,
-                        strokeWidth = 2.dp,
-                    )
-                    Spacer(Modifier.size(8.dp))
+            if (existingId == null) {
+                PaperTextButton(
+                    onClick = { onSaveSearch(query) },
+                    enabled = !creating && normalized.isNotEmpty() && providerIds.isNotEmpty(),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    if (creating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(Modifier.size(8.dp))
+                    }
+                    Text(stringResource(if (creating) R.string.saving_search else R.string.save_search_action))
                 }
-                Text(stringResource(if (creating) R.string.saving_search else R.string.save_search_action))
-            }
-        } else {
-            PaperSecondaryButton(onClick = onOpenUpdates, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.view_saved_search))
+            } else {
+                PaperTextButton(
+                    onClick = onOpenUpdates,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    Text(stringResource(R.string.view_saved_search))
+                }
             }
         }
         actions.createFailures[actionKey]?.let { failure ->

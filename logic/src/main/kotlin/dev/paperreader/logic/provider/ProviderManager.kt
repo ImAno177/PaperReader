@@ -32,12 +32,18 @@ data class AvailableProviderPlugin(
     val apkSizeBytes: Long? = null,
 )
 
+enum class ProviderTrustIssue {
+    SIGNER_MISMATCH, INCOMPATIBLE_API, INVALID_SERVICE, HOST_REJECTED, DESCRIPTOR_MISMATCH,
+    VERSION_OUT_OF_RANGE, UNAVAILABLE,
+}
+
 data class UntrustedProviderPlugin(
     val packageName: String,
     val signerSha256: String,
     val reason: String,
     val installedVersionCode: Long? = null,
     val updateCanRemediate: Boolean = false,
+    val issue: ProviderTrustIssue = ProviderTrustIssue.UNAVAILABLE,
 )
 
 data class OrphanedProviderPlugin(

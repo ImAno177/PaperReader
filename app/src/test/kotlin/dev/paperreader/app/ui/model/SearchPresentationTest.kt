@@ -7,9 +7,30 @@ import dev.paperreader.logic.provider.RemotePaper
 import dev.paperreader.logic.usecase.SearchResultCluster
 import java.time.Instant
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SearchPresentationTest {
+    @Test
+    fun `provider record aliases stay out of user facing identifiers`() {
+        val arxiv = PaperIdentifier(IdentifierType.ARXIV, "2607.11940v1")
+        val providerAlias = PaperIdentifier(IdentifierType.PROVIDER, "2607.11940v1", "arxiv")
+        val ui = SearchResultCluster(
+            listOf(
+                RemotePaper(
+                    providerId = "arxiv",
+                    providerRecordId = "2607.11940v1",
+                    title = "A paper",
+                    identifiers = setOf(arxiv, providerAlias),
+                ),
+            ),
+        ).toSearchPaperUi()
+
+        assertEquals(listOf(arxiv), ui.identifiers)
+        assertEquals(arxiv, ui.primaryIdentifier)
+        assertTrue(ui.records.single().identifiers.contains(providerAlias))
+    }
+
     @Test
     fun `incremental exact alias keeps the first result key`() {
         val doi = PaperIdentifier(IdentifierType.DOI, "10.1000/stable")

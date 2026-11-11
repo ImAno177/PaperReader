@@ -1,6 +1,9 @@
 package dev.paperreader.app.ui
 
 import dev.paperreader.app.ui.state.LoadState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
@@ -12,6 +15,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.model.LibraryLayout
+import dev.paperreader.app.ui.screen.LibraryUiState
+import dev.paperreader.app.ui.screen.LibraryAction
 import dev.paperreader.app.ui.screen.LibraryScreen
 import dev.paperreader.app.ui.theme.PaperReaderTheme
 import dev.paperreader.app.ui.theme.PaperThemePreset
@@ -32,16 +37,16 @@ class LibraryScreenTest {
     @Test
     fun savedPaperSearchFiltersRealPresentationFields() {
         composeRule.enableAccessibilityChecks()
+        var query by mutableStateOf("")
+        val papers = listOf(
+            paper("attention", "Attention Is All You Need", listOf("Ashish Vaswani")),
+            paper("engine", "Analytical Engine", listOf("Ada Lovelace")),
+        )
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 LibraryScreen(
-                    state = LoadState.Ready(
-                        listOf(
-                            paper("attention", "Attention Is All You Need", listOf("Ashish Vaswani")),
-                            paper("engine", "Analytical Engine", listOf("Ada Lovelace")),
-                        ),
-                    ),
-                    onLayoutChange = {},
+                    state = LibraryUiState(papers = LoadState.Ready(papers), query = query),
+                    onAction = { if (it is LibraryAction.SetQuery) query = it.query },
                     onOpenPaper = {},
                     onDiscover = {},
                 )
@@ -58,17 +63,20 @@ class LibraryScreenTest {
     @Test
     fun collectionChipFiltersByPersistedAssignment() {
         composeRule.enableAccessibilityChecks()
+        var selectedCollectionId by mutableStateOf<Long?>(null)
+        val papers = listOf(
+            paper("assigned", "Assigned paper", emptyList()).copy(collectionIds = setOf(5L)),
+            paper("outside", "Outside paper", emptyList()),
+        )
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 LibraryScreen(
-                    state = LoadState.Ready(
-                        listOf(
-                            paper("assigned", "Assigned paper", emptyList()).copy(collectionIds = setOf(5L)),
-                            paper("outside", "Outside paper", emptyList()),
-                        ),
+                    state = LibraryUiState(
+                        papers = LoadState.Ready(papers),
+                        collections = LoadState.Ready(listOf(PaperCollectionUi(5L, "Methods"))),
+                        selectedCollectionId = selectedCollectionId,
                     ),
-                    collections = LoadState.Ready(listOf(PaperCollectionUi(5L, "Methods"))),
-                    onLayoutChange = {},
+                    onAction = { if (it is LibraryAction.SetCollection) selectedCollectionId = it.id },
                     onOpenPaper = {},
                     onDiscover = {},
                 )
@@ -87,9 +95,8 @@ class LibraryScreenTest {
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 LibraryScreen(
-                    state = LoadState.Ready(listOf(paper("paper", "Paper", emptyList()))),
-                    layout = LibraryLayout.LIST,
-                    onLayoutChange = { requested = it },
+                    state = LibraryUiState(papers = LoadState.Ready(listOf(paper("paper", "Paper", emptyList())))),
+                    onAction = { if (it is LibraryAction.SetLayout) requested = it.layout },
                     onOpenPaper = {},
                     onDiscover = {},
                 )
@@ -101,13 +108,33 @@ class LibraryScreenTest {
     }
 
     @Test
+    fun gridCardKeepsTheCompleteColonSeparatedTitle() {
+        val title = "CGP-Tuning: Structure-aware optimization"
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                LibraryScreen(
+                    state = LibraryUiState(
+                        papers = LoadState.Ready(listOf(paper("paper", title, emptyList()))),
+                        layout = LibraryLayout.GRID,
+                    ),
+                    onAction = {},
+                    onOpenPaper = {},
+                    onDiscover = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(title).assertExists()
+    }
+
+    @Test
     fun paperCardExposesAFullQuickReadAction() {
         var read = false
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 LibraryScreen(
-                    state = LoadState.Ready(listOf(paper("paper", "Paper", emptyList()))),
-                    onLayoutChange = {},
+                    state = LibraryUiState(papers = LoadState.Ready(listOf(paper("paper", "Paper", emptyList())))),
+                    onAction = {},
                     onOpenPaper = {},
                     onDiscover = {},
                     onReadPaper = { read = true },
@@ -125,8 +152,8 @@ class LibraryScreenTest {
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 LibraryScreen(
-                    state = LoadState.Ready(emptyList()),
-                    onLayoutChange = {},
+                    state = LibraryUiState(papers = LoadState.Ready(emptyList())),
+                    onAction = {},
                     onOpenPaper = {},
                     onDiscover = { discover = true },
                 )

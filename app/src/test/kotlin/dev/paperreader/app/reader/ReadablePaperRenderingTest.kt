@@ -128,19 +128,59 @@ class ReadablePaperRenderingTest {
             sanitizedBodyHtml = """
                 <article><div class="ltx_authors"><span class="ltx_creator paperreader-author">
                   <span class="ltx_personname paperreader-author-name">Noam Shazeer</span>
-                  <span class="ltx_author_notes paperreader-author-details">Google Brain</span>
+                  <span class="ltx_author_notes paperreader-author-details">Google Brain and the complete affiliation notes stay available in the reader, including the department, campus, and contact details.</span>
+                  <span class="ltx_author_notes paperreader-author-details">OpenAI</span>
                   <span class="ltx_role_footnotemark"><sup class="ltx_note_mark">1</sup><span class="ltx_note_outer">footnotemark: 1</span></span>
                 </span></div></article>
             """.trimIndent(),
             palette = palette(),
             dark = false,
+            authorDetailsSummary = "Details",
         )
 
         assertTrue(html.contains(".ltx_creator, .paperreader-author"))
         assertTrue(html.contains("grid-template-columns: repeat(2, minmax(0, 1fr))"))
         assertTrue(html.contains(".ltx_author_notes, .paperreader-author-details"))
+        assertTrue(
+            html.contains(
+                "<details class=\"paperreader-author-notes\"><summary aria-label=\"Details\" data-label=\"Details\"></summary>" +
+                    "<span class=\"ltx_author_notes paperreader-author-details\">",
+            ),
+        )
+        assertTrue(html.contains("Google Brain and the complete affiliation notes stay available in the reader, including the department, campus, and contact details."))
+        assertTrue(html.contains("<span class=\"ltx_author_notes paperreader-author-details\">OpenAI</span>"))
         assertTrue(html.contains(".ltx_role_footnotemark .ltx_note_outer"))
         assertTrue(html.contains("display: block"))
+    }
+
+    @Test
+    fun `renderer collapses arxiv frontmatter thanks notes without dropping their text`() {
+        val html = renderReadablePaperHtml(
+            sanitizedBodyHtml = """
+                <article><div class="ltx_authors"><span class="ltx_creator ltx_role_author">
+                  <span class="ltx_personname">Xiaolin Huang</span>
+                  <span id="id1" class="ltx_note ltx_note_frontmatter ltx_thanks_note ltx_role_thanks">
+                    <sup class="ltx_note_mark">†</sup><span class="ltx_note_outer"><span class="ltx_note_content">
+                      <span class="ltx_note_type">thanks: </span>The authors are with the Institute of Image Processing and Pattern Recognition, Shanghai Jiao Tong University, Shanghai 200240, China. E-mail: authors@example.edu.
+                    </span></span>
+                  </span>
+                </span></div></article>
+            """.trimIndent(),
+            palette = palette(),
+            dark = false,
+            authorDetailsSummary = "Show details",
+        )
+
+        assertTrue(
+            html.contains(
+                "<details class=\"paperreader-author-notes\"><summary aria-label=\"Show details\" data-label=\"Show details\"></summary>" +
+                    "<span id=\"id1\" class=\"ltx_note ltx_note_frontmatter ltx_thanks_note ltx_role_thanks\">",
+            ),
+        )
+        assertTrue(html.contains("Shanghai Jiao Tong University"))
+        assertTrue(html.contains("authors@example.edu"))
+        // The collapse control adds no text, so annotation offsets inside the block stay put.
+        assertFalse(html.contains(">Show details<"))
     }
 
     @Test

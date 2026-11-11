@@ -10,7 +10,9 @@ existing user work, and never present a stub as a production feature.
 - [`docs/SPEC.md`](docs/SPEC.md) - current product behavior, domain rules, provider roles, and deferred scope.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - module ownership, boundaries, extension lifecycle, and verification gate.
 - [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md) - source/theme SDK, signed-store schema, trust checks, and runtime limits.
+- [`docs/WORKSPACE.md`](docs/WORKSPACE.md) - pinned checkouts and local verification of related repositories.
 - [`docs/TESTING.md`](docs/TESTING.md) - local and connected test commands, coverage scope, CI artifacts, and release checks.
+- [`docs/LIBRARY_TRANSFER.md`](docs/LIBRARY_TRANSFER.md) - backup, bibliography, and notes formats and limits.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) - branch, pull-request, required-check, and contribution workflow.
 - [`SECURITY.md`](SECURITY.md) - private vulnerability reporting and security-sensitive areas.
 - [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) - dependency, icon, and content-license attributions.
@@ -51,9 +53,11 @@ Update the relevant document when a decision changes.
   themes, icons, extension-install UI, and presentation mapping.
 - `:logic` owns immutable domain models, repository ports, Room, provider policy, reader artifacts,
   task state, backup, signed-store verification, and extension trust/runtime seams.
-- Provider implementations do not live in this repository. Official Semantic Scholar, Crossref,
+- Provider implementations remain in separately versioned Git repositories. Official Semantic Scholar, Crossref,
   arXiv, and Europe PMC APKs live in `ImAno177/PaperReader-sources`, depend only on the published
   `:extension-api`, and are discovered through its pinned signed store.
+- Related repositories may be checked out as Git submodules under `external/`. They are not host
+  Gradle modules; keep their remote, instructions, verification, and release ownership separate.
 - `:extension-api` owns only the published, versioned, bounded AIDL/data contract used by the host
   and separately built extension APKs.
 - UI code consumes one application-scoped `PaperReaderLogic` facade. It must not import Room DAOs,
@@ -116,7 +120,7 @@ Update the relevant document when a decision changes.
 
 ## Development and verification
 
-- Use the Gradle wrapper, JDK 21, Android SDK 36/36.1, and Java/Kotlin bytecode target 17.
+- Use the Gradle wrapper, JDK 21, Android SDK Platform 37.0 and Build-Tools 36.1.0, and Java/Kotlin bytecode target 17.
 - Keep the smallest stable contract test for regression-prone domain, persistence, migration, trust,
   and security behavior. Extend the nearest existing test before adding another Kotlin test case or
   test file.

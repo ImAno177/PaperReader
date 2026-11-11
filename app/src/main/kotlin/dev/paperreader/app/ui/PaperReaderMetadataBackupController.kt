@@ -37,12 +37,17 @@ internal class PaperReaderMetadataBackupController(
     val state: StateFlow<MetadataBackupUiState> = mutableState
     private var pendingRestoreBytes: ByteArray? = null
     private val operationMutex = Mutex()
+    private var recoveryJob: kotlinx.coroutines.Job? = null
 
     init {
         recoverPendingRestore()
     }
 
     fun create(write: suspend (MetadataBackupExport) -> Unit) {
+        if (recoveryJob?.isActive == true) {
+            scope.launch { recoveryJob?.join(); create(write) }
+            return
+        }
         if (!mutableState.value.canStartNewOperation()) return
         mutableState.value = MetadataBackupUiState.Exporting
         scope.launch {
@@ -69,6 +74,10 @@ internal class PaperReaderMetadataBackupController(
     }
 
     fun previewRestore(read: suspend () -> ByteArray) {
+        if (recoveryJob?.isActive == true) {
+            scope.launch { recoveryJob?.join(); previewRestore(read) }
+            return
+        }
         if (!mutableState.value.canStartNewOperation()) return
         pendingRestoreBytes = null
         mutableState.value = MetadataBackupUiState.Inspecting
@@ -179,7 +188,7 @@ internal class PaperReaderMetadataBackupController(
     }
 
     private fun recoverPendingRestore() {
-        scope.launch {
+        recoveryJob = scope.launch {
             operationMutex.withLock {
                 try {
                     val bytes = sessionStore.load()

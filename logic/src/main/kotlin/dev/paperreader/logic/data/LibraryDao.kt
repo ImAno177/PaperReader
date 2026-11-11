@@ -219,6 +219,9 @@ interface LibraryDao {
     @Query("SELECT workId FROM identifiers WHERE type = :type AND value = :value AND authority = :authority LIMIT 1")
     suspend fun findWorkId(type: String, value: String, authority: String): String?
 
+    @Query("SELECT workId FROM identifiers WHERE type = :type AND value = :value AND authority = :authority")
+    suspend fun findWorkIds(type: String, value: String, authority: String): List<String>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertWork(work: WorkEntity)
 
@@ -254,6 +257,9 @@ interface LibraryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertReadingHistory(history: List<ReadingHistoryEntity>)
+
+    @Query("SELECT * FROM files WHERE localPath IS NOT NULL")
+    suspend fun getStoredFiles(): List<FileEntity>
 
     @Query("SELECT * FROM files WHERE manifestationId = :manifestationId LIMIT 1")
     suspend fun getFile(manifestationId: String): FileEntity?

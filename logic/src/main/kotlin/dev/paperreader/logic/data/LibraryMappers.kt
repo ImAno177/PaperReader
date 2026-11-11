@@ -68,6 +68,7 @@ internal fun WorkEntity.toDomain(
     authors = authors.sortedBy { it.position }.map { PaperAuthor(it.displayName, it.givenName, it.familyName, it.orcid) },
     identifiers = identifiers.map(IdentifierEntity::toDomain).toSet(),
     publishedDate = publishedDateEpochDay?.let(LocalDate::ofEpochDay),
+    publicationYear = publicationYear,
     createdAt = Instant.ofEpochMilli(createdAtEpochMillis),
     updatedAt = Instant.ofEpochMilli(updatedAtEpochMillis),
 )
@@ -118,7 +119,7 @@ internal fun RemotePaper.toEntities(workId: WorkId, now: Instant): RemotePaperEn
     val identifiers = (identifiers + PaperIdentifier(IdentifierType.PROVIDER, providerRecordId, providerId))
         .map(IdentifierNormalizer::canonical).distinctBy { IdentityResolver.exactKeys(listOf(it)).single() }
     return RemotePaperEntities(
-        work = WorkEntity(workId.value, title, abstractText, subjects.joinToString(SUBJECT_SEPARATOR), publishedDate?.toEpochDay(), now.toEpochMilli(), (updatedAt ?: now).toEpochMilli()),
+        work = WorkEntity(workId.value, title, abstractText, subjects.joinToString(SUBJECT_SEPARATOR), publishedDate?.toEpochDay(), now.toEpochMilli(), (updatedAt ?: now).toEpochMilli(), publicationYear),
         authors = authors.mapIndexed { index, author -> AuthorEntity(workId.value, index, author.displayName, author.givenName, author.familyName, author.orcid) },
         identifiers = identifiers.map { IdentifierEntity(workId.value, it.type.name, it.value, it.authority.orEmpty()) },
         manifestations = manifestations.mapIndexed { index, manifestation ->
@@ -161,6 +162,9 @@ internal fun mergeWork(existing: WorkEntity?, incoming: WorkEntity): WorkEntity 
         abstractText = incoming.abstractText ?: existing.abstractText,
         subjects = subjects,
         publishedDateEpochDay = incoming.publishedDateEpochDay ?: existing.publishedDateEpochDay,
+        publicationYear = (incoming.publishedDateEpochDay ?: existing.publishedDateEpochDay)
+            ?.let { LocalDate.ofEpochDay(it).year.takeIf { year -> year in 1..9999 } }
+            ?: incoming.publicationYear ?: existing.publicationYear,
         createdAtEpochMillis = existing.createdAtEpochMillis,
         updatedAtEpochMillis = maxOf(existing.updatedAtEpochMillis, incoming.updatedAtEpochMillis),
     )

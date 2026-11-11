@@ -5,7 +5,7 @@ import android.os.Parcel
 import java.net.URI
 
 object PaperExtensionContract {
-    const val API_VERSION: Int = 1
+    const val API_VERSION: Int = 2
 
     const val SOURCE_SERVICE_ACTION: String =
         "dev.paperreader.extensions.api.action.PAPER_SOURCE"

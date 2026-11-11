@@ -15,6 +15,7 @@ data class WorkEntity(
     val publishedDateEpochDay: Long?,
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long,
+    val publicationYear: Int? = null,
 )
 
 @Entity(

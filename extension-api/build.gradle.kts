@@ -1,22 +1,23 @@
 import java.math.BigDecimal
 
 plugins {
-    id("com.android.library")
+    alias(libs.plugins.android.library)
     id("maven-publish")
 }
 
-extra["combinedCoverageMinimum"] = BigDecimal.ONE
+extra["combinedCoverageMinimum"] = BigDecimal("1.00")
 apply(from = rootProject.file("gradle/jacoco-android.gradle.kts"))
 
 group = "dev.paperreader"
-version = "0.1.0"
+version = "0.2.0"
 
 android {
+    buildToolsVersion = libs.versions.buildTools.get()
     namespace = "dev.paperreader.extensions.api"
-    compileSdk = 37
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        minSdk = 28
+        minSdk = libs.versions.minSdk.get().toInt()
         consumerProguardFiles("consumer-rules.pro")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -29,7 +30,7 @@ android {
     }
 
     testCoverage {
-        jacocoVersion = "0.8.15"
+        jacocoVersion = libs.versions.jacoco.get()
     }
 
     buildFeatures {
@@ -38,6 +39,7 @@ android {
 
     aidlPackagedList.addAll(
         listOf(
+            "dev/paperreader/extensions/api/IPaperReadableDocumentCallback.aidl",
             "dev/paperreader/extensions/api/IPaperSourceCallback.aidl",
             "dev/paperreader/extensions/api/IPaperSourceService.aidl",
             "dev/paperreader/extensions/api/IPaperThemeCallback.aidl",
@@ -69,8 +71,8 @@ afterEvaluate {
 }
 
 dependencies {
-    testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.junit)
 
-    androidTestImplementation("androidx.test.ext:junit:1.3.0")
-    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }

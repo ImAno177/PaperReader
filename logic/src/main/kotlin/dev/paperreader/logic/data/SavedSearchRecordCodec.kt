@@ -87,6 +87,7 @@ internal object SavedSearchRecordCodec {
         val identifiers: List<IdentifierSnapshot> = emptyList(),
         val subjects: List<String> = emptyList(),
         val publishedDateEpochDay: Long? = null,
+        val publicationYear: Int? = null,
         val updatedAtEpochMillis: Long? = null,
         val manifestations: List<ManifestationSnapshot> = emptyList(),
         @EncodeDefault(EncodeDefault.Mode.NEVER)
@@ -103,6 +104,7 @@ internal object SavedSearchRecordCodec {
                 identifiers = identifiers.map(IdentifierSnapshot::toDomain).toSet(),
                 subjects = subjects.toSet(),
                 publishedDate = publishedDateEpochDay?.let(LocalDate::ofEpochDay),
+                publicationYear = publicationYear,
                 updatedAt = updatedAtEpochMillis?.let(Instant::ofEpochMilli),
                 manifestations = manifestations.map(ManifestationSnapshot::toDomain),
                 citationMetrics = citationMetrics?.toDomain(),
@@ -121,6 +123,7 @@ internal object SavedSearchRecordCodec {
                     .sortedWith(compareBy(IdentifierSnapshot::type, IdentifierSnapshot::value, IdentifierSnapshot::authority)),
                 subjects = record.subjects.sorted(),
                 publishedDateEpochDay = record.publishedDate?.toEpochDay(),
+                publicationYear = record.publicationYear,
                 updatedAtEpochMillis = record.updatedAt?.toEpochMilli(),
                 manifestations = record.manifestations
                     .map(ManifestationSnapshot::from)

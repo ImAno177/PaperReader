@@ -65,6 +65,10 @@ internal class ScreenViewModelFactory(
         initializer { ReadingImportsViewModel(logic) }
     }
 
+    internal fun libraryTransfer(): ViewModelProvider.Factory = viewModelFactory {
+        initializer { dev.paperreader.app.ui.screen.LibraryTransferViewModel(logic) }
+    }
+
     internal fun dataBackup(): ViewModelProvider.Factory = viewModelFactory {
         initializer { DataBackupViewModel(logic, metadataRestoreSessionStore) }
     }

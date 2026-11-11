@@ -112,7 +112,9 @@ class ReadablePaperActivity : AppCompatActivity() {
         configureWebView()
         onBackPressedDispatcher.addCallback(this) { navigateBackWithinReader() }
         findViewById<Button>(R.id.readable_reader_retry).setOnClickListener { loadDocument() }
-        findViewById<Button>(R.id.readable_reader_original_pdf).setOnClickListener { openOriginalPdf() }
+        findViewById<Button>(R.id.readable_reader_original_pdf).setOnClickListener {
+            openOriginalPaperPdf(application as PaperReaderApplication, readerArgs)
+        }
         loadDocument()
     }
 
@@ -217,7 +219,7 @@ class ReadablePaperActivity : AppCompatActivity() {
                 annotateSelection = annotationController::captureSelection,
                 showAnnotations = annotationController::showAnnotations,
                 changeLayout = ::showReadingLayoutDialog,
-                openOriginalPdf = ::openOriginalPdf,
+                openOriginalPdf = { openOriginalPaperPdf(application as PaperReaderApplication, readerArgs) },
                 openReadableSource = { currentDocument?.sourceUrl?.let(::openSafeReaderExternalUri) },
             ),
         )
@@ -368,6 +370,7 @@ class ReadablePaperActivity : AppCompatActivity() {
         val palette = resolveReadablePaperPalette(this, communityTheme)
         val dark = isReaderDarkMode()
         val layout = ReadablePaperLayout(readerLayout.textSpacing, readerLayout.sideMargin)
+        val authorDetailsSummary = getString(R.string.show_details)
         val renderedHtml = withContext(Dispatchers.Default) {
             renderReadablePaperHtml(
                 sanitizedBodyHtml = document.bodyHtml,
@@ -375,6 +378,7 @@ class ReadablePaperActivity : AppCompatActivity() {
                 dark = dark,
                 layout = layout,
                 showImages = readerArgs.showImagesInDescription,
+                authorDetailsSummary = authorDetailsSummary,
             )
         }
         webView.loadDataWithBaseURL(
@@ -564,10 +568,6 @@ class ReadablePaperActivity : AppCompatActivity() {
         loading.visibility = View.VISIBLE
         loadJob?.cancel()
         loadJob = lifecycleScope.launch { loadRenderedDocument(document) }
-    }
-
-    private fun openOriginalPdf() {
-        openOriginalPaperPdf(application as PaperReaderApplication, readerArgs)
     }
 
     companion object {

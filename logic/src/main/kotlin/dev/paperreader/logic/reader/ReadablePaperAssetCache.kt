@@ -97,7 +97,7 @@ internal class ReadablePaperAssetCache(
     }
 
     @Synchronized
-    fun allPresent(groupKey: String?, assets: List<ReadablePaperAsset>): Boolean {
+    fun allPresent(groupKey: String?, assets: List<ReadablePaperAsset>, touch: Boolean = true): Boolean {
         if (assets.isEmpty()) return true
         if (groupKey == null || !isValidGroupKey(groupKey)) return false
         val group = runCatching { groupDirectory(groupKey) }.getOrNull() ?: return false
@@ -105,7 +105,7 @@ internal class ReadablePaperAssetCache(
         val present = assets.distinctBy(ReadablePaperAsset::id).all { asset ->
             isValidFile(assetPath(group, asset.id), asset)
         }
-        if (present) touch(group = group)
+        if (present && touch) touch(group = group)
         return present
     }
 
@@ -138,9 +138,15 @@ internal class ReadablePaperAssetCache(
     }
 
     @Synchronized
-    fun isKeptForOffline(groupKey: String?, assets: List<ReadablePaperAsset>): Boolean {
+    fun isKeptForOffline(
+        groupKey: String?,
+        assets: List<ReadablePaperAsset>,
+        touch: Boolean = true,
+        deleteInvalidMarker: Boolean = true,
+    ): Boolean {
         if (assets.isEmpty()) return true
-        return groupKey != null && hasValidOfflineMarker(groupKey) && allPresent(groupKey, assets)
+        return groupKey != null && hasValidOfflineMarker(groupKey, deleteInvalidMarker) &&
+            allPresent(groupKey, assets, touch)
     }
 
     @Synchronized
@@ -231,7 +237,7 @@ internal class ReadablePaperAssetCache(
         }.getOrNull()
     }
 
-    private fun hasValidOfflineMarker(groupKey: String): Boolean {
+    private fun hasValidOfflineMarker(groupKey: String, deleteInvalid: Boolean = true): Boolean {
         if (!isValidGroupKey(groupKey)) return false
         val group = groupDirectory(groupKey)
         if (!Files.isDirectory(group, LinkOption.NOFOLLOW_LINKS)) return false
@@ -241,7 +247,7 @@ internal class ReadablePaperAssetCache(
                 Files.size(marker) <= MAXIMUM_MARKER_BYTES &&
                 Files.newBufferedReader(marker, Charsets.UTF_8).use { it.readText() } == OFFLINE_HEADER
         }.getOrDefault(false)
-        if (!valid) runCatching { Files.deleteIfExists(marker) }
+        if (!valid && deleteInvalid) runCatching { Files.deleteIfExists(marker) }
         return valid
     }
 

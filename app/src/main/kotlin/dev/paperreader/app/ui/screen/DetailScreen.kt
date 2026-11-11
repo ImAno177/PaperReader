@@ -89,6 +89,7 @@ fun DetailScreen(
     downloadTasks: List<PaperTask> = emptyList(),
     requestingManifestations: Set<String> = emptySet(),
     failedManifestations: Set<String> = emptySet(),
+    readableCacheReadiness: Map<String, dev.paperreader.logic.reader.ReadablePaperCacheReadiness> = emptyMap(),
     onBack: () -> Unit,
     onStatusChange: (ReadingStatus) -> Unit,
     onRepairSavedPaper: (String) -> Unit = {},
@@ -205,6 +206,7 @@ fun DetailScreen(
                     downloadTasks = downloadTasks,
                     requestingManifestations = requestingManifestations,
                     failedManifestations = failedManifestations,
+                    readableCacheReadiness = readableCacheReadiness,
                     onStatusChange = onStatusChange,
                     onRepairSavedPaper = onRepairSavedPaper,
                     onRequestDownload = onRequestDownload,
@@ -307,6 +309,7 @@ private fun PaperDetailContent(
     downloadTasks: List<PaperTask>,
     requestingManifestations: Set<String>,
     failedManifestations: Set<String>,
+    readableCacheReadiness: Map<String, dev.paperreader.logic.reader.ReadablePaperCacheReadiness>,
     onStatusChange: (ReadingStatus) -> Unit,
     onRepairSavedPaper: (String) -> Unit,
     onRequestDownload: (String) -> Unit,
@@ -327,17 +330,19 @@ private fun PaperDetailContent(
         item {
             PaperIdentityBlock(
                 source = paper.sources.joinToString { it.displayProviderName() }.ifBlank { null },
-                year = paper.publishedDate?.year?.toString(),
+                year = (paper.publishedDate?.year ?: paper.publicationYear)?.toString(),
                 identifier = paper.primaryIdentifier
                     ?.takeUnless { it.type == IdentifierType.DOI }
                     ?.displayValue(),
                 title = paper.title,
                 authors = paper.authors.take(2).joinToString().ifBlank {
                     stringResource(R.string.unknown_authors)
-                } + if (paper.authors.size > 2) {
-                    stringResource(R.string.authors_and_more_suffix, paper.authors.size - 2)
-                } else {
-                    ""
+                }.let { shown ->
+                    if (paper.authors.size > 2) {
+                        stringResource(R.string.authors_and_more, shown, paper.authors.size - 2)
+                    } else {
+                        shown
+                    }
                 },
                 doi = paper.identifiers.firstOrNull { it.type == IdentifierType.DOI }?.value,
             )
@@ -404,6 +409,7 @@ private fun PaperDetailContent(
                     themeMode = themeMode,
                     showImagesInDescription = showImagesInDescription,
                     manifestation = manifestation,
+                    readableCacheReadiness = readableCacheReadiness[manifestation.id],
                     task = downloadTasks.firstOrNull { it.targetKey == manifestation.id },
                     requesting = manifestation.id in requestingManifestations,
                     requestFailed = manifestation.id in failedManifestations,
@@ -426,7 +432,15 @@ private fun PaperDetailContent(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         secondaryIdentifiers.forEach { identifier ->
                             Text(
-                                text = identifier.displayValue(),
+                                text = if (identifier.type == IdentifierType.PROVIDER) {
+                                    stringResource(
+                                        R.string.provider_record_identifier,
+                                        identifier.authority.orEmpty().displayProviderName(),
+                                        identifier.value,
+                                    )
+                                } else {
+                                    identifier.displayValue()
+                                },
                                 style = MaterialTheme.typography.labelLarge,
                             )
                         }

@@ -92,6 +92,19 @@ sealed interface ReadablePaperResult {
     ) : ReadablePaperResult
 }
 
+data class ReadablePaperCacheReadiness(
+    val cached: Boolean = false,
+    val keptForOffline: Boolean = false,
+) {
+    init {
+        require(!keptForOffline || cached)
+    }
+
+    companion object {
+        val NOT_CACHED = ReadablePaperCacheReadiness()
+    }
+}
+
 internal data class ReadableRemoteResource(
     val bytes: ByteArray,
     val mediaType: String,
@@ -138,6 +151,10 @@ internal fun interface ReadablePaperLoader {
         manifestation: PaperManifestation,
         retainDocumentSha256: String?,
     ): ReadablePaperResult
+
+    /** Checks only validated local cache state; implementations must not contact a provider. */
+    suspend fun cacheReadiness(manifestation: PaperManifestation): ReadablePaperCacheReadiness =
+        ReadablePaperCacheReadiness.NOT_CACHED
 
     /** Retains a document that this loader has already verified without loading it again. */
     suspend fun retain(document: ReadablePaperDocument): Boolean = false

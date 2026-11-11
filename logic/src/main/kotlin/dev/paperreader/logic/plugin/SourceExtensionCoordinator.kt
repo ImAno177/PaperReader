@@ -74,6 +74,7 @@ internal class SourceExtensionCoordinator(
                     reason = error.message ?: "Provider version is outside the trusted release range",
                     installedVersionCode = error.installedVersionCode,
                     updateCanRemediate = canRemediate,
+                    issue = dev.paperreader.logic.provider.ProviderTrustIssue.VERSION_OUT_OF_RANGE,
                 )
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -83,6 +84,11 @@ internal class SourceExtensionCoordinator(
                     signerSha256 = trusted.signerSha256.lowercase(),
                     reason = error.message?.take(160)?.takeIf(String::isNotBlank)
                         ?: "Provider package failed trust validation",
+                    issue = when (error) {
+                        is SourceTrustValidationException -> error.issue
+                        is SourceExtensionProtocolException -> error.trustIssue
+                        else -> null
+                    } ?: dev.paperreader.logic.provider.ProviderTrustIssue.UNAVAILABLE,
                 )
             }
         }

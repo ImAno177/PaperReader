@@ -7,9 +7,17 @@ current branch. Released sections correspond to Git tags.
 
 ### Added
 
+- Full library backup with streamed, hash-verified PDFs, restore preview, durable recovery, and
+  preservation of existing local documents. A missing or changed stored PDF is reported and left
+  out instead of failing the whole backup.
+- BibTeX/RIS import and export with exact-identifier matching and ambiguity warnings, plus Markdown
+  notes export with original quotes and exact document/anchor references. Exact-match imports add
+  identifiers and links without replacing saved titles or authors, and BibTeX export keeps works
+  with several DOIs by writing the publisher DOI.
+- Separate per-version labels for cached HTML, retained offline HTML, and an original PDF.
 - A dedicated More hub with grouped settings and a focused Download queue showing aggregate and
   per-task progress, retry/cancel/remove actions, completed work, and a visible back action.
-- Five built-in color themes now sit alongside the unchanged Neobrutalism preset; color mode stays
+- Five built-in color themes sit alongside the Neobrutalism preset; color mode stays
   independently selectable as System, Light, or Dark.
 - A versioned readable_document extension capability. The arXiv source now owns structural HTML
   sanitization while the host receives bounded Binder chunks and materializes same-document assets
@@ -17,16 +25,85 @@ current branch. Released sections correspond to Git tags.
 
 ### Changed
 
+- Neobrutalism uses layered paper surfaces, cobalt actions, yellow selections, lighter outlines,
+  and serif display headings, with separate dark-mode surface and accent colors.
+- Search previews keep Save/Open visible while metadata scrolls, saved-search controls take less
+  space, and unreachable-source messages point to connection checks and retry.
+- Root tabs restore search and navigation state. Library grid titles wrap fully, zero-percent
+  progress bars are hidden, and long reader author details collapse without changing cached content
+  or annotation offsets.
+- Room schema 5 and backwards-readable metadata backups preserve year-only publication values
+  without inventing a month or day.
+- Blocked sources show recovery guidance while keeping certificate and protocol diagnostics in
+  expandable details.
+- Extension SDK 0.2.0 uses contract API 2 for readable-document Binder calls. API 1 APKs require an
+  update; the host checks the separate v2 official store and rejects incompatible service metadata.
+- Screens and Compose tests use the same state/action interfaces; obsolete overloads, duplicated
+  fixtures, and redundant contract assertions are removed. Reader cache models have their own file.
+- Shorter labels and recovery messages across search, library, reader, imports, and backup; technical
+  diagnostics stay secondary and destructive-action warnings remain explicit.
+- A smaller More header, wrapping download actions, two-line settings summaries, and shorter result
+  previews keep existing controls readable on compact screens. Library search focuses on opening
+  and dismisses the keyboard when closed or submitted.
+- The mobile reader uses a compact find counter with a full spoken description; reader text-size
+  controls now have descriptive accessibility labels. Google search uses the app canvas while loading.
 - Library filters expose counts; list cards summarize authors; Paper Detail labels DOI and license
   values explicitly; redundant manifestation badges are reduced to the useful local-file state.
 - The readable reader hides chrome during downward scrolling and restores it on upward scrolling or
   interaction, while preserving native search, contents, provenance, and Back controls. The chrome
   now lives in a fixed overlay, so hiding it no longer remeasures the WebView or shifts document text.
+- Bottom navigation spans the full width, library list cards place Read beside their badges, filter
+  chips are shorter with 48dp touch targets, progress bars render as one track, and history removal
+  sits inside each card.
+
+### Fixed
+
+- Paper details keep the space in "+ N more" author summaries and label provider record IDs, such as
+  "arXiv record 2607.11940v1", instead of showing them as duplicate lowercase identifiers.
+- Full backup restore recovers missing PDFs even when their database paths remain, while preserving
+  existing files and exact document anchors.
+- Reader contents links leave the target heading below the toolbar; source-supplied list markers
+  no longer render twice, and multi-paragraph list items retain their content alignment.
+- Native reader surfaces and link colors follow the Neobrutalism light and dark palettes.
+- Search previews omit duplicate provider aliases while preserving the original provider records.
+- Existing installations migrate the pinned official source store to its API 2 URL only after
+  signature, identity, rollback, and equivocation validation succeeds.
+- Metadata and PDF picker results survive Activity recreation; metadata archive parsing runs off Main.
+- Bibliography imports reject aliases owned by multiple works instead of silently choosing one.
+- Archive cancellation closes blocked input streams, and interrupted restores clean only unreferenced
+  task-owned files.
+- Readable HTML export restores the exact cached document when the screen is recreated while the
+  save picker is open. Missing or changed documents report an export failure.
+- Cancelling a source search no longer reports it as an unavailable provider.
+- The extension SDK packages the readable-document AIDL callback required by source services.
 
 ### Build
 
+- Removed 4 tautological host unit tests, narrowed 2 field-readback tests to their one real
+  default, and merged 2 duplicate navigation cases (145 lines removed, 9 added). Coverage gates
+  are unchanged.
+- Host releases start as prereleases without replacing the latest stable download. Promotion follows
+  signed source-catalog publication and verification of fresh installs and upgrades.
+- Related source, sample, theme, and site repositories are pinned as optional Git submodules under
+  `external/`, with a local extension compatibility gate against the host SDK.
+- Documentation-only pull requests skip Android setup and Gradle while retaining their existing
+  check names, documentation validation, dependency review, and security scans. Main and manual
+  runs still execute the full host gate and produce release artifacts.
+- Centralized dependency and build-tool pins in the Gradle version catalog without upgrading them;
+  CI, CodeQL, and release share one Android setup action.
+- Same-repository pull requests write a PR-scoped Gradle cache, so later pushes reuse dependencies
+  and build outputs instead of rebuilding from an empty cache; fork pull requests remain read-only.
+- Release inputs are validated before signing, use environment variables, and require green main
+  push CI for the exact commit. Signing keys are cleaned up after success or failure.
+- CI validates workflow syntax and uploads test and lint diagnostics on failure; APK artifacts skip
+  redundant compression. Combined coverage fails clearly without connected data or class inputs.
+- Readable-document contract tests cover bounded inputs, malformed payloads, and Android Bundle
+  compatibility under the existing 100% merged line and branch coverage gate.
 - Android CI and CodeQL now use the maintained Android SDK setup action and no longer request the
   removed legacy `tools` package.
+- Updated Gradle 9.8.2, Android Gradle Plugin 9.5.1, Kotlin 2.4.21, Navigation 2.10.2, DataStore
+  1.3.0, WorkManager 2.12.0, OkHttp 5.5.1, kotlinx.serialization 1.12.0, Tink 1.24.0, and pinned
+  GitHub Actions. Coroutines stay on 1.11.0 because the 1.12.0 core artifact is not published.
 
 ## [0.1.11] - 2026-09-06
 

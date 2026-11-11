@@ -17,6 +17,10 @@ packages, run under separate UIDs, and communicate through the versioned `:exten
 The official provider repository is
 [`ImAno177/PaperReader-sources`](https://github.com/ImAno177/PaperReader-sources).
 
+The [development workspace](WORKSPACE.md) pins related repositories as Git submodules under
+`external/`. They retain separate Git histories and release workflows. The host settings do not
+include their modules; extension builds consume only `:extension-api` through composite substitution.
+
 ## Module ownership
 
 | Module | Owns | Must not own |
@@ -73,6 +77,15 @@ use cases own durable staging. A share arriving while recovery is still running 
 URI and either reuses the matching durable candidate or starts a new preparation, so a later share
 cannot overwrite the earlier import session.
 
+Root tabs save and restore their destination state. Data & backup owns its metadata and library
+transfer document launchers; Reading & imports owns its PDF launcher. Activity results invoke the
+destination ViewModel directly instead of a composition-local pending callback. Commands arriving
+during durable-session recovery wait for recovery before starting another operation.
+
+Theme tokens remain presentation-only. The built-in Neobrutalism typography scale is selected by
+preset, not inferred from a community theme's font choice. Search previews omit provider aliases
+only in their display model; records used for identity and saving remain complete.
+
 ## Domain and persistence
 
 - `PaperWork`, `PaperManifestation`, provider records, and local/generated artifacts are distinct.
@@ -83,6 +96,27 @@ cannot overwrite the earlier import session.
 - WorkManager executes persisted tasks; it is not a second queue database.
 - An annotation belongs to one exact sanitized document hash and stable source/text anchor. It is
   never silently moved across revisions, renderers, sanitizers, or files.
+- Room schema 5 adds nullable year-only publication metadata. Migration 4 to 5 preserves existing
+  dates; metadata backup appends an optional protobuf field while retaining its existing wire version.
+- Saving identifiers that already belong to multiple works rejects the write transaction. An import
+  cannot silently select one owner and join unrelated records.
+
+## Library transfer
+
+`logic/interop` owns bounded BibTeX/RIS codecs and Markdown rendering. Use cases obtain library
+snapshots and run parsing/rendering off Main. The app owns file pickers, preview, confirmation, and
+user-facing progress. [Library transfer](LIBRARY_TRANSFER.md) is the format and limit reference.
+
+`logic.archives` exposes prepared export/restore tokens through the application-scoped facade.
+`RoomLibraryArchiveRepository` serializes archive operations, takes transactional metadata snapshots,
+and stages ZIPs in private no-backup storage. The codec validates central-directory entries, bounded
+sizes, CRCs, SHA-256 values, and generated child paths before metadata mutation. PDFs stream through
+fixed-size buffers rather than whole-document byte arrays.
+
+Restore publishes unique private PDF paths before one Room transaction commits metadata and file
+references. Cleanup checks committed references before removing unreferenced files; startup sweeps
+only owned unpack directories and orphan `restored-UUID.pdf` files. Existing local PDFs are preserved.
+Ordinary readable HTML cache and extension packages are outside the backup format.
 
 ## Provider roles
 
@@ -189,6 +223,11 @@ cleanup; rejected removals leave artifacts untouched. Startup reconciliation rem
 Read always validates and opens the app-private body and asset streams; it never trusts the mutable
 exported copy.
 
+While the save picker is open, saved UI state contains only the expected document SHA-256. After
+screen recreation, export reloads that exact cache entry through the existing logic facade and
+checks its hash before writing. A missing or changed entry reports failure without fetching a new
+document or switching revisions.
+
 ## Supported host surface
 
 The app creates one process-scoped instance:
@@ -205,7 +244,7 @@ val logic = PaperReaderLogic.open(
 ```
 
 Supported access is through `logic.useCases`, `logic.providers`, `logic.extensionStores`,
-`logic.tasks`, and `logic.downloads`. UI code receives immutable state and invokes commands through
+`logic.tasks`, `logic.downloads`, and `logic.archives`. UI code receives immutable state and invokes commands through
 these facades. Room entities are public only where code generation requires visibility and are not an
 app API.
 
@@ -230,7 +269,7 @@ inside logic, and app code that bypasses the public facade.
 ## Deferred work, not shipped
 
 - Production-grade isolated TeX and PDF reflow extraction beyond the verified arXiv HTML path.
-- OCR, annotation export, and cross-revision annotation re-anchoring.
+- OCR and cross-revision annotation re-anchoring. Markdown note export is implemented.
 - Publisher signing-key rotation and a public extension review/moderation process.
 - Automatic backup/sync, resumable downloads, and user-selectable storage locations.
 

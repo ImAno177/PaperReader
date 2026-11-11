@@ -35,13 +35,9 @@ class PaperReaderNavigationTest {
     }
 
     @Test
-    fun `background local PDF recovery does not hijack the startup destination`() {
+    fun `only local PDF states needing user attention open More`() {
         assertFalse(shouldOpenMoreForLocalPdfImport(LocalPdfImportUiState.Idle))
         assertFalse(shouldOpenMoreForLocalPdfImport(LocalPdfImportUiState.Preparing))
-    }
-
-    @Test
-    fun `local PDF states needing user attention open More`() {
         assertTrue(
             shouldOpenMoreForLocalPdfImport(
                 LocalPdfImportUiState.Failed(LocalPdfImportFailure.IO_FAILURE),

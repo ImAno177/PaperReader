@@ -39,6 +39,16 @@ jobs:
       - name: Lint Markdown
         uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff
 
+      - name: Validate GitHub Actions workflows
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --location --retry 3 \
+            --output "$RUNNER_TEMP/actionlint.tar.gz" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+
   quality-and-apk:
     name: Test, lint, and build APKs
     runs-on: ubuntu-24.04
@@ -48,34 +58,56 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@035682743ab223ec9c6169af09811dff8247e520
-
-      - name: Install pinned Android SDK packages
+      - name: Select Android verification scope
+        id: android_gate
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          set +o pipefail
-          yes | sdkmanager --licenses >/dev/null
-          set -o pipefail
-          sdkmanager "platforms;android-37.0" "build-tools;36.1.0"
+          python3 - <<'PY'
+          import os
+          import re
+          import subprocess
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
+          run_android = True
+          base = os.environ["BASE_SHA"]
+          if os.environ["EVENT_NAME"] == "pull_request" and re.fullmatch(r"[0-9a-f]{40}", base):
+              try:
+                  subprocess.run(["git", "fetch", "--no-tags", "--depth=1", "origin", base], check=True)
+                  diff = subprocess.check_output([
+                      "git", "diff", "--no-renames", "--name-only", "-z", base, "HEAD", "--",
+                  ])
+                  paths = [os.fsdecode(path) for path in diff.split(b"\0") if path]
+                  run_android = not paths or not all(
+                      path.startswith("docs/") or ("/" not in path and path.endswith(".md"))
+                      for path in paths
+                  )
+              except (OSError, subprocess.CalledProcessError):
+                  print("::warning::Could not inspect changed paths; running the full Android gate.")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              print(f"run_android={str(run_android).lower()}", file=output)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              print(
+                  "Full Android verification selected." if run_android else
+                  "Android build skipped: this pull request changes only root Markdown or docs/ files. "
+                  "Documentation, dependency review, and security checks still run.",
+                  file=summary,
+              )
+          PY
+
+      - name: Set up Android build
+        if: steps.android_gate.outputs.run_android == 'true'
+        uses: ./.github/actions/setup-android
         with:
-          # Keep one trusted writer for the default branch. Pull requests and
-          # manual/non-main runs restore the shared cache without creating a
-          # new cache entry for every commit.
-          cache-read-only: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
-          cache-cleanup: on-success
+          # Same-repository pull requests write a PR-scoped cache so later pushes reuse
+          # dependencies and build outputs; main pushes refresh the shared cache. Fork
+          # pull requests and manual runs outside main only read.
+          cache-read-only: ${{ github.event.pull_request.head.repo.fork == true || (github.event_name != 'pull_request' && github.ref != 'refs/heads/main') }}
 
       - name: Verify host code and build APKs
         id: quality_gate
+        if: steps.android_gate.outputs.run_android == 'true'
         shell: bash
         env:
           BUILD_FULL_ARTIFACTS: ${{ github.event_name != 'pull_request' }}
@@ -86,21 +118,23 @@ jobs:
           fi
           ./gradlew "${tasks[@]}" --stacktrace
 
-      - name: Upload unit-test report when tests fail
+      - name: Upload verification reports on failure
         if: failure() && steps.quality_gate.outcome == 'failure'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: unit-test-reports-${{ github.sha }}
+          name: verification-reports-${{ github.sha }}
           path: |
             extension-api/build/reports/tests/testDebugUnitTest
             logic/build/reports/tests/testDebugUnitTest
             app/build/reports/tests/testDebugUnitTest
+            */build/test-results/testDebugUnitTest/TEST-*.xml
+            */build/reports/lint-results-debug.*
           if-no-files-found: warn
           retention-days: 14
 
       - name: Upload JaCoCo reports
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: jacoco-unit-${{ github.sha }}
           path: |
@@ -112,7 +146,7 @@ jobs:
 
       - name: Generate SPDX SBOM
         if: github.event_name != 'pull_request'
-        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c
         with:
           path: .
           format: spdx-json
@@ -124,19 +158,22 @@ jobs:
           upload-release-assets: false
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: steps.android_gate.outputs.run_android == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: paperreader-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/app-debug.apk
+          compression-level: 0
           if-no-files-found: error
           retention-days: 14
 
       - name: Upload unsigned release APK
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: paperreader-release-unsigned-${{ github.sha }}
           path: app/build/outputs/apk/release/app-release-unsigned.apk
+          compression-level: 0
           if-no-files-found: error
           retention-days: 14
 
@@ -170,12 +207,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.12"
 
       - name: Run MobSF static analysis
-        uses: MobSF/mobsfscan@a43635d92434e78b079ed7d860f022cf6c886b43
+        uses: MobSF/mobsfscan@18cce72c077cbac1925439c3158363fd3bb361aa
         with:
           args: >-
             . --type android --sarif --output mobsfscan.sarif --no-fail
@@ -183,7 +220,7 @@ jobs:
       - name: Upload MobSF SARIF
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370
         with:
           sarif_file: mobsfscan.sarif
           category: mobsfscan

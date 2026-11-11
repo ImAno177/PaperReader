@@ -67,6 +67,19 @@ internal fun BlockedProviderRow(
                 )
             }
         }
+        Text(
+            stringResource(when (provider.issue) {
+                dev.paperreader.logic.provider.ProviderTrustIssue.SIGNER_MISMATCH -> R.string.provider_recovery_signer
+                dev.paperreader.logic.provider.ProviderTrustIssue.INCOMPATIBLE_API -> R.string.provider_recovery_api
+                dev.paperreader.logic.provider.ProviderTrustIssue.INVALID_SERVICE -> R.string.provider_recovery_service
+                dev.paperreader.logic.provider.ProviderTrustIssue.HOST_REJECTED -> R.string.provider_recovery_host
+                dev.paperreader.logic.provider.ProviderTrustIssue.DESCRIPTOR_MISMATCH -> R.string.provider_recovery_descriptor
+                dev.paperreader.logic.provider.ProviderTrustIssue.VERSION_OUT_OF_RANGE -> if (provider.updateCanRemediate) R.string.provider_recovery_update else R.string.provider_recovery_version
+                dev.paperreader.logic.provider.ProviderTrustIssue.UNAVAILABLE -> R.string.provider_recovery_unavailable
+            }),
+            color = PaperTheme.tokens.inkMuted,
+            style = MaterialTheme.typography.bodySmall,
+        )
         if (expanded) {
             Text(
                 stringResource(R.string.provider_package, provider.packageName),

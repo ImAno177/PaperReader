@@ -1,6 +1,7 @@
 package dev.paperreader.app.importer;
 
 import android.content.ContentProvider;
+import android.content.Intent;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -15,6 +16,18 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 public final class PdfFixtureContentProvider extends ContentProvider {
+    public static Intent shareIntent(String packageName, Uri uri) {
+        return new Intent(Intent.ACTION_SEND)
+                .setClassName(packageName, dev.paperreader.app.MainActivity.class.getName())
+                .setType("application/pdf")
+                .putExtra(Intent.EXTRA_STREAM, uri)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    }
+
+    public static Uri fixtureUri(String name) {
+        return Uri.parse("content://dev.paperreader.app.test.pdf-fixture/" + name);
+    }
+
     @Override
     public boolean onCreate() {
         return true;

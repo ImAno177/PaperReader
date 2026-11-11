@@ -19,12 +19,12 @@ and may be unavailable until the corresponding signed extension is installed.
 | --- | --- |
 | Discovery | Semantic Scholar, arXiv, and Europe PMC free-text search; Crossref exact DOI enrichment; deterministic exact-identifier routing and citation-aware ranking. |
 | Google handoff | A hardened in-app `site:arxiv.org/abs` search surface; explicit `/abs/`, `/html/`, or `/pdf/` URL handoff to exact arXiv ID and version parsing. |
-| Library | Room-backed papers, versions and files, full-width quick Read actions, list/grid layouts, collections, reading status, history, bookmarks, annotations, saved searches, update snapshots, downloads, local PDF import, and metadata backup. |
+| Library | Room-backed papers, versions and files, list/grid layouts, collections, reading status, history, bookmarks, annotations, saved searches, update snapshots, downloads, local PDF import, metadata/PDF backup, BibTeX/RIS exchange, and Markdown notes export. |
 | Mobile reader | Verified arXiv HTML cache, bounded retained offline artifacts, sanitization, offline WebView rendering, table-of-contents navigation, in-document search, citation return, text/layout controls, figures, MathML, and horizontal table scrolling. |
 | Paper files | Per-version PDF download and readable HTML export from Paper Detail. After export, PaperReader attempts to retain the exact verified app-private artifact used by Read. |
 | Original documents | Bounded PDF download and an in-app PDF reader with search, page navigation, progress, and bookmarks. |
 | Extensions | Separate source and theme APKs over versioned AIDL, signed stores, package verification, user-confirmed PackageInstaller flows, update/orphan/untrusted states, and community extension discovery. |
-| Appearance and access | English UI, the original Neobrutalism preset, five built-in color themes, complete community themes, System/Light/Dark mode, adaptive navigation, and 48 dp semantic touch targets. |
+| Appearance and access | English UI, a Neobrutalism preset, five built-in color themes, complete community themes, System/Light/Dark mode, adaptive navigation, and 48 dp semantic touch targets. |
 | Privacy and safety | Local-first metadata and reading state, no analytics or advertising SDK, bounded network access, sanitized remote HTML, provenance and license retention, and exact-document annotation anchors. |
 
 ## Release scope and status
@@ -60,21 +60,21 @@ Bottom-navigation outlines align with the content grid, while independent touch 
 48 dp and extend safely around the visible geometry.
 
 Appearance has independent controls for visual preset and System/Light/Dark mode. The built-in
-Neobrutalism preset uses Material Symbols, a restrained sun-yellow accent, 5 dp corners, 2 dp
-outlines, and subtle 1 dp bottom-only shadows; these original tokens remain unchanged. Five
-additional built-in color themes provide ocean, forest, violet, rose, and sunset accents on a
-calm reading surface. Dark mode inverts neutral surfaces, text, outlines, and shadows while
-preserving each theme's accent, container, selection, and status colors. A theme extension
-supplies a complete semantic icon set with its declarative tokens. The legacy `DOODLE` extension
-decoration remains readable for binary
-compatibility but is not a built-in preset. Empty-state headlines are unframed and keep the same
-accessible violet accent in light and dark modes; sun yellow is reserved for the icon tile, primary
-action, and small state accents. Library grid cards keep titles to one line, omit authors, and use
-one compact state row instead of
+Neobrutalism preset uses layered paper surfaces, cobalt primary actions, yellow selection states,
+serif display headings, sans-serif body and metadata, 8 dp corners, 1 dp outlines, and subtle
+bottom-only shadows. Its dark mode separates canvas, cards, and muted surfaces and adjusts accent
+colors for legibility. Five additional built-in color themes provide ocean, forest, violet, rose,
+and sunset accents. A theme extension supplies a complete semantic icon set with its declarative
+tokens; the built-in Neobrutalism type scale does not override community typography. The legacy
+`DOODLE` extension decoration remains readable for binary compatibility but is not a built-in
+preset. Empty-state headlines are unframed and use an accessible accent.
+Library grid cards wrap full titles, omit authors, and use one compact state row instead of
 reserving empty rows for status, annotations, and progress.
 Library list cards show at most two authors with a compact remainder count. Reading-status filters
 show their current counts, while Paper Detail keeps DOI and license labels explicit without turning
 every metadata value into a status badge.
+Root-tab navigation restores each destination's existing state, including the submitted search and
+scroll position. A zero-percent reading state does not reserve space for a progress bar.
 
 The Download queue is a focused branch with a predictable back action. It groups queued/running,
 failed/cancelled, and succeeded work; shows an aggregate active-progress indicator plus each task's
@@ -84,8 +84,8 @@ own progress/state; and exposes open, cancel, retry, and remove actions accordin
 
 ### PaperWork
 
-The intellectual work: canonical identifiers, title, authors, abstract, subjects, publication date,
-and provider observations.
+The intellectual work: canonical identifiers, title, authors, abstract, subjects, publication date
+or a year-only publication value, and provider observations. A known year never implies January 1.
 
 ### PaperManifestation
 
@@ -152,6 +152,8 @@ enrichment only.
   reports loading, success, and failure per provider with a retry action. A source failure never hides
   successful results from another provider.
 - Search result cards open the same full metadata preview used by Library before Save/Open.
+- Preview content scrolls above a persistent Save/Open action. Provider record aliases remain in
+  the underlying result but do not duplicate bibliographic identifiers in the preview.
 - Production tests use fixtures and a local server; a separate audit may exercise live APIs.
 
 ### Google-to-arXiv handoff
@@ -222,7 +224,8 @@ The layout must provide:
 - Native table of contents and a find bar reachable without scrolling to the top.
 - Scrollable wide tables/math and responsive figures.
 - Two-column author metadata at phone widths, with long names and affiliations wrapping inside each
-  column instead of widening the page.
+  column instead of widening the page. Long author details collapse in the rendered presentation;
+  cached content, exported content, document hashes, and annotation anchors remain unchanged.
 - Citation jumps with a visible full-width Back to reading action. Toolbar and system Back return to
   the previous reading position before leaving the reader.
 - Stable block/source anchors, selectable text, and exact-hash annotations. A rendered highlight can
@@ -244,6 +247,9 @@ Cache keys include manifestation/version, source URL, extractor/sanitizer versio
 Writes are atomic and integrity-checked before reuse. Eviction removes complete least-recently-used
 artifact groups, never library metadata, annotations, or the user's original PDF. Cache publication
 failure must not discard the currently verified in-memory document.
+Paper Detail distinguishes ordinary cached HTML, explicitly retained offline HTML, and unavailable
+HTML for each manifestation, separately from the original PDF. Inspecting readiness validates local
+artifacts without fetching, retaining, deleting, or refreshing their least-recently-used timestamps.
 
 ## Extension ecosystem
 
@@ -297,6 +303,12 @@ The provider repository must publish:
   overwritten by late completion.
 - Metadata backup is bounded, versioned, validated, and excludes credentials, caches, extension APKs,
   and filesystem paths. Restore requires preview and confirmation.
+- Full library backup adds streamed, hash-verified PDFs to metadata. Restore validates the entire
+  archive before preview and confirmation, preserves existing PDFs, and commits metadata and file
+  references in one transaction. A staged restore survives process recreation.
+- BibTeX/RIS imports require preview and merge only on exact canonical identifiers. Ambiguous records
+  are skipped. Markdown exports preserve note text, quotes, and exact document/anchor references.
+  [Library transfer](LIBRARY_TRANSFER.md) defines supported formats, exclusions, and size limits.
 - Local PDF import copies and validates content into app-private staging before confirmation and
   survives process recreation.
 

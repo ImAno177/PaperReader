@@ -12,13 +12,26 @@ import dev.paperreader.logic.provider.ProviderRole
 import dev.paperreader.logic.provider.RemotePaper
 import dev.paperreader.logic.provider.SearchSort
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FederatedPaperSearchTest {
+    @Test
+    fun `a cancelled provider is not reported as unavailable`() = runTest {
+        val cancelled = provider("cancelled") { throw CancellationException("Search cancelled") }
+        val available = provider("available") { ProviderPage(emptyList()) }
+
+        val events = FederatedPaperSearch(listOf(cancelled, available))
+            .search(PaperSearchQuery("attention"))
+            .toList()
+
+        assertTrue(events.none { it is FederatedSearchEvent.ProviderFailed })
+        assertEquals(FederatedSearchEvent.Finished(1, 0), events.last())
+    }
+
     @Test
     fun `one failing provider does not cancel successful providers`() = runTest {
         val success = provider("arxiv") { ProviderPage(listOf(remote("arxiv", "2401.1"))) }

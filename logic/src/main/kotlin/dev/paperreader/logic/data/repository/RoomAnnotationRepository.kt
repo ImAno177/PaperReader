@@ -25,6 +25,21 @@ internal class RoomAnnotationRepository(
 ) : AnnotationRepository {
     private val dao = database.libraryDao()
 
+    suspend fun snapshotForMarkdown(): List<dev.paperreader.logic.interop.AnnotatedPaperSnapshot> =
+        database.withTransaction {
+            val annotations = dao.getAllAnnotations().groupBy(AnnotationEntity::workId)
+            val identifiers = dao.getAllIdentifiers().groupBy { it.workId }
+            dao.getAllWorks().filter { it.id in annotations }.map { work ->
+                dev.paperreader.logic.interop.AnnotatedPaperSnapshot(
+                    workId = WorkId(work.id),
+                    title = work.title,
+                    identifiers = identifiers[work.id].orEmpty().map(::canonicalIdentifier)
+                        .filter { it.type != dev.paperreader.logic.domain.IdentifierType.PROVIDER }.toSet(),
+                    annotations = annotations[work.id].orEmpty().map(AnnotationEntity::toDomain),
+                )
+            }
+        }
+
     override fun observe(workId: WorkId, documentSha256: String): Flow<List<Annotation>> =
         dao.observeAnnotations(workId.value, canonicalDocumentSha256(documentSha256))
             .map { rows -> rows.map(AnnotationEntity::toDomain) }

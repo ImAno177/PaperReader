@@ -13,8 +13,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -52,102 +54,115 @@ internal fun SearchPreviewSheet(
     val secondaryIdentifiers = result.identifiers.filterNot { it.type == IdentifierType.DOI }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = PaperTheme.tokens.canvas,
         contentColor = PaperTheme.tokens.ink,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            PaperIdentityBlock(
-                source = result.sourceDisplayNames.joinToString(),
-                year = result.publishedDate?.year?.toString(),
-                identifier = result.primaryIdentifier
-                    ?.takeUnless { it.type == IdentifierType.DOI }
-                    ?.displayValue(),
-                title = result.title,
-                authors = result.authors.joinToString().ifBlank {
-                    stringResource(R.string.unknown_authors)
-                },
-                doi = result.identifiers.firstOrNull { it.type == IdentifierType.DOI }?.value,
-            )
-            result.citationMetrics?.let { metrics ->
-                PaperSurface(contentPadding = PaddingValues(12.dp)) {
-                    Text(
-                        pluralStringResource(R.plurals.search_preview_citations, metrics.count, metrics.count),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        stringResource(
-                            R.string.search_preview_citation_source,
-                            metrics.sourceDisplayName,
-                            metrics.observedAt.toEnglishDisplayDateTime(),
-                        ),
-                        color = PaperTheme.tokens.inkMuted,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-            PaperSurface {
-                PaperSectionHeader(stringResource(R.string.abstract_title))
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    result.abstractText ?: stringResource(R.string.search_preview_no_abstract),
-                    color = if (result.abstractText == null) PaperTheme.tokens.inkMuted else PaperTheme.tokens.ink,
-                    style = MaterialTheme.typography.bodyLarge,
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                PaperIdentityBlock(
+                    source = result.sourceDisplayNames.joinToString(),
+                    year = (result.publishedDate?.year ?: result.publicationYear)?.toString(),
+                    identifier = result.primaryIdentifier
+                        ?.takeUnless { it.type == IdentifierType.DOI }
+                        ?.displayValue(),
+                    title = result.title,
+                    authors = result.authors.joinToString().ifBlank {
+                        stringResource(R.string.unknown_authors)
+                    },
+                    doi = result.identifiers.firstOrNull { it.type == IdentifierType.DOI }?.value,
                 )
-            }
-            if (result.subjects.isNotEmpty()) {
-                SearchPreviewSection(stringResource(R.string.search_preview_subjects)) {
-                    Text(result.subjects.joinToString(), color = PaperTheme.tokens.inkMuted)
-                }
-            }
-            if (result.manifestations.isNotEmpty()) {
-                SearchPreviewSection(stringResource(R.string.search_preview_versions)) {
-                    result.manifestations.forEach { manifestation ->
-                        SearchManifestationPreview(manifestation, onOpenUrl)
-                    }
-                }
-            }
-            if (secondaryIdentifiers.isNotEmpty()) {
-                SearchPreviewSection(stringResource(R.string.identifiers_title)) {
-                    Text(secondaryIdentifiers.joinToString(separator = "\n") { it.displayValue() })
-                }
-            }
-            if (savedWorkId == null) {
-                PaperPrimaryButton(
-                    onClick = onSave,
-                    enabled = !saving,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    if (saving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            color = PaperTheme.tokens.ink,
-                            strokeWidth = 2.dp,
+                result.citationMetrics?.let { metrics ->
+                    PaperSurface(contentPadding = PaddingValues(12.dp)) {
+                        Text(
+                            pluralStringResource(R.plurals.search_preview_citations, metrics.count, metrics.count),
+                            style = MaterialTheme.typography.titleMedium,
                         )
-                        Spacer(Modifier.size(8.dp))
+                        Text(
+                            stringResource(
+                                R.string.search_preview_citation_source,
+                                metrics.sourceDisplayName,
+                                metrics.observedAt.toEnglishDisplayDateTime(),
+                            ),
+                            color = PaperTheme.tokens.inkMuted,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
-                    Text(stringResource(if (saving) R.string.saving_paper else R.string.save_paper))
                 }
-            } else {
-                PaperPrimaryButton(
-                    onClick = { onOpenSaved(savedWorkId) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.open_saved_paper))
+                PaperSurface {
+                    PaperSectionHeader(stringResource(R.string.abstract_title))
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        result.abstractText ?: stringResource(R.string.search_preview_no_abstract),
+                        color = if (result.abstractText == null) PaperTheme.tokens.inkMuted else PaperTheme.tokens.ink,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+                if (result.subjects.isNotEmpty()) {
+                    SearchPreviewSection(stringResource(R.string.search_preview_subjects)) {
+                        Text(result.subjects.joinToString(), color = PaperTheme.tokens.inkMuted)
+                    }
+                }
+                if (result.manifestations.isNotEmpty()) {
+                    SearchPreviewSection(stringResource(R.string.search_preview_versions)) {
+                        result.manifestations.forEach { manifestation ->
+                            SearchManifestationPreview(manifestation, onOpenUrl)
+                        }
+                    }
+                }
+                if (secondaryIdentifiers.isNotEmpty()) {
+                    SearchPreviewSection(stringResource(R.string.identifiers_title)) {
+                        Text(secondaryIdentifiers.joinToString(separator = "\n") { it.displayValue() })
+                    }
                 }
             }
-            if (saveFailed) {
-                Text(stringResource(R.string.save_failed), color = PaperTheme.tokens.danger)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (savedWorkId == null) {
+                    PaperPrimaryButton(
+                        onClick = onSave,
+                        enabled = !saving,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        if (saving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = LocalContentColor.current,
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.size(8.dp))
+                        }
+                        Text(stringResource(if (saving) R.string.saving_paper else R.string.save_paper))
+                    }
+                } else {
+                    PaperPrimaryButton(
+                        onClick = { onOpenSaved(savedWorkId) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.open_saved_paper))
+                    }
+                }
+                if (saveFailed) {
+                    Text(stringResource(R.string.save_failed), color = PaperTheme.tokens.danger)
+                }
+                if (linkOpenFailed) {
+                    Text(stringResource(R.string.search_preview_link_failed), color = PaperTheme.tokens.danger)
+                }
+                Spacer(Modifier.height(24.dp))
             }
-            if (linkOpenFailed) {
-                Text(stringResource(R.string.search_preview_link_failed), color = PaperTheme.tokens.danger)
-            }
-            Spacer(Modifier.height(24.dp))
         }
     }
 }

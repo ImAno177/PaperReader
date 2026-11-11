@@ -58,9 +58,6 @@ internal fun AppNavHost(
     notificationsAvailable: Boolean,
     onAutomaticRefreshChange: suspend (Boolean) -> Boolean,
     onOpenNotificationSettings: () -> Unit,
-    onRequestLocalPdfImport: ((String) -> Unit) -> Unit,
-    onRequestBackupExport: (RequestBackupExport) -> Unit,
-    onRequestBackupImport: (RequestBackupImport) -> Unit,
     extensionInstalls: ExtensionInstallBindings,
     incomingPdfRequest: IncomingPdfRequest?,
     onIncomingPdfConsumed: (Long) -> Unit,
@@ -206,6 +203,7 @@ internal fun AppNavHost(
                 savedSearchActions = savedSearchActions,
                 onSaveSearch = { discoverViewModel.onAction(DiscoverAction.CreateSavedSearch(it)) },
                 onOpenUpdates = { navController.navigate(AppRoutes.UPDATES) { launchSingleTop = true } },
+                onOpenSources = { navController.navigateToMoreBranch(AppRoutes.MORE_SOURCES) },
                 onSearchGoogle = { query ->
                     context.startActivity(
                         GoogleSearchActivity.createIntent(
@@ -352,13 +350,12 @@ internal fun AppNavHost(
                     activeIncomingPdfRequestId = null
                 }
             }
+            val pdfPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
+            ) { uri -> uri?.let { importsViewModel.onAction(ReadingImportsAction.Prepare(it.toString())) } }
             ReadingImportsScreen(
                 state = importsState,
-                onRequestImport = {
-                    onRequestLocalPdfImport {
-                        importsViewModel.onAction(ReadingImportsAction.Prepare(it))
-                    }
-                },
+                onRequestImport = { pdfPicker.launch(arrayOf("application/pdf")) },
                 onConfirmImport = { importsViewModel.onAction(ReadingImportsAction.Confirm(it)) },
                 onDismissImport = {
                     importsViewModel.onAction(ReadingImportsAction.Dismiss)
@@ -385,14 +382,24 @@ internal fun AppNavHost(
                 factory = remember(screenViewModelFactory) { screenViewModelFactory.dataBackup() },
             )
             val backupState by backupViewModel.uiState.collectAsStateWithLifecycle()
+            val transferViewModel: LibraryTransferViewModel = viewModel(
+                viewModelStoreOwner = moreEntry,
+                factory = remember(screenViewModelFactory) { screenViewModelFactory.libraryTransfer() },
+            )
+            val transferState by transferViewModel.uiState.collectAsStateWithLifecycle()
+            val transferFiles = rememberLibraryTransferFileActions(transferViewModel, backupViewModel)
             DataBackupScreen(
                 state = backupState,
-                onRequestExport = {
-                    onRequestBackupExport { writer -> backupViewModel.createBackup(writer) }
-                },
-                onRequestImport = {
-                    onRequestBackupImport { reader -> backupViewModel.previewRestore(reader) }
-                },
+                onRequestExport = transferFiles.exportMetadata,
+                onRequestImport = transferFiles.importMetadata,
+                transferState = transferState,
+                onExportLibrary = transferFiles.exportLibrary,
+                onImportLibrary = transferFiles.importLibrary,
+                onExportBibliography = transferFiles.exportBibliography,
+                onImportBibliography = transferFiles.importBibliography,
+                onExportNotes = transferFiles.exportNotes,
+                onConfirmTransfer = transferViewModel::confirm,
+                onDismissTransfer = transferViewModel::dismiss,
                 onConfirmRestore = { backupViewModel.onAction(DataBackupAction.ConfirmRestore) },
                 onDismissState = { backupViewModel.onAction(DataBackupAction.Dismiss) },
                 onBack = navController::popBackStack,
@@ -500,6 +507,9 @@ internal fun AppNavHost(
                 factory = remember(screenViewModelFactory, workId) { screenViewModelFactory.detail(workId) },
             )
             val detailState by detailViewModel.uiState.collectAsStateWithLifecycle()
+            androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                detailViewModel.refreshReadablePaperCacheReadiness()
+            }
             DetailScreen(
                 state = detailState.paper,
                 collections = detailState.collections,
@@ -512,6 +522,7 @@ internal fun AppNavHost(
                 showImagesInDescription = showImagesInDescription,
                 requestingManifestations = detailState.downloadActions.requestingManifestations,
                 failedManifestations = detailState.downloadActions.failedManifestations,
+                readableCacheReadiness = detailState.readableCacheReadiness,
                 onBack = navController::popBackStack,
                 onStatusChange = { detailViewModel.onAction(PaperDetailAction.SetStatus(it)) },
                 onRepairSavedPaper = { detailViewModel.onAction(PaperDetailAction.RepairSavedPaper) },

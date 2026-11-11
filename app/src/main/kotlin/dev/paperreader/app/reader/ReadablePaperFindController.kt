@@ -95,12 +95,14 @@ internal class ReadablePaperFindController(
             previousButton.isEnabled = false
             nextButton.isEnabled = false
             resultLabel.text = ""
+            resultLabel.contentDescription = null
             return
         }
         webView.clearMatches()
         previousButton.isEnabled = false
         nextButton.isEnabled = false
         resultLabel.setText(R.string.readable_reader_searching)
+        resultLabel.contentDescription = context.getString(R.string.searching_title)
         pendingSearch = Runnable {
             pendingSearch = null
             if (query != currentQuery || !isVisible) return@Runnable
@@ -132,12 +134,17 @@ internal class ReadablePaperFindController(
         nextButton.isEnabled = hasMatches
         resultLabel.text = if (hasMatches) {
             context.getString(
-                R.string.readable_reader_search_count,
+                R.string.readable_reader_search_count_short,
                 activeMatchOrdinal + 1,
                 numberOfMatches,
             )
         } else {
             context.getString(R.string.readable_reader_search_no_results_short)
+        }
+        resultLabel.contentDescription = if (hasMatches) {
+            context.getString(R.string.readable_reader_search_count, activeMatchOrdinal + 1, numberOfMatches)
+        } else {
+            resultLabel.text
         }
     }
 

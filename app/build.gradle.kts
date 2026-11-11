@@ -1,8 +1,8 @@
 import com.android.build.api.variant.BuildConfigField
 
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
 }
 
 apply(from = rootProject.file("gradle/jacoco-android.gradle.kts"))
@@ -40,17 +40,14 @@ require(devThemeVersion.toLongOrNull() != null)
 require(connectedTestApplicationIdSuffix == null || connectedTestApplicationIdSuffix.matches(Regex("\\.[a-z][a-z0-9_]*")))
 
 android {
+    buildToolsVersion = libs.versions.buildTools.get()
     namespace = "dev.paperreader.app"
-    compileSdk {
-        version = release(37) {
-            minorApiLevel = 0
-        }
-    }
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
         applicationId = "dev.paperreader.app"
-        minSdk = 28
-        targetSdk = 36
+        minSdk = libs.versions.minSdk.get().toInt()
+        targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = appVersionCode
         versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -85,7 +82,7 @@ android {
     }
 
     testCoverage {
-        jacocoVersion = "0.8.15"
+        jacocoVersion = libs.versions.jacoco.get()
     }
 
     testOptions {
@@ -139,7 +136,7 @@ androidComponents {
                 "OFFICIAL_SOURCE_STORE_URL",
                 BuildConfigField(
                     "String",
-                    "https://raw.githubusercontent.com/ImAno177/PaperReader-sources/main/registry/index.signed.json"
+                    "https://raw.githubusercontent.com/ImAno177/PaperReader-sources/main/registry/v2/index.signed.json"
                         .asBuildConfigString(),
                     null,
                 ),
@@ -161,34 +158,34 @@ androidComponents {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2026.06.00")
+    val composeBom = platform(libs.androidx.compose.bom)
 
     implementation(project(":logic"))
     implementation(project(":extension-api"))
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
-    implementation("androidx.activity:activity-compose:1.13.0")
-    implementation("androidx.appcompat:appcompat:1.8.0")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    implementation("androidx.navigation:navigation-compose:2.10.1")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
-    implementation("androidx.datastore:datastore-preferences:1.2.1")
-    implementation("androidx.work:work-runtime-ktx:2.11.2")
-    implementation("androidx.pdf:pdf-viewer-fragment:1.0.0-beta01")
-    implementation("com.google.android.material:material:1.14.0")
-    implementation("com.squareup.okhttp3:okhttp:5.5.0")
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.pdf.viewer)
+    implementation(libs.material)
+    implementation(libs.okhttp)
 
-    testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.junit)
 
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4-accessibility")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
-    androidTestImplementation("androidx.test:runner:1.7.0")
-    androidTestImplementation("androidx.test:rules:1.7.0")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
-    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.compose.ui.test.accessibility)
+    androidTestImplementation(libs.androidx.test.espresso)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.rules)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    androidTestImplementation(libs.androidx.test.junit)
 }

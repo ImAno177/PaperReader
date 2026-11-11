@@ -109,8 +109,11 @@ data class RemotePaper(
     val updatedAt: Instant? = null,
     val manifestations: List<RemoteManifestation> = emptyList(),
     val citationMetrics: CitationMetrics? = null,
+    val publicationYear: Int? = null,
 ) {
     init {
+        require(publicationYear == null || publicationYear in 1..9999)
+        require(publicationYear == null || publishedDate == null || publishedDate.year == publicationYear)
         require(providerId.isNotBlank())
         require(providerRecordId.isNotBlank())
         require(title.isNotBlank())

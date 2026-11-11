@@ -105,22 +105,26 @@ class ExtensionStoreRegistry(
         return ExtensionStorePreview(token, normalizedUrl, index)
     }
 
-    /** Adds the app's immutable default store or refreshes its last-known-good signed index. */
+    /** A previous URL permits an app-authorized transport migration, never a key or identity change. */
     suspend fun ensurePinned(
         indexUrl: String,
         publicKeyBase64: String,
         expectedStoreId: String,
+        previousIndexUrl: String? = null,
     ): ExtensionStoreRecord {
         val normalizedUrl = requireIndexUrl(indexUrl)
         val normalizedKey = normalizePublicKey(publicKeyBase64)
+        val previousUrl = previousIndexUrl?.let(::requireIndexUrl)
         val existing = mutex.withLock {
             pinnedStoreIds += expectedStoreId
             cachedStores.firstOrNull { it.index.storeId == expectedStoreId }?.also { cached ->
-                require(cached.indexUrl == normalizedUrl) { "Pinned extension store URL changed" }
+                require(cached.indexUrl == normalizedUrl || cached.indexUrl == previousUrl) {
+                    "Pinned extension store URL changed"
+                }
                 require(cached.publicKeyBase64 == normalizedKey) { "Pinned extension store key changed" }
             }
         }
-        if (existing != null) return refresh(expectedStoreId)
+        if (existing != null) return refreshFrom(expectedStoreId, normalizedUrl)
 
         return try {
             val envelope = fetchEnvelope(normalizedUrl)
@@ -188,7 +192,9 @@ class ExtensionStoreRegistry(
         }
     }
 
-    suspend fun refresh(storeId: String): ExtensionStoreRecord {
+    suspend fun refresh(storeId: String): ExtensionStoreRecord = refreshFrom(storeId, null)
+
+    private suspend fun refreshFrom(storeId: String, indexUrl: String?): ExtensionStoreRecord {
         val original = mutex.withLock {
             require(storeId !in mutableState.value.refreshingStoreIds) { "Extension store is already refreshing" }
             requireNotNull(cachedStores.firstOrNull { it.index.storeId == storeId }) { "Unknown extension store" }
@@ -200,7 +206,8 @@ class ExtensionStoreRegistry(
                 }
         }
         return try {
-            val envelope = fetchEnvelope(original.indexUrl)
+            val targetUrl = indexUrl ?: original.indexUrl
+            val envelope = fetchEnvelope(targetUrl)
             var verified = withContext(Dispatchers.Default) {
                 verifier.verify(
                     envelopeBytes = envelope,
@@ -214,6 +221,9 @@ class ExtensionStoreRegistry(
                     val current = requireNotNull(cachedStores.firstOrNull { it.index.storeId == storeId }) {
                         "Extension store was removed while refreshing"
                     }
+                    require(current.indexUrl == original.indexUrl || current.indexUrl == targetUrl) {
+                        "Extension store URL changed while refreshing"
+                    }
                     if (current.index.sequence != original.index.sequence) {
                         verified = verifier.verify(
                             envelopeBytes = envelope,
@@ -226,8 +236,13 @@ class ExtensionStoreRegistry(
                         require(verified.signedPayloadSha256 == current.index.signedPayloadSha256) {
                             "Extension store reused a sequence with different content"
                         }
+                    }
+                    if (verified.sequence == current.index.sequence && targetUrl == current.indexUrl) {
                         current.toRecord()
                     } else {
+                        require(cachedStores.none { it.index.storeId != storeId && it.indexUrl == targetUrl }) {
+                            "Extension store URL is already added"
+                        }
                         val otherPackages = cachedStores
                             .filterNot { it.index.storeId == storeId }
                             .flatMapTo(mutableSetOf()) { store ->
@@ -236,7 +251,7 @@ class ExtensionStoreRegistry(
                         require(verified.releases.none { it.packageName in otherPackages }) {
                             "Extension package is already owned by another store"
                         }
-                        val replacement = current.copy(envelope = envelope, index = verified)
+                        val replacement = current.copy(indexUrl = targetUrl, envelope = envelope, index = verified)
                         val updated = cachedStores.map { if (it.index.storeId == storeId) replacement else it }
                         persist(updated)
                         cachedStores = updated

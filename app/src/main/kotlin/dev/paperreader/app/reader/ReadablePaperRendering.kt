@@ -236,6 +236,7 @@ internal fun renderReadablePaperHtml(
     rewriteCitationLinks: Boolean = true,
     exportMetadata: ReadablePaperExportMetadata? = null,
     assetUrlForId: (String) -> String = ::readableLocalAssetUrl,
+    authorDetailsSummary: String? = null,
 ): String {
     listOf(
         palette.background,
@@ -246,10 +247,14 @@ internal fun renderReadablePaperHtml(
         palette.link,
         palette.selection,
     ).forEach { require(it.matches(Regex("#[0-9A-Fa-f]{6}"))) }
+    val presentationBodyHtml = authorDetailsSummary
+        ?.takeIf(String::isNotBlank)
+        ?.let { collapseLongAuthorDetails(sanitizedBodyHtml, it) }
+        ?: sanitizedBodyHtml
     val citationBodyHtml = if (rewriteCitationLinks) {
-        rewriteBibliographyLinks(sanitizedBodyHtml)
+        rewriteBibliographyLinks(presentationBodyHtml)
     } else {
-        sanitizedBodyHtml
+        presentationBodyHtml
     }
     val rendererBodyHtml = rewriteReadableAssetSources(citationBodyHtml, assetUrlForId)
     val exportHeadMetadata = exportMetadata?.toHeadMetadata().orEmpty()
@@ -327,8 +332,8 @@ internal fun renderReadablePaperHtml(
               line-height: 1.22;
               letter-spacing: -0.012em;
               margin: 1.65em 0 0.62em;
-              scroll-margin-top: 18px;
             }
+            .paperreader-document [id] { scroll-margin-top: 72px; }
             h1 { margin-top: 0; font-size: 1.72rem; letter-spacing: -0.025em; }
             h2 { font-size: 1.55rem; }
             h3 { font-size: 1.28rem; }
@@ -337,17 +342,48 @@ internal fun renderReadablePaperHtml(
             p { margin: var(--reader-paragraph-margin) 0; }
             a { color: var(--link); text-decoration-thickness: 0.08em; text-underline-offset: 0.15em; }
             a:focus { outline: 3px solid var(--link); outline-offset: 3px; }
+            .ltx_itemize {
+              list-style: none;
+              margin: 0.92em 0;
+              padding-inline-start: 0;
+            }
+            .ltx_itemize > .ltx_item {
+              display: grid;
+              grid-template-columns: 1.1em minmax(0, 1fr);
+              column-gap: 0.35em;
+              list-style: none;
+              margin: 0.55em 0;
+            }
+            .ltx_itemize > .ltx_item > .ltx_tag_item {
+              grid-column: 1;
+              grid-row: 1;
+              align-self: start;
+            }
+            .ltx_itemize > .ltx_item > :not(.ltx_tag_item) {
+              grid-column: 2;
+              min-width: 0;
+            }
+            .ltx_itemize > .ltx_item > .ltx_para > p { margin: 0; }
+            .ltx_itemize > .ltx_item > .ltx_para > p + p { margin-top: var(--reader-paragraph-margin); }
             .ltx_authors {
               display: grid;
               grid-template-columns: repeat(2, minmax(0, 1fr));
-              gap: 14px 18px;
-              margin: 14px 0 20px;
+              gap: 10px 14px;
+              margin: 10px 0 14px;
               color: var(--muted);
             }
             .ltx_author_before { display: none; }
             .ltx_creator, .paperreader-author { display: block; min-width: 0; margin: 0; }
             .ltx_personname, .paperreader-author-name { display: inline; color: var(--text); font-weight: 650; overflow-wrap: anywhere; }
-            .ltx_author_notes, .paperreader-author-details { display: block; margin: 4px 0 0; color: var(--muted); font-size: 0.88em; overflow-wrap: anywhere; }
+            .ltx_author_notes, .paperreader-author-details {
+              display: block;
+              margin: 4px 0 0;
+              color: var(--muted);
+              font-size: 0.84em;
+              overflow-wrap: anywhere;
+            }
+            .paperreader-author-notes { margin: 4px 0 0; color: var(--muted); font-size: 0.84em; }
+            .paperreader-author-notes > summary { color: var(--link); cursor: pointer; }
             .ltx_contact { display: block; margin: 2px 0; }
             .ltx_contact_name { font-weight: 600; }
             .ltx_role_footnotemark .ltx_note_outer,
@@ -366,6 +402,7 @@ internal fun renderReadablePaperHtml(
               cursor: pointer;
               font-weight: 650;
             }
+            .paperreader-author-notes > summary::before { content: attr(data-label); }
             .paperreader-author-notes-content { padding: 0 14px 14px; }
             .ltx_abstract {
               margin: 24px 0 30px;

@@ -393,11 +393,14 @@ private fun PaperStateIcon(icon: PaperIconKey, compact: Boolean) {
     val shape = RoundedCornerShape(tokens.cornerRadius)
     val tileSize = if (compact) 36.dp else 48.dp
     Box(
-        modifier = Modifier.paperHardShadow(
-            color = tokens.hardShadow,
-            offset = tokens.shadowOffset,
-            cornerRadius = tokens.cornerRadius,
-        ),
+        // Balance the shadow's end padding so the tile stays centered over centered text.
+        modifier = Modifier
+            .padding(start = tokens.shadowOffset)
+            .paperHardShadow(
+                color = tokens.hardShadow,
+                offset = tokens.shadowOffset,
+                cornerRadius = tokens.cornerRadius,
+            ),
     ) {
         Surface(
             modifier = Modifier.size(tileSize),

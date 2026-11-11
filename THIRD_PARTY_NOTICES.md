@@ -14,7 +14,7 @@ for each build artifact.
 | Google Tink | version declared in Gradle | Apache-2.0 |
 | Material Components / Material 3 | versions declared in Gradle | Apache-2.0 |
 | Material Symbols | `50f0603134ce7b70b2d71b686cc13e8b57ccb74c` | Apache-2.0 |
-| Space Grotesk variable font | `google/fonts` `ofl/spacegrotesk` | SIL OFL 1.1 |
+| Space Grotesk variable font | `google/fonts` `2861cb7b12f90c0a294a12ed666e381e2211872f` | SIL OFL 1.1 |
 
 The authoritative dependency versions are in the repository's Gradle build files. Transitive
 artifacts retain their original copyright and license notices. Test-only dependencies are not bundled

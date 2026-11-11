@@ -29,8 +29,6 @@ current branch. Released sections correspond to Git tags.
   canvas with white cards, electric-violet actions, highlighter-yellow selection, and Space Grotesk
   headings. Pressed controls move into their shadow, dark mode inverts the ink, root headers sit on
   the canvas, and the bottom navigation has a top rule.
-- Neobrutalism uses layered paper surfaces, cobalt actions, yellow selections, lighter outlines,
-  and serif display headings, with separate dark-mode surface and accent colors.
 - Search previews keep Save/Open visible while metadata scrolls, saved-search controls take less
   space, and unreachable-source messages point to connection checks and retry.
 - Root tabs restore search and navigation state. Library grid titles wrap fully, zero-percent

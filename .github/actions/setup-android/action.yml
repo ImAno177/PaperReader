@@ -3,7 +3,7 @@ description: Install the catalog-pinned JDK, Android SDK, and Gradle cache polic
 
 inputs:
   cache-read-only:
-    description: Only the main push CI job writes the shared Gradle cache.
+    description: Set to false only in the Android CI job, which writes the Gradle cache.
     default: "true"
 
 outputs:

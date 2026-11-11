@@ -16,6 +16,15 @@ import org.junit.Test
 
 class MetadataBackupCodecTest {
     @Test
+    fun `export suggests the documented backup file name`() {
+        val summary = MetadataBackupSummary(0, 0, 0, 0, 0, 0, 0, 0, 0)
+        assertEquals(
+            "paper-reader-metadata.paperreader.backup",
+            MetadataBackupExport(byteArrayOf(), summary, Instant.EPOCH).suggestedFileName,
+        )
+    }
+
+    @Test
     fun `wire models preserve optional fields used by every backup section`() {
         val author = BackupAuthorProto(0, "Ada", "Ada", "Lovelace", "0000-0000")
         val identifier = BackupIdentifierProto("PROVIDER", "record", "source")

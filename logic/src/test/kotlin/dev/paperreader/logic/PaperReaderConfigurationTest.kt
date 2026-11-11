@@ -1,10 +1,16 @@
 package dev.paperreader.logic
 
 import dev.paperreader.logic.plugin.TrustedSourceExtension
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class PaperReaderConfigurationTest {
+    @Test
+    fun `default database name is stable so upgrades keep the existing library`() {
+        assertEquals("paper-reader.db", PaperReaderConfiguration().databaseName)
+    }
+
     @Test
     fun `configuration rejects blank identity and non-positive limits`() {
         assertThrows(IllegalArgumentException::class.java) {

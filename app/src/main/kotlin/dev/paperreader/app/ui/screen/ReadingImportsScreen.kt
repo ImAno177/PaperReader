@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
+import dev.paperreader.app.ui.components.paperTextFieldColors
 import dev.paperreader.app.ui.components.PaperPrimaryButton
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSurface
@@ -103,6 +104,7 @@ private fun LocalPdfImportDialog(
                         color = PaperTheme.tokens.inkMuted,
                     )
                     OutlinedTextField(
+                        colors = paperTextFieldColors(),
                         value = title,
                         onValueChange = { if (!importing) editableTitle = it },
                         enabled = !importing,

@@ -28,8 +28,8 @@ current branch. Released sections correspond to Git tags.
 - Neobrutalism uses neobrutalism.dev's default theme: a pale-blue background with white cards and
   inputs, black ink, 2 dp borders, 5 dp corners, opaque 4 dp offset shadows, a main blue that
   carries black text, and DM Sans. Pressed controls move into their shadow, dark mode uses the
-  project's navy theme with black borders, root headers sit on the background, and the bottom
-  navigation has a top rule.
+  project's navy theme with light outlines for 3:1 boundary contrast, root headers sit on the
+  background, and the bottom navigation has a top rule.
 - Community themes with a non-zero shadow offset now draw an opaque diagonal hard shadow in their
   hard-shadow color, and their status badges use the border color for the outline.
 - Search previews keep Save/Open visible while metadata scrolls, saved-search controls take less

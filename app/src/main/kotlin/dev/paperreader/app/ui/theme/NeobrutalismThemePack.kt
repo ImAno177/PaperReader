@@ -15,8 +15,9 @@ import dev.paperreader.app.R
  * corners, and an unblurred 4 dp x 4 dp black shadow; a pale-blue background with white cards;
  * a single `main` blue that always carries black text; and DM Sans at weight 500 for text and 700
  * for headings. Dark values are that file's `.dark` block before the site dropped dark mode
- * (commit e55e9d09): navy background, near-black cards, light text, and borders and shadows that
- * stay black. The secondary yellow is the theme's own chart color.
+ * (commit e55e9d09): navy background, near-black cards, light text, and black shadows. Its black
+ * dark borders are replaced with a light outline to meet WCAG non-text contrast. The secondary
+ * yellow is the theme's own chart color.
  *
  * The blue fails as text on white, so labels and icons use [primaryForeground] (ink) instead.
  */
@@ -57,6 +58,10 @@ internal fun neobrutalismThemeTokens(dark: Boolean): PaperThemeTokens {
             surfaceMuted = Color(0xFF2E2E2E),
             ink = Color(0xFFE6E6E6),
             inkMuted = Color(0xFFB9BDC8),
+            // Upstream keeps black borders in dark mode, but black on these cards is about 1.3:1,
+            // below WCAG 1.4.11's 3:1 for component boundaries; a light outline keeps fields and
+            // secondary buttons visible while the shadows stay black.
+            border = Color(0xFFA6ADC2),
             success = Color(0xFF05E17A),
             warning = Color(0xFFFACC00),
             danger = Color(0xFFFF6B6E),
@@ -68,21 +73,25 @@ internal fun neobrutalismThemeTokens(dark: Boolean): PaperThemeTokens {
     }
 }
 
+// The variable font defaults to its 9 pt caption design; 14 pt is the text design the site renders.
+@OptIn(ExperimentalTextApi::class)
+private val TextOpticalSize = FontVariation.Setting("opsz", 14f)
+
 @OptIn(ExperimentalTextApi::class)
 private val DmSans = FontFamily(
     Font(
         R.font.dm_sans,
         weight = FontWeight.Medium,
-        variationSettings = FontVariation.Settings(FontVariation.weight(500)),
+        variationSettings = FontVariation.Settings(FontVariation.weight(500), TextOpticalSize),
     ),
     Font(
         R.font.dm_sans,
         weight = FontWeight.SemiBold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(600)),
+        variationSettings = FontVariation.Settings(FontVariation.weight(600), TextOpticalSize),
     ),
     Font(
         R.font.dm_sans,
         weight = FontWeight.Bold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(700)),
+        variationSettings = FontVariation.Settings(FontVariation.weight(700), TextOpticalSize),
     ),
 )

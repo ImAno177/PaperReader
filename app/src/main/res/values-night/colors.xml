@@ -11,7 +11,7 @@
     <color name="reader_neo_surface_muted">#2E2E2E</color>
     <color name="reader_neo_ink">#E6E6E6</color>
     <color name="reader_neo_ink_muted">#B9BDC8</color>
-    <color name="reader_neo_border">#5C5C5C</color>
+    <color name="reader_neo_border">#A6ADC2</color>
     <color name="reader_neo_primary">#5294FF</color>
     <color name="reader_neo_on_primary">#000000</color>
     <color name="reader_neo_selection">#6B5600</color>

@@ -66,7 +66,8 @@ background with white cards and inputs. One main blue (`#5294FF`) marks actions 
 always carries black text, with yellow as the secondary accent. Accents too light to read as text
 fall back to ink for labels, icons, progress, and Material focus outlines. Text uses DM Sans at
 weight 500 with 700 headings. Dark mode follows the same project's former dark theme: a navy
-background, near-black cards, light text, and borders and shadows that stay black. Five additional built-in color themes provide ocean, forest, violet, rose,
+background, near-black cards, light text, and black shadows, with a light outline instead of
+upstream's black dark border so fields and buttons keep 3:1 boundary contrast. Five additional built-in color themes provide ocean, forest, violet, rose,
 and sunset accents. A theme extension supplies a complete semantic icon set with its declarative
 tokens; the built-in Neobrutalism type scale does not override community typography. The legacy
 `DOODLE` extension decoration remains readable for binary compatibility but is not a built-in

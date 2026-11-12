@@ -36,6 +36,7 @@ import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.app.ui.theme.primaryForeground
 import dev.paperreader.logic.task.PaperTask
 import dev.paperreader.logic.task.TaskState
 
@@ -187,7 +188,7 @@ private fun DownloadQueueSummary(tasks: List<PaperTask>) {
                         .semantics {
                             contentDescription = progressDescription
                         },
-                    color = PaperTheme.tokens.primary,
+                    color = PaperTheme.tokens.primaryForeground,
                     trackColor = PaperTheme.tokens.surfaceMuted,
                 )
                 Text(

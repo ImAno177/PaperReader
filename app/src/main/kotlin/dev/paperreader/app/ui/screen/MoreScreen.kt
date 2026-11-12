@@ -31,6 +31,7 @@ import dev.paperreader.app.ui.components.StatusBadge
 import dev.paperreader.app.ui.model.MetadataBackupUiState
 import dev.paperreader.app.ui.model.LocalPdfImportUiState
 import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.app.ui.theme.primaryForeground
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperThemePreset
@@ -205,7 +206,7 @@ private fun MoreHubHeader(savedCount: Int?, activeCount: Int?) {
                 key = PaperIconKey.LIBRARY,
                 contentDescription = null,
                 modifier = Modifier.size(28.dp),
-                tint = PaperTheme.tokens.primary,
+                tint = PaperTheme.tokens.primaryForeground,
             )
             Column(
                 modifier = Modifier.weight(1f),
@@ -255,7 +256,7 @@ private fun MoreSectionHeader(title: String, icon: PaperIconKey) {
             key = icon,
             contentDescription = null,
             modifier = Modifier.size(18.dp),
-            tint = PaperTheme.tokens.primary,
+            tint = PaperTheme.tokens.primaryForeground,
         )
         Text(
             text = title,

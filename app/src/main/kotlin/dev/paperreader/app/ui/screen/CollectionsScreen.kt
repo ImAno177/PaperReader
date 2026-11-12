@@ -36,6 +36,7 @@ import dev.paperreader.app.ui.components.PaperSurface
 import dev.paperreader.app.ui.components.PaperTextButton
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.app.ui.theme.primaryForeground
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.logic.domain.repository.CreateCollectionResult
@@ -255,7 +256,7 @@ private fun CollectionRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            PaperIcon(PaperIconKey.FOLDER, contentDescription = null, tint = PaperTheme.tokens.primary)
+            PaperIcon(PaperIconKey.FOLDER, contentDescription = null, tint = PaperTheme.tokens.primaryForeground)
             Text(
                 collection.name,
                 modifier = Modifier.weight(1f),

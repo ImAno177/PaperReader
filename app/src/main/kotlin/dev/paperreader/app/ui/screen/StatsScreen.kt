@@ -35,6 +35,7 @@ import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.ReadingHistoryUi
 import dev.paperreader.app.ui.model.buildStatsSnapshot
 import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.app.ui.theme.primaryForeground
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.logic.domain.SavedSearchFeed
@@ -194,7 +195,7 @@ private fun StatsLead(snapshot: PaperStatsSnapshot) {
                 key = PaperIconKey.HISTORY,
                 contentDescription = null,
                 modifier = Modifier.size(32.dp),
-                tint = PaperTheme.tokens.primary,
+                tint = PaperTheme.tokens.primaryForeground,
             )
         }
     }
@@ -218,7 +219,7 @@ private fun StatsMetricSection(
                 key = icon,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = PaperTheme.tokens.primary,
+                tint = PaperTheme.tokens.primaryForeground,
             )
             Text(
                 text = title,

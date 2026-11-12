@@ -62,6 +62,7 @@ import dev.paperreader.app.ui.theme.PaperDecoration
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.app.ui.theme.primaryForeground
 
 @Composable
 fun PaperAppBarTitle(text: String) {
@@ -502,7 +503,7 @@ fun PaperProgress(
                 .fillMaxWidth()
                 .height(6.dp)
                 .clip(RoundedCornerShape(PaperTheme.tokens.cornerRadius / 2)),
-            color = PaperTheme.tokens.primary,
+            color = PaperTheme.tokens.primaryForeground,
             trackColor = PaperTheme.tokens.surfaceMuted,
             gapSize = 0.dp,
             drawStopIndicator = {},

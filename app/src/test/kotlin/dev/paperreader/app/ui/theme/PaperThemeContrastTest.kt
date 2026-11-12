@@ -37,6 +37,27 @@ class PaperThemeContrastTest {
     }
 
     @Test
+    fun `accent foregrounds stay readable as text and icons`() {
+        PaperThemePreset.entries.forEach { preset ->
+            listOf(false, true).forEach { dark ->
+                val tokens = paperThemeTokens(preset, dark)
+                listOf(
+                    "primary" to tokens.primaryForeground,
+                    "secondary" to tokens.secondaryForeground,
+                ).forEach { (role, foreground) ->
+                    listOf(tokens.canvas, tokens.surface).forEach { background ->
+                        val ratio = contrastRatio(foreground, background)
+                        assertTrue(
+                            "$preset ${if (dark) "dark" else "light"} $role foreground contrast was $ratio",
+                            ratio >= WCAG_AA_NORMAL_TEXT,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     fun `empty-state heading keeps its accent contrast in both modes`() {
         listOf(false, true).forEach { dark ->
             PaperThemePreset.entries.forEach { preset ->

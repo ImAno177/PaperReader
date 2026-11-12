@@ -53,6 +53,7 @@ import dev.paperreader.app.ui.model.displayProviderName
 import dev.paperreader.app.ui.model.toEnglishDisplayDateTime
 import dev.paperreader.app.ui.model.toEnglishRelativeTime
 import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.app.ui.theme.secondaryForeground
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.logic.domain.SavedSearchFailureKind
@@ -299,7 +300,7 @@ private fun SavedSearchHeader(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                PaperLabel(providerNames, color = PaperTheme.tokens.secondary)
+                PaperLabel(providerNames, color = PaperTheme.tokens.secondaryForeground)
                 Spacer(Modifier.height(5.dp))
                 Text(
                     text = feed.search.queryText,
@@ -401,7 +402,7 @@ private fun SavedSearchHitRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PaperLabel(paper.providerId.displayProviderName(), color = PaperTheme.tokens.secondary)
+            PaperLabel(paper.providerId.displayProviderName(), color = PaperTheme.tokens.secondaryForeground)
             if (hit.unread) {
                 StatusBadge(stringResource(R.string.saved_search_new), color = PaperTheme.tokens.primary)
             }

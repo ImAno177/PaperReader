@@ -99,10 +99,13 @@ internal fun paperThemeTokens(preset: PaperThemePreset, dark: Boolean): PaperThe
     else -> colorThemeTokens(preset, dark)
 }
 
+// Material components draw colorScheme.primary as text, cursors, focus outlines, and checked
+// controls, so it gets the readable foreground; PaperReader's own buttons and tiles fill with
+// tokens.primary directly.
 internal fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (dark) {
     darkColorScheme(
-        primary = primary,
-        onPrimary = onPrimary,
+        primary = primaryForeground,
+        onPrimary = contrastForeground(primaryForeground),
         primaryContainer = primaryContainer,
         onPrimaryContainer = onPrimaryContainer,
         secondary = secondary,
@@ -138,8 +141,8 @@ internal fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (d
     )
 } else {
     lightColorScheme(
-        primary = primary,
-        onPrimary = onPrimary,
+        primary = primaryForeground,
+        onPrimary = contrastForeground(primaryForeground),
         primaryContainer = primaryContainer,
         onPrimaryContainer = onPrimaryContainer,
         secondary = secondary,
@@ -174,6 +177,27 @@ internal fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (d
         inversePrimary = primary,
     )
 }
+
+/**
+ * Accent used as text, an icon, or a thin indicator. Neobrutalism accents are light fills meant
+ * for black ink, so an accent that cannot reach WCAG AA on both canvas and surface falls back to
+ * [PaperThemeTokens.ink]; fills keep using the accent itself.
+ */
+val PaperThemeTokens.primaryForeground: Color get() = readableAccent(primary)
+
+/** Same rule as [primaryForeground] for [PaperThemeTokens.secondary]. */
+val PaperThemeTokens.secondaryForeground: Color get() = readableAccent(secondary)
+
+private fun PaperThemeTokens.readableAccent(accent: Color): Color =
+    if (minOf(contrastRatio(accent, surface), contrastRatio(accent, canvas)) >= WCAG_AA_TEXT) accent else ink
+
+internal fun contrastRatio(first: Color, second: Color): Float {
+    val lighter = maxOf(first.luminance(), second.luminance())
+    val darker = minOf(first.luminance(), second.luminance())
+    return (lighter + 0.05f) / (darker + 0.05f)
+}
+
+private const val WCAG_AA_TEXT = 4.5f
 
 internal fun contrastForeground(background: Color): Color =
     if (background.luminance() > 0.179f) Color.Black else Color.White

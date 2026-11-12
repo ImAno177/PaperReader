@@ -99,10 +99,13 @@ internal fun paperThemeTokens(preset: PaperThemePreset, dark: Boolean): PaperThe
     else -> colorThemeTokens(preset, dark)
 }
 
+// Material components draw colorScheme.primary as text, cursors, focus outlines, and checked
+// controls, so it gets the readable foreground; PaperReader's own buttons and tiles fill with
+// tokens.primary directly.
 internal fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (dark) {
     darkColorScheme(
-        primary = primary,
-        onPrimary = onPrimary,
+        primary = primaryForeground,
+        onPrimary = contrastForeground(primaryForeground),
         primaryContainer = primaryContainer,
         onPrimaryContainer = onPrimaryContainer,
         secondary = secondary,
@@ -138,8 +141,8 @@ internal fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (d
     )
 } else {
     lightColorScheme(
-        primary = primary,
-        onPrimary = onPrimary,
+        primary = primaryForeground,
+        onPrimary = contrastForeground(primaryForeground),
         primaryContainer = primaryContainer,
         onPrimaryContainer = onPrimaryContainer,
         secondary = secondary,

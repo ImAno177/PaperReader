@@ -90,12 +90,15 @@ class PaperThemeContrastTest {
     }
 
     @Test
-    fun `material semantic primary preserves the theme accent contract`() {
-        listOf(false, true).forEach { dark ->
-            val tokens = neobrutalismThemeTokens(dark)
-            val scheme = tokens.materialScheme(dark)
-            assertEquals(tokens.primary, scheme.primary)
-            assertEquals(tokens.onPrimary, scheme.onPrimary)
+    fun `material primary stays readable as text and outlines`() {
+        PaperThemePreset.entries.forEach { preset ->
+            listOf(false, true).forEach { dark ->
+                val tokens = paperThemeTokens(preset, dark)
+                val scheme = tokens.materialScheme(dark)
+                assertEquals(tokens.primaryForeground, scheme.primary)
+                assertTrue(contrastRatio(scheme.primary, scheme.surface) >= WCAG_AA_NORMAL_TEXT)
+                assertTrue(contrastRatio(scheme.onPrimary, scheme.primary) >= WCAG_AA_NORMAL_TEXT)
+            }
         }
     }
 

@@ -25,11 +25,11 @@ current branch. Released sections correspond to Git tags.
 
 ### Changed
 
-- Neobrutalism follows the canonical neubrutalism palette: black ink, 3 dp black outlines, square
-  corners, and opaque 4 dp offset shadows on an off-white canvas with white cards; yellow actions,
-  sky-blue selection, and coral accents all carry black text, and Space Grotesk headings. Pressed
-  controls move into their shadow, dark mode inverts the outlines and shadows, root headers sit on
-  the canvas, and the bottom navigation has a top rule.
+- Neobrutalism uses neobrutalism.dev's default theme: a pale-blue background with white cards and
+  inputs, black ink, 2 dp borders, 5 dp corners, opaque 4 dp offset shadows, a main blue that
+  carries black text, and DM Sans. Pressed controls move into their shadow, dark mode uses the
+  project's navy theme with black borders, root headers sit on the background, and the bottom
+  navigation has a top rule.
 - Community themes with a non-zero shadow offset now draw an opaque diagonal hard shadow in their
   hard-shadow color, and their status badges use the border color for the outline.
 - Search previews keep Save/Open visible while metadata scrolls, saved-search controls take less

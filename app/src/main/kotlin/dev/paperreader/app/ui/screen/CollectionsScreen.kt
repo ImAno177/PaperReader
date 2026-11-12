@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
+import dev.paperreader.app.ui.components.paperTextFieldColors
 import dev.paperreader.app.ui.state.LoadState
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperStatePanel
@@ -127,6 +128,7 @@ fun CollectionsScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
+                        colors = paperTextFieldColors(),
                         value = name,
                         onValueChange = { name = it; editorErrorRes = null },
                         modifier = Modifier.fillMaxWidth(),

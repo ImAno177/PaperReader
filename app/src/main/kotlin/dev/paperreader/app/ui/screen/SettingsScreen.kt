@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.paperreader.app.R
+import dev.paperreader.app.ui.components.paperTextFieldColors
 import dev.paperreader.app.ui.components.PaperPreferenceRow
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
@@ -65,6 +66,7 @@ private fun SettingsScreenContent(
     MoreBranchScaffold(title = stringResource(R.string.settings_title), onBack = onBack) {
         item {
             OutlinedTextField(
+                colors = paperTextFieldColors(),
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),

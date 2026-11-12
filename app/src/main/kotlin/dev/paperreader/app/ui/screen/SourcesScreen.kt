@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
+import dev.paperreader.app.ui.components.paperTextFieldColors
 import dev.paperreader.app.extensions.ExtensionInstallState
 import dev.paperreader.app.ui.state.ExtensionStoreActionUiState
 import dev.paperreader.app.ui.state.ExtensionStoreOperation
@@ -252,6 +253,7 @@ fun SourcesScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.add_store_security_notice), color = PaperTheme.tokens.inkMuted)
                     OutlinedTextField(
+                        colors = paperTextFieldColors(),
                         value = storeUrl,
                         onValueChange = { storeUrl = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -261,6 +263,7 @@ fun SourcesScreen(
                         enabled = !storeBusy,
                     )
                     OutlinedTextField(
+                        colors = paperTextFieldColors(),
                         value = publicKey,
                         onValueChange = { publicKey = it },
                         modifier = Modifier.fillMaxWidth(),

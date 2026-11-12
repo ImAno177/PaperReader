@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import dev.paperreader.app.R
+import dev.paperreader.app.ui.components.paperTextFieldColors
 import dev.paperreader.app.ui.state.LoadState
 import dev.paperreader.app.ui.components.PaperAppBarTitle
 import dev.paperreader.app.ui.components.PaperLabel
@@ -261,6 +262,7 @@ private fun LibraryControls(
     ) {
         if (searchVisible) {
             OutlinedTextField(
+                colors = paperTextFieldColors(),
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).focusRequester(focusRequester),

@@ -10,81 +10,88 @@ import androidx.compose.ui.unit.dp
 import dev.paperreader.app.R
 
 /**
- * Built-in Neobrutalism tokens, following the canonical palette published at neubrutalism.com and
- * NN/g's guidance: a black-and-white structure (black ink, 3 dp black outlines, square corners,
- * and an unblurred 4 dp offset shadow) on an off-white canvas with white cards, punctuated by
- * three flat accents that always carry black text: yellow actions, sky-blue selection, and coral
- * as the secondary accent. Light accents never serve as text; see [primaryForeground].
+ * Built-in Neobrutalism tokens, taken from neobrutalism.dev's default (Blue) theme in
+ * ekmas/neobrutalism-components `src/styling/globals.css`: black ink, 2 dp black borders, 5 dp
+ * corners, and an unblurred 4 dp x 4 dp black shadow; a pale-blue background with white cards;
+ * a single `main` blue that always carries black text; and DM Sans at weight 500 for text and 700
+ * for headings. Dark values are that file's `.dark` block before the site dropped dark mode
+ * (commit e55e9d09): navy background, near-black cards, light text, and black shadows. Its black
+ * dark borders are replaced with a light outline to meet WCAG non-text contrast. The secondary
+ * yellow is the theme's own chart color.
  *
- * The references define no dark palette, so dark mode keeps the accents and their black text and
- * inverts the structure: off-white outlines and shadows on a near-black canvas, because a black
- * shadow would vanish there.
+ * The blue fails as text on white, so labels and icons use [primaryForeground] (ink) instead.
  */
 internal fun neobrutalismThemeTokens(dark: Boolean): PaperThemeTokens {
     val light = PaperThemeTokens(
-        canvas = Color(0xFFFFFDF5),
+        canvas = Color(0xFFDCEBFE),
         surface = Color(0xFFFFFFFF),
-        surfaceMuted = Color(0xFFEEEADB),
+        surfaceMuted = Color(0xFFD3E1F5),
         ink = Color(0xFF000000),
-        inkMuted = Color(0xFF3C3C3C),
+        inkMuted = Color(0xFF374151),
         border = Color(0xFF000000),
-        primary = Color(0xFFFFD23F),
+        primary = Color(0xFF5294FF),
         onPrimary = Color(0xFF000000),
-        primaryContainer = Color(0xFF74B9FF),
+        primaryContainer = Color(0xFF5294FF),
         onPrimaryContainer = Color(0xFF000000),
-        secondary = Color(0xFFFF6B6B),
+        secondary = Color(0xFFFACC00),
         onSecondary = Color(0xFF000000),
-        secondaryContainer = Color(0xFFFFD6D6),
+        secondaryContainer = Color(0xFFFFEB99),
         onSecondaryContainer = Color(0xFF000000),
-        success = Color(0xFF0F7A35),
-        warning = Color(0xFF8A4B00),
-        danger = Color(0xFFC2161D),
+        success = Color(0xFF06652F),
+        warning = Color(0xFF7A4100),
+        danger = Color(0xFFB0141C),
         emptyStateAccent = Color(0xFF000000),
-        selection = Color(0xFFFFD23F),
+        selection = Color(0xFFFACC00),
         hardShadow = Color(0xFF000000),
-        cornerRadius = 0.dp,
-        borderWidth = 3.dp,
+        cornerRadius = 5.dp,
+        borderWidth = 2.dp,
         shadowOffset = 4.dp,
-        titleFont = SpaceGrotesk,
-        bodyFont = FontFamily.SansSerif,
-        labelFont = FontFamily.SansSerif,
+        titleFont = DmSans,
+        bodyFont = DmSans,
+        labelFont = DmSans,
         decoration = PaperDecoration.NONE,
     )
     return if (dark) {
         light.copy(
-            canvas = Color(0xFF111111),
-            surface = Color(0xFF1E1E1E),
+            canvas = Color(0xFF20294B),
+            surface = Color(0xFF1F1F1F),
             surfaceMuted = Color(0xFF2E2E2E),
-            ink = Color(0xFFFFFDF5),
-            inkMuted = Color(0xFFCFCBBE),
-            border = Color(0xFFFFFDF5),
-            success = Color(0xFF6FD08C),
-            warning = Color(0xFFFFC266),
-            danger = Color(0xFFFF8A8A),
-            emptyStateAccent = Color(0xFFFFD23F),
+            ink = Color(0xFFE6E6E6),
+            inkMuted = Color(0xFFB9BDC8),
+            // Upstream keeps black borders in dark mode, but black on these cards is about 1.3:1,
+            // below WCAG 1.4.11's 3:1 for component boundaries; a light outline keeps fields and
+            // secondary buttons visible while the shadows stay black.
+            border = Color(0xFFA6ADC2),
+            success = Color(0xFF05E17A),
+            warning = Color(0xFFFACC00),
+            danger = Color(0xFFFF6B6E),
+            emptyStateAccent = Color(0xFFE6E6E6),
             selection = Color(0xFF6B5600),
-            hardShadow = Color(0xFFFFFDF5),
         )
     } else {
         light
     }
 }
 
+// The variable font defaults to its 9 pt caption design; 14 pt is the text design the site renders.
 @OptIn(ExperimentalTextApi::class)
-private val SpaceGrotesk = FontFamily(
+private val TextOpticalSize = FontVariation.Setting("opsz", 14f)
+
+@OptIn(ExperimentalTextApi::class)
+private val DmSans = FontFamily(
     Font(
-        R.font.space_grotesk,
-        weight = FontWeight.Bold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(700)),
-    ),
-    Font(
-        R.font.space_grotesk,
-        weight = FontWeight.SemiBold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(600)),
-    ),
-    Font(
-        R.font.space_grotesk,
+        R.font.dm_sans,
         weight = FontWeight.Medium,
-        variationSettings = FontVariation.Settings(FontVariation.weight(500)),
+        variationSettings = FontVariation.Settings(FontVariation.weight(500), TextOpticalSize),
+    ),
+    Font(
+        R.font.dm_sans,
+        weight = FontWeight.SemiBold,
+        variationSettings = FontVariation.Settings(FontVariation.weight(600), TextOpticalSize),
+    ),
+    Font(
+        R.font.dm_sans,
+        weight = FontWeight.Bold,
+        variationSettings = FontVariation.Settings(FontVariation.weight(700), TextOpticalSize),
     ),
 )

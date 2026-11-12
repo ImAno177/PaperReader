@@ -37,6 +37,22 @@ class PaperThemeContrastTest {
     }
 
     @Test
+    fun `component outlines meet WCAG non-text contrast on cards and canvas`() {
+        PaperThemePreset.entries.forEach { preset ->
+            listOf(false, true).forEach { dark ->
+                val tokens = paperThemeTokens(preset, dark)
+                listOf("surface" to tokens.surface, "canvas" to tokens.canvas).forEach { (name, background) ->
+                    val ratio = contrastRatio(tokens.border, background)
+                    assertTrue(
+                        "$preset ${if (dark) "dark" else "light"} border on $name contrast was $ratio",
+                        ratio >= WCAG_AA_NON_TEXT,
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
     fun `accent foregrounds stay readable as text and icons`() {
         PaperThemePreset.entries.forEach { preset ->
             listOf(false, true).forEach { dark ->
@@ -148,6 +164,7 @@ class PaperThemeContrastTest {
 
     private companion object {
         const val WCAG_AA_NORMAL_TEXT = 4.5
+        const val WCAG_AA_NON_TEXT = 3.0
         const val WCAG_AA_LARGE_TEXT = 3.0
     }
 }

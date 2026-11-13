@@ -174,7 +174,6 @@ class PdfReaderActivity : AppCompatActivity() {
             isFormFillingEnabled = false
             addOnViewportChangedListener(viewportListener)
         }
-        // FragmentManager adds the PDF view after the static overlay children.
         pageIndicator.bringToFront()
     }
 
@@ -189,8 +188,6 @@ class PdfReaderActivity : AppCompatActivity() {
         latestPosition = null
         loadingIndicator.visibility = View.GONE
         pageIndicator.bringToFront()
-        // Keep the locator hidden until exact-document state has been restored. Showing page 1
-        // during this asynchronous window would make the reader briefly report a false position.
         pageIndicator.visibility = View.GONE
         setReaderActionsEnabled(searchEnabled = true, externalEnabled = true)
         if (readerResumed) startReaderSession()

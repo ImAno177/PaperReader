@@ -32,7 +32,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Owns the readable-reader annotation lifecycle and its single mobile editor. */
 internal class ReadablePaperAnnotationController(
     private val activity: AppCompatActivity,
     private val toolbar: Toolbar,

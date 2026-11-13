@@ -142,7 +142,6 @@ private fun HistoryRow(
     dateFormat: PaperDateFormat,
     relativeTimeEnabled: Boolean,
 ) {
-    // The open action covers only the text region so the remove button stays its own accessible node.
     PaperSurface(contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 4.dp, bottom = 16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),

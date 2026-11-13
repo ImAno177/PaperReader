@@ -18,7 +18,6 @@ enum class FallbackReason {
     EXTRACTION_FAILED,
 }
 
-/** Local-first loader strategy. Any extraction problem keeps the original PDF readable. */
 class ReaderDocumentLoader(private val extractionService: ExtractionService) {
     suspend fun load(
         source: PdfSource,

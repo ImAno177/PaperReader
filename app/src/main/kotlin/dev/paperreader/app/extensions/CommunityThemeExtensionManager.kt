@@ -102,7 +102,6 @@ class CommunityThemeExtensionManager(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: ThemeExtensionMinimumVersionException) {
-                // The signed store update remains available while the revoked theme stays unloaded.
             } catch (error: Exception) {
                 issues += ThemeExtensionIssue(
                     packageName = trusted.packageName,

@@ -24,7 +24,6 @@ class PaperPdfViewerFragment : PdfViewerFragment() {
     }
 
     override fun onRequestImmersiveMode(enterImmersive: Boolean) {
-        // Editing is intentionally unavailable until annotations can be anchored to this exact SHA-256.
         isToolboxVisible = false
     }
 }

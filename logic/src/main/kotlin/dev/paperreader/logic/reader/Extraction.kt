@@ -106,7 +106,6 @@ data class ExtractionManifest(
 )
 
 interface PdfTextExtractor {
-    /** Implemented by the future pdf-inspector JNI adapter; never by UI code. */
     suspend fun extract(source: PdfSource, options: ParseOptions): ExtractedDocument
 }
 

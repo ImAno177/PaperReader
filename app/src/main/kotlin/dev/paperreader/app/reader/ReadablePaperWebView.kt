@@ -58,7 +58,6 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
                 if (userScrollGestureStarted) {
                     val deltaY = event.y - lastTouchY
                     if (abs(deltaY) >= SCROLL_DIRECTION_THRESHOLD_PX) {
-                        // Finger down moves the document toward the top; finger up moves it down.
                         onReaderScroll?.invoke(deltaY > 0f)
                         lastTouchY = event.y
                     }
@@ -141,8 +140,6 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
     private fun runAppOwnedCommand(script: String, onResult: (String?) -> Unit) {
         cancelAppOwnedCommand()
         val serial = ++appCommandSerial
-        // App-owned scripts run only against the sanitized, network-blocked local document.
-        // codeql[java/android/websettings-javascript-enabled]
         settings.javaScriptEnabled = true
         val timeout = Runnable { finishAppOwnedCommand(serial, null, onResult) }
         appCommandTimeout = timeout

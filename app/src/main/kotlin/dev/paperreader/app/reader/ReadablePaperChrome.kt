@@ -109,7 +109,6 @@ internal fun MaterialButton.hideReadableCitationReturn(animateExit: Boolean = fa
     }
 }
 
-/** Hides reader chrome while the document is moving and restores it on a tap/upward scroll. */
 internal fun setReadableReaderChromeVisible(
     toolbar: Toolbar,
     visible: Boolean,

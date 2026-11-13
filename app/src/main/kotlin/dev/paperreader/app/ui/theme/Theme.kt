@@ -57,9 +57,7 @@ enum class PaperThemeMode(
 
 enum class PaperDecoration {
     NONE,
-    /** Legacy community-extension decoration; no built-in preset uses it. */
     DOODLE,
-    /** Legacy community-extension decoration; it is not a selectable built-in preset. */
     RETRO_GRID,
 }
 
@@ -99,9 +97,6 @@ internal fun paperThemeTokens(preset: PaperThemePreset, dark: Boolean): PaperThe
     else -> colorThemeTokens(preset, dark)
 }
 
-// Material components draw colorScheme.primary as text, cursors, focus outlines, and checked
-// controls, so it gets the readable foreground; PaperReader's own buttons and tiles fill with
-// tokens.primary directly.
 internal fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (dark) {
     darkColorScheme(
         primary = primaryForeground,
@@ -178,14 +173,8 @@ internal fun PaperThemeTokens.materialScheme(dark: Boolean): ColorScheme = if (d
     )
 }
 
-/**
- * Accent used as text, an icon, or a thin indicator. Neobrutalism accents are light fills meant
- * for black ink, so an accent that cannot reach WCAG AA on both canvas and surface falls back to
- * [PaperThemeTokens.ink]; fills keep using the accent itself.
- */
 val PaperThemeTokens.primaryForeground: Color get() = readableAccent(primary)
 
-/** Same rule as [primaryForeground] for [PaperThemeTokens.secondary]. */
 val PaperThemeTokens.secondaryForeground: Color get() = readableAccent(secondary)
 
 private fun PaperThemeTokens.readableAccent(accent: Color): Color =

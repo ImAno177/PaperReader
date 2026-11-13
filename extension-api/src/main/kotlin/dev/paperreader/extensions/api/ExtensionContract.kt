@@ -23,7 +23,6 @@ object PaperExtensionContract {
     const val MAX_AUTHORS: Int = 100
     const val MAX_SUBJECTS: Int = 100
     const val MAX_REQUEST_ID_CHARACTERS: Int = 64
-    /** Each readable-document Binder chunk stays below the transaction safety ceiling. */
     const val MAX_READABLE_DOCUMENT_CHUNK_BYTES: Int = 384 * 1024
     const val MAX_READABLE_DOCUMENT_BYTES: Long = 4L * 1024L * 1024L
 

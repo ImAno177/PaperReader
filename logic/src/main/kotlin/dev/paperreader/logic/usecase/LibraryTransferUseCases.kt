@@ -145,8 +145,6 @@ class ImportBibliography(private val library: LibraryRepository) {
                 continue
             }
             val imported = candidate.entry.toRemotePaper(candidate.stableRecordId)
-            // An exact match adds identifiers and links but never replaces the saved
-            // title, authors (with ORCID and name parts), abstract, or dates.
             val toSave = matched.singleOrNull()?.let(savedWorks::get)?.let(imported::keepingMetadataOf) ?: imported
             val workId = try {
                 library.save(toSave)
@@ -189,7 +187,6 @@ private fun PaperWork.toMetadataOnlyRemotePaper(): RemotePaper = RemotePaper(
 )
 
 private fun RemotePaper.keepingMetadataOf(saved: RemotePaper): RemotePaper {
-    // Date and year move together so the year-matches-date invariant always holds.
     val dateSource = if (saved.publishedDate != null || saved.publicationYear != null) saved else this
     return copy(
         title = saved.title,

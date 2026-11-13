@@ -31,7 +31,6 @@ class DownloadWorker(
                     if (retryAfter != null) {
                         if (app.logic.tasks.get(taskId)?.state == TaskState.QUEUED) {
                             app.downloadWorkScheduler.enqueueRetry(taskId, retryAfter)
-                            // Cancellation may win after the pre-enqueue read; remove that stale delayed chain.
                             if (app.logic.tasks.get(taskId)?.state != TaskState.QUEUED) {
                                 app.downloadWorkScheduler.cancel(taskId)
                             }

@@ -258,8 +258,6 @@ internal object BibTeXWriter {
                 date.month?.let { appendField("month", MONTHS[it - 1]) }
                 date.day?.let { appendField("day", it.toString()) }
             }
-            // BibTeX has one doi field. A merged work can hold several DOIs (for example the
-            // publisher DOI and arXiv's DataCite DOI); export the publisher DOI when present.
             entry.identifiers.filter { it.type == IdentifierType.DOI }
                 .minByOrNull { if (it.value.startsWith(ARXIV_DATACITE_DOI_PREFIX, ignoreCase = true)) 1 else 0 }
                 ?.let { appendField("doi", it.value) }

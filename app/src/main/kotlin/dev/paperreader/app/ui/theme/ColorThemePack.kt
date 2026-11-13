@@ -12,7 +12,6 @@ private data class ColorThemePalette(
     val surfaceMuted: Color,
 )
 
-/** Built-in color choices that share a calm reading surface, independent from Neobrutalism. */
 internal fun colorThemeTokens(preset: PaperThemePreset, dark: Boolean): PaperThemeTokens {
     val palette = when (preset) {
         PaperThemePreset.OCEAN -> ColorThemePalette(

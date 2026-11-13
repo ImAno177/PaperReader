@@ -36,10 +36,6 @@ sealed interface ExtensionInstallState {
     data object Cancelled : ExtensionInstallState
 }
 
-/**
- * Serializes source and theme APK installs and refuses bytes not bound to a verified store release.
- * Android PackageInstaller remains the authority for the final user confirmation and install result.
- */
 class ExtensionInstaller(
     context: Context,
     private val scope: CoroutineScope,

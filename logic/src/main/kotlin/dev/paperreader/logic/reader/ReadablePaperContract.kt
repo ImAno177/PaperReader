@@ -5,11 +5,9 @@ import java.io.InputStream
 import java.time.Instant
 import org.jsoup.nodes.Document
 
-/** Renderer contract embedded in cache identity and exported readable documents. */
 const val READABLE_RENDERER_CONTRACT_VERSION = "mobile-html-10"
 
 data class ReadablePaperDocument(
-    /** A sanitized fragment. Presentation and the CSP remain owned by the UI renderer. */
     val bodyHtml: String,
     val title: String,
     val sourceUrl: String,
@@ -20,11 +18,9 @@ data class ReadablePaperDocument(
     val documentSha256: String,
     val retrievedAt: Instant,
     val servedFromCache: Boolean,
-    /** True only when the verified app-private artifact is protected from ordinary cache eviction. */
     val keptForOffline: Boolean = false,
     val sections: List<ReadablePaperSection>,
     val warnings: Set<ReadablePaperWarning>,
-    /** Opaque metadata for locally cached figure assets; no filesystem path is exposed. */
     val assetGroupKey: String? = null,
     val assets: List<ReadablePaperAsset> = emptyList(),
     val sourceRecordId: String = "",
@@ -46,7 +42,6 @@ data class ReadablePaperAsset(
     }
 }
 
-/** A verified app-private asset stream used by the local WebView/export boundary. */
 data class ReadablePaperAssetContent(
     val mediaType: String,
     val inputStream: InputStream,
@@ -152,11 +147,9 @@ internal fun interface ReadablePaperLoader {
         retainDocumentSha256: String?,
     ): ReadablePaperResult
 
-    /** Checks only validated local cache state; implementations must not contact a provider. */
     suspend fun cacheReadiness(manifestation: PaperManifestation): ReadablePaperCacheReadiness =
         ReadablePaperCacheReadiness.NOT_CACHED
 
-    /** Retains a document that this loader has already verified without loading it again. */
     suspend fun retain(document: ReadablePaperDocument): Boolean = false
 }
 

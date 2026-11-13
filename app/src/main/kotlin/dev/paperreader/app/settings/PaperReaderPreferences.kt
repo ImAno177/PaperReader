@@ -63,7 +63,6 @@ class PaperReaderPreferences(context: Context) {
         values[DISABLED_PROVIDER_IDS_KEY].orEmpty()
     }
 
-    /** The last few submitted discovery queries, newest first. */
     val recentSearchQueries: Flow<List<String>> = preferences.map { values ->
         values[RECENT_SEARCH_QUERIES_KEY]
             .orEmpty()

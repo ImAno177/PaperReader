@@ -23,7 +23,6 @@ internal data class PendingLocalPdfSession(
     val path: Path,
 )
 
-/** Durable, single-user-flow staging. A source grant is no longer needed once [create] returns. */
 internal class LocalPdfSessionStore(
     directory: Path,
     maximumBytes: Long,

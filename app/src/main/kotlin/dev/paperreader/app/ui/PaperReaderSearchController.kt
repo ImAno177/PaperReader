@@ -98,7 +98,6 @@ data class SavedSearchActionKey(
     val providerIds: List<String>,
 )
 
-/** Owns remote discovery, result ranking, and the persisted saved-search action state. */
 internal class PaperReaderSearchController(
     private val logic: PaperReaderLogic,
     private val scope: CoroutineScope,
@@ -177,9 +176,6 @@ internal class PaperReaderSearchController(
 
                         is FederatedSearchEvent.PageReceived -> {
                             records += event.page.items
-                            // Ranking and exact-alias clustering are CPU-heavy when a provider
-                            // returns a large page. Keep that work off the main dispatcher so
-                            // the LazyColumn remains responsive while results stream in.
                             val rankedResults = withContext(Dispatchers.Default) {
                                 SearchResultRanker.rank(
                                     submitted,

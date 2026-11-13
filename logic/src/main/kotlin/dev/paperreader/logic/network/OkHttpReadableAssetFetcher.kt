@@ -19,7 +19,6 @@ import okhttp3.Response
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/** Bounded host-side asset transport. Document bytes stay on the extension/Binder lane. */
 internal class OkHttpReadableAssetFetcher(
     private val client: OkHttpClient,
     private val userAgent: String,

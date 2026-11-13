@@ -125,7 +125,6 @@ class RoomLocalPdfImportAndroidTest {
             repository.prepare(cancelledUri)
             throw AssertionError("Cancellation must propagate")
         } catch (_: CancellationException) {
-            // Expected.
         }
 
         assertTrue(database.libraryDao().getAllWorks().isEmpty())

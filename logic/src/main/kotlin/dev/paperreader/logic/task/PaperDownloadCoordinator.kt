@@ -64,9 +64,6 @@ sealed class DownloadRequestException(message: String) : IllegalArgumentExceptio
         DownloadRequestException("No safe PDF URL for manifestation: ${manifestationId.value}")
 }
 
-/**
- * Durable PDF-download use case. Room owns queue and artifact state; WorkManager only invokes [execute].
- */
 class PaperDownloadCoordinator internal constructor(
     private val library: LibraryRepository,
     private val localFiles: LocalFileRepository,

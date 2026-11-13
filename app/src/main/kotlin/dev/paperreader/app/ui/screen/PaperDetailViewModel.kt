@@ -108,7 +108,6 @@ class PaperDetailViewModel(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                // An optional source failure must not block the detail screen.
             } finally {
                 repairing.remove(workId)
             }

@@ -15,10 +15,6 @@ internal interface MetadataRestoreSessionStore {
     suspend fun clear()
 }
 
-/**
- * Keeps only the user-selected, bounded archive needed to survive process recreation between
- * preview and confirmation. The directory is app-private and excluded from Android Auto Backup.
- */
 internal class FileMetadataRestoreSessionStore(
     private val directory: File,
     private val maximumBytes: Int,

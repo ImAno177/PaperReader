@@ -105,8 +105,6 @@ fun DiscoverScreen(
     val density = LocalDensity.current
     val uriHandler = LocalUriHandler.current
     var searchFieldHeightPx by remember { mutableIntStateOf(0) }
-    // Material's single-line search field starts at 56 dp. Matching that on the
-    // first frame prevents the action from visibly resizing after measurement.
     val searchFieldHeight = if (searchFieldHeightPx == 0) 56.dp else with(density) { searchFieldHeightPx.toDp() }
     val previewResult = state.results.firstOrNull { it.key == previewKey }
     val eligibleProviderIds = state.providerStates
@@ -168,9 +166,6 @@ fun DiscoverScreen(
                         .weight(1f)
                         .onSizeChanged { searchFieldHeightPx = it.height },
                     singleLine = true,
-                    // This is a search control, not a form field. A floating label
-                    // reserves visual space above the outline and makes the adjacent
-                    // action look misaligned even when their layout bounds match.
                     placeholder = { Text(stringResource(R.string.search_label)) },
                     trailingIcon = {
                         if (query.isNotEmpty()) {

@@ -12,7 +12,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.ResponseBody
 
-/** Small shared HTTP boundary used by built-in providers. */
 class ProviderHttpClient(
     private val client: OkHttpClient = OkHttpClient(),
     private val userAgent: String = "PaperReader/0.1 (Android; +https://github.com/ImAno177/PaperReader)",
@@ -69,7 +68,6 @@ class ProviderHttpClient(
     companion object {
         const val DEFAULT_MAXIMUM_RESPONSE_BYTES: Long = 8L * 1024L * 1024L
 
-        /** Retry-After is either a delta-seconds value or an HTTP date. */
         fun parseRetryAfter(raw: String, nowMillis: Long = System.currentTimeMillis()): Long? {
             raw.trim().toLongOrNull()?.let { return (it * 1_000L).coerceAtLeast(0L) }
             return runCatching {
@@ -83,7 +81,6 @@ class ProviderHttpClient(
 
 data class ProviderHttpResult(val body: String, val headers: Map<String, String> = emptyMap())
 
-/** Enforces provider start-rate and single-connection policies with monotonic time. */
 class ProviderRequestGate(
     private val minimumIntervalMillis: Long,
     private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000L },

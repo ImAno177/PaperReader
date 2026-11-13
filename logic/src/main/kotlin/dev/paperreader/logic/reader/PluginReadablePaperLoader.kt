@@ -26,7 +26,6 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 
-/** Provider-neutral coordinator for the extension document lane and host asset lane. */
 internal class PluginReadablePaperLoader(
     private val transportForProvider: (String) -> SourceExtensionTransport?,
     private val fetcher: ReadableResourceFetcher,

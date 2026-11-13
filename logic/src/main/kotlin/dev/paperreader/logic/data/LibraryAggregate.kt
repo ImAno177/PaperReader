@@ -4,7 +4,6 @@ import androidx.room.Embedded
 import androidx.room.Junction
 import androidx.room.Relation
 
-/** One reactive Room projection; repository mapping keeps these rows out of UI APIs. */
 data class LibraryPaperAggregate(
     @Embedded val work: WorkEntity,
     val annotationCount: Int,

@@ -150,7 +150,8 @@ reads coverage data. Use the same sources, build variant, and isolated test pack
 PaperReader separates dependency review, tests, lint, artifacts, and security checks. Each workflow
 owns one gate so a test command is not copied into security or release jobs.
 The root Gradle tasks `hostUnitTest` and `hostLint` are the single command definitions for the host
-unit-test and lint gates. All three Android workflows share
+unit-test and lint gates. `hostLint` first runs `checkNoSourceComments`, which rejects comments
+in Kotlin, Java, AIDL, Android XML, Gradle, and ProGuard sources. All three Android workflows share
 [the Android setup action](../.github/actions/setup-android/action.yml), which reads tool versions
 from the Gradle catalog. Third-party actions remain pinned by commit.
 

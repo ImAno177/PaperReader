@@ -13,7 +13,6 @@ import okhttp3.Dns
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-/** Downloads signed extension artifacts while binding connections to DNS answers validated as public. */
 internal class VerifiedExtensionApkDownloader(
     resolver: (String) -> List<InetAddress> = ::resolveHostAddresses,
 ) {

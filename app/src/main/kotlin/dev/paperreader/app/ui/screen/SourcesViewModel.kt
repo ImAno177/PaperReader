@@ -117,7 +117,6 @@ class SourcesViewModel(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                // Store actions surface operation errors; the last verified provider state remains usable.
             }
         }
     }

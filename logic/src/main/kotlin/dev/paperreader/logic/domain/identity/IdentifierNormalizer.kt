@@ -62,7 +62,6 @@ object IdentifierNormalizer {
     }
 
     private fun decodePercentEscapes(value: String): String {
-        // URLDecoder treats '+' as a space; '+' is valid DOI data, so protect it first.
         return URLDecoder.decode(value.replace("+", "%2B"), StandardCharsets.UTF_8.name())
     }
 }

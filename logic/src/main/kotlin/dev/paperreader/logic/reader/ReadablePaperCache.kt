@@ -28,8 +28,6 @@ internal class ReadablePaperCache(
     @Synchronized
     fun read(key: String): CachedReadablePaper? = readInternal(key, prune = true)
 
-    /** Finds a complete entry without requiring the caller to know the provider contract version. */
-    // ponytail: O(cache entries) metadata scan; add an index only after profiling shows this ceiling.
     @Synchronized
     fun readForIdentity(
         identity: ReadablePaperCacheIdentity,
@@ -37,7 +35,6 @@ internal class ReadablePaperCache(
         documentSha256: String? = null,
     ): CachedReadablePaperEntry? = findForIdentity(identity, rendererContractVersion, documentSha256, mutateCache = true)
 
-    /** Verifies a cache entry without touching timestamps, pruning, or cleaning corrupt files/markers. */
     @Synchronized
     fun inspectForIdentity(
         identity: ReadablePaperCacheIdentity,
@@ -112,7 +109,6 @@ internal class ReadablePaperCache(
             try {
                 pruneToBudget(protectedKey = key)
             } catch (_: IOException) {
-                // A missing or temporarily unavailable cache directory is an ordinary cache miss.
             }
         }
         val manifestPath = directory.resolve("$key$MANIFEST_SUFFIX")
@@ -209,10 +205,6 @@ internal class ReadablePaperCache(
         )
     }.getOrNull()
 
-    /**
-     * Retains a record that has already passed cache validation. Future reads still validate the
-     * manifest and body hash, so the marker only avoids doing the same full body read twice.
-     */
     @Synchronized
     fun keepForOffline(key: String, verified: CachedReadablePaper): Boolean {
         if (!key.matches(SHA256_PATTERN) || !verified.documentSha256.matches(SHA256_PATTERN)) return false
@@ -267,7 +259,6 @@ internal class ReadablePaperCache(
         }.getOrDefault(false)
     }
 
-    /** Deletes every contract revision for one exact source, optionally preserving the current key. */
     @Synchronized
     fun removeBySourceUrl(sourceUrl: String, exceptKey: String? = null): Int {
         if (sourceUrl.isBlank() || !Files.isDirectory(directory)) return 0
@@ -283,7 +274,6 @@ internal class ReadablePaperCache(
         return removed
     }
 
-    /** Removes entries that cannot belong to any paper currently present in the library. */
     @Synchronized
     fun removeSourcesNotIn(sourceUrls: Set<String>): Int {
         var removed = 0
@@ -337,7 +327,6 @@ internal class ReadablePaperCache(
             try {
                 pruneToBudget(protectedKey = key)
             } catch (_: IOException) {
-                // A later write retries pruning; a successful cache publication must remain usable.
             }
         } finally {
             Files.deleteIfExists(bodyTemporary)
@@ -505,8 +494,6 @@ internal class ReadablePaperCache(
     companion object {
         private const val CACHE_HEADER = "PAPERREADER-READABLE-CACHE-3"
         private const val OFFLINE_HEADER = "PAPERREADER-READABLE-OFFLINE-1\n"
-        // Asset metadata scales with the paper's figures; keep a bounded manifest without
-        // imposing an arbitrary figure-count cap on otherwise valid papers.
         private const val MAXIMUM_MANIFEST_BYTES = 256L * 1024L
         private const val MAXIMUM_OFFLINE_MARKER_BYTES = 64L
         private const val BODY_SUFFIX = ".body.html"

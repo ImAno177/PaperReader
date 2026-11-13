@@ -224,7 +224,6 @@ internal fun AdaptiveAppShell(
                     NavigationBar(
                         modifier = Modifier
                             .testTag(PRIMARY_NAVIGATION_TEST_TAG)
-                            // Drawn after the bar's opaque container so the rule stays visible.
                             .drawWithContent {
                                 drawContent()
                                 val stroke = navigationRuleWidth.toPx()

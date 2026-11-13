@@ -47,8 +47,6 @@ internal fun collapseLongAuthorDetails(html: String, summaryLabel: String): Stri
             searchFrom = openEnd + 1
             continue
         }
-        // The label is CSS generated content, not a text node: annotation offsets count a
-        // block's textContent, so a text label would shift highlights inside title notes.
         output.append(html, copiedThrough, openStart)
             .append("<details class=\"paperreader-author-notes\"><summary aria-label=\"")
             .append(summary)

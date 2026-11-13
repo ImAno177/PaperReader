@@ -179,7 +179,6 @@ class ReadablePaperRenderingTest {
         )
         assertTrue(html.contains("Shanghai Jiao Tong University"))
         assertTrue(html.contains("authors@example.edu"))
-        // The collapse control adds no text, so annotation offsets inside the block stay put.
         assertFalse(html.contains(">Show details<"))
     }
 

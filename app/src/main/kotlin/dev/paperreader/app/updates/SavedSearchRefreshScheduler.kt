@@ -50,7 +50,6 @@ class SavedSearchRefreshScheduler(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                // Startup reconciliation retries the restored preference on the next process launch.
             }
             false
         }

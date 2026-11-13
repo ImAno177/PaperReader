@@ -11,10 +11,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.withLock
 
-/**
- * Keeps the two reader Activities on one serialized persistence path.
- * Locator construction remains in the reader-specific state files.
- */
 internal class ReaderStatePersistence(
     private val application: PaperReaderApplication,
     private val workId: WorkId,
@@ -60,7 +56,6 @@ internal class ReaderStatePersistence(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                // Reader state is secondary to keeping the local document responsive and intact.
             }
         }
     }

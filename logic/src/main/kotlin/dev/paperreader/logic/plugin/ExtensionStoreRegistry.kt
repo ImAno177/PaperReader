@@ -105,7 +105,6 @@ class ExtensionStoreRegistry(
         return ExtensionStorePreview(token, normalizedUrl, index)
     }
 
-    /** A previous URL permits an app-authorized transport migration, never a key or identity change. */
     suspend fun ensurePinned(
         indexUrl: String,
         publicKeyBase64: String,
@@ -280,7 +279,6 @@ class ExtensionStoreRegistry(
         }
     }
 
-    /** Refreshes every current store independently and preserves each last-known-good index on failure. */
     suspend fun refreshAll(excludedStoreIds: Set<String> = emptySet()): Boolean {
         val storeIds = mutex.withLock {
             cachedStores.map { it.index.storeId }.filterNot(excludedStoreIds::contains)

@@ -61,11 +61,6 @@ internal fun renderReadablePaperExportHtml(
     )
 }
 
-/**
- * Writes a self-contained export without building Base64-expanded assets into one giant String.
- * The HTML template is rendered with private sentinels, then each verified asset is encoded as
- * it is written. This keeps the peak heap bounded by the renderer plus one asset.
- */
 internal suspend fun writeReadablePaperExportHtml(
     document: ReadablePaperDocument,
     readAsset: suspend (ReadablePaperAsset) -> ByteArray?,

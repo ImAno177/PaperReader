@@ -156,7 +156,6 @@ class MainNavigationAndroidTest {
 
     private fun waitForScreenTitle(text: String) {
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            // One node is the navigation label and the other is the screen title.
             composeRule.onAllNodesWithText(text).fetchSemanticsNodes().size >= 2
         }
     }

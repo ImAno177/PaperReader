@@ -177,8 +177,6 @@ fun SearchResultCluster.toSearchPaperUi(providerNames: Map<String, String> = emp
         )
         .firstOrNull()
     return SearchPaperUi(
-        // Cluster records retain arrival order; the first record remains the cluster representative
-        // as later exact aliases arrive, so in-flight preview/save state keeps the same key.
         key = records.first().let { "${it.providerId}:${it.providerRecordId}" },
         title = primary.title,
         authors = primary.authors.map { it.displayName },

@@ -6,7 +6,6 @@ import dev.paperreader.logic.domain.identity.IdentifierNormalizer
 import dev.paperreader.logic.domain.identity.IdentityResolver
 import java.text.Normalizer
 
-/** Deterministic local ranking applied after exact-alias clustering. */
 object SearchResultRanker {
     private val mainTitleSeparator = Regex("(?::|\\s[-–—]\\s)")
 

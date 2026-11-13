@@ -126,6 +126,7 @@ internal class ReadablePaperAnnotationController(
     }
 
     fun showAnnotations() {
+        if (!documentLoaded()) return
         val listed = currentAnnotations.toList()
         if (listed.isEmpty()) {
             MaterialAlertDialogBuilder(activity)

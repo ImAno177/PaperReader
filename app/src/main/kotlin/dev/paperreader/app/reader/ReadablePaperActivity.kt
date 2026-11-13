@@ -212,7 +212,7 @@ class ReadablePaperActivity : AppCompatActivity() {
             icons = readerIcons,
             actions = ReadablePaperToolbarActions(
                 navigateBack = ::navigateBackWithinReader,
-                search = findController::show,
+                search = { if (documentLoaded) findController.show() },
                 showContents = {
                     if (documentLoaded) showReadablePaperContents(currentDocument?.sections.orEmpty(), ::navigateToSection)
                 },

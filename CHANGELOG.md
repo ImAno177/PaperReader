@@ -16,7 +16,7 @@ current branch. Released sections correspond to Git tags.
 - The readable reader hides its loading overlay only after the first frame of the loaded document is drawn, so a blank page no longer shows while the document appears.
 - Empty arXiv separator rules in the readable reader no longer draw an empty bordered box between the abstract and the first section.
 - Broken figure images in the readable reader no longer draw an empty bordered frame; only the image's native alt text, if any, remains.
-- The readable reader's Contents action opens only after the document has finished loading.
+- The readable reader's Contents, Find, and Annotations actions open only after the document has finished loading, so a tap during loading no longer leaves the overlay stuck.
 
 ### Build
 

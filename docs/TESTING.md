@@ -7,21 +7,24 @@ a pull request.
 ## Local gate
 
 Build and dependency versions are pinned in [`gradle/libs.versions.toml`](../gradle/libs.versions.toml).
-Use the Gradle wrapper with JDK 21, Android SDK Platform 37.0, and Build-Tools 36.1.0:
+Use the Gradle wrapper with JDK 21, Android SDK Platform 37.0, and Build-Tools 36.1.0. Java and Kotlin
+bytecode target 17:
 
 ```powershell
 .\gradlew.bat hostUnitTest hostLint :app:assembleDebug
 ```
 
 For Android-runtime, Room, reader, or UI changes, reuse an already connected emulator without wiping
-it. Record its AVD name, Android version, and API level with the results:
+it, factory-resetting it, or starting a duplicate instance. Record its AVD name, Android version, API level, and the exact actions performed with the results:
 
 ```powershell
 .\gradlew.bat hostConnectedTest '-PpaperReaderConnectedTestApplicationIdSuffix=.uitest'
 ```
 
-The isolated app suffix avoids replacing a production-signed installation. Connected XML results are
-kept under each module's `build/outputs/androidTest-results/connected` directory.
+The isolated app suffix avoids replacing a production-signed installation. Without it, the connected
+run uninstalls `dev.paperreader.app` and wipes the user's library, so Gradle stops before any `:app`
+connected task starts. Connected XML results are kept under each module's
+`build/outputs/androidTest-results/connected` directory.
 
 For readable-paper asset changes, the local audit must also confirm that the fresh APK can open
 Attention, CGP-Tuning, LoRA, Llama, ResNet, and InstructGPT, including figure captions, reader back,
@@ -237,6 +240,14 @@ WebView, Compose semantics, and real Android lifecycles. A coverage percentage i
 not a reason to add getter-only or tautological tests. The extension API keeps its stricter 100%
 line/branch guard because that small module is a versioned public contract; `logic` and `app` remain
 report-only until their Android framework seams can be measured deterministically.
+
+Keep the smallest stable contract test for regression-prone domain, persistence, migration, trust, and
+security behavior. Extend the nearest existing test before adding another Kotlin test case or test file.
+
+Do not keep one-off tests that mirror an implementation detail or a closed visual bug once the durable
+behavior is covered elsewhere. Remove obsolete, tautological, and duplicate tests during the fix. Verify
+UI polish and device-specific behavior through the connected or local smoke flow in this file, not with
+one Kotlin test per pixel-level defect.
 
 Tests use local fixtures and MockWebServer for provider/network behavior. Live provider APIs and
 Play Protect are release smoke checks, never deterministic unit-test dependencies.

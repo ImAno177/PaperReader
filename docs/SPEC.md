@@ -68,7 +68,10 @@ fall back to ink for labels, icons, progress, and Material focus outlines. Text 
 its 14 pt optical size (the variable font defaults to the 9 pt caption design), weight 500 with
 700 headings. Dark mode follows the same project's former dark theme: a navy
 background, near-black cards, light text, and black shadows, with a light outline instead of
-upstream's black dark border so fields and buttons keep 3:1 boundary contrast. Five additional built-in color themes provide ocean, forest, violet, rose,
+upstream's black dark border so fields and buttons keep 3:1 boundary contrast. The palette source is `src/styling/globals.css` in
+`ekmas/neobrutalism-components`; its dark block comes from commit `e55e9d09`. Light and dark contrast is
+enforced by `app/src/test/kotlin/dev/paperreader/app/ui/theme/PaperThemeContrastTest.kt`: text meets
+WCAG AA 4.5:1 and component outlines meet 3:1. Five additional built-in color themes provide ocean, forest, violet, rose,
 and sunset accents. A theme extension supplies a complete semantic icon set with its declarative
 tokens; the built-in Neobrutalism type scale does not override community typography. The legacy
 `DOODLE` extension decoration remains readable for binary compatibility but is not a built-in

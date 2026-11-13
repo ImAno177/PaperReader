@@ -39,6 +39,19 @@ require(devThemeSigner.isBlank() || devThemeSigner.matches(Regex("[0-9a-fA-F]{64
 require(devThemeVersion.toLongOrNull() != null)
 require(connectedTestApplicationIdSuffix == null || connectedTestApplicationIdSuffix.matches(Regex("\\.[a-z][a-z0-9_]*")))
 
+gradle.taskGraph.whenReady {
+    val connectedAppTasks = allTasks.map { it.path }.filter { it.startsWith(":app:connected") }
+    if (connectedAppTasks.isNotEmpty() && connectedTestApplicationIdSuffix == null) {
+        throw GradleException(
+            "Refusing to run ${connectedAppTasks.joinToString()} without " +
+                "-PpaperReaderConnectedTestApplicationIdSuffix=.uitest. Without the suffix, the connected " +
+                "run uninstalls dev.paperreader.app and wipes the user's library. Rerun with: " +
+                ".\\gradlew.bat hostConnectedTest '-PpaperReaderConnectedTestApplicationIdSuffix=.uitest'. " +
+                "Do not remove this guard.",
+        )
+    }
+}
+
 android {
     buildToolsVersion = libs.versions.buildTools.get()
     namespace = "dev.paperreader.app"

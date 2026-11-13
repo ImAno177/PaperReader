@@ -16,6 +16,9 @@ current branch. Released sections correspond to Git tags.
 - `hostLint` now fails on any comment in Kotlin, Java, AIDL, Android XML, Gradle, or ProGuard
   sources, and the existing comments are removed. The error lists each location and says where
   lasting rationale belongs instead.
+- `:app` connected Android test tasks fail before any device work when
+  `paperReaderConnectedTestApplicationIdSuffix` is not set. The error gives the `.uitest` command, so a
+  run cannot replace the production-signed app or wipe the library.
 
 ## [0.2.0] - 2026-11-12
 

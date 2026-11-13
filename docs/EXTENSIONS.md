@@ -134,6 +134,26 @@ capability property and use the same debug certificate digest for the host and s
 release registry is updated separately; a local debug capability does not silently change the
 published catalog.
 
+Example: install a debug host that trusts the local arXiv source. Replace `<debug-cert-sha256>` with the
+debug certificate SHA-256 (64 hexadecimal characters), which this command prints:
+
+```powershell
+keytool -list -v -keystore "$env:USERPROFILE\.android\debug.keystore" -alias androiddebugkey -storepass android -keypass android
+```
+
+```powershell
+.\gradlew.bat :app:installDebug `
+  -PpaperReaderDevSourcePackage=dev.paperreader.extensions.sources.arxiv `
+  -PpaperReaderDevSourceService=dev.paperreader.extensions.sources.arxiv.ArxivService `
+  -PpaperReaderDevSourceProviderId=arxiv `
+  -PpaperReaderDevSourceDisplayName=arXiv `
+  -PpaperReaderDevSourceSignerSha256=<debug-cert-sha256> `
+  -PpaperReaderDevSourceVersionCode=1 `
+  -PpaperReaderDevSourceMinimumIntervalMillis=3000 `
+  -PpaperReaderDevSourceCapabilities=search,details,pdf_link,readable_document `
+  -PpaperReaderDevSourceIdentifierTypes=arxiv
+```
+
 All signer values must be 64 hexadecimal characters. Do not commit keys, passwords, API credentials,
 or private signing material. A missing or invalid signer configuration must fail closed.
 

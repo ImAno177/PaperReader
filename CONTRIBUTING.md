@@ -28,7 +28,8 @@ large UI, schema, provider, reader, or dependency changes.
    request merges after these gates pass on its head commit and a code review finds no open problems.
    No GitHub status check is required. CI runs on demand with
    `gh workflow run android-ci.yml --ref <branch>`; releases run the Android gate and CodeQL before
-   they publish.
+   they publish. A release dry run (`dry_run=true`) runs the same checks and publishes nothing; see
+   [`docs/TESTING.md`](docs/TESTING.md).
 6. Run the connected gate for Android runtime/UI changes and report the device/API used.
 
 Dependency and build-tool versions belong in [`gradle/libs.versions.toml`](gradle/libs.versions.toml).

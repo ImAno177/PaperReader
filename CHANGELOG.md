@@ -30,6 +30,8 @@ current branch. Released sections correspond to Git tags.
   the weekly schedule no longer start them. Dependency review runs on demand against `main`.
 - The release workflow runs the Android CI gate and CodeQL itself, and publishes only after both
   pass for the release commit. It no longer looks up a successful main CI run.
+- The release workflow accepts `dry_run=true`. A dry run validates inputs, runs the Android gate and
+  CodeQL, and skips the release job, so no tag, release, asset, or signing secret is used.
 - `hostLint` now fails on any comment in Kotlin, Java, AIDL, Android XML, Gradle, or ProGuard
   sources, and the existing comments are removed. The error lists each location and says where
   lasting rationale belongs instead.

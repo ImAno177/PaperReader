@@ -7,7 +7,6 @@ import dev.paperreader.logic.domain.repository.LibraryRepository
 import dev.paperreader.logic.provider.RemotePaper
 import kotlinx.coroutines.CancellationException
 
-/** Repairs legacy identifier-only saves without changing papers that already have a manifestation. */
 class RepairSavedPaper(
     private val repository: LibraryRepository,
     private val enricher: SavedPaperEnricher,
@@ -37,9 +36,6 @@ class RepairSavedPaper(
         } catch (_: Exception) {
             listOf(seed)
         }
-        // The seed is intentionally not re-saved. A custom extension may return only resolved
-        // records (or may reorder them), so select the durable readable candidates by capability
-        // instead of relying on the default resolver's list position.
         enriched.filter { it.manifestations.isNotEmpty() }.forEach { repository.save(it) }
         return repository.get(workId) ?: current
     }

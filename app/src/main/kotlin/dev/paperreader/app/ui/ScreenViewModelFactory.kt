@@ -22,7 +22,6 @@ import dev.paperreader.app.ui.screen.SettingsViewModel
 import dev.paperreader.app.ui.screen.SourcesViewModel
 import dev.paperreader.app.ui.screen.StatsViewModel
 
-/** Explicit dependency seam for destination ViewModels. Initializers are added with each screen. */
 internal class ScreenViewModelFactory(
     internal val logic: PaperReaderLogic,
     internal val preferences: PaperReaderPreferences,

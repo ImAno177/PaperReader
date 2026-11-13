@@ -85,7 +85,6 @@ internal fun LibraryListPaperCard(
             PaperProgress(paper.progress)
         }
         Spacer(Modifier.height(10.dp))
-        // Only the header opens details; the status row is information plus one Read action.
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),

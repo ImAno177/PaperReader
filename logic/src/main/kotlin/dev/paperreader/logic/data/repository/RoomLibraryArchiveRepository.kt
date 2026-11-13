@@ -62,8 +62,6 @@ internal class RoomLibraryArchiveRepository(
         val workByManifestation = proto.works.flatMap { work ->
             work.manifestations.map { it.sourceId to work.sourceId }
         }.toMap()
-        // A stored PDF that is missing, resized, or no longer a PDF is left out; its metadata
-        // still exports, and the skipped count is reported instead of failing the whole backup.
         val exportable = files.sortedBy(FileEntity::manifestationId).mapNotNull { file ->
             if (workByManifestation[file.manifestationId] == null) null else exportableFile(file)
         }
@@ -93,8 +91,6 @@ internal class RoomLibraryArchiveRepository(
         val intact = runCatching {
             Files.isRegularFile(path, NOFOLLOW_LINKS) && Files.size(path) == size && path.hasPdfMagic()
         }.getOrDefault(false)
-        // Same-size edits pass the cheap checks, so compare the recorded hash too. The codec
-        // still verifies each document while writing in case the file changes in between.
         return if (intact && sha256Of(path) == sha) file to path else null
     }
 

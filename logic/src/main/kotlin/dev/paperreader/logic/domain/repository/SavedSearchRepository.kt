@@ -36,7 +36,6 @@ interface SavedSearchRepository {
 
     suspend fun delete(id: SavedSearchId): DeleteSavedSearchResult
 
-    /** Commits one provider page and its successful checkpoint atomically. */
     suspend fun recordSuccess(
         id: SavedSearchId,
         providerId: String,
@@ -44,7 +43,6 @@ interface SavedSearchRepository {
         checkedAt: Instant,
     ): Int
 
-    /** Preserves prior hits while recording the typed failure for one provider. */
     suspend fun recordFailure(
         id: SavedSearchId,
         providerId: String,

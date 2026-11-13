@@ -14,13 +14,6 @@ import dev.paperreader.logic.provider.SearchSort
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
 
-/**
- * Resolves a readable manifestation for identifier-only search records before they are saved.
- *
- * Discovery providers are intentionally not queried here. Only providers that explicitly own a
- * content manifestation are allowed to answer an exact identifier lookup, and every response is
- * checked against the identifier that initiated the lookup before it is persisted.
- */
 fun interface SavedPaperEnricher {
     suspend fun enrich(paper: RemotePaper): List<RemotePaper>
 }
@@ -89,7 +82,6 @@ internal class ReadableManifestationResolver(
     } catch (_: ProviderException) {
         null
     } catch (_: Exception) {
-        // A broken optional extension must never make saving an otherwise valid metadata record fail.
         null
     }
 

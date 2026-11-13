@@ -7,12 +7,6 @@ import java.nio.file.Path
 import java.security.MessageDigest
 import java.nio.file.attribute.FileTime
 
-/**
- * File-backed cache for one readable document's raster and SVG assets.
- *
- * Asset files are deliberately independent from the HTML body so WebView never receives a
- * base64-expanded copy of every figure at once.
- */
 internal class ReadablePaperAssetCache(
     private val directory: Path,
     private val maximumAssetBytes: Long = DEFAULT_MAXIMUM_ASSET_BYTES,

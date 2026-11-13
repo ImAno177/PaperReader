@@ -337,9 +337,6 @@ fun PaperStatePanel(
                 .verticalScroll(rememberScrollState())
                 .heightIn(min = maxHeight)
         } else {
-            // Lazy containers measure their items with an unbounded height. Adding a
-            // second vertical scroller there crashes during measurement; the parent
-            // list already owns overflow in that case.
             Modifier.fillMaxWidth()
         }
         val contentPadding = if (fillViewport) {
@@ -394,7 +391,6 @@ private fun PaperStateIcon(icon: PaperIconKey, compact: Boolean) {
     val shape = RoundedCornerShape(tokens.cornerRadius)
     val tileSize = if (compact) 36.dp else 48.dp
     Box(
-        // Balance the shadow's end padding so the tile stays centered over centered text.
         modifier = Modifier
             .padding(start = tokens.shadowOffset)
             .paperHardShadow(
@@ -424,10 +420,6 @@ private fun PaperStateIcon(icon: PaperIconKey, compact: Boolean) {
     }
 }
 
-/**
- * Draws an opaque, unblurred copy of the element's outline shifted down and right by [offset]
- * and reserves that space, so a pressed element can move fully into its own shadow.
- */
 private fun Modifier.paperHardShadow(
     color: Color,
     offset: Dp,

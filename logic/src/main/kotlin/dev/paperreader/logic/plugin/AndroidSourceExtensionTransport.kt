@@ -400,11 +400,6 @@ internal class AndroidSourceExtensionTransport(
     }
 }
 
-/**
- * The extension transport permits a 10 second connection phase followed by a 20 second read.
- * Leave enough headroom for Binder setup and response validation so the host never cancels a
- * healthy request before the extension's own bounded network timeout can report the real failure.
- */
 private const val DEFAULT_REQUEST_TIMEOUT_MILLIS = 35_000L
 
 internal class InstalledSourceVersionOutOfRangeException(

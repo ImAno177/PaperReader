@@ -32,7 +32,6 @@ data class PreparedDocument(
 interface ExtractionArtifactStore {
     suspend fun read(cacheDigest: String): PreparedDocument?
 
-    /** Implementations must publish the document and manifest atomically. */
     suspend fun write(document: PreparedDocument)
 }
 

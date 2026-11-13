@@ -15,7 +15,6 @@ import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 
-/** Versioned, deterministic snapshot used only inside Room saved-search rows. */
 @OptIn(ExperimentalSerializationApi::class)
 internal object SavedSearchRecordCodec {
     private val json = Json { encodeDefaults = true }

@@ -5,6 +5,12 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+### Build
+
+- `hostLint` now fails on any comment in Kotlin, Java, AIDL, Android XML, Gradle, or ProGuard
+  sources, and the existing comments are removed. The error lists each location and says where
+  lasting rationale belongs instead.
+
 ## [0.2.0] - 2026-11-12
 
 ### Added

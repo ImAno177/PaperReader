@@ -29,24 +29,18 @@ data class ProviderDescriptor(
 }
 
 enum class ProviderRole {
-    /** Preferred owner of ranked candidates for discovery queries. */
     SEARCH_ENGINE,
 
-    /** Owns a paper manifestation or a structured/full-text artifact; it may also expose discovery. */
     CONTENT_SOURCE,
 
-    /** Enriches an already identified work; a metadata-only provider is not used for free text. */
     METADATA_ENGINE,
 }
 
 enum class ProviderCapability {
-    /** Can discover papers from unstructured title/author/topic queries. */
     DISCOVERY,
 
-    /** Resolves authoritative metadata from a canonical identifier; it is not a discovery source. */
     METADATA_RESOLUTION,
 
-    /** Provides a provider-sanitized, readable HTML document through the extension boundary. */
     READABLE_DOCUMENT,
 }
 

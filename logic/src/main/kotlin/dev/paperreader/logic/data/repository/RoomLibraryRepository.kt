@@ -70,8 +70,6 @@ internal class RoomLibraryRepository(
                 dao.deleteAuthors(id.value)
                 dao.upsertAuthors(rows.authors)
             }
-            // Identifiers and manifestations are an append/merge set. A provider refresh must
-            // not discard an arXiv identifier or a locally discovered open-access file.
             dao.upsertIdentifiers(mergeIdentifiers(existingIdentifiers, rows.identifiers))
             dao.upsertManifestations(mergeManifestations(existingManifestations, rows.manifestations))
             id

@@ -27,7 +27,6 @@ internal class MetadataBackupFileGateway(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: Exception) {
-            // No output stream has been opened, so the selected document is still untouched.
             throw BackupDestinationWriteException(destinationRecovered = true, cause = failure)
         }
         writeWithRecovery(

@@ -4,7 +4,6 @@ import android.os.Bundle
 
 const val LEGACY_READABLE_CONTRACT_VERSION = "legacy"
 
-/** Request for a provider-owned, sanitized HTML document. */
 data class SourceGetReadableDocumentRequest(
     val requestId: String,
     val providerRecordId: String,
@@ -95,7 +94,6 @@ enum class SourceReadableWarning(val wireValue: String) {
     SOURCE_CONVERSION_ARTIFACT_NORMALIZED("source_conversion_artifact_normalized"),
 }
 
-/** Metadata is sent after all bounded body chunks have been delivered. */
 data class SourceReadableDocumentMetadata(
     val requestId: String,
     val title: String,

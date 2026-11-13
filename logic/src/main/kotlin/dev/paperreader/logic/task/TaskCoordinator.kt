@@ -112,7 +112,6 @@ class TaskCoordinator(
         }
     }
 
-    /** A user-requested retry starts a fresh attempt budget instead of inheriting exhausted retries. */
     suspend fun retry(id: TaskId): RetryTaskResult {
         while (true) {
             val current = repository.get(id) ?: return RetryTaskResult.NotFound

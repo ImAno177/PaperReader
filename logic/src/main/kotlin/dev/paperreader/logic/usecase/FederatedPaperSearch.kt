@@ -78,11 +78,6 @@ class FederatedPaperSearch(private val providerManager: ProviderManager) {
     }
 }
 
-/**
- * A provider may own content and still expose a useful discovery endpoint.  The capability is the
- * contract for free-text discovery; SEARCH_ENGINE identifies the preferred/ranking owner, while a
- * CONTENT_SOURCE such as arXiv or Europe PMC can contribute authoritative records as a fallback.
- */
 private fun ProviderDescriptor.supportsFreeTextDiscovery(): Boolean =
     ProviderCapability.DISCOVERY in capabilities &&
         (ProviderRole.SEARCH_ENGINE in roles || ProviderRole.CONTENT_SOURCE in roles)
@@ -101,7 +96,6 @@ data class SearchResultCluster(val records: List<RemotePaper>) {
     }
 }
 
-/** Clusters exact aliases only. Similar titles remain separate for user review. */
 object SearchResultClusterer {
     fun cluster(records: Iterable<RemotePaper>): List<SearchResultCluster> {
         data class MutableCluster(

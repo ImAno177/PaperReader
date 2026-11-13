@@ -153,7 +153,6 @@ data class RefreshAllSavedSearchesResult(
     val newlyUnread: Int,
 )
 
-/** Runs saved searches sequentially so background checks cannot fan out across every query at once. */
 class RefreshAllSavedSearches(
     private val repository: SavedSearchRepository,
     private val refreshSavedSearch: RefreshSavedSearch,
@@ -208,7 +207,6 @@ class SaveSavedSearchHit(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
-            // The Work is already durable; a future refresh can repair this optional feed link.
         }
         return SaveSavedSearchHitResult.Saved(workId)
     }

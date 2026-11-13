@@ -40,7 +40,6 @@ import dev.paperreader.app.ui.theme.primaryForeground
 import dev.paperreader.logic.task.PaperTask
 import dev.paperreader.logic.task.TaskState
 
-/** A focused queue surface with live state from the task repository. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadQueueScreen(

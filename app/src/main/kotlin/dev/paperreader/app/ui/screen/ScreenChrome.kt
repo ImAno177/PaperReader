@@ -6,7 +6,6 @@ import dev.paperreader.app.ui.theme.PaperTheme
 
 @Composable
 internal fun topBarColors() = TopAppBarDefaults.topAppBarColors(
-    // Root headers sit on the canvas like Paper Detail; cards carry the surface color.
     containerColor = PaperTheme.tokens.canvas,
     scrolledContainerColor = PaperTheme.tokens.canvas,
     titleContentColor = PaperTheme.tokens.ink,

@@ -33,7 +33,6 @@ import java.net.URI
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
-/** A hardened, in-app Google surface that hands arXiv links back to the native import pipeline. */
 class GoogleSearchActivity : ComponentActivity() {
     private lateinit var progress: ProgressBar
 
@@ -66,8 +65,6 @@ class GoogleSearchActivity : ComponentActivity() {
         }
         val searchWebView = WebView(this).apply { setBackgroundColor(canvasColor) }
         val webSettings: WebSettings = searchWebView.settings
-        // Google stopped serving useful no-JavaScript result pages in 2026. This activity
-        // is isolated in its own process/data directory and never installs a JS bridge.
         webSettings.setJavaScriptEnabled(true)
         webSettings.setDomStorageEnabled(true)
         webSettings.setDatabaseEnabled(false)
@@ -194,7 +191,6 @@ internal fun String.isAllowedGoogleResource(): Boolean =
 internal fun String.isArxivPaperUrl(): Boolean =
     canonicalArxivAbsUrlOrNull() != null
 
-/** Resolves both direct arXiv links and Google's `/url?q=...` result redirect. */
 internal fun String.arxivResultUrlOrNull(): String? {
     canonicalArxivAbsUrlOrNull()?.let { return it }
     val googleUri = parseHttpsUri()?.takeIf { uri ->

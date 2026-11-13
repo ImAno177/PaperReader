@@ -60,7 +60,6 @@ private data class BookmarkKey(
 
 @OptIn(ExperimentalSerializationApi::class)
 internal object MetadataBackupCodec {
-    /** Encodes only archives that this build can restore. */
     fun encode(value: MetadataBackupProto): ByteArray = try {
         val validated = validate(value)
         if (validated is DecodedBackup.Invalid) throw MetadataBackupEncodingException(validated.error)

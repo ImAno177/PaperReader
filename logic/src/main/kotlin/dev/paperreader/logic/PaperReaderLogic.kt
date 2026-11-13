@@ -55,7 +55,6 @@ data class PaperReaderConfiguration(
     }
 }
 
-/** The supported UI entry point: state and use-cases, without Room DAOs or HTTP details. */
 class PaperReaderLogic private constructor(
     val useCases: PaperReaderUseCases,
     val providers: ProviderManager,
@@ -75,7 +74,6 @@ class PaperReaderLogic private constructor(
         reconcileReadableArtifactStore()
     }
 
-    /** Opens a verified local figure stream without exposing the app-private storage path. */
     fun openReadablePaperAsset(
         document: ReadablePaperDocument,
         assetId: String,

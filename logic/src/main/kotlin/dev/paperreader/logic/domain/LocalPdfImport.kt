@@ -6,9 +6,7 @@ const val LOCAL_PDF_SOURCE_ID = "local-pdf"
 const val MAX_LOCAL_PDF_TITLE_LENGTH = 300
 
 data class LocalPdfCandidate(
-    /** Opaque, app-private staging token. The source URI is never reopened after preparation. */
     val importToken: String,
-    /** One-way correlation key used to consume a redelivered Android intent after process death. */
     val sourceKey: String,
     val displayName: String,
     val suggestedTitle: String,

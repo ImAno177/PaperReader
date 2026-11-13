@@ -300,7 +300,6 @@ internal class RoomLocalPdfImportRepository(
         return null
     }
 
-    /** Removes only unpublished files left by process death; any Room-owned path is preserved. */
     private suspend fun ensurePublishedStoreIntegrity() {
         if (publishedStoreChecked) return
         val localRoot = papersRoot.resolve("local")

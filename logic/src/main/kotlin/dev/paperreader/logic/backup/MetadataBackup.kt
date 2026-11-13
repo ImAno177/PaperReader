@@ -6,7 +6,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.protobuf.ProtoNumber
 import java.time.Instant
 
-
 const val METADATA_BACKUP_SCHEMA_VERSION: Int = 2
 const val METADATA_BACKUP_DATABASE_VERSION: Int = 5
 const val MAX_METADATA_BACKUP_ARCHIVE_BYTES: Int = 10 * 1024 * 1024
@@ -50,7 +49,6 @@ data class MetadataRestorePreview(
     val dormantReadingStates: Int,
     val dormantBookmarks: Int,
     val dormantAnnotations: Int,
-    /** Non-work records intentionally omitted because their work or annotation identity conflicts. */
     val skippedRecords: Int = 0,
 )
 

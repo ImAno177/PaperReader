@@ -41,7 +41,6 @@ class SavedSearchRefreshWorker(
             if (runAttemptCount == 0) {
                 Result.retry()
             } else {
-                // Periodic work is scheduled again after this run; avoid a persistent retry storm.
                 Result.failure(workDataOf(FAILURE_CODE_KEY to "UNEXPECTED_FAILURE"))
             }
         }

@@ -377,7 +377,6 @@ private fun LibraryStatusButton(
     onClick: () -> Unit,
 ) {
     val tokens = PaperTheme.tokens
-    // The 48dp minimum touch target wraps a shorter visible chip.
     Box(
         modifier = Modifier
             .minimumInteractiveComponentSize()

@@ -9,7 +9,6 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.parser.Parser
 
-/** Final provider-neutral validation for bytes and URLs entering the app-private asset cache. */
 internal class ReadableAssetSanitizer(
     private val maximumAssetBytes: Long = MAXIMUM_READABLE_ASSET_BYTES,
 ) {
@@ -77,8 +76,6 @@ internal class ReadableAssetSanitizer(
 
     private fun canonicalPath(uri: URI): String? {
         val rawPath = uri.rawPath ?: return null
-        // URI.path decodes one level of percent escapes. Reject encoded percent signs as well so
-        // a downstream URL canonicalizer cannot turn a double-encoded traversal into `..`.
         if (rawPath.contains("%25", ignoreCase = true)) return null
         val path = uri.path ?: return null
         if (path.contains('\\') || path.split('/').any { it == "." || it == ".." }) return null

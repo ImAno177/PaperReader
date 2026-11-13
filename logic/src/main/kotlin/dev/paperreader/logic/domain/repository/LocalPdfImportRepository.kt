@@ -5,7 +5,6 @@ import dev.paperreader.logic.domain.LocalPdfImportResult
 import dev.paperreader.logic.domain.PrepareLocalPdfResult
 
 interface LocalPdfImportRepository {
-    /** Validates and copies the source into bounded app-private staging before returning Ready. */
     suspend fun prepare(sourceUri: String): PrepareLocalPdfResult
 
     suspend fun recoverPending(): LocalPdfCandidate?

@@ -5,10 +5,6 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import dev.paperreader.app.ui.theme.PaperTheme
 
-/**
- * Text fields sit on the card surface with an ink outline, so an input never blends into the
- * canvas behind it and its edge stays visible before focus.
- */
 @Composable
 fun paperTextFieldColors(): TextFieldColors {
     val tokens = PaperTheme.tokens

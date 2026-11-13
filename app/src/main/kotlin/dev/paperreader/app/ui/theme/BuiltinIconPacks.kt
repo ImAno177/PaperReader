@@ -3,7 +3,6 @@ package dev.paperreader.app.ui.theme
 import androidx.annotation.DrawableRes
 import dev.paperreader.app.R
 
-/** Explicit semantic mapping keeps icon resources stable if [PaperIconKey] is reordered. */
 private val MATERIAL_SYMBOL_RESOURCES: Map<PaperIconKey, Int> = mapOf(
     PaperIconKey.ADD to R.drawable.ic_material_symbol_add,
     PaperIconKey.BACK to R.drawable.ic_material_symbol_back,

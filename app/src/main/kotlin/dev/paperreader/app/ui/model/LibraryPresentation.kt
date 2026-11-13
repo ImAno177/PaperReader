@@ -41,7 +41,6 @@ enum class PaperDiscipline(val label: String) {
     GENERAL("PAPER"),
 }
 
-/** A deterministic visual identity derived only from metadata the provider actually supplied. */
 fun PaperUi.discipline(): PaperDiscipline {
     val haystack = (subjects + title).joinToString(" ").lowercase()
     return when {

@@ -324,7 +324,6 @@ private fun ThemeModeSelector(
                         onClick = { onModeChange(mode) },
                     ),
                 shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
-                // Selection uses the container role everywhere; primary is reserved for actions.
                 color = if (selected) PaperTheme.tokens.primaryContainer else PaperTheme.tokens.surface,
                 contentColor = if (selected) PaperTheme.tokens.onPrimaryContainer else PaperTheme.tokens.ink,
                 border = BorderStroke(

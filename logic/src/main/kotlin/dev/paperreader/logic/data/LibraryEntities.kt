@@ -5,7 +5,6 @@ import androidx.room.ColumnInfo
 import androidx.room.ForeignKey
 import androidx.room.Index
 
-/** Room code-generation rows. They are implementation details; callers use domain models. */
 @Entity(tableName = "works")
 data class WorkEntity(
     @androidx.room.PrimaryKey val id: String,

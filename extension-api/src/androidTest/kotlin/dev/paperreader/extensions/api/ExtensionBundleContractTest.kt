@@ -448,7 +448,6 @@ class ExtensionBundleContractTest {
             block()
             fail("Expected IllegalArgumentException")
         } catch (_: IllegalArgumentException) {
-            // Expected contract rejection.
         }
     }
 }

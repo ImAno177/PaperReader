@@ -29,16 +29,16 @@ enum class LibrarySortOrder {
     NEWEST_PUBLICATION,
 }
 
-enum class PaperDiscipline(val label: String) {
-    COMPUTER_SCIENCE("CS"),
-    MATHEMATICS("MATH"),
-    PHYSICS("PHYS"),
-    LIFE_SCIENCES("BIO"),
-    MEDICINE("MED"),
-    SOCIAL_SCIENCES("SOC"),
-    ECONOMICS("ECON"),
-    ENGINEERING("ENG"),
-    GENERAL("PAPER"),
+enum class PaperDiscipline {
+    COMPUTER_SCIENCE,
+    MATHEMATICS,
+    PHYSICS,
+    LIFE_SCIENCES,
+    MEDICINE,
+    SOCIAL_SCIENCES,
+    ECONOMICS,
+    ENGINEERING,
+    GENERAL,
 }
 
 fun PaperUi.discipline(): PaperDiscipline {

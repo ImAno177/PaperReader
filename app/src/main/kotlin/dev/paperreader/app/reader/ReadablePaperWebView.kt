@@ -12,6 +12,7 @@ import android.view.ViewConfiguration
 import android.webkit.WebView
 import dev.paperreader.app.R
 import dev.paperreader.logic.domain.Annotation
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 import kotlin.math.abs
 import org.json.JSONObject
@@ -26,6 +27,8 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
     var onHighlightSelectionRequested: (() -> Unit)? = null
     private var appCommandSerial = 0
     private var appCommandTimeout: Runnable? = null
+    private var loadSerial = 0L
+    val svgAssetUrls: MutableSet<String> = ConcurrentHashMap.newKeySet()
     private var touchDownX = 0f
     private var touchDownY = 0f
     private var lastTouchY = 0f
@@ -119,14 +122,29 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
         }
     }
 
-    fun replaceUnavailableFigures(onResult: () -> Unit) {
+    override fun loadDataWithBaseURL(
+        baseUrl: String?,
+        data: String,
+        mimeType: String?,
+        encoding: String?,
+        historyUrl: String?,
+    ) {
+        loadSerial += 1
+        svgAssetUrls.clear()
+        super.loadDataWithBaseURL(baseUrl, data, mimeType, encoding, historyUrl)
+    }
+
+    fun markUnavailableFigures(onResult: () -> Unit) {
         val label = context.getString(R.string.readable_reader_figure_unavailable)
-        runAppOwnedCommand(readableUnavailableFigureScript(label)) { onResult() }
+        runAppOwnedCommand(readableUnavailableFigureScript(label, svgAssetUrls.toSet())) { onResult() }
     }
 
     fun afterFirstRender(onRendered: () -> Unit) {
-        postVisualStateCallback(FIRST_RENDER_REQUEST_ID, object : WebView.VisualStateCallback() {
-            override fun onComplete(requestId: Long) = onRendered()
+        val load = loadSerial
+        postVisualStateCallback(load, object : WebView.VisualStateCallback() {
+            override fun onComplete(requestId: Long) {
+                if (requestId == loadSerial) onRendered()
+            }
         })
     }
 
@@ -212,7 +230,6 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
 
     companion object {
         private const val APP_COMMAND_TIMEOUT_MILLIS = 1_500L
-        private const val FIRST_RENDER_REQUEST_ID = 1L
         private const val SCROLL_DIRECTION_THRESHOLD_PX = 8
         private const val HIGHLIGHT_SELECTION_ACTION_ID = 0x50525801
         private const val HIGHLIGHT_SELECTION_ACTION_ORDER = 80

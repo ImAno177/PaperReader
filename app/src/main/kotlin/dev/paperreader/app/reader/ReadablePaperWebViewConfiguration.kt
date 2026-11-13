@@ -64,8 +64,9 @@ internal fun configureReadablePaperWebView(
                 uri.host == LOCAL_RENDERER_HOST &&
                 uri.path?.startsWith(READABLE_ASSET_PATH_PREFIX) == true
             ) {
-                return onLocalAssetRequest(uri)
-                    ?: WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
+                val content = onLocalAssetRequest(uri)
+                if (content?.mimeType == "image/svg+xml") webView.svgAssetUrls += uri.toString()
+                return content ?: WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
             }
             return if (uri.scheme in setOf("http", "https") && uri.host != LOCAL_RENDERER_HOST) {
                 WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
@@ -76,8 +77,9 @@ internal fun configureReadablePaperWebView(
 
         override fun onPageFinished(view: WebView, url: String) {
             if (url != READABLE_LOCAL_RENDERER_URL || !hasCurrentDocument() || isPageLoaded()) return
-            webView.replaceUnavailableFigures {
-                webView.applyAnnotations(annotations()) { onPageReady() }
+            webView.afterFirstRender(onPageReady)
+            webView.markUnavailableFigures {
+                webView.applyAnnotations(annotations())
             }
         }
     }

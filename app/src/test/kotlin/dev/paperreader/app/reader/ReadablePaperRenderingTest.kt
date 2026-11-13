@@ -37,19 +37,11 @@ class ReadablePaperRenderingTest {
     }
 
     @Test
-    fun `unavailable figure script replaces only shown broken images with a labelled placeholder`() {
-        val script = readableUnavailableFigureScript("Figure unavailable")
-
-        assertTrue(script.contains("!image.complete || image.naturalWidth > 0"))
-        assertTrue(script.contains("getComputedStyle(image).display === 'none'"))
-        assertTrue(script.contains("image.getAttribute('alt')"))
-        assertTrue(script.contains("|| \"Figure unavailable\""))
-        assertTrue(script.contains("paperreader-figure-unavailable"))
-        assertTrue(script.contains("placeholder.textContent = label"))
-        assertFalse(script.contains("innerHTML"))
-        assertFalse(script.contains("https://"))
-        assertFalse(script.contains("fetch("))
-        assertTrue(runCatching { readableUnavailableFigureScript("x'); fetch('https://tracker.invalid')") }.isFailure)
+    fun `js string literal escapes quotes, backslashes, controls and script-breaking characters`() {
+        assertEquals(
+            "\"a\\\"b\\\\c\\u000A\\u2028\\u003C\"",
+            readableJsStringLiteral("a\"b\\c\n <"),
+        )
     }
 
     @Test

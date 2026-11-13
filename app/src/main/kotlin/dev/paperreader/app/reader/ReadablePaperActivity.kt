@@ -214,7 +214,7 @@ class ReadablePaperActivity : AppCompatActivity() {
                 navigateBack = ::navigateBackWithinReader,
                 search = findController::show,
                 showContents = {
-                    showReadablePaperContents(currentDocument?.sections.orEmpty(), ::navigateToSection)
+                    if (documentLoaded) showReadablePaperContents(currentDocument?.sections.orEmpty(), ::navigateToSection)
                 },
                 annotateSelection = annotationController::captureSelection,
                 showAnnotations = annotationController::showAnnotations,
@@ -348,7 +348,7 @@ class ReadablePaperActivity : AppCompatActivity() {
 
     private fun finishReadablePageLoad() {
         if (isDestroyed || currentDocument == null || documentLoaded) return
-        webView.afterFirstRender { loading.visibility = View.GONE }
+        loading.visibility = View.GONE
         webView.visibility = View.VISIBLE
         webView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
         documentLoaded = true

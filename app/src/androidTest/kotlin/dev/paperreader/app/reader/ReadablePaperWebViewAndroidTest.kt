@@ -173,4 +173,102 @@ class ReadablePaperWebViewAndroidTest {
             scenario.onActivity { assertFalse(webView.get().settings.javaScriptEnabled) }
         }
     }
+
+    @Test
+    fun unavailableFigureMarkingKeepsDocumentTextAndSkipsInlineSvg() {
+        val body = "<main class=\"paperreader-document\">" +
+            "<p data-paperreader-block-id=\"prx-b00002\">Before the figure. " +
+            "<img alt=\"Broken plot\" src=\"data:image/png;base64,AAAA\"> After the figure.</p>" +
+            "<p data-paperreader-block-id=\"prx-b00003\"><svg xmlns=\"http://www.w3.org/2000/svg\" " +
+            "viewBox=\"0 0 10 10\"><rect width=\"10\" height=\"10\" fill=\"#000000\"/></svg></p>" +
+            "</main>"
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            val webView = AtomicReference<ReadablePaperWebView>()
+            val loaded = CountDownLatch(1)
+            scenario.onActivity { activity ->
+                val reader = ReadablePaperWebView(activity).apply {
+                    settings.javaScriptEnabled = false
+                    webViewClient = object : WebViewClient() {
+                        override fun onPageFinished(view: WebView, url: String) {
+                            loaded.countDown()
+                        }
+                    }
+                }
+                webView.set(reader)
+                activity.setContentView(reader)
+                reader.loadDataWithBaseURL(
+                    "https://appassets.androidplatform.net/readable/document.html",
+                    renderReadablePaperHtml(
+                        sanitizedBodyHtml = body,
+                        palette = ReadablePaperPalette(
+                            background = "#FFFFFF",
+                            surface = "#F5F5F5",
+                            text = "#111111",
+                            mutedText = "#555555",
+                            border = "#222222",
+                            link = "#0044AA",
+                            selection = "#FFEE99",
+                        ),
+                        dark = false,
+                    ),
+                    "text/html",
+                    "UTF-8",
+                    null,
+                )
+            }
+            assertTrue("Local readable page did not load", loaded.await(10, TimeUnit.SECONDS))
+
+            val before = evaluateReaderScript(scenario, webView, "document.body.textContent")
+            assertTrue(before.contains("Before the figure"))
+
+            val marked = CountDownLatch(1)
+            scenario.onActivity { webView.get().markUnavailableFigures { marked.countDown() } }
+            assertTrue("Figure marking timed out", marked.await(5, TimeUnit.SECONDS))
+
+            assertEquals(before, evaluateReaderScript(scenario, webView, "document.body.textContent"))
+            assertEquals(
+                "\"Broken plot\"",
+                evaluateReaderScript(
+                    scenario,
+                    webView,
+                    """document.querySelector('img[alt="Broken plot"]').parentElement.getAttribute('data-paperreader-figure-unavailable')""",
+                ),
+            )
+            assertEquals(
+                "true",
+                evaluateReaderScript(
+                    scenario,
+                    webView,
+                    """document.querySelector('img[alt="Broken plot"]').classList.contains('paperreader-figure-image-unavailable')""",
+                ),
+            )
+            assertEquals(
+                "false",
+                evaluateReaderScript(
+                    scenario,
+                    webView,
+                    """document.querySelector('svg').parentElement.hasAttribute('data-paperreader-figure-unavailable')""",
+                ),
+            )
+        }
+    }
+
+    private fun evaluateReaderScript(
+        scenario: ActivityScenario<MainActivity>,
+        webView: AtomicReference<ReadablePaperWebView>,
+        script: String,
+    ): String {
+        val result = AtomicReference<String?>()
+        val evaluated = CountDownLatch(1)
+        scenario.onActivity {
+            webView.get().settings.javaScriptEnabled = true
+            webView.get().evaluateJavascript(script) { raw ->
+                webView.get().settings.javaScriptEnabled = false
+                result.set(raw)
+                evaluated.countDown()
+            }
+        }
+        assertTrue("Reader script timed out", evaluated.await(5, TimeUnit.SECONDS))
+        return result.get().orEmpty()
+    }
 }

@@ -236,11 +236,20 @@ internal fun ExtensionInstallAction(
     val terminal = state is ExtensionInstallState.Installed ||
         state is ExtensionInstallState.Cancelled ||
         state is ExtensionInstallState.Failed
+    val accessibleDescription = if (state == null) {
+        stringResource(
+            if (update) R.string.update_extension_named else R.string.install_extension_named,
+            release.displayName,
+        )
+    } else {
+        null
+    }
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
         PaperSecondaryButton(
             onClick = {
                 if (busy || terminal) onDismissState(release.packageName) else onInstall(release)
             },
+            contentDescription = accessibleDescription,
         ) {
             if (busy) {
                 CircularProgressIndicator(

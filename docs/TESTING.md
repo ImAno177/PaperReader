@@ -187,6 +187,11 @@ writing it. Signing material is restored only after both pass, and the keystore 
 a later step fails. Failed host checks upload JUnit XML, unit-test HTML, and lint reports. APK uploads
 disable redundant ZIP compression.
 
+A dry run (`dry_run=true`) may be dispatched from any branch. It runs input validation, the Android
+gate, and CodeQL on the branch head, then skips the release job, so no tag, release, asset, or
+signing secret is used. Pass `0.0.0-dry-run` as `version_name` and `1` as `version_code`; the
+dry run checks their format only.
+
 ### Host and source release order
 
 The host workflow creates a GitHub prerelease and leaves the current stable release marked latest.

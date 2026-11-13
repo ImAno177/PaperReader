@@ -11,6 +11,11 @@ on:
         description: Android version code (1 to 2100000000; must exceed the previous release)
         required: true
         type: number
+      dry_run:
+        description: Run validation, the Android gate, and CodeQL without publishing a tag, release, or asset
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,6 +32,7 @@ jobs:
     env:
       VERSION_NAME: ${{ inputs.version_name }}
       VERSION_CODE: ${{ inputs.version_code }}
+      DRY_RUN: ${{ inputs.dry_run }}
 
     steps:
       - name: Validate release inputs
@@ -35,7 +41,7 @@ jobs:
           python3 - <<'PY'
           import os
           import re
-          if os.environ["GITHUB_REF"] != "refs/heads/main":
+          if os.environ["GITHUB_REF"] != "refs/heads/main" and os.environ["DRY_RUN"] != "true":
               raise SystemExit("Releases must be dispatched from main")
           version = os.environ["VERSION_NAME"]
           match = re.fullmatch(
@@ -76,6 +82,7 @@ jobs:
       security-events: write
 
   release:
+    if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-24.04
     needs: [android-gate, codeql]
     timeout-minutes: 45

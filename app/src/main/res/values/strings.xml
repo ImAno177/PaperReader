@@ -690,8 +690,8 @@
     <string name="dismiss">Dismiss</string>
     <string name="install_extension">Install extension</string>
     <string name="update_extension">Update extension</string>
-    <string name="install_extension_named">Install %1$s</string>
-    <string name="update_extension_named">Update %1$s</string>
+    <string name="install_extension_named">Install extension, %1$s</string>
+    <string name="update_extension_named">Update extension, %1$s</string>
     <string name="extension_install_pending">Cancel · Waiting to download</string>
     <string name="extension_download_progress">Cancel · %1$d%% downloaded</string>
     <string name="extension_installing">Cancel · Preparing Android installer</string>

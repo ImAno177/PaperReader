@@ -80,38 +80,42 @@ Identity, persistence, and migration rules are in
 
 - Never render unsanitized remote HTML, compile untrusted TeX in the app process, silently upload a
   paper, load third-party DEX, JAR, or JavaScript into the host, or expose host storage or database
-  paths to an extension.
+  paths to an extension. Community extensions run as separate packages and UIDs over bounded
+  versioned IPC.
 - Never invent extracted text, licenses, successful installs, or provider data. Preserve paper
   provenance, license, acquisition time, and the original-PDF fallback independently.
 - Bind annotations to an exact canonical document hash and stable anchor. Never move them silently
   across a manifestation, sanitizer, renderer, parser, or PDF revision.
-- Use official provider APIs with explicit rate and concurrency policy: [`docs/SPEC.md`](docs/SPEC.md#network-policy).
-- Extension trust, install, theme, and Binder rules: [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md).
+- Use official provider APIs with explicit rate and concurrency policy and typed offline, 429,
+  unavailable, and invalid-response failures. Deterministic tests use local fixtures, not live internet.
+  Retry and cancellation behavior: [`docs/SPEC.md`](docs/SPEC.md#network-policy).
+- A theme extension is declarative and includes a complete validated semantic icon set. The host owns
+  rendering and rejects unknown, oversized, or malformed assets.
+- APK installation requires a verified signed-store record, SHA-256/size/package/version/signer/service
+  preflight, and Android PackageInstaller user confirmation. Trust and install details:
+  [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md).
 
 ## Development and verification
 
-- Gradle wrapper, JDK, SDK, and the local gate command: [`docs/TESTING.md`](docs/TESTING.md#local-gate).
-- Keep the smallest stable contract test. Remove obsolete, tautological, and duplicate tests in the
-  same change. Test policy: [`docs/TESTING.md`](docs/TESTING.md#test-case-policy).
+- Toolchain (JDK 21, Android SDK Platform 37.0, Build-Tools 36.1.0, bytecode target 17) and the gate
+  command: [`docs/TESTING.md`](docs/TESTING.md#local-gate).
+- Test authoring rules, including extending the nearest existing test and keeping one-off tests out:
+  [`docs/TESTING.md`](docs/TESTING.md#test-case-policy).
 - Never weaken or baseline `LogicBoundaryTest`, add a lint baseline, or use a destructive Room
   migration. Boundary checks: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#verification).
 - Do not add analytics, proprietary SDKs, credentials, private endpoints, or redistribution claims
   without an explicit product and license review. Do not add speculative modules.
 - Preserve coroutine cancellation; do not block the main thread with database, network, parsing,
   hashing, or Binder work.
-- Connected-test reporting and pull-request contents: [`CONTRIBUTING.md`](CONTRIBUTING.md#development-workflow).
+- Connected-test runs: report the exact device/API and actions, per [`docs/TESTING.md`](docs/TESTING.md#local-gate).
+  Pull-request contents: [`CONTRIBUTING.md`](CONTRIBUTING.md#development-workflow).
 
 ## Local device and environment
 
-- Connected tests: run `hostConnectedTest` with `-PpaperReaderConnectedTestApplicationIdSuffix=.uitest`.
-  Without the suffix the run uninstalls `dev.paperreader.app` and wipes the user's library. The build
-  refuses `:app` connected tasks that lack the suffix. Commands and results: [`docs/TESTING.md`](docs/TESTING.md#local-gate).
-- Emulator: reuse the connected emulator. Never wipe, factory-reset, or start a second instance.
-- Debug host with the local arXiv source: install with `:app:installDebug` and the `paperReaderDevSource*`
-  properties from [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md#local-host-development):
-  `paperReaderDevSourceProviderId=arxiv`, `paperReaderDevSourceCapabilities=search,details,pdf_link,readable_document`,
-  `paperReaderDevSourceIdentifierTypes=arxiv`, `paperReaderDevSourceMinimumIntervalMillis=3000`, and
-  `paperReaderDevSourceSignerSha256` set to the debug certificate SHA-256, which
+- Connected tests and emulator reuse: see [`docs/TESTING.md`](docs/TESTING.md#local-gate).
+- Debug arXiv source: install `:app:installDebug` with the `paperReaderDevSource*` values listed in
+  [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md#local-host-development). Set
+  `paperReaderDevSourceSignerSha256` to the debug certificate SHA-256, which
   `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android` prints.
 - Build `external/sources` with `-PpaperReaderHostSignerSha256=<same digest>` and
   `-PpaperReaderSdkPath=<host checkout>`. The host and external builds must use the same AGP version.
@@ -121,5 +125,6 @@ Identity, persistence, and migration rules are in
   `files/datastore/paper-reader-settings.preferences_pb`, and restore any setting you change.
 - Neobrutalism colors: source and contrast targets are in
   [`docs/SPEC.md`](docs/SPEC.md#information-architecture). Verify light and dark on the emulator.
-- This machine sets `core.autocrlf=true`. Write generated files with LF. Never use `git commit -a`,
-  which would stage `external/` submodule pointers; stage paths explicitly.
+- Windows checkouts commonly use `core.autocrlf=true`. Generated files must still be written with LF,
+  as [`.gitattributes`](.gitattributes) requires. Never use `git commit -a`, which would stage
+  `external/` submodule pointers; stage paths explicitly.

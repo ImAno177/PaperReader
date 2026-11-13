@@ -21,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: app-release
+  group: ${{ inputs.dry_run && 'app-release-dry-run' || 'app-release' }}
   cancel-in-progress: false
 
 jobs:
@@ -75,6 +75,8 @@ jobs:
     name: CodeQL
     needs: validate
     uses: ./.github/workflows/codeql.yml
+    with:
+      dry_run: ${{ inputs.dry_run }}
     permissions:
       actions: read
       contents: read

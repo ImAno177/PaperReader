@@ -115,6 +115,7 @@
     <string name="saved_searches_load_failed">Saved searches could not be loaded</string>
     <string name="saved_searches_empty_title">No saved searches</string>
     <string name="saved_searches_empty_body">Search, then save it to track new results.</string>
+    <string name="search_papers">Search papers</string>
     <string name="saved_search_not_checked_title">Not checked yet</string>
     <string name="saved_search_not_checked_body">Refresh to start tracking new papers.</string>
     <string name="saved_search_no_results_title">No new results</string>

@@ -15,6 +15,9 @@ current branch. Released sections correspond to Git tags.
 - The primary navigation bar keeps its labels at large font scales. Labels truncate to one line with
   an ellipsis, and the tap targets keep their 48dp minimum height.
 - The paper detail Read bar has a top rule that matches the navigation bar.
+- The Updates screen's empty saved-search state has a Search papers action that opens Search.
+- Extension install and update buttons in Sources size to their content and sit at the trailing edge
+  of each release row instead of spanning the full card width. Their states and labels are unchanged.
 
 ### Fixed
 

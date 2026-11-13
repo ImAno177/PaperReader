@@ -24,7 +24,11 @@ large UI, schema, provider, reader, or dependency changes.
 4. Update `CHANGELOG.md` for user-visible, public API, schema, security, build, or CI changes. Keep
    unreleased work under `Unreleased` until a tag exists, and group its entries under Added, Changed,
    Fixed, Removed, Security, or Build. Use dated semantic-version headings only for released tags.
-5. Run the Markdown and local host gates defined in [`docs/TESTING.md`](docs/TESTING.md).
+5. Run the Markdown and local host gates defined in [`docs/TESTING.md`](docs/TESTING.md). A pull
+   request merges after these gates pass on its head commit and a code review finds no open problems.
+   No GitHub status check is required. CI runs on demand with
+   `gh workflow run android-ci.yml --ref <branch>`; releases run the Android gate and CodeQL before
+   they publish.
 6. Run the connected gate for Android runtime/UI changes and report the device/API used.
 
 Dependency and build-tool versions belong in [`gradle/libs.versions.toml`](gradle/libs.versions.toml).

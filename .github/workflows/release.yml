@@ -13,20 +13,21 @@ on:
         type: number
 
 permissions:
-  actions: read
-  contents: write
+  contents: read
 
 concurrency:
   group: app-release
   cancel-in-progress: false
 
 jobs:
-  release:
+  validate:
+    name: Validate release inputs
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 5
     env:
       VERSION_NAME: ${{ inputs.version_name }}
       VERSION_CODE: ${{ inputs.version_code }}
+
     steps:
       - name: Validate release inputs
         shell: bash
@@ -53,27 +54,41 @@ jobs:
               raise SystemExit("version_code must be an integer from 1 to 2100000000")
           PY
 
+  android-gate:
+    name: Android CI gate
+    needs: validate
+    uses: ./.github/workflows/android-ci.yml
+    with:
+      release-gate: true
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+  codeql:
+    name: CodeQL
+    needs: validate
+    uses: ./.github/workflows/codeql.yml
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      security-events: write
+
+  release:
+    runs-on: ubuntu-24.04
+    needs: [android-gate, codeql]
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      VERSION_NAME: ${{ inputs.version_name }}
+      VERSION_CODE: ${{ inputs.version_code }}
+    steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-
-      - name: Require green main CI for this commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if ! gh run list \
-            --repo "$GITHUB_REPOSITORY" \
-            --workflow android-ci.yml \
-            --branch main \
-            --event push \
-            --commit "$GITHUB_SHA" \
-            --status success \
-            --json databaseId \
-            --jq 'length > 0' | grep -qx true; then
-            echo "Main CI has no successful push run for $GITHUB_SHA" >&2
-            exit 1
-          fi
 
       - name: Set up Android build
         id: android_build

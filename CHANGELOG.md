@@ -25,6 +25,11 @@ current branch. Released sections correspond to Git tags.
 
 ### Build
 
+- Android CI runs only on demand (`gh workflow run android-ci.yml --ref <branch>`), and CodeQL
+  runs only when dispatched manually or called by the release workflow. Pushes, pull requests, and
+  the weekly schedule no longer start them. Dependency review runs on demand against `main`.
+- The release workflow runs the Android CI gate and CodeQL itself, and publishes only after both
+  pass for the release commit. It no longer looks up a successful main CI run.
 - `hostLint` now fails on any comment in Kotlin, Java, AIDL, Android XML, Gradle, or ProGuard
   sources, and the existing comments are removed. The error lists each location and says where
   lasting rationale belongs instead.

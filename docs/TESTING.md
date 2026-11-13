@@ -150,6 +150,17 @@ reads coverage data. Use the same sources, build variant, and isolated test pack
 
 ## CI responsibilities
 
+PaperReader runs CI on demand. Pushes and pull requests do not start workflows. A pull request merges
+after the local gate in this file passes on its head commit and a code review finds no open problems.
+No GitHub status check is required for merging. To run the CI gate on a branch:
+
+```powershell
+gh workflow run android-ci.yml --ref <branch>
+```
+
+A dispatched run checks out the branch head. Follow it with `gh run watch` or the Actions page, and
+dispatch again after each push that needs CI evidence.
+
 PaperReader separates dependency review, tests, lint, artifacts, and security checks. Each workflow
 owns one gate so a test command is not copied into security or release jobs.
 The root Gradle tasks `hostUnitTest` and `hostLint` are the single command definitions for the host
@@ -160,20 +171,21 @@ from the Gradle catalog. Third-party actions remain pinned by commit.
 
 | Workflow or job | Owns | Does not repeat |
 | --- | --- | --- |
-| `android-ci.yml` / `dependency-review` | Pull-request dependency diff | Gradle tests and builds |
-| `android-ci.yml` / `quality-and-apk` | One Gradle invocation for host tests, debug lint, and the debug APK on pull requests; main and manual runs also produce JaCoCo, an unsigned release APK, and an SBOM | CodeQL extraction, MobSF, secrets, dependency review, connected tests |
+| `android-ci.yml` / `dependency-review` | Dependency diff between `main` and the dispatched commit | Gradle tests and builds |
+| `android-ci.yml` / `quality-and-apk` | One Gradle invocation for host tests, host lint, debug and unsigned release APKs, JaCoCo, and an SBOM | CodeQL extraction, MobSF, secrets, connected tests |
 | `android-ci.yml` / `documentation` | Markdown and GitHub Actions lint | Gradle tests or builds |
 | `android-ci.yml` / `secret-scan` | Full-history Gitleaks scan | Gradle tests and builds |
 | `android-ci.yml` / `mobsfscan` | MobSF source scan and SARIF upload | Gradle tests or builds |
-| `codeql.yml` | Java/Kotlin CodeQL extraction and analysis | Unit tests and lint; its debug build exists only to provide extraction input |
-| `release.yml` | Green-commit check, release lint, signed APK, signature verification, release SBOM, and publishing | Unit tests and `lintDebug`, which belong to the green Android CI run |
+| `codeql.yml` | Java/Kotlin CodeQL extraction and analysis, on manual dispatch or a release call | Unit tests and lint; its debug build exists only to provide extraction input |
+| `release.yml` | Input validation, the Android CI gate and CodeQL (both required), then release lint, signed APK, signature verification, release SBOM, and publishing | Connected tests |
 
 Releases must be dispatched from `main` with a valid semantic version and an Android version code
-from 1 to 2100000000. The release workflow requires a successful `android-ci.yml` main-branch push
-for the exact commit before it restores signing material. Version and signing properties reach
-Gradle through environment variables; the keystore is removed even when a later step fails. This keeps release verification tied to the same host gate used for pull
-requests and main, without running that gate a second time. Failed host checks upload JUnit XML, unit-test HTML, and
-lint reports. APK uploads disable redundant ZIP compression.
+from 1 to 2100000000. Input validation runs first. The release workflow then calls the same Android
+gate as `android-ci.yml` and the same CodeQL workflow, and publishes only when both pass for the
+release commit. The gate runs with `release-gate: true`, so it reads the Gradle cache without
+writing it. Signing material is restored only after both pass, and the keystore is removed even when
+a later step fails. Failed host checks upload JUnit XML, unit-test HTML, and lint reports. APK uploads
+disable redundant ZIP compression.
 
 ### Host and source release order
 
@@ -183,7 +195,8 @@ signed candidate before publishing a new contract channel.
 
 For an extension contract upgrade:
 
-1. Merge the reviewed host and source changes and wait for their exact main commits to pass CI.
+1. Merge the reviewed host and source changes. Confirm each exact main commit passed the local gate, or
+   dispatch `android-ci.yml` on it, before building a candidate.
 2. Build the host candidate from that main commit. Set the source repository's
    `PAPERREADER_SDK_REF` variable to the same immutable host commit.
 3. Dispatch the source release with that SDK commit, the candidate's tag, and a version code above
@@ -201,36 +214,29 @@ The API 2 public catalog is not yet published. A candidate cannot provide offici
 on a fresh device until that catalog exists. Local development-source smoke tests do not prove this
 public delivery path; never promote a candidate using only those results.
 
-Pull requests intentionally skip coverage packaging, the unsigned release build, and SBOM generation.
-Those artifacts do not change the review verdict and remain available from main, manual, and release
-runs. Gradle receives all tasks for a run in one invocation, so shared compilation and unit-test work
-is executed once. Connected tests remain a local release-readiness gate on the declared emulator; CI
-does not claim device coverage that it does not run.
+Every on-demand run executes the full gate, including coverage
+packaging, the unsigned release build, and the SBOM, in one Gradle invocation so shared compilation and
+unit-test work runs once. Connected tests remain a local release-readiness gate on the declared
+emulator; CI does not claim device coverage that it does not run.
 
-Pull requests that change only root Markdown or files under `docs/` also skip Android setup and
-Gradle in the existing build job. Documentation, dependency review, and security checks still run;
-the workflow and check names remain present. The scope check compares the complete pull-request
-diff, including deletions and both sides of renames. Missing or unreadable diff data runs the full
-gate. Source, asset, dependency, build, and workflow changes always run it, as do all main pushes
-and manual runs, so release eligibility still requires full verification of the exact main commit.
-
-GitHub CodeQL Advanced scans the Java/Kotlin build on every pull request and main push, with a weekly
-scheduled security-extended analysis. The repository intentionally uses Advanced setup: `codeql.yml`
-is the source of truth, while GitHub's Default setup remains disabled so it cannot replace that pinned
-build-and-query policy. PaperReader has no formatter plugin and keeps Room schema/migration coverage
-in `logic` Android tests. Release publishing remains in the repository's own `release.yml` workflow.
+CodeQL Advanced scans the Java/Kotlin build only when `codeql.yml` is dispatched manually or called by
+the release workflow, so each release commit is scanned before it is published. The repository
+intentionally uses Advanced setup: `codeql.yml` is the source of truth, while GitHub's Default setup
+remains disabled so it cannot replace that pinned build-and-query policy. Because no push or
+pull-request scan runs, Code Scanning alerts update at release time. PaperReader has no formatter
+plugin and keeps Room schema/migration coverage in `logic` Android tests. Release publishing remains
+in the repository's own `release.yml` workflow.
 
 Android CI also runs the GitHub-verified `MobSF/mobsfscan` source scanner for Kotlin, Java, and
 Android XML. It uploads a SARIF report to GitHub Code Scanning. The scan uses `--no-fail` so existing
 findings remain visible for triage without turning an informational baseline into a false-green
 security waiver; no findings are suppressed by repository configuration.
 
-Only the `android-ci.yml` gate writes Gradle's enhanced cache: `main` pushes refresh the shared
-cache, and same-repository pull requests write a PR-scoped cache that later pushes to the same pull
-request restore. Fork pull requests, CodeQL, and release runs are read-only consumers. Work lands
-through long-lived pull requests, so a main-only writer left the cache evicted after GitHub's
-seven-day idle limit and every run rebuilt from empty. Successful writes run Gradle's built-in
-cleanup, and GitHub evicts least-recently-used entries at the repository quota.
+Only main runs of `android-ci.yml` write Gradle's enhanced cache. Runs on other branches and the
+release gate read it without writing. CodeQL and the release job are read-only consumers too. Because
+runs are on demand, the cache can age out after GitHub's seven-day idle limit, and the next run then
+rebuilds from empty. Successful writes run Gradle's built-in cleanup, and GitHub evicts
+least-recently-used entries at the repository quota.
 
 ## Test-case policy
 

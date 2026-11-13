@@ -5,6 +5,12 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+### Changed
+
+- Library cards show the paper's field as a Material Symbols icon instead of an abbreviation such
+  as "CS" or "PAPER", and TalkBack reads the full field name. These icons are host-owned content
+  glyphs, so theme extensions still supply only the semantic icon set.
+
 ### Build
 
 - `hostLint` now fails on any comment in Kotlin, Java, AIDL, Android XML, Gradle, or ProGuard

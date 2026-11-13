@@ -222,6 +222,15 @@
     <string name="about_project">Project on GitHub</string>
     <string name="about_licenses">Licenses &amp; notices</string>
     <string name="paper_discipline_badge">Field: %1$s</string>
+    <string name="paper_discipline_computer_science">Computer science</string>
+    <string name="paper_discipline_mathematics">Mathematics</string>
+    <string name="paper_discipline_physics">Physics</string>
+    <string name="paper_discipline_life_sciences">Life sciences</string>
+    <string name="paper_discipline_medicine">Medicine</string>
+    <string name="paper_discipline_social_sciences">Social sciences</string>
+    <string name="paper_discipline_economics">Economics</string>
+    <string name="paper_discipline_engineering">Engineering</string>
+    <string name="paper_discipline_general">Field not identified</string>
     <string name="provider_orphaned_section">Unlisted extensions</string>
     <string name="provider_orphaned_body">Not in a trusted store. It stays installed but cannot run.</string>
     <string name="appearance_title">Appearance</string>

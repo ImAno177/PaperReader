@@ -7,12 +7,11 @@ current branch. Released sections correspond to Git tags.
 
 ### Changed
 
-- Library cards no longer show a field badge. The card header now shows only the source and year,
-  and the field icons, their strings, and the subject-to-field mapping are removed.
-- Library grid cards omit the identifier from the metadata line, so the source and year stay visible
-  without truncation.
-- Library status and collection filter chips wrap onto additional lines instead of scrolling off the
-  right edge, so every chip is reachable at large font sizes.
+- Library cards no longer show a field badge. List cards show the source, year, and identifier, and
+  grid cards show the source and year, so the grid metadata line stays readable without truncation.
+- Library status filter chips wrap onto additional lines, so every chip is reachable at large font
+  sizes. The collection chips stay on one row that scrolls horizontally, with a fade at the trailing
+  edge while more collections are off screen.
 - The primary navigation bar keeps its labels at large font scales. Labels truncate to one line with
   an ellipsis, and the tap targets keep their 48dp minimum height.
 - The paper detail Read bar has a top rule that matches the navigation bar.

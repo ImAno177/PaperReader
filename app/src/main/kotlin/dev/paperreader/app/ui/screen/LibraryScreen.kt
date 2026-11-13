@@ -7,12 +7,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -48,6 +53,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.semantics.Role
@@ -253,6 +260,7 @@ private fun LibraryControls(
 ) {
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val collectionRowState = rememberLazyListState()
     LaunchedEffect(searchVisible) {
         if (searchVisible) focusRequester.requestFocus()
     }
@@ -309,21 +317,39 @@ private fun LibraryControls(
             )
 
             is LoadState.Ready -> if (collections.value.isNotEmpty()) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).selectableGroup(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    LibraryStatusButton(
-                        text = stringResource(R.string.all_collections),
-                        selected = selectedCollectionId == null,
-                        onClick = { onCollectionChange(null) },
-                    )
-                    collections.value.forEach { collection ->
-                        LibraryStatusButton(
-                            text = collection.name,
-                            selected = selectedCollectionId == collection.id,
-                            onClick = { onCollectionChange(collection.id) },
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    LazyRow(
+                        modifier = Modifier.selectableGroup(),
+                        state = collectionRowState,
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        item(key = "all-collections") {
+                            LibraryStatusButton(
+                                text = stringResource(R.string.all_collections),
+                                selected = selectedCollectionId == null,
+                                onClick = { onCollectionChange(null) },
+                            )
+                        }
+                        items(collections.value, key = PaperCollectionUi::id) { collection ->
+                            LibraryStatusButton(
+                                text = collection.name,
+                                selected = selectedCollectionId == collection.id,
+                                onClick = { onCollectionChange(collection.id) },
+                            )
+                        }
+                    }
+                    if (collectionRowState.canScrollForward) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .fillMaxHeight()
+                                .width(32.dp)
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(Color.Transparent, PaperTheme.tokens.canvas),
+                                    ),
+                                ),
                         )
                     }
                 }

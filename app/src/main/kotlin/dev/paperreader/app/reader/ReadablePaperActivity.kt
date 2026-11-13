@@ -212,9 +212,9 @@ class ReadablePaperActivity : AppCompatActivity() {
             icons = readerIcons,
             actions = ReadablePaperToolbarActions(
                 navigateBack = ::navigateBackWithinReader,
-                search = findController::show,
+                search = { if (documentLoaded) findController.show() },
                 showContents = {
-                    showReadablePaperContents(currentDocument?.sections.orEmpty(), ::navigateToSection)
+                    if (documentLoaded) showReadablePaperContents(currentDocument?.sections.orEmpty(), ::navigateToSection)
                 },
                 annotateSelection = annotationController::captureSelection,
                 showAnnotations = annotationController::showAnnotations,
@@ -348,7 +348,7 @@ class ReadablePaperActivity : AppCompatActivity() {
 
     private fun finishReadablePageLoad() {
         if (isDestroyed || currentDocument == null || documentLoaded) return
-        loading.visibility = View.GONE
+        webView.afterFirstRender { if (!isDestroyed) loading.visibility = View.GONE }
         webView.visibility = View.VISIBLE
         webView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
         documentLoaded = true

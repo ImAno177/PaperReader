@@ -417,8 +417,6 @@ internal fun renderReadablePaperHtml(
               max-width: 100%;
               height: auto;
               margin: 0 auto;
-              background: var(--surface);
-              border: 1px solid var(--border);
             }
             figcaption, caption {
               margin-top: 10px;
@@ -467,6 +465,7 @@ internal fun renderReadablePaperHtml(
               text-align: left;
               vertical-align: top;
             }
+            td:has(> .ltx_rule:only-child) { border: 0; }
             th { background: var(--surface); }
             math {
               max-width: 100%;

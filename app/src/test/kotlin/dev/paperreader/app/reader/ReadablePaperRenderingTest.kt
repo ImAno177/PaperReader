@@ -111,6 +111,7 @@ class ReadablePaperRenderingTest {
         assertTrue(html.contains("img-src data:"))
         assertTrue(html.contains("width: min(100%, 48rem)"))
         assertTrue(html.contains(".paperreader-table-scroll"))
+        assertTrue(html.contains("td:has(> .ltx_rule:only-child) { border: 0; }"))
         assertTrue(html.contains("overflow-x: auto"))
         assertTrue(html.contains("background: var(--surface)"))
         assertFalse(html.contains("background: white"))

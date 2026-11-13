@@ -26,6 +26,7 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
     var onHighlightSelectionRequested: (() -> Unit)? = null
     private var appCommandSerial = 0
     private var appCommandTimeout: Runnable? = null
+    private var loadSerial = 0L
     private var touchDownX = 0f
     private var touchDownY = 0f
     private var lastTouchY = 0f
@@ -111,6 +112,26 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
         runAppOwnedCommand(readableSelectionCaptureScript()) { raw ->
             onResult(parseReadableSelection(raw))
         }
+    }
+
+    override fun loadDataWithBaseURL(
+        baseUrl: String?,
+        data: String,
+        mimeType: String?,
+        encoding: String?,
+        historyUrl: String?,
+    ) {
+        loadSerial += 1
+        super.loadDataWithBaseURL(baseUrl, data, mimeType, encoding, historyUrl)
+    }
+
+    fun afterFirstRender(onRendered: () -> Unit) {
+        val load = loadSerial
+        postVisualStateCallback(load, object : WebView.VisualStateCallback() {
+            override fun onComplete(requestId: Long) {
+                if (requestId == loadSerial) onRendered()
+            }
+        })
     }
 
     fun applyAnnotations(annotations: List<Annotation>, onResult: (Int) -> Unit = {}) {

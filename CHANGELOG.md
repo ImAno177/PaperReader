@@ -16,6 +16,13 @@ current branch. Released sections correspond to Git tags.
   an ellipsis, and the tap targets keep their 48dp minimum height.
 - The paper detail Read bar has a top rule that matches the navigation bar.
 
+### Fixed
+
+- The readable reader hides its loading overlay only after the first frame of the loaded document is drawn, so a blank page no longer shows while the document appears.
+- Empty arXiv separator rules in the readable reader no longer draw an empty bordered box between the abstract and the first section.
+- Broken figure images in the readable reader no longer draw an empty bordered frame; only the image's native alt text, if any, remains.
+- The readable reader's Contents, Find, and Annotations actions open only after the document has finished loading, so a tap during loading no longer leaves the overlay stuck.
+
 ### Build
 
 - `hostLint` now fails on any comment in Kotlin, Java, AIDL, Android XML, Gradle, or ProGuard

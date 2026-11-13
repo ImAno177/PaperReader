@@ -15,7 +15,7 @@ large UI, schema, provider, reader, or dependency changes.
 
 1. Create a typed branch named `<type>/<kebab-case-summary>`, optionally with an issue number such as
    `fix/425-rss-deleting-bug`. Use `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `build`, `ci`,
-   `release`, or `dependency`. Do not add a tool, agent, or owner prefix. Keep one independently
+   `release`, or `dependency`. Do not add a tool, agent, or owner prefix. Avoid vague `dev`, `patch`, or bare-name branches. Keep one independently
    reviewable concern per branch and align the Conventional Commit and pull-request types.
    Extend the nearest contract test for behavior changes; use the local smoke flow for reversible UI
    polish.

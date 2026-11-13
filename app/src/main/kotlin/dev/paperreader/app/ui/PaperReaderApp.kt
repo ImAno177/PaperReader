@@ -280,15 +280,7 @@ private fun PaperReaderNavigation(
             destinations = destinations,
             currentRoute = currentRoute,
             tabletUiMode = tabletUiMode,
-            onNavigate = { destination ->
-                if (navController.currentDestination?.route != destination.route) {
-                    navController.navigate(destination.route) {
-                        popUpTo(AppRoutes.LIBRARY) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            },
+            onNavigate = { destination -> navController.navigateToPrimaryDestination(destination.route) },
             content = content,
         )
     }

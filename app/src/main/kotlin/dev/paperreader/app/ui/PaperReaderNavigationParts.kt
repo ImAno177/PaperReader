@@ -184,6 +184,16 @@ internal fun moreAttentionDestination(
     }
 }
 
+internal fun NavHostController.navigateToPrimaryDestination(route: String) {
+    if (currentDestination?.route != route) {
+        navigate(route) {
+            popUpTo(AppRoutes.LIBRARY) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+}
+
 internal fun NavHostController.navigateToMoreBranch(route: String) {
     val currentRoute = currentDestination?.route
     if (currentRoute == route) return

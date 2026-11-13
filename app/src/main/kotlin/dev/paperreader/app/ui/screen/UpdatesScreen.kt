@@ -79,6 +79,7 @@ fun UpdatesScreen(
     onCancel: (String) -> Unit = {},
     onRetry: (String) -> Unit = {},
     onRemove: (String) -> Unit = {},
+    onOpenSearch: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
     screenTitleRes: Int = R.string.updates_title,
     showSavedSearches: Boolean = true,
@@ -146,6 +147,8 @@ fun UpdatesScreen(
                             body = stringResource(R.string.saved_searches_empty_body),
                             icon = PaperIconKey.BOOKMARK_ADD,
                             compact = true,
+                            actionLabel = onOpenSearch?.let { stringResource(R.string.search_papers) },
+                            onAction = onOpenSearch,
                         )
                     }
                 } else {

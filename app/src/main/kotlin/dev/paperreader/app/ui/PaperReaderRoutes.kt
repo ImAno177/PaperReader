@@ -237,6 +237,7 @@ internal fun AppNavHost(
                 onCancel = { updatesViewModel.onAction(UpdatesAction.CancelTask(it)) },
                 onRetry = { updatesViewModel.onAction(UpdatesAction.RetryTask(it)) },
                 onRemove = { updatesViewModel.onAction(UpdatesAction.RemoveTask(it)) },
+                onOpenSearch = { navController.navigateToPrimaryDestination(AppRoutes.DISCOVER) },
                 dateFormat = dateFormat,
                 relativeTimeEnabled = relativeTimeEnabled,
             )

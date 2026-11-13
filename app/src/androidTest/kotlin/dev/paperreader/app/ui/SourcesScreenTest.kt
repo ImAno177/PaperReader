@@ -85,6 +85,7 @@ class SourcesScreenTest {
         composeRule.onNodeWithText("1 release").performClick()
         composeRule.onNodeWithText("Semantic Scholar").assertIsDisplayed()
         composeRule.onNodeWithText("Install extension").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Install extension, Semantic Scholar").assertIsDisplayed()
     }
 
     @Test
@@ -168,6 +169,8 @@ class SourcesScreenTest {
         composeRule.onNodeWithText("1 release").performClick()
         composeRule.onNode(hasScrollToIndexAction())
             .performScrollToNode(hasText("Cancel \u00b7 Waiting to download"))
+        composeRule.onNodeWithText("Cancel \u00b7 Waiting to download").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Install extension, Semantic Scholar").assertDoesNotExist()
         composeRule.onNodeWithText("Cancel \u00b7 Waiting to download").performClick()
         assertEquals(packageName, cancelledPackage)
     }
@@ -197,6 +200,8 @@ class SourcesScreenTest {
         composeRule.onNodeWithText("1 release").performClick()
         composeRule.onNodeWithText("Install failed: APK signing certificate does not match the signed registry")
             .assertIsDisplayed()
+        composeRule.onNodeWithText("Dismiss").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Install extension, Semantic Scholar").assertDoesNotExist()
         composeRule.onNodeWithText("Refresh store").performClick()
 
         assertEquals("paperreader.community", refreshedStoreId)

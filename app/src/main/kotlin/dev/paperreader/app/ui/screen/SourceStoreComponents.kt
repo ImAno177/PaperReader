@@ -236,40 +236,50 @@ internal fun ExtensionInstallAction(
     val terminal = state is ExtensionInstallState.Installed ||
         state is ExtensionInstallState.Cancelled ||
         state is ExtensionInstallState.Failed
-    PaperSecondaryButton(
-        onClick = {
-            if (busy || terminal) onDismissState(release.packageName) else onInstall(release)
-        },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        if (busy) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
-                color = PaperTheme.tokens.ink,
-                strokeWidth = 2.dp,
-            )
-        } else {
-            PaperIcon(
-                if (terminal) PaperIconKey.CLOSE else PaperIconKey.DOWNLOAD,
-                contentDescription = null,
+    val accessibleDescription = if (state == null) {
+        stringResource(
+            if (update) R.string.update_extension_named else R.string.install_extension_named,
+            release.displayName,
+        )
+    } else {
+        null
+    }
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        PaperSecondaryButton(
+            onClick = {
+                if (busy || terminal) onDismissState(release.packageName) else onInstall(release)
+            },
+            contentDescription = accessibleDescription,
+        ) {
+            if (busy) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = PaperTheme.tokens.ink,
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                PaperIcon(
+                    if (terminal) PaperIconKey.CLOSE else PaperIconKey.DOWNLOAD,
+                    contentDescription = null,
+                )
+            }
+            Spacer(Modifier.size(8.dp))
+            Text(
+                when (state) {
+                    ExtensionInstallState.Pending -> stringResource(R.string.extension_install_pending)
+                    is ExtensionInstallState.Downloading -> {
+                        val percentage = ((state.bytesRead * 100L) / state.totalBytes.coerceAtLeast(1L)).coerceIn(0L, 100L)
+                        stringResource(R.string.extension_download_progress, percentage)
+                    }
+                    ExtensionInstallState.Installing -> stringResource(R.string.extension_installing)
+                    ExtensionInstallState.AwaitingConfirmation -> stringResource(R.string.extension_awaiting_confirmation)
+                    ExtensionInstallState.Installed -> stringResource(R.string.extension_installed)
+                    ExtensionInstallState.Cancelled -> stringResource(R.string.extension_install_cancelled)
+                    is ExtensionInstallState.Failed -> stringResource(R.string.dismiss)
+                    null -> stringResource(if (update) R.string.update_extension else R.string.install_extension)
+                },
             )
         }
-        Spacer(Modifier.size(8.dp))
-        Text(
-            when (state) {
-                ExtensionInstallState.Pending -> stringResource(R.string.extension_install_pending)
-                is ExtensionInstallState.Downloading -> {
-                    val percentage = ((state.bytesRead * 100L) / state.totalBytes.coerceAtLeast(1L)).coerceIn(0L, 100L)
-                    stringResource(R.string.extension_download_progress, percentage)
-                }
-                ExtensionInstallState.Installing -> stringResource(R.string.extension_installing)
-                ExtensionInstallState.AwaitingConfirmation -> stringResource(R.string.extension_awaiting_confirmation)
-                ExtensionInstallState.Installed -> stringResource(R.string.extension_installed)
-                ExtensionInstallState.Cancelled -> stringResource(R.string.extension_install_cancelled)
-                is ExtensionInstallState.Failed -> stringResource(R.string.dismiss)
-                null -> stringResource(if (update) R.string.update_extension else R.string.install_extension)
-            },
-        )
     }
     if (state is ExtensionInstallState.Failed) {
         Text(

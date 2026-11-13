@@ -398,18 +398,22 @@ class SavedSearchUpdatesScreenTest {
 
     @Test
     fun emptyUpdateSectionsRemainCompactEnoughToScanTogether() {
+        var searchOpened = false
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 UpdatesScreen(
                     tasks = LoadState.Ready(emptyList()),
                     providers = providerState(),
                     savedSearches = LoadState.Ready(emptyList()),
+                    onOpenSearch = { searchOpened = true },
                 )
             }
         }
 
         composeRule.onNodeWithText("No saved searches").assertIsDisplayed()
         composeRule.onNodeWithText("No queued downloads").assertIsDisplayed()
+        composeRule.onNodeWithText("Search papers").performClick()
+        composeRule.runOnIdle { assertTrue(searchOpened) }
     }
 
     @Test

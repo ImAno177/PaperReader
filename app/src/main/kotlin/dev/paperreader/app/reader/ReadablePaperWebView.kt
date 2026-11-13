@@ -119,6 +119,17 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
         }
     }
 
+    fun replaceUnavailableFigures(onResult: () -> Unit) {
+        val label = context.getString(R.string.readable_reader_figure_unavailable)
+        runAppOwnedCommand(readableUnavailableFigureScript(label)) { onResult() }
+    }
+
+    fun afterFirstRender(onRendered: () -> Unit) {
+        postVisualStateCallback(FIRST_RENDER_REQUEST_ID, object : WebView.VisualStateCallback() {
+            override fun onComplete(requestId: Long) = onRendered()
+        })
+    }
+
     fun scrollToAnnotation(id: String, onResult: (Boolean) -> Unit) {
         runAppOwnedCommand(readableAnnotationNavigationScript(id)) { raw -> onResult(raw == "true") }
     }
@@ -201,6 +212,7 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
 
     companion object {
         private const val APP_COMMAND_TIMEOUT_MILLIS = 1_500L
+        private const val FIRST_RENDER_REQUEST_ID = 1L
         private const val SCROLL_DIRECTION_THRESHOLD_PX = 8
         private const val HIGHLIGHT_SELECTION_ACTION_ID = 0x50525801
         private const val HIGHLIGHT_SELECTION_ACTION_ORDER = 80

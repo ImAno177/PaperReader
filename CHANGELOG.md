@@ -11,6 +11,13 @@ current branch. Released sections correspond to Git tags.
   as "CS" or "PAPER", and TalkBack reads the full field name. These icons are host-owned content
   glyphs, so theme extensions still supply only the semantic icon set.
 
+### Fixed
+
+- The readable paper reader keeps its "Preparing mobile paper" loading state on screen until the
+  first document frame is drawn, so it no longer shows a blank page while the document is prepared.
+- A figure image that cannot be displayed now shows its alt text, or "Figure unavailable", in a
+  dashed placeholder above its caption instead of an empty bordered box.
+
 ### Build
 
 - `hostLint` now fails on any comment in Kotlin, Java, AIDL, Android XML, Gradle, or ProGuard

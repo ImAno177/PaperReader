@@ -84,6 +84,27 @@ internal fun readableSectionNavigationScript(anchor: String): String {
     """.trimIndent()
 }
 
+private val SAFE_FIGURE_PLACEHOLDER_LABEL = Regex("[A-Za-z0-9 ,.-]{1,120}")
+
+internal fun readableUnavailableFigureScript(placeholderLabel: String): String {
+    require(placeholderLabel.matches(SAFE_FIGURE_PLACEHOLDER_LABEL))
+    return """
+        (() => {
+          document.querySelectorAll('img').forEach(image => {
+            if (!image.complete || image.naturalWidth > 0) return;
+            if (getComputedStyle(image).display === 'none') return;
+            const label = (image.getAttribute('alt') || '').trim().slice(0, 500) || "$placeholderLabel";
+            const placeholder = document.createElement('span');
+            placeholder.className = 'paperreader-figure-unavailable';
+            placeholder.setAttribute('role', 'img');
+            placeholder.setAttribute('aria-label', label);
+            placeholder.textContent = label;
+            image.replaceWith(placeholder);
+          });
+        })()
+    """.trimIndent()
+}
+
 internal data class ReadableTextSelection(
     val blockId: String,
     val startOffset: Int,

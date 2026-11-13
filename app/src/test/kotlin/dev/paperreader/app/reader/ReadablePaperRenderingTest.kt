@@ -37,6 +37,22 @@ class ReadablePaperRenderingTest {
     }
 
     @Test
+    fun `unavailable figure script replaces only shown broken images with a labelled placeholder`() {
+        val script = readableUnavailableFigureScript("Figure unavailable")
+
+        assertTrue(script.contains("!image.complete || image.naturalWidth > 0"))
+        assertTrue(script.contains("getComputedStyle(image).display === 'none'"))
+        assertTrue(script.contains("image.getAttribute('alt')"))
+        assertTrue(script.contains("|| \"Figure unavailable\""))
+        assertTrue(script.contains("paperreader-figure-unavailable"))
+        assertTrue(script.contains("placeholder.textContent = label"))
+        assertFalse(script.contains("innerHTML"))
+        assertFalse(script.contains("https://"))
+        assertFalse(script.contains("fetch("))
+        assertTrue(runCatching { readableUnavailableFigureScript("x'); fetch('https://tracker.invalid')") }.isFailure)
+    }
+
+    @Test
     fun `selection capture is bounded to one sanitized document block`() {
         val script = readableSelectionCaptureScript()
 

@@ -76,7 +76,9 @@ internal fun configureReadablePaperWebView(
 
         override fun onPageFinished(view: WebView, url: String) {
             if (url != READABLE_LOCAL_RENDERER_URL || !hasCurrentDocument() || isPageLoaded()) return
-            webView.applyAnnotations(annotations()) { onPageReady() }
+            webView.replaceUnavailableFigures {
+                webView.applyAnnotations(annotations()) { onPageReady() }
+            }
         }
     }
     webView.onProgressionChanged = onProgressionChanged

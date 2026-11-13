@@ -137,7 +137,7 @@ val checkNoSourceComments = tasks.register<CheckNoSourceComments>("checkNoSource
     rootDirectory.set(layout.projectDirectory)
     sources.from(
         fileTree(layout.projectDirectory) {
-            include("app/**", "logic/**", "extension-api/**", "*.kts")
+            include("app/**", "logic/**", "extension-api/**", "gradle/**", "*.kts")
             exclude("**/build/**")
         }.filter { file -> file.extension in setOf("kt", "kts", "java", "aidl", "pro", "xml") },
     )

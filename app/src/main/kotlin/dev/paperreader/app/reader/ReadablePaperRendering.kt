@@ -84,59 +84,6 @@ internal fun readableSectionNavigationScript(anchor: String): String {
     """.trimIndent()
 }
 
-internal fun readableJsStringLiteral(value: String): String = buildString {
-    append('"')
-    value.forEach { char ->
-        when {
-            char == '"' -> append("\\\"")
-            char == '\\' -> append("\\\\")
-            char == '<' || char == '>' || char == ' ' || char == ' ' || char < ' ' ->
-                append("\\u%04X".format(char.code))
-            else -> append(char)
-        }
-    }
-    append('"')
-}
-
-internal fun readableUnavailableFigureScript(placeholderLabel: String, svgUrls: Set<String>): String {
-    val label = readableJsStringLiteral(placeholderLabel)
-    val svg = svgUrls.sorted().joinToString(",") { readableJsStringLiteral(it) }
-    return """
-        (() => {
-          const fallbackLabel = $label;
-          const svgUrls = new Set([$svg]);
-          const sourceOf = image => image.currentSrc || image.src || '';
-          const isSvgSource = image => {
-            const source = sourceOf(image);
-            return svgUrls.has(source) || /\.svg([?#]|${'$'})/i.test(source) || /^data:image\/svg\+xml/i.test(source);
-          };
-          const isShown = element => {
-            for (let node = element; node && node.nodeType === Node.ELEMENT_NODE; node = node.parentElement) {
-              if (getComputedStyle(node).display === 'none') return false;
-            }
-            return true;
-          };
-          const markBroken = image => {
-            if (image.classList.contains('paperreader-figure-image-unavailable') || !isShown(image)) return;
-            image.classList.add('paperreader-figure-image-unavailable');
-            const alt = image.getAttribute('alt');
-            if (alt === '') return;
-            const label = (alt || '').trim().slice(0, 500) || fallbackLabel;
-            if (image.parentElement) image.parentElement.setAttribute('data-paperreader-figure-unavailable', label);
-          };
-          if (!window.paperreaderFigureWatch) {
-            window.paperreaderFigureWatch = true;
-            document.addEventListener('error', event => {
-              if (event.target instanceof HTMLImageElement) markBroken(event.target);
-            }, true);
-          }
-          document.querySelectorAll('img').forEach(image => {
-            if (image.complete && image.naturalWidth === 0 && !isSvgSource(image)) markBroken(image);
-          });
-        })()
-    """.trimIndent()
-}
-
 internal data class ReadableTextSelection(
     val blockId: String,
     val startOffset: Int,
@@ -470,8 +417,6 @@ internal fun renderReadablePaperHtml(
               max-width: 100%;
               height: auto;
               margin: 0 auto;
-              background: var(--surface);
-              border: 1px solid var(--border);
             }
             figcaption, caption {
               margin-top: 10px;
@@ -480,16 +425,13 @@ internal fun renderReadablePaperHtml(
               line-height: 1.5;
               text-align: left;
             }
-            .paperreader-figure-unavailable,
-            [data-paperreader-figure-unavailable]::before {
+            .paperreader-figure-unavailable {
               display: block;
               padding: 18px;
               border: 1px dashed var(--border);
               color: var(--muted);
               background: var(--surface);
             }
-            [data-paperreader-figure-unavailable]::before { content: attr(data-paperreader-figure-unavailable); }
-            .paperreader-figure-image-unavailable { display: none; }
             .paperreader-table-scroll {
               width: 100%;
               max-width: 100%;
@@ -523,6 +465,7 @@ internal fun renderReadablePaperHtml(
               text-align: left;
               vertical-align: top;
             }
+            td:has(> .ltx_rule:only-child) { border: 0; }
             th { background: var(--surface); }
             math {
               max-width: 100%;

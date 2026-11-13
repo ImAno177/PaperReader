@@ -348,7 +348,7 @@ class ReadablePaperActivity : AppCompatActivity() {
 
     private fun finishReadablePageLoad() {
         if (isDestroyed || currentDocument == null || documentLoaded) return
-        loading.visibility = View.GONE
+        webView.afterFirstRender { if (!isDestroyed) loading.visibility = View.GONE }
         webView.visibility = View.VISIBLE
         webView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
         documentLoaded = true

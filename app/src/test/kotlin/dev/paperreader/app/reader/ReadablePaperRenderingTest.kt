@@ -37,14 +37,6 @@ class ReadablePaperRenderingTest {
     }
 
     @Test
-    fun `js string literal escapes quotes, backslashes, controls and script-breaking characters`() {
-        assertEquals(
-            "\"a\\\"b\\\\c\\u000A\\u2028\\u003C\"",
-            readableJsStringLiteral("a\"b\\c\n <"),
-        )
-    }
-
-    @Test
     fun `selection capture is bounded to one sanitized document block`() {
         val script = readableSelectionCaptureScript()
 
@@ -119,6 +111,7 @@ class ReadablePaperRenderingTest {
         assertTrue(html.contains("img-src data:"))
         assertTrue(html.contains("width: min(100%, 48rem)"))
         assertTrue(html.contains(".paperreader-table-scroll"))
+        assertTrue(html.contains("td:has(> .ltx_rule:only-child) { border: 0; }"))
         assertTrue(html.contains("overflow-x: auto"))
         assertTrue(html.contains("background: var(--surface)"))
         assertFalse(html.contains("background: white"))

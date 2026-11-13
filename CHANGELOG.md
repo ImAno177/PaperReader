@@ -13,10 +13,10 @@ current branch. Released sections correspond to Git tags.
 
 ### Fixed
 
-- The readable paper reader keeps its "Preparing mobile paper" loading state on screen until the
-  first document frame is drawn, so it no longer shows a blank page while the document is prepared.
-- A figure image that cannot be displayed now shows its alt text, or "Figure unavailable", in a
-  dashed placeholder above its caption instead of an empty bordered box.
+- The readable reader hides its loading overlay only after the first frame of the loaded document is drawn, so a blank page no longer shows while the document appears.
+- Empty arXiv separator rules in the readable reader no longer draw an empty bordered box between the abstract and the first section.
+- Broken figure images in the readable reader no longer draw an empty bordered frame; only the image's native alt text, if any, remains.
+- The readable reader's Contents action opens only after the document has finished loading.
 
 ### Build
 

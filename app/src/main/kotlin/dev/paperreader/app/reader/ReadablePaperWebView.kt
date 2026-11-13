@@ -12,7 +12,6 @@ import android.view.ViewConfiguration
 import android.webkit.WebView
 import dev.paperreader.app.R
 import dev.paperreader.logic.domain.Annotation
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 import kotlin.math.abs
 import org.json.JSONObject
@@ -28,7 +27,6 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
     private var appCommandSerial = 0
     private var appCommandTimeout: Runnable? = null
     private var loadSerial = 0L
-    val svgAssetUrls: MutableSet<String> = ConcurrentHashMap.newKeySet()
     private var touchDownX = 0f
     private var touchDownY = 0f
     private var lastTouchY = 0f
@@ -116,12 +114,6 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
         }
     }
 
-    fun applyAnnotations(annotations: List<Annotation>, onResult: (Int) -> Unit = {}) {
-        runAppOwnedCommand(readableAnnotationRenderScript(annotations)) { raw ->
-            onResult(raw?.toIntOrNull() ?: 0)
-        }
-    }
-
     override fun loadDataWithBaseURL(
         baseUrl: String?,
         data: String,
@@ -130,13 +122,7 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
         historyUrl: String?,
     ) {
         loadSerial += 1
-        svgAssetUrls.clear()
         super.loadDataWithBaseURL(baseUrl, data, mimeType, encoding, historyUrl)
-    }
-
-    fun markUnavailableFigures(onResult: () -> Unit) {
-        val label = context.getString(R.string.readable_reader_figure_unavailable)
-        runAppOwnedCommand(readableUnavailableFigureScript(label, svgAssetUrls.toSet())) { onResult() }
     }
 
     fun afterFirstRender(onRendered: () -> Unit) {
@@ -146,6 +132,12 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
                 if (requestId == loadSerial) onRendered()
             }
         })
+    }
+
+    fun applyAnnotations(annotations: List<Annotation>, onResult: (Int) -> Unit = {}) {
+        runAppOwnedCommand(readableAnnotationRenderScript(annotations)) { raw ->
+            onResult(raw?.toIntOrNull() ?: 0)
+        }
     }
 
     fun scrollToAnnotation(id: String, onResult: (Boolean) -> Unit) {

@@ -55,6 +55,7 @@ import dev.paperreader.app.ui.components.PaperSectionHeader
 import dev.paperreader.app.ui.components.PaperStatePanel
 import dev.paperreader.app.ui.components.PaperSurface
 import dev.paperreader.app.ui.components.PaperTextButton
+import dev.paperreader.app.ui.components.paperTopRule
 import dev.paperreader.app.ui.model.ManifestationUi
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.model.PaperUi
@@ -118,7 +119,11 @@ fun DetailScreen(
                 it.source.equals("arxiv", ignoreCase = true)
             }
             if (paper != null && manifestation != null) {
-                Surface(color = PaperTheme.tokens.canvas, tonalElevation = 2.dp) {
+                Surface(
+                    modifier = Modifier.paperTopRule(),
+                    color = PaperTheme.tokens.canvas,
+                    tonalElevation = 2.dp,
+                ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()

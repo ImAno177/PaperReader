@@ -7,9 +7,14 @@ current branch. Released sections correspond to Git tags.
 
 ### Changed
 
-- Library cards show the paper's field as a Material Symbols icon instead of an abbreviation such
-  as "CS" or "PAPER", and TalkBack reads the full field name. These icons are host-owned content
-  glyphs, so theme extensions still supply only the semantic icon set.
+- Library cards no longer show a field badge. List cards show the source, year, and identifier, and
+  grid cards show the source and year, so the grid metadata line stays readable without truncation.
+- Library status filter chips wrap onto additional lines, so every chip is reachable at large font
+  sizes. The collection chips stay on one row that scrolls horizontally, with a fade at the trailing
+  edge while more collections are off screen.
+- The primary navigation bar keeps its labels at large font scales. Labels truncate to one line with
+  an ellipsis, and the tap targets keep their 48dp minimum height.
+- The paper detail Read bar has a top rule that matches the navigation bar.
 
 ### Build
 

@@ -33,11 +33,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -54,6 +51,7 @@ import dev.paperreader.app.extensions.CommunityThemeExtensionManager
 import dev.paperreader.app.extensions.ExtensionInstallState
 import dev.paperreader.app.importer.IncomingPaperReferencePayload
 import dev.paperreader.app.importer.IncomingPaperReferenceRequest
+import dev.paperreader.app.ui.components.paperTopRule
 import dev.paperreader.app.ui.model.LocalPdfImportUiState
 import dev.paperreader.app.ui.model.MetadataBackupOperation
 import dev.paperreader.app.ui.model.MetadataBackupUiState
@@ -213,22 +211,15 @@ internal fun AdaptiveAppShell(
     content: @Composable (Modifier) -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(PaperTheme.tokens.canvas)) {
-        val showLabels = LocalDensity.current.fontScale < 1.5f
         if (!tabletUiMode.usesWideShell(maxWidth.value.toInt())) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 containerColor = PaperTheme.tokens.canvas,
                 bottomBar = {
-                    val navigationRule = PaperTheme.tokens.border
-                    val navigationRuleWidth = PaperTheme.tokens.borderWidth
                     NavigationBar(
                         modifier = Modifier
                             .testTag(PRIMARY_NAVIGATION_TEST_TAG)
-                            .drawWithContent {
-                                drawContent()
-                                val stroke = navigationRuleWidth.toPx()
-                                drawRect(navigationRule, size = Size(size.width, stroke))
-                            },
+                            .paperTopRule(),
                         containerColor = PaperTheme.tokens.surface,
                         contentColor = PaperTheme.tokens.ink,
                         tonalElevation = 0.dp,
@@ -241,7 +232,6 @@ internal fun AdaptiveAppShell(
                                 icon = destination.icon,
                                 label = stringResource(destination.labelRes),
                                 testKey = destination.route,
-                                showLabel = showLabels,
                             )
                         }
                     }
@@ -266,7 +256,6 @@ internal fun AdaptiveAppShell(
                             testKey = destination.route,
                             itemHeight = if (compactRail) 56.dp else 72.dp,
                             visualPadding = PaddingValues(if (compactRail) 2.dp else 4.dp),
-                            showLabel = showLabels,
                         )
                     }
                 }
@@ -286,7 +275,6 @@ private fun PaperDestinationItem(
     testKey: String,
     itemHeight: Dp = 72.dp,
     visualPadding: PaddingValues = PaddingValues(4.dp),
-    showLabel: Boolean = true,
 ) {
     val tokens = PaperTheme.tokens
     val borderWidth by animateDpAsState(
@@ -318,7 +306,7 @@ private fun PaperDestinationItem(
             shadowElevation = 0.dp,
         ) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 1.dp, vertical = 7.dp),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 1.dp, vertical = 2.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
             ) {
@@ -330,16 +318,14 @@ private fun PaperDestinationItem(
                         scaleY = iconScale
                     },
                 )
-                if (showLabel) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
     }

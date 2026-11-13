@@ -46,17 +46,11 @@ internal fun LibraryListPaperCard(
                 .fillMaxWidth()
                 .clickable(role = Role.Button, onClick = onOpen),
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                PaperDisciplineBadge(paper)
-                PaperMetaRow(
-                    source = paper.sources.joinToString { it.displayProviderName() }.ifBlank { null },
-                    year = (paper.publishedDate?.year ?: paper.publicationYear)?.toString(),
-                    identifier = paper.primaryIdentifier?.displayValue(),
-                )
-            }
+            PaperMetaRow(
+                source = paper.sources.joinToString { it.displayProviderName() }.ifBlank { null },
+                year = (paper.publishedDate?.year ?: paper.publicationYear)?.toString(),
+                identifier = paper.primaryIdentifier?.displayValue(),
+            )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = paper.title,
@@ -119,17 +113,11 @@ internal fun LibraryGridPaperCard(
                 .fillMaxWidth()
                 .clickable(role = Role.Button, onClick = onOpen),
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                PaperDisciplineBadge(paper, compact = true)
-                PaperMetaRow(
-                    source = paper.sources.firstOrNull()?.displayProviderName(),
-                    year = (paper.publishedDate?.year ?: paper.publicationYear)?.toString(),
-                    identifier = paper.primaryIdentifier?.displayValue(),
-                )
-            }
+            PaperMetaRow(
+                source = paper.sources.firstOrNull()?.displayProviderName(),
+                year = (paper.publishedDate?.year ?: paper.publicationYear)?.toString(),
+                identifier = null,
+            )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = paper.title,

@@ -139,7 +139,8 @@ internal object LibraryDatabaseMigrations {
 
     val MIGRATION_4_5 = object : Migration(4, 5) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE works ADD COLUMN publicationYear INTEGER")
+            // Constant DDL with no external input.
+            db.execSQL("ALTER TABLE works ADD COLUMN publicationYear INTEGER") // mobsf-ignore: android_kotlin_sql_raw_query
         }
     }
 

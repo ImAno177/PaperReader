@@ -321,7 +321,9 @@ class ExtensionInstaller(
                     putExtra(EXTRA_PACKAGE_NAME, packageName)
                     putExtra(EXTRA_INSTALL_SESSION_ID, sessionId)
                 }
-                val pendingIntent = PendingIntent.getBroadcast(
+                // PackageInstaller writes EXTRA_STATUS into this explicit, app-internal intent, so it
+                // must be mutable.
+                val pendingIntent = PendingIntent.getBroadcast( // mobsf-ignore: android_kotlin_pending_intent_not_immutable
                     applicationContext,
                     sessionId,
                     callback,

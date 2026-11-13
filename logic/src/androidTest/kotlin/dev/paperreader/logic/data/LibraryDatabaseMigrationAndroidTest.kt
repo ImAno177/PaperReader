@@ -137,7 +137,7 @@ class LibraryDatabaseMigrationAndroidTest {
                 check(cursor.moveToFirst())
                 org.junit.Assert.assertTrue(cursor.isNull(0))
             }
-            db.execSQL("UPDATE works SET publicationYear = 2024")
+            db.execSQL("UPDATE works SET publicationYear = 2024") // mobsf-ignore: android_kotlin_sql_raw_query
             db.query("SELECT publicationYear, publishedDateEpochDay FROM works").use { cursor ->
                 check(cursor.moveToFirst())
                 assertEquals(2024, cursor.getInt(0))

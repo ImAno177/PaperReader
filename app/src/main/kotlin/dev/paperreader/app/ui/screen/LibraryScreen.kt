@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -280,12 +280,12 @@ private fun LibraryControls(
                 },
             )
         }
-        LazyRow(
-            modifier = Modifier.selectableGroup(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(LibraryStatusFilter.entries, key = { it.name }) { option ->
+            LibraryStatusFilter.entries.forEach { option ->
                 LibraryStatusButton(
                     text = stringResource(
                         R.string.library_filter_with_count,
@@ -309,19 +309,17 @@ private fun LibraryControls(
             )
 
             is LoadState.Ready -> if (collections.value.isNotEmpty()) {
-                LazyRow(
-                    modifier = Modifier.selectableGroup(),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).selectableGroup(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    item(key = "all-collections") {
-                        LibraryStatusButton(
-                            text = stringResource(R.string.all_collections),
-                            selected = selectedCollectionId == null,
-                            onClick = { onCollectionChange(null) },
-                        )
-                    }
-                    items(collections.value, key = PaperCollectionUi::id) { collection ->
+                    LibraryStatusButton(
+                        text = stringResource(R.string.all_collections),
+                        selected = selectedCollectionId == null,
+                        onClick = { onCollectionChange(null) },
+                    )
+                    collections.value.forEach { collection ->
                         LibraryStatusButton(
                             text = collection.name,
                             selected = selectedCollectionId == collection.id,

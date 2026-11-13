@@ -58,8 +58,10 @@ logic/plugin/                      extension trust, discovery, and bounded IPC
 ```
 
 Root screen functions are the UI test seam. A helper remains feature-private until a second real
-consumer needs the same behavior. Production Kotlin files should stay below 600 lines; split at a
-feature, state-machine, or lifecycle seam instead of introducing pass-through wrappers.
+consumer needs the same behavior. Production Kotlin files must stay below 600 lines. Generated files are exempt; any other exception needs
+a rationale in this file. Before adding to a larger file, split it at an existing feature,
+state-machine, or lifecycle seam without growing its public or package interface. Do not add
+pass-through wrappers to meet the limit.
 
 ## Presentation state
 

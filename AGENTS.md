@@ -37,33 +37,17 @@ Update the relevant document when a decision changes.
   promotional filler, unexplained acronyms, em dashes, and placeholder text.
 - Keep tables for compact comparisons. Use paragraphs for reasoning and lists for genuinely parallel
   items. Do not duplicate the same contract across multiple documents; link to its source of truth.
-- Update `CHANGELOG.md` for user-visible behavior, public API, schema, security, build, or CI changes.
-  Keep `Unreleased` first, group entries under Added, Changed, Fixed, Removed, Security, or Build, and
-  use dated semantic-version headings only for released tags.
-- Before opening a pull request, run Markdown lint, check links and code examples, remove stale claims,
-  and confirm that the documentation index and affected cross-references still point to real files.
+- CHANGELOG entry format: [`CONTRIBUTING.md`](CONTRIBUTING.md#development-workflow).
+- Before opening a pull request, run the Markdown gate in [`docs/TESTING.md`](docs/TESTING.md), check
+  links and code examples, remove stale claims, and confirm the documentation index still resolves.
 
 ## Project boundary
 
-```text
-:app ---> :logic ---> :extension-api <--- external source/theme APKs
-```
-
-- `:app` owns Compose, Activities, navigation, view-model state, accessibility, English strings,
-  themes, icons, extension-install UI, and presentation mapping.
-- `:logic` owns immutable domain models, repository ports, Room, provider policy, reader artifacts,
-  task state, backup, signed-store verification, and extension trust/runtime seams.
-- Provider implementations remain in separately versioned Git repositories. Official Semantic Scholar, Crossref,
-  arXiv, and Europe PMC APKs live in `ImAno177/PaperReader-sources`, depend only on the published
-  `:extension-api`, and are discovered through its pinned signed store.
-- Related repositories may be checked out as Git submodules under `external/`. They are not host
-  Gradle modules; keep their remote, instructions, verification, and release ownership separate.
-- `:extension-api` owns only the published, versioned, bounded AIDL/data contract used by the host
-  and separately built extension APKs.
-- UI code consumes one application-scoped `PaperReaderLogic` facade. It must not import Room DAOs,
-  concrete repositories, HTTP clients, provider parsers, extraction internals, or plugin binders.
-- `:logic` must not import Compose, Android UI classes, navigation, or visual resources.
-- Never weaken or baseline `LogicBoundaryTest` to make a build pass.
+- Module ownership, dependency direction, and the `PaperReaderLogic` facade rule:
+  [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#module-ownership).
+- Provider implementations, signed stores, and extension contracts: [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md).
+- Submodules under `external/` keep their own remote, instructions, and release ownership:
+  [`docs/WORKSPACE.md`](docs/WORKSPACE.md).
 
 ## Code organization
 
@@ -76,67 +60,66 @@ Update the relevant document when a decision changes.
   speculative packages.
 - Keep screen interfaces stable and state-driven. Navigation and Compose tests call the same root
   screen interface; do not add test-only seams.
-- Keep production Kotlin files below 600 lines. Before adding to a larger file, split at an existing
-  feature or lifecycle seam without growing the public/package interface. Generated files are exempt;
-  other exceptions require a rationale in `docs/ARCHITECTURE.md`.
+- Kotlin file size limit and the split rule: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#code-organization).
 - Mirror ownership in tests: presentation logic in `app/src/test`, Android semantics/geometry in
   `app/src/androidTest`, IPC/trust in `logic`, external provider parsers in the source repository, and
   persistence in `logic`.
 
 ## Git workflow
 
-- Follow PaperReader's typed branch convention: `<type>/<kebab-case-summary>`, optionally including an
-  issue number such as `fix/425-rss-deleting-bug`.
-- Use `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `build`, `ci`, `release`, or `dependency`;
-  avoid vague `dev`, `patch`, or bare-name branches.
-- Do not add a tool, agent, or owner prefix; the branch name describes the change directly, for example
-  `feat/semantic-scholar-engine`.
-- Keep one independently reviewable concern per branch and align Conventional Commit and PR types.
+Branch names, commit and pull-request types, and one-concern branches follow
+[`CONTRIBUTING.md`](CONTRIBUTING.md#development-workflow).
 
-## Domain and persistence rules
+## Domain and persistence
 
-- Keep `PaperWork`, `PaperManifestation`, provider records, and local/generated artifacts separate.
-- Normalize DOI, arXiv, PMID, and PMCID identifiers; merge only on exact canonical aliases.
-- Similar titles are review candidates, never automatic merge evidence.
-- Room is the local source of truth; multi-table writes and identity merges are transactional.
-- A shipped schema change increments the database version, exports the schema, and adds a migration test.
-- WorkManager executes persisted tasks; it is not a second queue database.
+Identity, persistence, and migration rules are in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#domain-and-persistence) and
+[`docs/SPEC.md`](docs/SPEC.md#identity-rules).
 
 ## Network, reader, and extension safety
 
-- Use official provider APIs with explicit rate/concurrency policy and typed offline, 429,
-  unavailable, and invalid-response failures. Deterministic tests use local fixtures, not live internet.
-- Preserve paper provenance, license, acquisition time, and original-PDF fallback independently.
-- Never invent extracted text, silently upload a paper, render unsanitized remote HTML, or compile
-  untrusted TeX in the app process.
-- Bind annotations to an exact canonical document hash and stable source/text anchor. Never move them
-  silently across a manifestation, sanitizer, renderer, parser, or PDF revision.
-- Community extensions run as separate packages/UIDs over bounded versioned IPC. Never load
-  third-party DEX/JAR/JavaScript into the host or expose host storage/database paths.
-- A theme extension is declarative and includes a complete validated semantic icon set. The host owns
-  rendering and rejects unknown, oversized, or malformed assets.
-- APK installation requires a verified signed-store record, SHA-256/size/package/version/signer/service
-  preflight, and Android PackageInstaller user confirmation.
+- Never render unsanitized remote HTML, compile untrusted TeX in the app process, silently upload a
+  paper, load third-party DEX, JAR, or JavaScript into the host, or expose host storage or database
+  paths to an extension.
+- Never invent extracted text, licenses, successful installs, or provider data. Preserve paper
+  provenance, license, acquisition time, and the original-PDF fallback independently.
+- Bind annotations to an exact canonical document hash and stable anchor. Never move them silently
+  across a manifestation, sanitizer, renderer, parser, or PDF revision.
+- Use official provider APIs with explicit rate and concurrency policy: [`docs/SPEC.md`](docs/SPEC.md#network-policy).
+- Extension trust, install, theme, and Binder rules: [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md).
 
 ## Development and verification
 
-- Use the Gradle wrapper, JDK 21, Android SDK Platform 37.0 and Build-Tools 36.1.0, and Java/Kotlin bytecode target 17.
-- Keep the smallest stable contract test for regression-prone domain, persistence, migration, trust,
-  and security behavior. Extend the nearest existing test before adding another Kotlin test case or
-  test file.
-- Do not keep one-off tests that mirror an implementation detail or a closed visual bug once the
-  durable behavior is covered elsewhere. Remove obsolete, tautological, and duplicate tests during
-  the fix; verify UI polish and device-specific behavior through the connected/local smoke flow in
-  [`docs/TESTING.md`](docs/TESTING.md), not with one Kotlin test per pixel-level defect.
+- Gradle wrapper, JDK, SDK, and the local gate command: [`docs/TESTING.md`](docs/TESTING.md#local-gate).
+- Keep the smallest stable contract test. Remove obsolete, tautological, and duplicate tests in the
+  same change. Test policy: [`docs/TESTING.md`](docs/TESTING.md#test-case-policy).
+- Never weaken or baseline `LogicBoundaryTest`, add a lint baseline, or use a destructive Room
+  migration. Boundary checks: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#verification).
+- Do not add analytics, proprietary SDKs, credentials, private endpoints, or redistribution claims
+  without an explicit product and license review. Do not add speculative modules.
 - Preserve coroutine cancellation; do not block the main thread with database, network, parsing,
   hashing, or Binder work.
-- Do not add analytics, proprietary SDKs, credentials, private endpoints, destructive migrations,
-  lint baselines, or speculative modules.
-- Reuse a connected emulator; do not wipe it, factory-reset it, or start a duplicate instance.
+- Connected-test reporting and pull-request contents: [`CONTRIBUTING.md`](CONTRIBUTING.md#development-workflow).
 
-```powershell
-.\gradlew.bat hostUnitTest hostLint :app:assembleDebug
-```
+## Local device and environment
 
-Run connected tests for Android-runtime or UI changes and report the exact device/API and actions.
-A handoff states behavior, public API/schema impact, exact checks, and intentionally deferred work.
+- Connected tests: run `hostConnectedTest` with `-PpaperReaderConnectedTestApplicationIdSuffix=.uitest`.
+  Without the suffix the run uninstalls `dev.paperreader.app` and wipes the user's library. The build
+  refuses `:app` connected tasks that lack the suffix. Commands and results: [`docs/TESTING.md`](docs/TESTING.md#local-gate).
+- Emulator: reuse the connected emulator. Never wipe, factory-reset, or start a second instance.
+- Debug host with the local arXiv source: install with `:app:installDebug` and the `paperReaderDevSource*`
+  properties from [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md#local-host-development):
+  `paperReaderDevSourceProviderId=arxiv`, `paperReaderDevSourceCapabilities=search,details,pdf_link,readable_document`,
+  `paperReaderDevSourceIdentifierTypes=arxiv`, `paperReaderDevSourceMinimumIntervalMillis=3000`, and
+  `paperReaderDevSourceSignerSha256` set to the debug certificate SHA-256, which
+  `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android` prints.
+- Build `external/sources` with `-PpaperReaderHostSignerSha256=<same digest>` and
+  `-PpaperReaderSdkPath=<host checkout>`. The host and external builds must use the same AGP version.
+- adb from Git Bash needs `MSYS_NO_PATHCONV=1`. Capture screenshots with `screencap -p /sdcard/x.png`,
+  then `adb pull`; in PowerShell, never redirect `exec-out`. Tap elements by `uiautomator` text, not coordinates.
+- Before trusting a light or dark screenshot, check `theme_mode` in
+  `files/datastore/paper-reader-settings.preferences_pb`, and restore any setting you change.
+- Neobrutalism colors: source and contrast targets are in
+  [`docs/SPEC.md`](docs/SPEC.md#information-architecture). Verify light and dark on the emulator.
+- This machine sets `core.autocrlf=true`. Write generated files with LF. Never use `git commit -a`,
+  which would stage `external/` submodule pointers; stage paths explicitly.

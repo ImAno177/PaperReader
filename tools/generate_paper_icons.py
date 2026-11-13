@@ -139,10 +139,8 @@ def main() -> None:
 
         for semantic_name, material_name in sorted(ICONS.items()):
             output = args.output / f"ic_material_symbol_{semantic_name}.xml"
-            output.write_text(
-                vector_xml(glyph_path(material_font, material_codes[material_name])),
-                encoding="utf-8",
-            )
+            with output.open("w", encoding="utf-8", newline="\n") as handle:
+                handle.write(vector_xml(glyph_path(material_font, material_codes[material_name])))
 
 
 if __name__ == "__main__":

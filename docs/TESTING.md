@@ -20,8 +20,9 @@ it. Record its AVD name, Android version, and API level with the results:
 .\gradlew.bat hostConnectedTest '-PpaperReaderConnectedTestApplicationIdSuffix=.uitest'
 ```
 
-The isolated app suffix avoids replacing a production-signed installation. Connected XML results are
-kept under each module's `build/outputs/androidTest-results/connected` directory.
+The isolated app suffix avoids replacing a production-signed installation. Without it, Gradle stops
+before any `:app` connected task starts. Connected XML results are kept under each module's
+`build/outputs/androidTest-results/connected` directory.
 
 For readable-paper asset changes, the local audit must also confirm that the fresh APK can open
 Attention, CGP-Tuning, LoRA, Llama, ResNet, and InstructGPT, including figure captions, reader back,

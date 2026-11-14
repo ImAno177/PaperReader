@@ -135,7 +135,7 @@ class PaperThemeContrastTest {
             .associate { match -> match.groupValues[1] to Color(0xFF000000 or match.groupValues[2].toLong(16)) }
 
     @Test
-    fun `status badges outline with ink only on heavy-border themes`() {
+    fun `status badges use the theme border only on heavy-border themes`() {
         listOf(false, true).forEach { dark ->
             val neobrutalism = paperThemeTokens(PaperThemePreset.NEOBRUTALISM, dark)
             assertEquals(neobrutalism.border, neobrutalism.statusBadgeOutline(neobrutalism.primary))

@@ -64,8 +64,8 @@ Neobrutalism preset is a warm paper variant of the neobrutalism style, modeled o
 [codex-resets.com](https://codex-resets.com/) palette and its color roles: cream paper (`#FFF4DD`)
 behind off-white cards (`#FFFDF7`), warm brown-black ink (`#26201A`) for text and 2 dp outlines,
 and 12 dp corners. The preset is flat: it draws no offset shadows. Orange (`#FF5C2B`) marks the
-main call to action, such as Read, and in-progress states such as a paper being read, a running
-download, or new search results; it always carries ink text. Sun yellow (`#FFD84D`)
+main call to action, such as Read, and in-progress or new states such as a paper being read, a
+running download, or unread saved-search results; it always carries ink text. Sun yellow (`#FFD84D`)
 marks the selected state of navigation items, filters, and segmented choices, and is the text
 highlight. Sky blue (`#A5DCFF`) is the secondary accent for informational badges such as unread
 and highlight counts. Accents too light to read as text fall back to ink for labels, icons,

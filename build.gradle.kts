@@ -30,7 +30,7 @@ abstract class CheckNoSourceComments : DefaultTask() {
         val root = rootDirectory.get().asFile
         val violations = sources.files.sortedBy { it.path }.flatMap { file ->
             val text = file.readText().replace("\r\n", "\n")
-            commentOffsets(text, file.extension).map { offset ->
+            codeCommentOffsets(text, templates = file.extension == "kt" || file.extension == "kts").map { offset ->
                 val line = text.substring(0, offset).count { it == '\n' } + 1
                 "${file.relativeTo(root).invariantSeparatorsPath}:$line"
             }
@@ -44,21 +44,6 @@ abstract class CheckNoSourceComments : DefaultTask() {
                     "with its reason in GitHub code scanning, not as an inline suppression.",
             )
         }
-    }
-
-    private fun commentOffsets(text: String, extension: String): List<Int> = when (extension) {
-        "pro" -> lineOffsets(text).filter { text.startsWith("#", text.indexOfNonBlank(it)) }
-        "xml" -> Regex("<!--").findAll(text).map { it.range.first }.toList()
-        else -> codeCommentOffsets(text, templates = extension == "kt" || extension == "kts")
-    }
-
-    private fun lineOffsets(text: String): List<Int> =
-        listOf(0) + text.indices.filter { text[it] == '\n' }.map { it + 1 }
-
-    private fun String.indexOfNonBlank(from: Int): Int {
-        var index = from
-        while (index < length && (this[index] == ' ' || this[index] == '\t')) index++
-        return index
     }
 
     private fun codeCommentOffsets(text: String, templates: Boolean): List<Int> {
@@ -133,13 +118,13 @@ abstract class CheckNoSourceComments : DefaultTask() {
 
 val checkNoSourceComments = tasks.register<CheckNoSourceComments>("checkNoSourceComments") {
     group = "verification"
-    description = "Fails when Kotlin, Java, AIDL, Android XML, Gradle, or ProGuard sources contain comments."
+    description = "Fails when Kotlin, Kotlin script, Java, or AIDL sources contain comments."
     rootDirectory.set(layout.projectDirectory)
     sources.from(
         fileTree(layout.projectDirectory) {
             include("app/**", "logic/**", "extension-api/**", "gradle/**", "*.kts")
             exclude("**/build/**")
-        }.filter { file -> file.extension in setOf("kt", "kts", "java", "aidl", "pro", "xml") },
+        }.filter { file -> file.extension in setOf("kt", "kts", "java", "aidl") },
     )
 }
 

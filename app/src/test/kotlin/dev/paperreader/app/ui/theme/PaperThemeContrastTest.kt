@@ -1,6 +1,7 @@
 package dev.paperreader.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import dev.paperreader.app.ui.components.statusBadgeOutline
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
@@ -132,6 +133,16 @@ class PaperThemeContrastTest {
         Regex("""<color name="reader_neo_([a-z_]+)">#([0-9A-Fa-f]{6})</color>""")
             .findAll(file.readText())
             .associate { match -> match.groupValues[1] to Color(0xFF000000 or match.groupValues[2].toLong(16)) }
+
+    @Test
+    fun `status badges use the theme border only on heavy-border themes`() {
+        listOf(false, true).forEach { dark ->
+            val neobrutalism = paperThemeTokens(PaperThemePreset.NEOBRUTALISM, dark)
+            assertEquals(neobrutalism.border, neobrutalism.statusBadgeOutline(neobrutalism.primary))
+            val ocean = paperThemeTokens(PaperThemePreset.OCEAN, dark)
+            assertEquals(ocean.primary.copy(alpha = 0.70f), ocean.statusBadgeOutline(ocean.primary))
+        }
+    }
 
     @Test
     fun `material primary stays readable as text and outlines`() {

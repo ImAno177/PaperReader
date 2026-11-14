@@ -61,15 +61,19 @@ Bottom-navigation outlines align with the content grid, while independent touch 
 
 Appearance has independent controls for visual preset and System/Light/Dark mode. The built-in
 Neobrutalism preset is a warm paper variant of the neobrutalism style, modeled on the
-[codex-resets.com](https://codex-resets.com/) palette: cream paper (`#FFF4DD`) behind off-white
-cards (`#FFFDF7`), warm brown-black ink (`#26201A`) for text, 2 dp borders, and unblurred 4 dp
-offset shadows that a pressed control moves into, with 12 dp corners. Orange (`#FF5C2B`) marks
-actions and selection and always carries ink text; sun yellow (`#FFD84D`) is the secondary accent
-and the text highlight. Accents too light to read as text fall back to ink for labels, icons,
+[codex-resets.com](https://codex-resets.com/) palette and its color roles: cream paper (`#FFF4DD`)
+behind off-white cards (`#FFFDF7`), warm brown-black ink (`#26201A`) for text and 2 dp outlines,
+and 12 dp corners. The preset is flat: it draws no offset shadows. Orange (`#FF5C2B`) marks the
+main call to action, such as Read, and in-progress or new states such as a paper being read, a
+running download, or unread saved-search results; it always carries ink text. Sun yellow (`#FFD84D`)
+marks the selected state of navigation items, filters, and segmented choices, and is the text
+highlight. Sky blue (`#A5DCFF`) is the secondary accent for informational badges such as unread papers
+and highlight counts. Accents too light to read as text fall back to ink for labels, icons,
 progress, and Material focus outlines. Text uses DM Sans at its 14 pt optical size (the variable
 font defaults to the 9 pt caption design), weight 500 with 700 headings. Dark mode keeps the same
 warm hue: near-black paper (`#15110C`), brown cards (`#241E18`), cream ink, and a muted cream
-outline so fields and buttons keep 3:1 boundary contrast. The reader's link color is a darker
+outline so fields and buttons keep 3:1 boundary contrast. Dark mode uses the same roles with
+darker orange, sun, and sky tones. The reader's link color is a darker
 rust (`#8B3D1F`, peach in dark mode) so links stay readable as body text. Light and dark contrast is
 enforced by `app/src/test/kotlin/dev/paperreader/app/ui/theme/PaperThemeContrastTest.kt`: text meets
 WCAG AA 4.5:1 and component outlines meet 3:1, for both the Compose tokens and the reader's

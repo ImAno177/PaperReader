@@ -227,7 +227,6 @@ fun LibraryScreen(
                             padding = PaddingValues(0.dp),
                             onOpenPaper = onOpenPaper,
                             onReadPaper = onReadPaper,
-                            sectionTitle = librarySortLabel(state.sortOrder),
                             totalCount = papers.size,
                         )
                     } else {
@@ -236,7 +235,6 @@ fun LibraryScreen(
                             padding = PaddingValues(0.dp),
                             onOpenPaper = onOpenPaper,
                             onReadPaper = onReadPaper,
-                            sectionTitle = librarySortLabel(state.sortOrder),
                             totalCount = papers.size,
                         )
                     }
@@ -429,7 +427,6 @@ private fun LibraryList(
     padding: PaddingValues,
     onOpenPaper: (String) -> Unit,
     onReadPaper: (PaperUi) -> Unit,
-    sectionTitle: String,
     totalCount: Int,
 ) {
     LazyColumn(
@@ -439,7 +436,7 @@ private fun LibraryList(
     ) {
         item {
             PaperSectionHeader(
-                title = sectionTitle,
+                title = stringResource(R.string.library_section_papers),
                 action = { LibraryCountLabel(visibleCount = papers.size, totalCount = totalCount) },
             )
         }
@@ -459,7 +456,6 @@ private fun LibraryGrid(
     padding: PaddingValues,
     onOpenPaper: (String) -> Unit,
     onReadPaper: (PaperUi) -> Unit,
-    sectionTitle: String,
     totalCount: Int,
 ) {
     LazyVerticalGrid(
@@ -471,7 +467,7 @@ private fun LibraryGrid(
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             PaperSectionHeader(
-                title = sectionTitle,
+                title = stringResource(R.string.library_section_papers),
                 action = { LibraryCountLabel(visibleCount = papers.size, totalCount = totalCount) },
             )
         }

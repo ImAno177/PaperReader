@@ -5,6 +5,16 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+### Changed
+
+- Search result cards show Save as an outlined button aligned to the end of the card instead of a
+  full-width orange button. The orange primary action stays on the search submit button. Saved papers
+  keep an Open button in the same position.
+- The Data and backup screen uses the orange primary button only for Create library backup. Create
+  backup for metadata is now an outlined button. Both labels are unchanged.
+- The Library list and grid headers read Papers instead of the sort name. The paper count stays
+  beside the title.
+
 ## [0.2.1] - 2026-11-14
 
 ### Changed

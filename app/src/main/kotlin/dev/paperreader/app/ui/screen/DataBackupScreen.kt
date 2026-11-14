@@ -72,7 +72,7 @@ fun DataBackupScreen(
                 Text(stringResource(R.string.metadata_backup_body), color = PaperTheme.tokens.inkMuted)
                 MetadataBackupStatus(state, onDismissState)
                 Spacer(Modifier.height(12.dp))
-                PaperPrimaryButton(
+                PaperSecondaryButton(
                     onClick = onRequestExport,
                     enabled = actionsEnabled,
                     modifier = Modifier.fillMaxWidth(),

@@ -4,6 +4,7 @@ import dev.paperreader.app.ui.state.LoadState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
@@ -105,6 +106,25 @@ class LibraryScreenTest {
 
         composeRule.onNodeWithContentDescription("Show grid").performClick()
         composeRule.runOnIdle { assertEquals(LibraryLayout.GRID, requested) }
+    }
+
+    @Test
+    fun listHeaderShowsThePapersTitleAndCount() {
+        composeRule.enableAccessibilityChecks()
+        val papers = listOf(paper("engine", "Analytical Engine", listOf("Ada Lovelace")))
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                LibraryScreen(
+                    state = LibraryUiState(papers = LoadState.Ready(papers)),
+                    onAction = {},
+                    onOpenPaper = {},
+                    onDiscover = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Papers").assertIsDisplayed()
+        composeRule.onNodeWithText("1 saved paper").assertIsDisplayed()
     }
 
     @Test

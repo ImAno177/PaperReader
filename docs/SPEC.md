@@ -67,7 +67,7 @@ and 12 dp corners. The preset is flat: it draws no offset shadows. Orange (`#FF5
 main call to action, such as Read, and in-progress or new states such as a paper being read, a
 running download, or unread saved-search results; it always carries ink text. Sun yellow (`#FFD84D`)
 marks the selected state of navigation items, filters, and segmented choices, and is the text
-highlight. Sky blue (`#A5DCFF`) is the secondary accent for informational badges such as unread
+highlight. Sky blue (`#A5DCFF`) is the secondary accent for informational badges such as unread papers
 and highlight counts. Accents too light to read as text fall back to ink for labels, icons,
 progress, and Material focus outlines. Text uses DM Sans at its 14 pt optical size (the variable
 font defaults to the 9 pt caption design), weight 500 with 700 headings. Dark mode keeps the same

@@ -25,7 +25,6 @@ import dev.paperreader.app.R
 import dev.paperreader.app.ui.ProviderFailureKind
 import dev.paperreader.app.ui.ProviderSearchFailure
 import dev.paperreader.app.ui.components.PaperMetaRow
-import dev.paperreader.app.ui.components.PaperPrimaryButton
 import dev.paperreader.app.ui.components.PaperSecondaryButton
 import dev.paperreader.app.ui.components.PaperSurface
 import dev.paperreader.app.ui.model.SearchPaperUi
@@ -110,21 +109,23 @@ internal fun SearchResultCard(
             }
         }
         Spacer(Modifier.height(12.dp))
-        if (savedWorkId == null) {
-            PaperPrimaryButton(onClick = onSave, enabled = !saving, modifier = Modifier.fillMaxWidth()) {
-                if (saving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        color = PaperTheme.tokens.ink,
-                        strokeWidth = 2.dp,
-                    )
-                    Spacer(Modifier.size(8.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            if (savedWorkId == null) {
+                PaperSecondaryButton(onClick = onSave, enabled = !saving) {
+                    if (saving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PaperTheme.tokens.ink,
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(Modifier.size(8.dp))
+                    }
+                    Text(stringResource(if (saving) R.string.saving_paper else R.string.save_paper))
                 }
-                Text(stringResource(if (saving) R.string.saving_paper else R.string.save_paper))
-            }
-        } else {
-            PaperSecondaryButton(onClick = { onOpen(savedWorkId) }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.open_saved_paper))
+            } else {
+                PaperSecondaryButton(onClick = { onOpen(savedWorkId) }) {
+                    Text(stringResource(R.string.open_saved_paper))
+                }
             }
         }
         if (saveFailed) {

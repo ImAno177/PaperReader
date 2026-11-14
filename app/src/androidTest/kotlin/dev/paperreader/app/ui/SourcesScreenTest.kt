@@ -11,10 +11,15 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.ui.screen.MoreUiState
 import dev.paperreader.app.ui.screen.MoreScreen
+import dev.paperreader.app.ui.screen.SettingsScreen
+import dev.paperreader.app.ui.screen.SettingsUiState
 import dev.paperreader.app.ui.screen.SourcesScreen
 import dev.paperreader.app.extensions.ExtensionInstallState
 import dev.paperreader.app.ui.theme.PaperReaderTheme
@@ -322,6 +327,57 @@ class SourcesScreenTest {
             }
         }
 
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("About"))
+        composeRule.onNodeWithText("About").performClick()
+        assertTrue(opened)
+    }
+
+    @Test
+    fun moreHubUsesPlainHeadingsWithoutWorkspaceCardOrDescriptiveRows() {
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                MoreScreen(
+                    state = MoreUiState(),
+                    selectedPreset = PaperThemePreset.NEOBRUTALISM,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Your workspace").assertDoesNotExist()
+        listOf("Personalize", "Reading", "Data and sources", "App").forEach { section ->
+            composeRule.onNode(
+                hasText(section) and SemanticsMatcher.expectValue(SemanticsProperties.Heading, Unit),
+            ).performScrollTo().assertIsDisplayed()
+        }
+        composeRule.onNodeWithText("All preferences").assertDoesNotExist()
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Settings"))
+        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+    }
+
+    @Test
+    fun settingsHubRowsShowTitlesWithoutDescriptions() {
+        var opened = false
+        composeRule.setContent {
+            PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
+                SettingsScreen(
+                    state = SettingsUiState(),
+                    onAction = {},
+                    onOpenAppearance = {},
+                    onOpenLibrary = {},
+                    onOpenReader = {},
+                    onOpenDownloads = {},
+                    onOpenUpdates = {},
+                    onOpenDataBackup = {},
+                    onOpenSources = {},
+                    onOpenAbout = { opened = true },
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Appearance").assertIsDisplayed()
+        composeRule.onNodeWithText("Layout and collection organization").assertDoesNotExist()
+        composeRule.onNodeWithText("Metadata backup and restore").assertDoesNotExist()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("About"))
         composeRule.onNodeWithText("About").performClick()
         assertTrue(opened)

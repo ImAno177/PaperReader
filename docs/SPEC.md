@@ -59,6 +59,14 @@ Root titles are large, left aligned, and near the top safe area. They have no de
 Bottom-navigation outlines align with the content grid, while independent touch targets remain at least
 48 dp and extend safely around the visible geometry.
 
+More and Settings are plain text lists. Section headings are unframed text, and each group of rows
+sits in one card separated by dividers. Rows have a title, an optional supporting line, and a trailing
+chevron, with no leading icons. The More hub lists Personalize, Reading, Data and sources, and App, with
+Settings, About, and Help last in that order. A supporting line appears only when it reports state or a
+value, such as the selected theme, On or Off, or a count. Descriptive text is not shown; Settings rows
+keep their descriptions as search terms, so a query such as "restore" finds Data and backup even though
+the word is not in its title.
+
 Appearance has independent controls for visual preset and System/Light/Dark mode. The built-in
 Neobrutalism preset is a warm paper variant of the neobrutalism style, modeled on the
 [codex-resets.com](https://codex-resets.com/) palette and its color roles: cream paper (`#FFF4DD`)

@@ -1,13 +1,9 @@
 package dev.paperreader.app.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -16,24 +12,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import dev.paperreader.app.R
-import dev.paperreader.app.ui.state.LoadState
 import dev.paperreader.app.ui.components.PaperAppBarTitle
 import dev.paperreader.app.ui.components.PaperPreferenceRow
 import dev.paperreader.app.ui.components.PaperSurface
-import dev.paperreader.app.ui.components.StatusBadge
-import dev.paperreader.app.ui.model.MetadataBackupUiState
 import dev.paperreader.app.ui.model.LocalPdfImportUiState
+import dev.paperreader.app.ui.model.MetadataBackupUiState
+import dev.paperreader.app.ui.state.LoadState
 import dev.paperreader.app.ui.theme.PaperTheme
-import dev.paperreader.app.ui.theme.primaryForeground
-import dev.paperreader.app.ui.theme.PaperIcon
-import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperThemePreset
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,41 +60,32 @@ fun MoreScreen(
             contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 48.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            item(key = "more-header") {
-                MoreCompactHeader(
-                    savedPaperCount = state.savedPaperCount,
-                    activeDownloadCount = state.activeDownloadCount,
-                )
-            }
             item(key = "more-personalize-section") {
-                MoreSectionHeader(stringResource(R.string.more_personalize_section), PaperIconKey.PALETTE)
+                MoreSectionHeader(stringResource(R.string.more_personalize_section))
             }
             item(key = "more-personalize") {
                 MorePreferenceGroup {
                     PaperPreferenceRow(
                         title = stringResource(R.string.appearance_title),
                         supportingText = selectedThemeName ?: themeName(selectedPreset),
-                        icon = PaperIconKey.PALETTE,
                         onClick = onOpenAppearance,
                     )
                     MoreHubDivider()
                     PaperPreferenceRow(
                         title = stringResource(R.string.collections_title),
                         supportingText = collectionsHubSummaryCount(state.collectionCount),
-                        icon = PaperIconKey.FOLDER,
                         onClick = onOpenCollections,
                     )
                 }
             }
             item(key = "more-reading-section") {
-                MoreSectionHeader(stringResource(R.string.more_reading_section), PaperIconKey.BOOKMARKS)
+                MoreSectionHeader(stringResource(R.string.more_reading_section))
             }
             item(key = "more-reading") {
                 MorePreferenceGroup {
                     PaperPreferenceRow(
                         title = stringResource(R.string.local_pdf_import_title),
                         supportingText = localPdfHubSummary(state.localPdfImportState),
-                        icon = PaperIconKey.PDF,
                         onClick = onOpenReadingImports,
                     )
                     MoreHubDivider()
@@ -112,34 +95,30 @@ fun MoreScreen(
                             state.activeDownloadCount,
                             state.failedDownloadCount,
                         ),
-                        icon = PaperIconKey.DOWNLOAD,
                         onClick = onOpenDownloadQueue,
                     )
                     MoreHubDivider()
                     PaperPreferenceRow(
                         title = stringResource(R.string.stats_title),
                         supportingText = statsHubSummaryCount(state.savedPaperCount),
-                        icon = PaperIconKey.UPDATES,
                         onClick = onOpenStats,
                     )
                 }
             }
             item(key = "more-data-section") {
-                MoreSectionHeader(stringResource(R.string.more_data_section), PaperIconKey.PUBLIC)
+                MoreSectionHeader(stringResource(R.string.more_data_section))
             }
             item(key = "more-data") {
                 MorePreferenceGroup {
                     PaperPreferenceRow(
                         title = stringResource(R.string.updates_and_notifications_title),
                         supportingText = updatesHubSummary(state.automaticRefreshEnabled, state.notificationsAvailable),
-                        icon = PaperIconKey.NOTIFICATIONS_ON,
                         onClick = onOpenUpdates,
                     )
                     MoreHubDivider()
                     PaperPreferenceRow(
                         title = stringResource(R.string.data_and_backup),
                         supportingText = backupHubSummary(state.backupState),
-                        icon = PaperIconKey.DOWNLOAD,
                         onClick = onOpenDataBackup,
                     )
                     MoreHubDivider()
@@ -150,33 +129,27 @@ fun MoreScreen(
                             state.availableProviderCount,
                             state.installedProviderCount,
                         ),
-                        icon = PaperIconKey.PUBLIC,
                         onClick = onOpenSources,
                     )
                 }
             }
             item(key = "more-about-section") {
-                MoreSectionHeader(stringResource(R.string.more_about_section), PaperIconKey.INFO)
+                MoreSectionHeader(stringResource(R.string.more_about_section))
             }
             item(key = "more-about") {
                 MorePreferenceGroup {
                     PaperPreferenceRow(
                         title = stringResource(R.string.settings_title),
-                        supportingText = stringResource(R.string.settings_summary),
-                        icon = PaperIconKey.INFO,
                         onClick = onOpenSettings,
                     )
                     MoreHubDivider()
                     PaperPreferenceRow(
                         title = stringResource(R.string.about_title),
-                        icon = PaperIconKey.INFO,
                         onClick = onOpenAbout,
                     )
                     MoreHubDivider()
                     PaperPreferenceRow(
                         title = stringResource(R.string.help_title),
-                        supportingText = stringResource(R.string.help_summary),
-                        icon = PaperIconKey.INFO,
                         onClick = onOpenHelp,
                     )
                 }
@@ -186,84 +159,15 @@ fun MoreScreen(
 }
 
 @Composable
-private fun MoreCompactHeader(
-    savedPaperCount: LoadState<Int>,
-    activeDownloadCount: LoadState<Int>,
-) {
-    val savedCount = (savedPaperCount as? LoadState.Ready)?.value
-    val activeCount = (activeDownloadCount as? LoadState.Ready)?.value
-    MoreHubHeader(savedCount, activeCount)
-}
-
-@Composable
-private fun MoreHubHeader(savedCount: Int?, activeCount: Int?) {
-    PaperSurface(contentPadding = PaddingValues(14.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            PaperIcon(
-                key = PaperIconKey.LIBRARY,
-                contentDescription = null,
-                modifier = Modifier.size(28.dp),
-                tint = PaperTheme.tokens.primaryForeground,
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.more_header_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = PaperTheme.tokens.ink,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        if (savedCount != null || activeCount != null) {
-            FlowRow(
-                modifier = Modifier.padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                savedCount?.let {
-                    StatusBadge(
-                        text = pluralStringResource(R.plurals.saved_papers_count, it, it),
-                        icon = PaperIconKey.LIBRARY,
-                    )
-                }
-                activeCount?.takeIf { it > 0 }?.let {
-                    StatusBadge(
-                        text = pluralStringResource(R.plurals.download_queue_pending, it, it),
-                        icon = PaperIconKey.DOWNLOAD,
-                        color = PaperTheme.tokens.success,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MoreSectionHeader(title: String, icon: PaperIconKey) {
-    Row(
-        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        PaperIcon(
-            key = icon,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = PaperTheme.tokens.primaryForeground,
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = PaperTheme.tokens.ink,
-        )
-    }
+private fun MoreSectionHeader(title: String) {
+    Text(
+        text = title,
+        modifier = Modifier
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .semantics { heading() },
+        style = MaterialTheme.typography.titleSmall,
+        color = PaperTheme.tokens.ink,
+    )
 }
 
 @Composable

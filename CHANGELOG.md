@@ -7,6 +7,10 @@ current branch. Released sections correspond to Git tags.
 
 ### Changed
 
+- The More tab and Settings hub use plain text rows with unframed section headings and no leading
+  icons. The "Your workspace" summary card is removed. Descriptive lines such as "All preferences" and
+  "Guides and issue tracker" are removed, and a row shows a supporting line only when it reports a
+  state or count.
 - Search result cards show Save as an outlined button aligned to the end of the card instead of a
   full-width orange button. The orange primary action stays on the search submit button. Saved papers
   keep an Open button in the same position.

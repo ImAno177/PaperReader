@@ -36,14 +36,14 @@ fun SettingsScreen(
     onBack: () -> Unit,
 ) {
     val options = listOf(
-        SettingOption(PaperSettingEntry("appearance", stringResource(R.string.appearance_title), stringResource(R.string.appearance_display_summary)), PaperIconKey.PALETTE, onOpenAppearance),
-        SettingOption(PaperSettingEntry("library", stringResource(R.string.library_settings_title), stringResource(R.string.library_settings_summary)), PaperIconKey.LIBRARY, onOpenLibrary),
-        SettingOption(PaperSettingEntry("reader", stringResource(R.string.reader_settings_title), stringResource(R.string.reader_settings_summary)), PaperIconKey.HISTORY, onOpenReader),
-        SettingOption(PaperSettingEntry("downloads", stringResource(R.string.downloads_settings_title), stringResource(R.string.downloads_settings_summary)), PaperIconKey.DOWNLOAD, onOpenDownloads),
-        SettingOption(PaperSettingEntry("updates", stringResource(R.string.updates_settings_title), stringResource(R.string.updates_settings_summary)), PaperIconKey.UPDATES, onOpenUpdates),
-        SettingOption(PaperSettingEntry("data", stringResource(R.string.data_settings_title), stringResource(R.string.data_settings_summary)), PaperIconKey.DOWNLOAD, onOpenDataBackup),
-        SettingOption(PaperSettingEntry("sources", stringResource(R.string.sources_settings_title), stringResource(R.string.sources_settings_summary)), PaperIconKey.PUBLIC, onOpenSources),
-        SettingOption(PaperSettingEntry("about", stringResource(R.string.about_title), stringResource(R.string.about_description)), PaperIconKey.INFO, onOpenAbout),
+        SettingOption(PaperSettingEntry("appearance", stringResource(R.string.appearance_title), stringResource(R.string.appearance_display_summary)), onOpenAppearance),
+        SettingOption(PaperSettingEntry("library", stringResource(R.string.library_settings_title), stringResource(R.string.library_settings_summary)), onOpenLibrary),
+        SettingOption(PaperSettingEntry("reader", stringResource(R.string.reader_settings_title), stringResource(R.string.reader_settings_summary)), onOpenReader),
+        SettingOption(PaperSettingEntry("downloads", stringResource(R.string.downloads_settings_title), stringResource(R.string.downloads_settings_summary)), onOpenDownloads),
+        SettingOption(PaperSettingEntry("updates", stringResource(R.string.updates_settings_title), stringResource(R.string.updates_settings_summary)), onOpenUpdates),
+        SettingOption(PaperSettingEntry("data", stringResource(R.string.data_settings_title), stringResource(R.string.data_settings_summary)), onOpenDataBackup),
+        SettingOption(PaperSettingEntry("sources", stringResource(R.string.sources_settings_title), stringResource(R.string.sources_settings_summary)), onOpenSources),
+        SettingOption(PaperSettingEntry("about", stringResource(R.string.about_title), stringResource(R.string.about_description)), onOpenAbout),
     )
     SettingsScreenContent(
         query = state.query,
@@ -97,8 +97,6 @@ private fun SettingsScreenContent(
                         if (index > 0) HorizontalDivider(color = dev.paperreader.app.ui.theme.PaperTheme.tokens.border.copy(alpha = 0.24f))
                         PaperPreferenceRow(
                             title = option.entry.title,
-                            supportingText = option.entry.subtitle,
-                            icon = option.icon,
                             onClick = option.onClick,
                         )
                     }
@@ -110,6 +108,5 @@ private fun SettingsScreenContent(
 
 private data class SettingOption(
     val entry: PaperSettingEntry,
-    val icon: PaperIconKey,
     val onClick: () -> Unit,
 )

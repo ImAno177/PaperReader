@@ -82,7 +82,6 @@ fun PaperAppBarTitle(text: String) {
 fun PaperPreferenceRow(
     title: String,
     supportingText: String? = null,
-    icon: PaperIconKey,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -95,17 +94,6 @@ fun PaperPreferenceRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Surface(
-            modifier = Modifier.size(32.dp),
-            shape = RoundedCornerShape(PaperTheme.tokens.cornerRadius),
-            color = PaperTheme.tokens.secondaryContainer,
-            contentColor = PaperTheme.tokens.onSecondaryContainer,
-            border = BorderStroke(1.dp, PaperTheme.tokens.border.copy(alpha = 0.65f)),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                PaperIcon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
-        }
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(1.dp),

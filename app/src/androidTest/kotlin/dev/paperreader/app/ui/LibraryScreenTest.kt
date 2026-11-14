@@ -16,7 +16,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.paperreader.app.ui.model.PaperUi
 import dev.paperreader.app.ui.model.PaperCollectionUi
 import dev.paperreader.app.ui.model.LibraryLayout
-import dev.paperreader.app.ui.model.LibrarySortOrder
 import dev.paperreader.app.ui.screen.LibraryUiState
 import dev.paperreader.app.ui.screen.LibraryAction
 import dev.paperreader.app.ui.screen.LibraryScreen
@@ -110,16 +109,13 @@ class LibraryScreenTest {
     }
 
     @Test
-    fun listHeaderShowsPapersTitleWithTheSortOrderAsSupportingText() {
+    fun listHeaderShowsThePapersTitleAndCount() {
         composeRule.enableAccessibilityChecks()
         val papers = listOf(paper("engine", "Analytical Engine", listOf("Ada Lovelace")))
         composeRule.setContent {
             PaperReaderTheme(PaperThemePreset.NEOBRUTALISM) {
                 LibraryScreen(
-                    state = LibraryUiState(
-                        papers = LoadState.Ready(papers),
-                        sortOrder = LibrarySortOrder.TITLE,
-                    ),
+                    state = LibraryUiState(papers = LoadState.Ready(papers)),
                     onAction = {},
                     onOpenPaper = {},
                     onDiscover = {},
@@ -128,8 +124,7 @@ class LibraryScreenTest {
         }
 
         composeRule.onNodeWithText("Papers").assertIsDisplayed()
-        composeRule.onNodeWithText("1 saved paper · Sorted by Title A–Z").assertIsDisplayed()
-        composeRule.onNodeWithText("Title A–Z").assertDoesNotExist()
+        composeRule.onNodeWithText("1 saved paper").assertIsDisplayed()
     }
 
     @Test

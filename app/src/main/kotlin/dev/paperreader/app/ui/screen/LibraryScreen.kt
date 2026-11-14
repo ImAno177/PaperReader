@@ -227,7 +227,6 @@ fun LibraryScreen(
                             padding = PaddingValues(0.dp),
                             onOpenPaper = onOpenPaper,
                             onReadPaper = onReadPaper,
-                            sortLabel = librarySortLabel(state.sortOrder),
                             totalCount = papers.size,
                         )
                     } else {
@@ -236,7 +235,6 @@ fun LibraryScreen(
                             padding = PaddingValues(0.dp),
                             onOpenPaper = onOpenPaper,
                             onReadPaper = onReadPaper,
-                            sortLabel = librarySortLabel(state.sortOrder),
                             totalCount = papers.size,
                         )
                     }
@@ -429,7 +427,6 @@ private fun LibraryList(
     padding: PaddingValues,
     onOpenPaper: (String) -> Unit,
     onReadPaper: (PaperUi) -> Unit,
-    sortLabel: String,
     totalCount: Int,
 ) {
     LazyColumn(
@@ -440,9 +437,7 @@ private fun LibraryList(
         item {
             PaperSectionHeader(
                 title = stringResource(R.string.library_section_papers),
-                action = {
-                    LibraryCountLabel(visibleCount = papers.size, totalCount = totalCount, sortLabel = sortLabel)
-                },
+                action = { LibraryCountLabel(visibleCount = papers.size, totalCount = totalCount) },
             )
         }
         items(papers, key = PaperUi::id) { paper ->
@@ -461,7 +456,6 @@ private fun LibraryGrid(
     padding: PaddingValues,
     onOpenPaper: (String) -> Unit,
     onReadPaper: (PaperUi) -> Unit,
-    sortLabel: String,
     totalCount: Int,
 ) {
     LazyVerticalGrid(
@@ -474,9 +468,7 @@ private fun LibraryGrid(
         item(span = { GridItemSpan(maxLineSpan) }) {
             PaperSectionHeader(
                 title = stringResource(R.string.library_section_papers),
-                action = {
-                    LibraryCountLabel(visibleCount = papers.size, totalCount = totalCount, sortLabel = sortLabel)
-                },
+                action = { LibraryCountLabel(visibleCount = papers.size, totalCount = totalCount) },
             )
         }
         items(papers, key = PaperUi::id) { paper ->
@@ -490,13 +482,14 @@ private fun LibraryGrid(
 }
 
 @Composable
-private fun LibraryCountLabel(visibleCount: Int, totalCount: Int, sortLabel: String) {
-    val countText = if (visibleCount == totalCount) {
-        pluralStringResource(R.plurals.saved_papers_count, totalCount, totalCount)
-    } else {
-        stringResource(R.string.library_filtered_count, visibleCount, totalCount)
-    }
-    PaperLabel(stringResource(R.string.library_count_sorted_by, countText, sortLabel))
+private fun LibraryCountLabel(visibleCount: Int, totalCount: Int) {
+    PaperLabel(
+        if (visibleCount == totalCount) {
+            pluralStringResource(R.plurals.saved_papers_count, totalCount, totalCount)
+        } else {
+            stringResource(R.string.library_filtered_count, visibleCount, totalCount)
+        },
+    )
 }
 
 @Composable

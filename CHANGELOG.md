@@ -12,8 +12,8 @@ current branch. Released sections correspond to Git tags.
   keep an Open button in the same position.
 - The Data and backup screen uses the orange primary button only for Create library backup. Create
   backup for metadata is now an outlined button. Both labels are unchanged.
-- The Library list header reads Papers and shows the sort order beside the paper count, for example
-  "3 saved papers · Sorted by Title A–Z", instead of showing the sort name as the title.
+- The Library list and grid headers read Papers instead of the sort name. The paper count stays
+  beside the title.
 
 ## [0.2.1] - 2026-11-14
 

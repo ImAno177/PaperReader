@@ -9,8 +9,9 @@ current branch. Released sections correspond to Git tags.
 
 ### Changed
 
-- The Neobrutalism theme uses a warm paper palette: cream background, off-white cards, brown-black
-  ink, orange actions, and a yellow highlight, with 12 dp corners. Dark mode keeps the same warm hue
+- The Neobrutalism theme uses a flat warm paper palette: cream background, off-white cards,
+  brown-black ink and outlines, and 12 dp corners, with no offset shadows. Orange marks the main
+  action, yellow marks the selected item, and sky blue marks informational badges. Dark mode keeps the same warm hue
   instead of mixing a navy background with gray cards, and reader links use a readable rust color.
 - Library cards no longer show a field badge. List cards show the source, year, and identifier, and
   grid cards show the source and year, so the grid metadata line stays readable without truncation.

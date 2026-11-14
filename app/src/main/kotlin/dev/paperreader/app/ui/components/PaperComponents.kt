@@ -451,7 +451,7 @@ fun StatusBadge(
         contentColor = PaperTheme.tokens.ink,
         border = BorderStroke(
             PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp),
-            if (PaperTheme.tokens.shadowOffset > 0.dp) PaperTheme.tokens.border else color.copy(alpha = 0.70f),
+            if (PaperTheme.tokens.borderWidth >= 2.dp) PaperTheme.tokens.border else color.copy(alpha = 0.70f),
         ),
     ) {
         Row(

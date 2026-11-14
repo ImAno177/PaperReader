@@ -173,7 +173,6 @@
     <string name="reading_minutes">%1$d min</string>
 
     <string name="more_title">More</string>
-    <string name="more_header_title">Your workspace</string>
     <string name="more_personalize_section">Personalize</string>
     <string name="more_reading_section">Reading</string>
     <string name="more_data_section">Data and sources</string>
@@ -181,9 +180,7 @@
     <string name="more_about_section">App</string>
     <string name="stats_title">Stats</string>
     <string name="settings_title">Settings</string>
-    <string name="settings_summary">All preferences</string>
     <string name="help_title">Help and feedback</string>
-    <string name="help_summary">Guides and issue tracker</string>
     <string name="download_queue_loading">Loading queue</string>
     <string name="download_queue_unavailable">Queue unavailable</string>
     <string name="download_queue_active_and_failed">%1$d active &#8226; %2$d failed</string>

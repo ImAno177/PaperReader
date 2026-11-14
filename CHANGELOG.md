@@ -5,6 +5,13 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+### Changed
+
+- The More tab and Settings hub use plain text rows with unframed section headings and no leading
+  icons. The "Your workspace" summary card is removed. Descriptive lines such as "All preferences" and
+  "Guides and issue tracker" are removed, and a row shows a supporting line only when it reports a
+  state or count.
+
 ## [0.2.1] - 2026-11-14
 
 ### Changed

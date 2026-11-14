@@ -62,6 +62,7 @@ import dev.paperreader.app.ui.theme.PaperDecoration
 import dev.paperreader.app.ui.theme.PaperIcon
 import dev.paperreader.app.ui.theme.PaperIconKey
 import dev.paperreader.app.ui.theme.PaperTheme
+import dev.paperreader.app.ui.theme.PaperThemeTokens
 import dev.paperreader.app.ui.theme.primaryForeground
 
 @Composable
@@ -437,6 +438,9 @@ private fun Modifier.paperHardShadow(
     }
 }.padding(end = offset, bottom = offset)
 
+internal fun PaperThemeTokens.statusBadgeOutline(accent: Color): Color =
+    if (borderWidth >= 2.dp) border else accent.copy(alpha = 0.70f)
+
 @Composable
 fun StatusBadge(
     text: String,
@@ -451,7 +455,7 @@ fun StatusBadge(
         contentColor = PaperTheme.tokens.ink,
         border = BorderStroke(
             PaperTheme.tokens.borderWidth.coerceAtLeast(1.dp),
-            if (PaperTheme.tokens.borderWidth >= 2.dp) PaperTheme.tokens.border else color.copy(alpha = 0.70f),
+            PaperTheme.tokens.statusBadgeOutline(color),
         ),
     ) {
         Row(

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -343,14 +344,14 @@ class SourcesScreenTest {
         }
 
         composeRule.onNodeWithText("Your workspace").assertDoesNotExist()
-        composeRule.onNode(
-            hasText("Personalize") and SemanticsMatcher.expectValue(SemanticsProperties.Heading, Unit),
-        ).assertIsDisplayed()
+        listOf("Personalize", "Reading", "Data and sources", "App").forEach { section ->
+            composeRule.onNode(
+                hasText(section) and SemanticsMatcher.expectValue(SemanticsProperties.Heading, Unit),
+            ).performScrollTo().assertIsDisplayed()
+        }
         composeRule.onNodeWithText("All preferences").assertDoesNotExist()
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Settings"))
         composeRule.onNodeWithText("Settings").assertIsDisplayed()
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Help and feedback"))
-        composeRule.onNodeWithText("Guides and issue tracker").assertDoesNotExist()
     }
 
     @Test

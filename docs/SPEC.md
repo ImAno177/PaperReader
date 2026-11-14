@@ -64,7 +64,8 @@ sits in one card separated by dividers. Rows have a title, an optional supportin
 chevron, with no leading icons. The More hub lists Personalize, Reading, Data and sources, and App, with
 Settings, About, and Help last in that order. A supporting line appears only when it reports state or a
 value, such as the selected theme, On or Off, or a count. Descriptive text is not shown; Settings rows
-keep their descriptions as search terms, so a query such as "backup" still finds Data and backup.
+keep their descriptions as search terms, so a query such as "restore" finds Data and backup even though
+the word is not in its title.
 
 Appearance has independent controls for visual preset and System/Light/Dark mode. The built-in
 Neobrutalism preset is a warm paper variant of the neobrutalism style, modeled on the

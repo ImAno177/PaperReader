@@ -192,7 +192,7 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
                     HIGHLIGHT_SELECTION_ACTION_ID,
                     HIGHLIGHT_SELECTION_ACTION_ORDER,
                     context.getString(R.string.readable_reader_context_highlight),
-                ).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+                ).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
             }
             return created
         }
@@ -224,7 +224,7 @@ internal class ReadablePaperWebView @JvmOverloads constructor(
         private const val APP_COMMAND_TIMEOUT_MILLIS = 1_500L
         private const val SCROLL_DIRECTION_THRESHOLD_PX = 8
         private const val HIGHLIGHT_SELECTION_ACTION_ID = 0x50525801
-        private const val HIGHLIGHT_SELECTION_ACTION_ORDER = 80
+        private const val HIGHLIGHT_SELECTION_ACTION_ORDER = 0
     }
 }
 

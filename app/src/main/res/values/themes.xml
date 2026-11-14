@@ -26,6 +26,17 @@
         <item name="colorOnSurface">@color/reader_ink</item>
         <item name="colorSurfaceVariant">@color/reader_surface</item>
         <item name="colorOnSurfaceVariant">@color/reader_ink_muted</item>
+        <item name="colorSurfaceContainerLowest">@color/reader_canvas</item>
+        <item name="colorSurfaceContainerLow">@color/reader_canvas</item>
+        <item name="colorSurfaceContainer">@color/reader_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/reader_surface</item>
+        <item name="colorSurfaceContainerHighest">@color/reader_surface</item>
+        <item name="colorSurfaceBright">@color/reader_canvas</item>
+        <item name="colorSurfaceDim">@color/reader_surface</item>
+        <item name="colorPrimaryContainer">@color/reader_accent</item>
+        <item name="colorOnPrimaryContainer">@color/reader_on_accent</item>
+        <item name="colorSecondaryContainer">@color/reader_accent</item>
+        <item name="colorOnSecondaryContainer">@color/reader_on_accent</item>
     </style>
 
     <style name="Theme.PaperReader.PdfReader.Neobrutalism" parent="Theme.PaperReader.PdfReader">
@@ -43,5 +54,30 @@
         <item name="colorSurfaceVariant">@color/reader_neo_surface_muted</item>
         <item name="colorOnSurfaceVariant">@color/reader_neo_ink_muted</item>
         <item name="colorOutline">@color/reader_neo_border</item>
+        <item name="colorSurfaceContainerLowest">@color/reader_neo_surface</item>
+        <item name="colorSurfaceContainerLow">@color/reader_neo_surface</item>
+        <item name="colorSurfaceContainer">@color/reader_neo_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/reader_neo_surface</item>
+        <item name="colorSurfaceContainerHighest">@color/reader_neo_surface_muted</item>
+        <item name="colorSurfaceBright">@color/reader_neo_surface</item>
+        <item name="colorSurfaceDim">@color/reader_neo_surface_muted</item>
+        <item name="colorPrimaryContainer">@color/reader_neo_selection</item>
+        <item name="colorOnPrimaryContainer">@color/reader_neo_ink</item>
+        <item name="android:colorBackgroundFloating">@color/reader_neo_surface</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.PaperReader.Neobrutalism.Dialog.Alert</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.PaperReader.Neobrutalism.Button.Outlined</item>
+    </style>
+
+    <style name="ThemeOverlay.PaperReader.Neobrutalism.Dialog.Alert" parent="ThemeOverlay.Material3.Dialog.Alert">
+        <item name="buttonBarButtonStyle">@style/Widget.PaperReader.Neobrutalism.Button.Outlined</item>
+    </style>
+
+    <style name="Widget.PaperReader.Neobrutalism.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textColor">@color/reader_neo_ink</item>
+        <item name="backgroundTint">@color/reader_neo_surface</item>
+        <item name="strokeColor">@color/reader_neo_border</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="rippleColor">@color/reader_neo_selection</item>
     </style>
 </resources>

@@ -72,7 +72,8 @@ warm hue: near-black paper (`#15110C`), brown cards (`#241E18`), cream ink, and 
 outline so fields and buttons keep 3:1 boundary contrast. The reader's link color is a darker
 rust (`#8B3D1F`, peach in dark mode) so links stay readable as body text. Light and dark contrast is
 enforced by `app/src/test/kotlin/dev/paperreader/app/ui/theme/PaperThemeContrastTest.kt`: text meets
-WCAG AA 4.5:1 and component outlines meet 3:1. Five additional built-in color themes provide ocean, forest, violet, rose,
+WCAG AA 4.5:1 and component outlines meet 3:1, for both the Compose tokens and the reader's
+`reader_neo_*` color resources. Five additional built-in color themes provide ocean, forest, violet, rose,
 and sunset accents. A theme extension supplies a complete semantic icon set with its declarative
 tokens; the built-in Neobrutalism type scale does not override community typography. The legacy
 `DOODLE` extension decoration remains readable for binary compatibility but is not a built-in

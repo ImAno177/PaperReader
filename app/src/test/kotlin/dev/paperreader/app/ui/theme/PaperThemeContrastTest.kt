@@ -1,6 +1,7 @@
 package dev.paperreader.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import java.io.File
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -104,6 +105,33 @@ class PaperThemeContrastTest {
             }
         }
     }
+
+    @Test
+    fun `neobrutalism reader colors meet WCAG AA in light and dark resources`() {
+        listOf("values", "values-night").forEach { folder ->
+            val colors = readerColors(File("src/main/res/$folder/colors.xml"))
+            listOf(
+                "ink" to "canvas",
+                "ink" to "surface",
+                "ink_muted" to "surface",
+                "ink_muted" to "surface_muted",
+                "primary" to "canvas",
+                "primary" to "surface",
+                "on_primary" to "primary",
+                "ink" to "selection",
+            ).forEach { (foreground, background) ->
+                val ratio = contrastRatio(colors.getValue(foreground), colors.getValue(background))
+                assertTrue("$folder reader $foreground on $background contrast was $ratio", ratio >= WCAG_AA_NORMAL_TEXT)
+            }
+            val outline = contrastRatio(colors.getValue("border"), colors.getValue("surface"))
+            assertTrue("$folder reader border contrast was $outline", outline >= WCAG_AA_NON_TEXT)
+        }
+    }
+
+    private fun readerColors(file: File): Map<String, Color> =
+        Regex("""<color name="reader_neo_([a-z_]+)">#([0-9A-Fa-f]{6})</color>""")
+            .findAll(file.readText())
+            .associate { match -> match.groupValues[1] to Color(0xFF000000 or match.groupValues[2].toLong(16)) }
 
     @Test
     fun `material primary stays readable as text and outlines`() {

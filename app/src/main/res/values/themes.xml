@@ -3,7 +3,7 @@
         <item name="android:fontFamily">sans</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowBackground">@color/reader_neo_canvas</item>
-        <item name="android:colorAccent">#1C293C</item>
+        <item name="android:colorAccent">@color/reader_neo_ink</item>
         <item name="android:navigationBarColor">@color/reader_neo_canvas</item>
         <item name="android:statusBarColor">@color/reader_neo_canvas</item>
         <item name="android:windowLightStatusBar">true</item>

@@ -7,6 +7,9 @@ current branch. Released sections correspond to Git tags.
 
 ### Changed
 
+- The Neobrutalism theme uses a warm paper palette: cream background, off-white cards, brown-black
+  ink, orange actions, and a yellow highlight, with 12 dp corners. Dark mode keeps the same warm hue
+  instead of mixing a navy background with gray cards, and reader links use a readable rust color.
 - Library cards no longer show a field badge. List cards show the source, year, and identifier, and
   grid cards show the source and year, so the grid metadata line stays readable without truncation.
 - Library status filter chips wrap onto additional lines, so every chip is reachable at large font

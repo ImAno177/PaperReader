@@ -60,18 +60,20 @@ Bottom-navigation outlines align with the content grid, while independent touch 
 48 dp and extend safely around the visible geometry.
 
 Appearance has independent controls for visual preset and System/Light/Dark mode. The built-in
-Neobrutalism preset uses neobrutalism.dev's default theme: black ink, 2 dp black borders, 5 dp
-corners, and unblurred 4 dp offset shadows that a pressed control moves into, on a pale-blue
-background with white cards and inputs. One main blue (`#5294FF`) marks actions and selection and
-always carries black text, with yellow as the secondary accent. Accents too light to read as text
-fall back to ink for labels, icons, progress, and Material focus outlines. Text uses DM Sans at
-its 14 pt optical size (the variable font defaults to the 9 pt caption design), weight 500 with
-700 headings. Dark mode follows the same project's former dark theme: a navy
-background, near-black cards, light text, and black shadows, with a light outline instead of
-upstream's black dark border so fields and buttons keep 3:1 boundary contrast. The palette source is `src/styling/globals.css` in
-`ekmas/neobrutalism-components`; its dark block comes from commit `e55e9d09`. Light and dark contrast is
+Neobrutalism preset is a warm paper variant of the neobrutalism style, modeled on the
+[codex-resets.com](https://codex-resets.com/) palette: cream paper (`#FFF4DD`) behind off-white
+cards (`#FFFDF7`), warm brown-black ink (`#26201A`) for text, 2 dp borders, and unblurred 4 dp
+offset shadows that a pressed control moves into, with 12 dp corners. Orange (`#FF5C2B`) marks
+actions and selection and always carries ink text; sun yellow (`#FFD84D`) is the secondary accent
+and the text highlight. Accents too light to read as text fall back to ink for labels, icons,
+progress, and Material focus outlines. Text uses DM Sans at its 14 pt optical size (the variable
+font defaults to the 9 pt caption design), weight 500 with 700 headings. Dark mode keeps the same
+warm hue: near-black paper (`#15110C`), brown cards (`#241E18`), cream ink, and a muted cream
+outline so fields and buttons keep 3:1 boundary contrast. The reader's link color is a darker
+rust (`#8B3D1F`, peach in dark mode) so links stay readable as body text. Light and dark contrast is
 enforced by `app/src/test/kotlin/dev/paperreader/app/ui/theme/PaperThemeContrastTest.kt`: text meets
-WCAG AA 4.5:1 and component outlines meet 3:1. Five additional built-in color themes provide ocean, forest, violet, rose,
+WCAG AA 4.5:1 and component outlines meet 3:1, for both the Compose tokens and the reader's
+`reader_neo_*` color resources. Five additional built-in color themes provide ocean, forest, violet, rose,
 and sunset accents. A theme extension supplies a complete semantic icon set with its declarative
 tokens; the built-in Neobrutalism type scale does not override community typography. The legacy
 `DOODLE` extension decoration remains readable for binary compatibility but is not a built-in

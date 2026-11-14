@@ -18,6 +18,16 @@ current branch. Released sections correspond to Git tags.
   backup for metadata is now an outlined button. Both labels are unchanged.
 - The Library list and grid headers read Papers instead of the sort name. The paper count stays
   beside the title.
+- The reader's overflow menu, Reading layout dialog, and annotation sheet use the reader's warm
+  surface colors instead of the default lavender surfaces, in light and dark mode.
+- Reader dialog buttons and the text size controls in the Neobrutalism theme have a 2dp ink outline
+  and a 48dp minimum height.
+
+### Fixed
+
+- The readable reader's Highlight action appears in the text selection toolbar, so the Highlights
+  empty state's instruction to choose Highlight from the text menu is accurate. It was previously
+  hidden in the toolbar's overflow menu.
 
 ## [0.2.1] - 2026-11-14
 

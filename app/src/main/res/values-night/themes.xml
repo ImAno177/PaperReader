@@ -26,5 +26,16 @@
         <item name="colorOnSurface">@color/reader_ink</item>
         <item name="colorSurfaceVariant">@color/reader_surface</item>
         <item name="colorOnSurfaceVariant">@color/reader_ink_muted</item>
+        <item name="colorSurfaceContainerLowest">@color/reader_canvas</item>
+        <item name="colorSurfaceContainerLow">@color/reader_canvas</item>
+        <item name="colorSurfaceContainer">@color/reader_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/reader_surface</item>
+        <item name="colorSurfaceContainerHighest">@color/reader_surface</item>
+        <item name="colorSurfaceBright">@color/reader_canvas</item>
+        <item name="colorSurfaceDim">@color/reader_surface</item>
+        <item name="colorPrimaryContainer">@color/reader_accent</item>
+        <item name="colorOnPrimaryContainer">@color/reader_on_accent</item>
+        <item name="colorSecondaryContainer">@color/reader_accent</item>
+        <item name="colorOnSecondaryContainer">@color/reader_on_accent</item>
     </style>
 </resources>

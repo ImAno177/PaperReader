@@ -5,6 +5,8 @@ current branch. Released sections correspond to Git tags.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-14
+
 ### Changed
 
 - The Neobrutalism theme uses a warm paper palette: cream background, off-white cards, brown-black
@@ -391,7 +393,8 @@ current branch. Released sections correspond to Git tags.
 
 - The separate-extension model and the first signed source-update contract.
 
-[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/ImAno177/PaperReader/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/ImAno177/PaperReader/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/ImAno177/PaperReader/compare/v0.1.11...v0.2.0
 [0.1.11]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.11
 [0.1.10]: https://github.com/ImAno177/PaperReader/releases/tag/v0.1.10
